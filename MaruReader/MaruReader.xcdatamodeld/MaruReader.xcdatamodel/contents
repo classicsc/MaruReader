@@ -1,9 +1,75 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="false" userDefinedModelVersionIdentifier="">
-    <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
-        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="23788.4" systemVersion="24G90" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
+        <attribute name="attribution" optional="YES" attributeType="String"/>
+        <attribute name="author" optional="YES" attributeType="String"/>
+        <attribute name="downloadUrl" optional="YES" attributeType="String"/>
+        <attribute name="enabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="freqOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="frequencyMode" optional="YES" attributeType="String"/>
+        <attribute name="hasTags" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="indexUrl" optional="YES" attributeType="String"/>
+        <attribute name="ipaOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFreqDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isIpaDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isPitchDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isTermDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isUpdatable" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
+        <attribute name="pitchOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="revision" optional="YES" attributeType="String"/>
+        <attribute name="sequenced" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="sourceLanguage" optional="YES" attributeType="String"/>
+        <attribute name="targetLanguage" optional="YES" attributeType="String"/>
+        <attribute name="termOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="title" attributeType="String"/>
+        <attribute name="updatesEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="kanji" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Kanji" inverseName="dictionary" inverseEntity="Kanji"/>
+        <relationship name="kanjiMeta" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiMeta" inverseName="dictionary" inverseEntity="KanjiMeta"/>
+        <relationship name="tags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Tag" inverseName="dictionary" inverseEntity="Tag"/>
+        <relationship name="termMeta" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermMeta" inverseName="dictionary" inverseEntity="TermMeta"/>
+        <relationship name="terms" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Term" inverseName="dictionary" inverseEntity="Term"/>
     </entity>
-    <elements>
-        <element name="Item" positionX="-63" positionY="-18" width="128" height="44"/>
-    </elements>
+    <entity name="Kanji" representedClassName="Kanji" syncable="YES" codeGenerationType="class">
+        <attribute name="character" attributeType="String" minValueString="1"/>
+        <attribute name="kunyomi" attributeType="String"/>
+        <attribute name="meanings" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="onyomi" attributeType="String"/>
+        <attribute name="stats" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="tags" attributeType="String"/>
+        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanji" inverseEntity="Dictionary"/>
+    </entity>
+    <entity name="KanjiMeta" representedClassName="KanjiMeta" syncable="YES" codeGenerationType="class">
+        <attribute name="character" attributeType="String" minValueString="1"/>
+        <attribute name="freq" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSObject"/>
+        <attribute name="type" attributeType="String"/>
+        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanjiMeta" inverseEntity="Dictionary"/>
+    </entity>
+    <entity name="Tag" representedClassName="Tag" syncable="YES" codeGenerationType="class">
+        <attribute name="category" attributeType="String"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="notes" optional="YES" attributeType="String"/>
+        <attribute name="order" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="score" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="tags" inverseEntity="Dictionary"/>
+    </entity>
+    <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">
+        <attribute name="definitionTags" optional="YES" attributeType="String"/>
+        <attribute name="expression" attributeType="String"/>
+        <attribute name="glossary" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="reading" attributeType="String"/>
+        <attribute name="rules" attributeType="String"/>
+        <attribute name="score" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="sequence" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="termTags" optional="YES" attributeType="String"/>
+        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="terms" inverseEntity="Dictionary"/>
+    </entity>
+    <entity name="TermMeta" representedClassName="TermMeta" syncable="YES" codeGenerationType="class">
+        <attribute name="data" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="expression" attributeType="String"/>
+        <attribute name="type" attributeType="String"/>
+        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="termMeta" inverseEntity="Dictionary"/>
+    </entity>
 </model>
