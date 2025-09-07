@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBC9FEB02E6C9B7800F1E920 /* Zip */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		DB2B699F2E660F8D00EDA656 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 				DB2B698E2E660F8B00EDA656 /* MaruReader */,
 				DB2B69A12E660F8D00EDA656 /* MaruReaderTests */,
 				DB2B69AB2E660F8D00EDA656 /* MaruReaderUITests */,
+				DBC9FEAF2E6C9B7800F1E920 /* Frameworks */,
 				DB2B698D2E660F8B00EDA656 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +96,13 @@
 				DB2B69A82E660F8D00EDA656 /* MaruReaderUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		DBC9FEAF2E6C9B7800F1E920 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +125,7 @@
 			);
 			name = MaruReader;
 			packageProductDependencies = (
+				DBC9FEB02E6C9B7800F1E920 /* Zip */,
 			);
 			productName = MaruReader;
 			productReference = DB2B698C2E660F8B00EDA656 /* MaruReader.app */;
@@ -195,6 +209,9 @@
 			);
 			mainGroup = DB2B69832E660F8B00EDA656;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2B698D2E660F8B00EDA656 /* Products */;
 			projectDirPath = "";
@@ -562,6 +579,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/marmelroy/Zip";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DBC9FEB02E6C9B7800F1E920 /* Zip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
+			productName = Zip;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = DB2B69842E660F8B00EDA656 /* Project object */;
 }

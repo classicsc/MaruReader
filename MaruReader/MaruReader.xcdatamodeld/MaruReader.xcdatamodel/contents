@@ -3,13 +3,14 @@
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
-        <attribute name="downloadUrl" optional="YES" attributeType="String"/>
+        <attribute name="displayDescription" optional="YES" attributeType="String"/>
+        <attribute name="downloadURL" optional="YES" attributeType="String"/>
         <attribute name="enabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="freqOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="frequencyMode" optional="YES" attributeType="String"/>
         <attribute name="hasTags" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="indexUrl" optional="YES" attributeType="String"/>
+        <attribute name="indexURL" optional="YES" attributeType="String"/>
         <attribute name="ipaOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isFreqDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -26,6 +27,7 @@
         <attribute name="termOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="title" attributeType="String"/>
         <attribute name="updatesEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="url" optional="YES" attributeType="String"/>
         <relationship name="kanji" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Kanji" inverseName="dictionary" inverseEntity="Kanji"/>
         <relationship name="kanjiMeta" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiMeta" inverseName="dictionary" inverseEntity="KanjiMeta"/>
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Tag" inverseName="dictionary" inverseEntity="Tag"/>
@@ -51,8 +53,8 @@
         <attribute name="category" attributeType="String"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
-        <attribute name="order" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="score" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="order" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="tags" inverseEntity="Dictionary"/>
     </entity>
     <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">

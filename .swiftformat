@@ -1,0 +1,3 @@
+--swift-version 6
+--language-mode 6
+--disable redundantSelf
