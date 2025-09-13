@@ -48,7 +48,7 @@
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">
-        <attribute name="definitionTags" optional="YES" attributeType="String"/>
+        <attribute name="definitionTags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="dictionary" attributeType="URI"/>
         <attribute name="expression" attributeType="String"/>
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
@@ -56,7 +56,7 @@
         <attribute name="rules" attributeType="String"/>
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="termTags" optional="YES" attributeType="String"/>
+        <attribute name="termTags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
     </entity>
     <entity name="TermMeta" representedClassName="TermMeta" syncable="YES" codeGenerationType="class">
         <attribute name="data" attributeType="Transformable" valueTransformerName="TermMetaEntryDataTransformer"/>

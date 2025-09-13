@@ -49,8 +49,8 @@ struct DictionaryImportCoordinator {
 
     /// Runs the import operation.
     func runImport() async throws {
-        let dictionaryID = try await processIndex()
-        logger.debug("Created dictionary object with ID: \(dictionaryID)")
+        let (dictionaryID, dataFormat) = try await processIndex()
+        logger.debug("Created dictionary object with ID: \(dictionaryID) and format: \(dataFormat)")
         // Process the other bank types here...
         // Mark the dictionary object as complete
         try await container.performBackgroundTask { context in
@@ -65,7 +65,7 @@ struct DictionaryImportCoordinator {
     }
 
     /// Process the index file and send to the persistence layer.
-    private func processIndex() async throws -> NSManagedObjectID {
+    private func processIndex() async throws -> (NSManagedObjectID, Int) {
         // Load the index file
         let data = try Data(contentsOf: indexURL)
         let decoder = JSONDecoder()
@@ -119,7 +119,7 @@ struct DictionaryImportCoordinator {
                     throw DictionaryImportError.unsupportedFormat
                 }
             }
-            return dict.objectID
+            return (dict.objectID, indexFormat)
         }
     }
 }
