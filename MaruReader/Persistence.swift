@@ -32,6 +32,8 @@ struct PersistenceController {
     let container: NSPersistentContainer
 
     init(inMemory: Bool = false) {
+        // Register custom value transformers used by Transformable attributes before loading stores
+        CoreDataTransformers.register()
         container = NSPersistentContainer(name: "MaruReader")
         if inMemory {
             container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")

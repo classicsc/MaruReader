@@ -36,16 +36,17 @@
     </entity>
     <entity name="Kanji" representedClassName="Kanji" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String" minValueString="1"/>
-        <attribute name="kunyomi" attributeType="String"/>
-        <attribute name="meanings" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
-        <attribute name="onyomi" attributeType="String"/>
-        <attribute name="stats" optional="YES" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
-        <attribute name="tags" attributeType="String"/>
+        <attribute name="kunyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="meanings" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="onyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="stats" optional="YES" attributeType="Transformable" valueTransformerName="StringDictionaryTransformer"/>
+        <attribute name="tags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanji" inverseEntity="Dictionary"/>
     </entity>
     <entity name="KanjiMeta" representedClassName="KanjiMeta" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String" minValueString="1"/>
-        <attribute name="freq" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSObject"/>
+        <attribute name="displayFrequency" optional="YES" attributeType="String"/>
+        <attribute name="frequencyValue" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String"/>
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanjiMeta" inverseEntity="Dictionary"/>
     </entity>
@@ -63,14 +64,16 @@
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="rules" attributeType="String"/>
-        <attribute name="score" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termTags" optional="YES" attributeType="String"/>
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="terms" inverseEntity="Dictionary"/>
     </entity>
     <entity name="TermMeta" representedClassName="TermMeta" syncable="YES" codeGenerationType="class">
         <attribute name="data" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="displayFrequency" optional="YES" attributeType="String"/>
         <attribute name="expression" attributeType="String"/>
+        <attribute name="frequencyValue" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String"/>
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="termMeta" inverseEntity="Dictionary"/>
     </entity>

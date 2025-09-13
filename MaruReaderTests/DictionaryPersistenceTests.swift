@@ -1,5 +1,5 @@
 //
-//  MaruReaderTests.swift
+//  DictionaryPersistenceTests.swift
 //  MaruReaderTests
 //
 //  Created by Sam Smoker on 9/1/25.
@@ -11,7 +11,7 @@ import Foundation
 import Testing
 import Zip
 
-struct MaruReaderTests {
+struct DictionaryPersistenceTests {
     // Custom errors for diagnostics
     enum MockZipError: Error {
         case invalidJSON(String)

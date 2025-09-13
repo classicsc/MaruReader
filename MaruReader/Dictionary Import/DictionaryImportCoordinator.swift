@@ -69,7 +69,9 @@ struct DictionaryImportCoordinator {
         // Load the index file
         let data = try Data(contentsOf: indexURL)
         let decoder = JSONDecoder()
-        let index = try decoder.decode(DictionaryIndex.self, from: data)
+        guard let index = try? decoder.decode(DictionaryIndex.self, from: data) else {
+            throw DictionaryImportError.invalidData
+        }
         let indexFormat = index.format ?? index.version ?? 0
         guard indexFormat == 1 || indexFormat == 3 else {
             throw DictionaryImportError.unsupportedFormat
