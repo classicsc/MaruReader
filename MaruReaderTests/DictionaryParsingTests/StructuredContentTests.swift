@@ -9,7 +9,6 @@ import Foundation
 @testable import MaruReader
 import Testing
 
-
 struct StructuredContentTests {
     // These tests cover decoding of glossary Data into Definition and StructuredContent.
     // Focus: Variant decoding (text, structured, image, deinflection); nested elements.

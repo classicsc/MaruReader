@@ -103,7 +103,12 @@ struct TermParsingTests {
         #expect(term.definitionTags == ["v1"])
         #expect(term.rules == ["v1"])
         #expect(term.score == 100)
-        #expect(term.glossary == ["to eat"])
+        switch term.glossary[0] {
+        case let .text(text):
+            #expect(text == "to eat")
+        default:
+            #expect(Bool(false), "Expected text glossary entry")
+        }
     }
 
     @Test func termBankV1Entry_MultipleDefinitions_ReturnsAllGlossaryItems() throws {
@@ -117,7 +122,18 @@ struct TermParsingTests {
         #expect(terms.count == 1)
         let term = terms[0]
         #expect(term.definitionTags == ["v1", "freq", "common"])
-        #expect(term.glossary == ["to eat", "consume", "ingest"])
+        switch term.glossary[0] {
+        case let .text(text):
+            #expect(text == "to eat")
+        default:
+            #expect(Bool(false), "Expected text glossary entry")
+        }
+        switch term.glossary[1] {
+        case let .text(text):
+            #expect(text == "consume")
+        default:
+            #expect(Bool(false), "Expected text glossary entry")
+        }
     }
 
     @Test func termBankV1Entry_EmptyTagsAndRules_YieldsEmptyArrays() throws {
@@ -135,7 +151,12 @@ struct TermParsingTests {
         #expect(term.definitionTags.isEmpty)
         #expect(term.rules.isEmpty)
         #expect(term.score == 5)
-        #expect(term.glossary == ["book"])
+        switch term.glossary[0] {
+        case let .text(text):
+            #expect(text == "book")
+        default:
+            #expect(Bool(false), "Expected text glossary entry")
+        }
     }
 
     @Test func termBankV1Entry_InvalidAdditionalItemType_ThrowsInvalidData() throws {

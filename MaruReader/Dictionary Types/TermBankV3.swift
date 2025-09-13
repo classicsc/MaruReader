@@ -11,12 +11,12 @@ import Foundation
 struct TermBankV3Entry: Codable {
     let expression: String
     let reading: String
-    let definitionTags: [String]?      // null | space‑separated string
-    let rules: [String]                // space‑separated string
+    let definitionTags: [String]? // null | space‑separated string
+    let rules: [String] // space‑separated string
     let score: Double
     let glossary: [Definition]
     let sequence: Int
-    let termTags: [String]             // space‑separated string
+    let termTags: [String] // space‑separated string
 
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()

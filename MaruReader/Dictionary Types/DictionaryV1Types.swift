@@ -198,7 +198,7 @@ struct TermBankV1Entry: Codable {
     let definitionTags: [String]
     let rules: [String]
     let score: Double
-    let glossary: [String]
+    let glossary: [Definition]
 
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
@@ -208,11 +208,11 @@ struct TermBankV1Entry: Codable {
         let definitionTagsRaw = try container.decode(String.self)
         let rulesRaw = try container.decode(String.self)
         self.score = try container.decode(Double.self)
-        var glossary: [String] = []
+        var glossary: [Definition] = []
         while !container.isAtEnd {
             // Remaining items are glossary entries as raw strings
             if let meaning = try? container.decode(String.self) {
-                glossary.append(meaning)
+                glossary.append(Definition.text(meaning))
             } else {
                 // If an item isn't a string, treat as corruption
                 throw DictionaryImportError.invalidData
