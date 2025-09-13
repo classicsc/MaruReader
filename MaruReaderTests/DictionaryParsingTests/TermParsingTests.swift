@@ -83,7 +83,7 @@ struct TermParsingTests {
         let data = jsonString.data(using: .utf8)!
         let decoder = JSONDecoder()
 
-        #expect(throws: DictionaryImportError.invalidData) {
+        #expect(throws: DecodingError.self) {
             try decoder.decode([TermBankV3Entry].self, from: data)
         }
     }

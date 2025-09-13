@@ -11,47 +11,61 @@ import Foundation
 struct TermBankV3Entry: Codable {
     let expression: String
     let reading: String
-    let definitionTags: [String]? // nullable in schema
-    let rules: [String]
+    let definitionTags: [String]?      // null | space‑separated string
+    let rules: [String]                // space‑separated string
     let score: Double
     let glossary: [Definition]
     let sequence: Int
-    let termTags: [String]
+    let termTags: [String]             // space‑separated string
 
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-        guard container.count == 8 else { throw DictionaryImportError.invalidData }
+
         expression = try container.decode(String.self)
         reading = try container.decode(String.self)
-        let rawDefinitionTags = try container.decodeIfPresent(String.self)
+
+        // definitionTags: string or null
+        if try container.decodeNil() {
+            definitionTags = nil
+        } else {
+            let tagString = try container.decode(String.self)
+            definitionTags = tagString.isEmpty ? [] : Self.split(tagString)
+        }
+
         let rawRules = try container.decode(String.self)
         score = try container.decode(Double.self)
         glossary = try container.decode([Definition].self)
         sequence = try container.decode(Int.self)
         let rawTermTags = try container.decode(String.self)
+
         if !container.isAtEnd {
             throw DictionaryImportError.invalidData
         }
-        definitionTags = rawDefinitionTags.map { Self.splitSpaceSeparated($0) }
-        rules = Self.splitSpaceSeparated(rawRules)
-        termTags = Self.splitSpaceSeparated(rawTermTags)
+
+        rules = rawRules.isEmpty ? [] : Self.split(rawRules)
+        termTags = rawTermTags.isEmpty ? [] : Self.split(rawTermTags)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.unkeyedContainer()
         try container.encode(expression)
         try container.encode(reading)
-        try container.encode(definitionTags)
-        try container.encode(rules)
+
+        if let tags = definitionTags {
+            try container.encode(tags.joined(separator: " "))
+        } else {
+            try container.encodeNil()
+        }
+
+        try container.encode(rules.joined(separator: " "))
         try container.encode(score)
         try container.encode(glossary)
         try container.encode(sequence)
-        try container.encode(termTags)
+        try container.encode(termTags.joined(separator: " "))
     }
 
-    private static func splitSpaceSeparated(_ s: String) -> [String] {
-        s.split { $0 == " " || $0 == "\t" || $0 == "\n" }
-            .map { String($0) }
+    private static func split(_ s: String) -> [String] {
+        s.split { $0 == " " || $0 == "\t" || $0 == "\n" }.map(String.init)
     }
 }
 
@@ -169,7 +183,7 @@ struct ImageDef: Codable {
 enum StructuredContent: Codable {
     case text(String)
     case array([StructuredContent])
-    case object([String: AnyCodable])
+    case element(StructuredElement)
 
     init(from decoder: Decoder) throws {
         if let str = try? decoder.singleValueContainer().decode(String.self) {
@@ -180,9 +194,9 @@ enum StructuredContent: Codable {
             self = .array(arr)
             return
         }
-        if let dict = try? decoder.singleValueContainer().decode([String: AnyCodable].self) {
-            self = .object(dict)
-            return
+        if let element = try? decoder.singleValueContainer().decode(StructuredElement.self) {
+            self = .element(element)
+            return // ensure we don't fall through to error
         }
         throw DecodingError.dataCorrupted(
             DecodingError.Context(codingPath: decoder.codingPath,
@@ -193,51 +207,47 @@ enum StructuredContent: Codable {
     func encode(to encoder: Encoder) throws {
         switch self {
         case let .text(str):
-            var c = encoder.singleValueContainer()
-            try c.encode(str)
+            var c = encoder.singleValueContainer(); try c.encode(str)
         case let .array(arr):
-            var c = encoder.singleValueContainer()
-            try c.encode(arr)
-        case let .object(dict):
-            var c = encoder.singleValueContainer()
-            try c.encode(dict)
+            var c = encoder.singleValueContainer(); try c.encode(arr)
+        case let .element(elem):
+            var c = encoder.singleValueContainer(); try c.encode(elem)
         }
     }
 }
 
-/// Utility type for heterogenous JSON objects
-struct AnyCodable: Codable {
-    let value: Any
+class StructuredElement: Codable {
+    let tag: String
+    let content: StructuredContent?
+    let data: [String: String]?
+    let style: ContentStyle?
+    let lang: String?
 
-    init(_ value: (some Any)?) {
-        self.value = value ?? ()
-    }
+    // Additional properties for specific tags
+    let href: String? // for 'a' tags
+    let path: String? // for 'img' tags
+    let width: Double? // for 'img' tags
+    let height: Double? // for 'img' tags
+    let title: String?
+    let alt: String?
+    let colSpan: Int?
+    let rowSpan: Int?
+    let open: Bool? // for 'details' tags
 
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let b = try? container.decode(Bool.self) { value = b; return }
-        if let i = try? container.decode(Int.self) { value = i; return }
-        if let d = try? container.decode(Double.self) { value = d; return }
-        if let s = try? container.decode(String.self) { value = s; return }
-        if let arr = try? container.decode([AnyCodable].self) {
-            value = arr.map(\.value); return
-        }
-        if let dict = try? container.decode([String: AnyCodable].self) {
-            value = dict.mapValues { $0.value }; return
-        }
-        value = ()
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch value {
-        case let b as Bool: try container.encode(b)
-        case let i as Int: try container.encode(i)
-        case let d as Double: try container.encode(d)
-        case let s as String: try container.encode(s)
-        case let arr as [Any]: try container.encode(arr.map { AnyCodable($0) })
-        case let dict as [String: Any]: try container.encode(dict.mapValues { AnyCodable($0) })
-        default: try container.encodeNil()
-        }
+    init(tag: String, content: StructuredContent?, data: [String: String]?, style: ContentStyle?, lang: String?, href: String?, path: String?, width: Double?, height: Double?, title: String?, alt: String?, colSpan: Int?, rowSpan: Int?, open: Bool?) {
+        self.tag = tag
+        self.content = content
+        self.data = data
+        self.style = style
+        self.lang = lang
+        self.href = href
+        self.path = path
+        self.width = width
+        self.height = height
+        self.title = title
+        self.alt = alt
+        self.colSpan = colSpan
+        self.rowSpan = rowSpan
+        self.open = open
     }
 }
