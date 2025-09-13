@@ -95,6 +95,12 @@ struct DictionaryImportCoordinator {
             dict.indexURL = index.indexUrl
             dict.url = index.url
             dict.displayDescription = index.description
+            do {
+                try context.save()
+            } catch {
+                throw DictionaryImportError.unsupportedFormat
+            }
+
             // Insert legacy tagMeta tags (format v1 dictionaries may include inline tag metadata)
             if let tagMeta = index.tagMeta {
                 for (tagName, meta) in tagMeta {
@@ -104,15 +110,16 @@ struct DictionaryImportCoordinator {
                     if let order = meta.order { tag.order = order }
                     if let score = meta.score { tag.score = score }
                     tag.notes = meta.notes
-                    tag.dictionary = dict
+                    tag.dictionary = dict.objectID.uriRepresentation()
+                }
+
+                do {
+                    try context.save()
+                } catch {
+                    throw DictionaryImportError.unsupportedFormat
                 }
             }
-            do {
-                try context.save()
-                return dict.objectID
-            } catch {
-                throw DictionaryImportError.unsupportedFormat
-            }
+            return dict.objectID
         }
     }
 }

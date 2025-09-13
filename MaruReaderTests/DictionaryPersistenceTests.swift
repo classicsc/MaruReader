@@ -122,7 +122,7 @@ struct DictionaryPersistenceTests {
         // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
         // - Action: Call importDictionary; track progress calls.
-        // - Expected: DictionaryEntry created and marked complete; fetchable Tags and Terms; progress reaches 1.0.
+        // - Expected: DictionaryEntry created and marked complete; fetchable Tags and Terms.
         let indexJSON = """
         {
             "title": "TestDict",
@@ -179,14 +179,23 @@ struct DictionaryPersistenceTests {
 
         let (tagCount, tagname, tagDictionaryTitle) = try await context.perform {
             let tags = try context.fetch(tagRequest)
-            return (tags.count, tags.first?.name ?? "", tags.first?.dictionary?.title ?? "")
+            guard let tag = tags.first, let uri = tag.dictionary, let psc = context.persistentStoreCoordinator, let objectID = psc.managedObjectID(forURIRepresentation: uri) else {
+                return (tags.count, tags.first?.name ?? "", "")
+            }
+            let dictObject = try? context.existingObject(with: objectID)
+            let dict = dictObject as? MaruReader.Dictionary
+            return (tags.count, tag.name ?? "", dict?.title ?? "")
         }
         #expect(tagCount == 1)
         #expect(tagname == "noun")
         #expect(tagDictionaryTitle == "TestDict")
         let (termCount, termExpression, termDictionaryTitle) = try await context.perform {
             let terms = try context.fetch(termRequest)
-            return (terms.count, terms.first?.expression ?? "", terms.first?.dictionary?.title ?? "")
+            var dictTitle = ""
+            if let uri = terms.first?.dictionary as? URL, let objectID = context.persistentStoreCoordinator?.managedObjectID(forURIRepresentation: uri), let dict = try? context.existingObject(with: objectID) as? MaruReader.Dictionary {
+                dictTitle = dict.title ?? ""
+            }
+            return (terms.count, terms.first?.expression ?? "", dictTitle)
         }
         #expect(termCount == 1)
         #expect(termExpression == "食べる")
@@ -234,8 +243,12 @@ struct DictionaryPersistenceTests {
 
         let (tagCount, tagName, tagDictTitle) = try await context.perform {
             let tags = try context.fetch(tagRequest)
-            let first = tags.first
-            return (tags.count, first?.name ?? "", first?.dictionary?.title ?? "")
+            guard let tag = tags.first, let uri = tag.dictionary, let psc = context.persistentStoreCoordinator, let objectID = psc.managedObjectID(forURIRepresentation: uri) else {
+                return (tags.count, tags.first?.name ?? "", "")
+            }
+            let dictObject = try? context.existingObject(with: objectID)
+            let dict = dictObject as? MaruReader.Dictionary
+            return (tags.count, tag.name ?? "", dict?.title ?? "")
         }
         #expect(tagCount == 1)
         #expect(tagName == "noun")

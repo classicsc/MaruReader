@@ -5,13 +5,10 @@
         <attribute name="author" optional="YES" attributeType="String"/>
         <attribute name="displayDescription" optional="YES" attributeType="String"/>
         <attribute name="downloadURL" optional="YES" attributeType="String"/>
-        <attribute name="enabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="freqOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="frequencyMode" optional="YES" attributeType="String"/>
         <attribute name="hasTags" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="indexURL" optional="YES" attributeType="String"/>
-        <attribute name="ipaOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isFreqDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isIpaDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -19,47 +16,40 @@
         <attribute name="isTermDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
-        <attribute name="pitchOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="revision" optional="YES" attributeType="String"/>
         <attribute name="sequenced" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="sourceLanguage" optional="YES" attributeType="String"/>
         <attribute name="targetLanguage" optional="YES" attributeType="String"/>
-        <attribute name="termOrder" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="title" attributeType="String"/>
-        <attribute name="updatesEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="url" optional="YES" attributeType="String"/>
-        <relationship name="kanji" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Kanji" inverseName="dictionary" inverseEntity="Kanji"/>
-        <relationship name="kanjiMeta" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiMeta" inverseName="dictionary" inverseEntity="KanjiMeta"/>
-        <relationship name="tags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Tag" inverseName="dictionary" inverseEntity="Tag"/>
-        <relationship name="termMeta" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermMeta" inverseName="dictionary" inverseEntity="TermMeta"/>
-        <relationship name="terms" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Term" inverseName="dictionary" inverseEntity="Term"/>
     </entity>
     <entity name="Kanji" representedClassName="Kanji" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String" minValueString="1"/>
+        <attribute name="dictionary" attributeType="URI"/>
         <attribute name="kunyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="meanings" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="onyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="stats" optional="YES" attributeType="Transformable" valueTransformerName="StringDictionaryTransformer"/>
         <attribute name="tags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
-        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanji" inverseEntity="Dictionary"/>
     </entity>
     <entity name="KanjiMeta" representedClassName="KanjiMeta" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String" minValueString="1"/>
+        <attribute name="dictionary" attributeType="URI"/>
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
         <attribute name="frequencyValue" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String"/>
-        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanjiMeta" inverseEntity="Dictionary"/>
     </entity>
     <entity name="Tag" representedClassName="Tag" syncable="YES" codeGenerationType="class">
         <attribute name="category" attributeType="String"/>
+        <attribute name="dictionary" attributeType="URI"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="notes" optional="YES" attributeType="String"/>
         <attribute name="order" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
-        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="tags" inverseEntity="Dictionary"/>
     </entity>
     <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" optional="YES" attributeType="String"/>
+        <attribute name="dictionary" attributeType="URI"/>
         <attribute name="expression" attributeType="String"/>
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
         <attribute name="reading" attributeType="String"/>
@@ -67,14 +57,13 @@
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termTags" optional="YES" attributeType="String"/>
-        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="terms" inverseEntity="Dictionary"/>
     </entity>
     <entity name="TermMeta" representedClassName="TermMeta" syncable="YES" codeGenerationType="class">
         <attribute name="data" attributeType="Transformable" valueTransformerName="TermMetaEntryDataTransformer"/>
+        <attribute name="dictionary" attributeType="URI"/>
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
         <attribute name="expression" attributeType="String"/>
         <attribute name="frequencyValue" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="type" attributeType="String"/>
-        <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="termMeta" inverseEntity="Dictionary"/>
     </entity>
 </model>
