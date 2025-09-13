@@ -87,4 +87,81 @@ struct TermParsingTests {
             try decoder.decode([TermBankV3Entry].self, from: data)
         }
     }
+
+    @Test func termBankV1Entry_ValidSingleDefinition_ReturnsParsedEntry() throws {
+        let json = """
+        [
+          ["食べる", "たべる", "v1", "v1", 100, "to eat"]
+        ]
+        """
+        let data = Data(json.utf8)
+        let terms = try JSONDecoder().decode([TermBankV1Entry].self, from: data)
+        #expect(terms.count == 1)
+        let term = terms[0]
+        #expect(term.expression == "食べる")
+        #expect(term.reading == "たべる")
+        #expect(term.definitionTags == ["v1"])
+        #expect(term.rules == ["v1"])
+        #expect(term.score == 100)
+        #expect(term.glossary == ["to eat"])
+    }
+
+    @Test func termBankV1Entry_MultipleDefinitions_ReturnsAllGlossaryItems() throws {
+        let json = """
+        [
+          ["食べる", "たべる", "v1 freq common", "v1", 250, "to eat", "consume", "ingest"]
+        ]
+        """
+        let data = Data(json.utf8)
+        let terms = try JSONDecoder().decode([TermBankV1Entry].self, from: data)
+        #expect(terms.count == 1)
+        let term = terms[0]
+        #expect(term.definitionTags == ["v1", "freq", "common"])
+        #expect(term.glossary == ["to eat", "consume", "ingest"])
+    }
+
+    @Test func termBankV1Entry_EmptyTagsAndRules_YieldsEmptyArrays() throws {
+        // Empty strings should produce empty tag & rule arrays per schema description.
+        let json = """
+        [
+          ["本", "", "", "", 5, "book"]
+        ]
+        """
+        let data = Data(json.utf8)
+        let terms = try JSONDecoder().decode([TermBankV1Entry].self, from: data)
+        let term = try #require(terms.first)
+        #expect(term.expression == "本")
+        #expect(term.reading == "")
+        #expect(term.definitionTags.isEmpty)
+        #expect(term.rules.isEmpty)
+        #expect(term.score == 5)
+        #expect(term.glossary == ["book"])
+    }
+
+    @Test func termBankV1Entry_InvalidAdditionalItemType_ThrowsInvalidData() throws {
+        // After the first 5 required fields, additional items must be strings (definitions).
+        // Here we provide a number (123) which should trigger DictionaryImportError.invalidData.
+        let json = """
+        [
+          ["食べる", "たべる", "v1", "v1", 100, "to eat", 123]
+        ]
+        """
+        let data = Data(json.utf8)
+        #expect(throws: DictionaryImportError.invalidData) {
+            _ = try JSONDecoder().decode([TermBankV1Entry].self, from: data)
+        }
+    }
+
+    @Test func termBankV1Entry_TooFewItems_ThrowsDecodingError() throws {
+        // Missing the score field (only 4 items) violates the schema minItems=5 and should fail decoding.
+        let json = """
+        [
+          ["食べる", "たべる", "v1", "v1"]
+        ]
+        """
+        let data = Data(json.utf8)
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode([TermBankV1Entry].self, from: data)
+        }
+    }
 }

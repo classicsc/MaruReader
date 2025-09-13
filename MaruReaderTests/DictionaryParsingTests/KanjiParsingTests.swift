@@ -11,6 +11,7 @@ import Testing
 
 struct KanjiParsingTests {
     // MARK: - Kanji Bank V1
+
     @Test func kanjiBankV1Entry_ValidRows_ParsesCorrectly() throws {
         // Purpose: Ensure kanji_bank v1 rows (with and without meanings) decode correctly.
         // Input: Two rows: one with multiple meanings, one with zero meanings (only 4 fields).
@@ -76,6 +77,7 @@ struct KanjiParsingTests {
     }
 
     // MARK: - Kanji Bank V3
+
     @Test func kanjiBankV3Entry_ValidRow_ParsesCorrectly() throws {
         // Purpose: Ensure kanji_bank v3 row decodes with proper splitting and field mapping.
         // Input: Single row with multi readings, multi tags, meanings array, stats.
