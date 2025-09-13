@@ -61,7 +61,7 @@
     <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" optional="YES" attributeType="String"/>
         <attribute name="expression" attributeType="String"/>
-        <attribute name="glossary" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="rules" attributeType="String"/>
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
@@ -70,7 +70,7 @@
         <relationship name="dictionary" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="terms" inverseEntity="Dictionary"/>
     </entity>
     <entity name="TermMeta" representedClassName="TermMeta" syncable="YES" codeGenerationType="class">
-        <attribute name="data" attributeType="Transformable" valueTransformerName="NSSecureUnarchiveFromData" customClassName="NSArray"/>
+        <attribute name="data" attributeType="Transformable" valueTransformerName="TermMetaEntryDataTransformer"/>
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
         <attribute name="expression" attributeType="String"/>
         <attribute name="frequencyValue" optional="YES" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>

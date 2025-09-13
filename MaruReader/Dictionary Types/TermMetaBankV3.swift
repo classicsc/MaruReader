@@ -19,13 +19,6 @@ struct TermMetaBankV3Entry: Codable {
         case ipa
     }
 
-    enum TermMetaEntryData: Codable {
-        case frequency(FrequencyData)
-        case frequencyWithReading(ReadingFrequencyData)
-        case pitch(PitchData)
-        case ipa(IPAData)
-    }
-
     // Custom decoding: since schema is an array, not an object
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
@@ -72,6 +65,13 @@ struct TermMetaBankV3Entry: Codable {
             try container.encode(ipa)
         }
     }
+}
+
+enum TermMetaEntryData: Codable {
+    case frequency(FrequencyData)
+    case frequencyWithReading(ReadingFrequencyData)
+    case pitch(PitchData)
+    case ipa(IPAData)
 }
 
 struct FrequencyData: Codable {

@@ -15,6 +15,8 @@ import Foundation
 extension NSValueTransformerName {
     static let stringArrayTransformer = NSValueTransformerName("StringArrayTransformer")
     static let stringDictionaryTransformer = NSValueTransformerName("StringDictionaryTransformer")
+    static let definitionArrayTransformer = NSValueTransformerName("DefinitionArrayTransformer")
+    static let termMetaEntryDataTransformer = NSValueTransformerName("TermMetaEntryDataTransformer")
 }
 
 // MARK: - Registration Helper
@@ -24,6 +26,8 @@ enum CoreDataTransformers {
         // Idempotent registration (setValueTransformer replaces any existing one with same name)
         ValueTransformer.setValueTransformer(StringArrayTransformer(), forName: .stringArrayTransformer)
         ValueTransformer.setValueTransformer(StringDictionaryTransformer(), forName: .stringDictionaryTransformer)
+        ValueTransformer.setValueTransformer(DefinitionArrayTransformer(), forName: .definitionArrayTransformer)
+        ValueTransformer.setValueTransformer(TermMetaEntryDataTransformer(), forName: .termMetaEntryDataTransformer)
     }
 }
 
@@ -59,5 +63,13 @@ final class StringArrayTransformer: JSONValueTransformer<[String]> {
 }
 
 final class StringDictionaryTransformer: JSONValueTransformer<[String: String]> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class DefinitionArrayTransformer: JSONValueTransformer<[Definition]> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class TermMetaEntryDataTransformer: JSONValueTransformer<TermMetaEntryData> {
     // Nothing extra needed; subclass exists to provide unique name
 }
