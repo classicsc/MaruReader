@@ -1,6 +1,15 @@
 {
-  "originHash" : "af7336d54b214ee80a873db5f4069b003e7400ed96e0c2584057b97862180189",
+  "originHash" : "518472671e6d5d6be6696ab28e12c4c1e75e435fa6c70baabbe79941ca8ae878",
   "pins" : [
+    {
+      "identity" : "json-stream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Topolyte/json-stream.git",
+      "state" : {
+        "revision" : "703a39ce871e97c4c3831ad8f681d26f4d884559",
+        "version" : "1.0.3"
+      }
+    },
     {
       "identity" : "zip",
       "kind" : "remoteSourceControl",

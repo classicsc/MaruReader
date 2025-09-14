@@ -134,19 +134,35 @@ struct DictionaryImportCoordinator {
     /// Process term banks and send to the persistence layer.
     private func processTermBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
         guard let termBankURLs else { return }
-        let iterator = TermBankIterator(termBankURLs: termBankURLs, dataFormat: dataFormat)
         let dictionaryURI = dictionaryID.uriRepresentation()
 
         let batchSize = 5000
         var termsBatch: [ParsedTerm] = []
         termsBatch.reserveCapacity(batchSize)
 
-        for try await term in iterator {
-            termsBatch.append(term)
-            if termsBatch.count >= batchSize {
-                try await performTermBatchInsert(terms: termsBatch, dictionaryURI: dictionaryURI)
-                termsBatch.removeAll(keepingCapacity: true)
+        switch dataFormat {
+        case 1:
+            let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: termBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                let term = ParsedTerm(from: entry)
+                termsBatch.append(term)
+                if termsBatch.count >= batchSize {
+                    try await performTermBatchInsert(terms: termsBatch, dictionaryURI: dictionaryURI)
+                    termsBatch.removeAll(keepingCapacity: true)
+                }
             }
+        case 3:
+            let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: termBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                let term = ParsedTerm(from: entry)
+                termsBatch.append(term)
+                if termsBatch.count >= batchSize {
+                    try await performTermBatchInsert(terms: termsBatch, dictionaryURI: dictionaryURI)
+                    termsBatch.removeAll(keepingCapacity: true)
+                }
+            }
+        default:
+            throw DictionaryImportError.unsupportedFormat
         }
 
         // Insert any remaining terms

@@ -24,13 +24,14 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = TermBankIterator(
-            termBankURLs: [tempURL],
-            dataFormat: 3,
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [tempURL],
+            dataFormat: 3
         )
 
         var terms: [ParsedTerm] = []
-        for try await term in iterator {
+        for try await entry in iterator {
+            let term = ParsedTerm(from: entry)
             terms.append(term)
         }
 
@@ -80,13 +81,14 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = TermBankIterator(
-            termBankURLs: [tempURL],
-            dataFormat: 1,
+        let iterator = StreamingBankIterator<TermBankV1Entry>(
+            bankURLs: [tempURL],
+            dataFormat: 1
         )
 
         var terms: [ParsedTerm] = []
-        for try await term in iterator {
+        for try await entry in iterator {
+            let term = ParsedTerm(from: entry)
             terms.append(term)
         }
 
@@ -140,13 +142,14 @@ struct TermBankIteratorTests {
             try? FileManager.default.removeItem(at: tempURL2)
         }
 
-        let iterator = TermBankIterator(
-            termBankURLs: [tempURL1, tempURL2],
-            dataFormat: 3,
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [tempURL1, tempURL2],
+            dataFormat: 3
         )
 
         var terms: [ParsedTerm] = []
-        for try await term in iterator {
+        for try await entry in iterator {
+            let term = ParsedTerm(from: entry)
             terms.append(term)
         }
 
@@ -170,16 +173,17 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = TermBankIterator(
-            termBankURLs: [tempURL],
-            dataFormat: 3,
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [tempURL],
+            dataFormat: 3
         )
 
         var terms: [ParsedTerm] = []
         var errorOccurred = false
 
         do {
-            for try await term in iterator {
+            for try await entry in iterator {
+                let term = ParsedTerm(from: entry)
                 terms.append(term)
             }
         } catch {
@@ -187,7 +191,7 @@ struct TermBankIteratorTests {
         }
 
         #expect(errorOccurred)
-        #expect(terms.count == 1) // Should have parsed the first valid term
+        #expect(terms.count == 1) // Only the first valid entry should be parsed
     }
 
     @Test func termBankIterator_EmptyFiles_ReturnsNoTerms() async throws {
@@ -198,13 +202,14 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = TermBankIterator(
-            termBankURLs: [tempURL],
-            dataFormat: 3,
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [tempURL],
+            dataFormat: 3
         )
 
         var terms: [ParsedTerm] = []
-        for try await term in iterator {
+        for try await entry in iterator {
+            let term = ParsedTerm(from: entry)
             terms.append(term)
         }
 
@@ -212,13 +217,14 @@ struct TermBankIteratorTests {
     }
 
     @Test func termBankIterator_NoFiles_ReturnsNoTerms() async throws {
-        let iterator = TermBankIterator(
-            termBankURLs: [],
-            dataFormat: 3,
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [],
+            dataFormat: 3
         )
 
         var terms: [ParsedTerm] = []
-        for try await term in iterator {
+        for try await entry in iterator {
+            let term = ParsedTerm(from: entry)
             terms.append(term)
         }
 
