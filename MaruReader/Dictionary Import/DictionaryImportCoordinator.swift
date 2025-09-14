@@ -12,6 +12,9 @@ import Zip
 
 /// Represents a single import operation for a dictionary.
 struct DictionaryImportCoordinator {
+    /// The batch size for batch inserts.
+    private let batchSize = 5000
+
     /// The display name of the dictionary.
     let displayName: String?
 
@@ -56,6 +59,12 @@ struct DictionaryImportCoordinator {
         if let termBankURLs, !termBankURLs.isEmpty {
             try await processTermBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
             logger.debug("Processed \(termBankURLs.count) term bank(s)")
+        }
+
+        // Process tag banks (only valid for format 3)
+        if let tagBankURLs, !tagBankURLs.isEmpty {
+            try await processTagBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
+            logger.debug("Processed \(tagBankURLs.count) tag bank(s)")
         }
 
         // Process the other bank types here...
@@ -136,7 +145,6 @@ struct DictionaryImportCoordinator {
         guard let termBankURLs else { return }
         let dictionaryURI = dictionaryID.uriRepresentation()
 
-        let batchSize = 5000
         var termsBatch: [ParsedTerm] = []
         termsBatch.reserveCapacity(batchSize)
 
@@ -195,13 +203,74 @@ struct DictionaryImportCoordinator {
                 let parsedTerm = terms[index]
                 term.expression = parsedTerm.expression
                 term.reading = parsedTerm.reading
-                term.score = Double(parsedTerm.score)
+                term.score = parsedTerm.score
                 term.rules = parsedTerm.rules
                 term.definitionTags = parsedTerm.definitionTags
                 term.termTags = parsedTerm.termTags
                 term.glossary = parsedTerm.glossary
                 term.sequence = parsedTerm.sequence ?? 0
                 term.dictionary = dictionaryURI
+            }
+            index += 1
+            return false
+        }
+        return batchInsert
+    }
+
+    /// Process tag banks and send to the persistence layer (format 3 only). If format 1 has tag banks, treat as invalid data.
+    private func processTagBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
+        guard let tagBankURLs else { return }
+        let dictionaryURI = dictionaryID.uriRepresentation()
+
+        switch dataFormat {
+        case 1:
+            // v1 dictionaries should not have external tag banks
+            throw DictionaryImportError.invalidData
+        case 3:
+            var tagsBatch: [TagBankV3Entry] = []
+            tagsBatch.reserveCapacity(batchSize)
+            let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: tagBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                tagsBatch.append(entry)
+                if tagsBatch.count >= batchSize {
+                    try await performTagBatchInsert(tags: tagsBatch, dictionaryURI: dictionaryURI)
+                    tagsBatch.removeAll(keepingCapacity: true)
+                }
+            }
+            if !tagsBatch.isEmpty {
+                try await performTagBatchInsert(tags: tagsBatch, dictionaryURI: dictionaryURI)
+            }
+        default:
+            throw DictionaryImportError.unsupportedFormat
+        }
+    }
+
+    /// Perform a batch insert of tags into Core Data.
+    private func performTagBatchInsert(tags: [TagBankV3Entry], dictionaryURI: URL) async throws {
+        try await container.performBackgroundTask { context in
+            let batchInsert = createTagBatchInsertRequest(tags: tags, dictionaryURI: dictionaryURI)
+            do {
+                try context.execute(batchInsert)
+            } catch {
+                throw DictionaryImportError.batchInsertFailed
+            }
+        }
+    }
+
+    /// Create a batch insert request for tags.
+    private func createTagBatchInsertRequest(tags: [TagBankV3Entry], dictionaryURI: URL) -> NSBatchInsertRequest {
+        var index = 0
+        let total = tags.count
+        let batchInsert = NSBatchInsertRequest(entity: Tag.entity()) { (managedObject: NSManagedObject) -> Bool in
+            guard index < total else { return true }
+            if let tag = managedObject as? Tag {
+                let entry = tags[index]
+                tag.name = entry.name
+                tag.category = entry.category
+                tag.order = entry.order
+                tag.notes = entry.notes
+                tag.score = entry.score
+                tag.dictionary = dictionaryURI
             }
             index += 1
             return false
