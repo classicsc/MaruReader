@@ -21,7 +21,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Create a mock ZIP file with given JSON contents
-    private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, mediaFiles: [String]? = nil) throws -> URL {
+    private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, mediaFiles: [String]? = nil) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         debugPrint("Created temp directory: \(tempDir.path)")
@@ -74,6 +74,19 @@ struct DictionaryPersistenceTests {
                 throw MockZipError.fileWriteFailed(termMetaURL)
             }
             debugPrint("Wrote file: \(termMetaURL.path)")
+        }
+
+        // Create kanji_bank_1.json if kanjiJSON is provided
+        if let kanjiJSON {
+            let kanjiURL = tempDir.appendingPathComponent("kanji_bank_1.json")
+            guard let kanjiData = kanjiJSON.data(using: .utf8) else {
+                throw MockZipError.invalidJSON("Failed to convert JSON to data for kanji_bank_1.json")
+            }
+            try kanjiData.write(to: kanjiURL)
+            guard FileManager.default.fileExists(atPath: kanjiURL.path) else {
+                throw MockZipError.fileWriteFailed(kanjiURL)
+            }
+            debugPrint("Wrote file: \(kanjiURL.path)")
         }
 
         // Create media files if provided
@@ -150,8 +163,20 @@ struct DictionaryPersistenceTests {
             ]
         ]
         """
+        let kanjiJSON = """
+        [
+            [
+                "食",
+                "ショク",
+                "た.べ",
+                "",
+                ["eat", "food"],
+                {"freq": "100"}
+            ]
+        ]
+        """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON)
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)
@@ -168,6 +193,7 @@ struct DictionaryPersistenceTests {
         let tagRequest: NSFetchRequest<MaruReader.Tag> = MaruReader.Tag.fetchRequest()
         let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
         let termMetaRequest: NSFetchRequest<MaruReader.TermMeta> = MaruReader.TermMeta.fetchRequest()
+        let kanjiRequest: NSFetchRequest<MaruReader.Kanji> = MaruReader.Kanji.fetchRequest()
 
         let (dictionaryCount, isComplete, title) = try await context.perform {
             let dictionaries = try context.fetch(dictRequest)
@@ -208,6 +234,13 @@ struct DictionaryPersistenceTests {
         #expect(termMetaCount == 1)
         #expect(termMetaExpression == "食べる")
         #expect(termMetaType == "freq")
+
+        let (kanjiCount, kanjiChar) = try await context.perform {
+            let kanji = try context.fetch(kanjiRequest)
+            return (kanji.count, kanji.first?.character ?? "")
+        }
+        #expect(kanjiCount == 1)
+        #expect(kanjiChar == "食")
     }
 
     @Test func importDictionary_LegacyTagMeta_PersistsTags() async throws {
@@ -222,7 +255,7 @@ struct DictionaryPersistenceTests {
             }
         }
         """
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil)
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)

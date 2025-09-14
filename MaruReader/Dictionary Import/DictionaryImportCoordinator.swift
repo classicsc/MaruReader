@@ -60,6 +60,11 @@ struct DictionaryImportCoordinator {
             try await processTermBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
             logger.debug("Processed \(termBankURLs.count) term bank(s)")
         }
+        // Process kanji banks if available
+        if let kanjiBankURLs, !kanjiBankURLs.isEmpty {
+            try await processKanjiBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
+            logger.debug("Processed \(kanjiBankURLs.count) kanji bank(s)")
+        }
 
         // Process term meta banks (only valid for format 3)
         if let termMetaBankURLs, !termMetaBankURLs.isEmpty {
@@ -347,6 +352,78 @@ struct DictionaryImportCoordinator {
                     break // no frequency fields
                 }
                 meta.dictionary = dictionaryURI
+            }
+            index += 1
+            return false
+        }
+        return batchInsert
+    }
+
+    /// Process kanji banks and send to the persistence layer.
+    private func processKanjiBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
+        guard let kanjiBankURLs else { return }
+        let dictionaryURI = dictionaryID.uriRepresentation()
+
+        var kanjiBatch: [ParsedKanji] = []
+        kanjiBatch.reserveCapacity(batchSize)
+
+        switch dataFormat {
+        case 1:
+            let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: kanjiBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                let parsed = ParsedKanji(from: entry)
+                kanjiBatch.append(parsed)
+                if kanjiBatch.count >= batchSize {
+                    try await performKanjiBatchInsert(kanji: kanjiBatch, dictionaryURI: dictionaryURI)
+                    kanjiBatch.removeAll(keepingCapacity: true)
+                }
+            }
+        case 3:
+            let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: kanjiBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                let parsed = ParsedKanji(from: entry)
+                kanjiBatch.append(parsed)
+                if kanjiBatch.count >= batchSize {
+                    try await performKanjiBatchInsert(kanji: kanjiBatch, dictionaryURI: dictionaryURI)
+                    kanjiBatch.removeAll(keepingCapacity: true)
+                }
+            }
+        default:
+            throw DictionaryImportError.unsupportedFormat
+        }
+
+        if !kanjiBatch.isEmpty {
+            try await performKanjiBatchInsert(kanji: kanjiBatch, dictionaryURI: dictionaryURI)
+        }
+    }
+
+    /// Perform a batch insert of kanji into Core Data.
+    private func performKanjiBatchInsert(kanji: [ParsedKanji], dictionaryURI: URL) async throws {
+        try await container.performBackgroundTask { context in
+            let batchInsert = createKanjiBatchInsertRequest(kanji: kanji, dictionaryURI: dictionaryURI)
+            do {
+                try context.execute(batchInsert)
+            } catch {
+                throw DictionaryImportError.batchInsertFailed
+            }
+        }
+    }
+
+    /// Create a batch insert request for kanji.
+    private func createKanjiBatchInsertRequest(kanji: [ParsedKanji], dictionaryURI: URL) -> NSBatchInsertRequest {
+        var index = 0
+        let total = kanji.count
+        let batchInsert = NSBatchInsertRequest(entity: Kanji.entity()) { (managedObject: NSManagedObject) -> Bool in
+            guard index < total else { return true }
+            if let k = managedObject as? Kanji {
+                let parsed = kanji[index]
+                k.character = parsed.character
+                k.onyomi = parsed.onyomi
+                k.kunyomi = parsed.kunyomi
+                k.tags = parsed.tags
+                k.meanings = parsed.meanings
+                k.stats = parsed.stats
+                k.dictionary = dictionaryURI
             }
             index += 1
             return false
