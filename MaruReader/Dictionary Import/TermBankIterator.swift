@@ -113,26 +113,23 @@ private class JSONStreamDecoder {
     }
 }
 
-/// Throwing version of the iterator for better error handling
+/// Iterates over the terms in the provided Term Bank JSON files.
 struct TermBankIterator: AsyncSequence {
     private let termBankURLs: [URL]
     private let dataFormat: Int
-    private let dictionaryURI: URL
 
-    init(termBankURLs: [URL], dataFormat: Int, dictionaryURI: URL) {
+    init(termBankURLs: [URL], dataFormat: Int) {
         self.termBankURLs = termBankURLs
         self.dataFormat = dataFormat
-        self.dictionaryURI = dictionaryURI
     }
 
     func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(termBankURLs: termBankURLs, dataFormat: dataFormat, dictionaryURI: dictionaryURI)
+        AsyncIterator(termBankURLs: termBankURLs, dataFormat: dataFormat)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
         private let termBankURLs: [URL]
         private let dataFormat: Int
-        private let dictionaryURI: URL
 
         private var currentFileIndex: Int = 0
         private var currentFileData: Data?
@@ -141,10 +138,9 @@ struct TermBankIterator: AsyncSequence {
         private var hasStartedCurrentFile: Bool = false
         private var parseError: Error?
 
-        init(termBankURLs: [URL], dataFormat: Int, dictionaryURI: URL) {
+        init(termBankURLs: [URL], dataFormat: Int) {
             self.termBankURLs = termBankURLs
             self.dataFormat = dataFormat
-            self.dictionaryURI = dictionaryURI
         }
 
         mutating func next() async throws -> ParsedTerm? {
@@ -196,10 +192,10 @@ struct TermBankIterator: AsyncSequence {
                 switch dataFormat {
                 case 1:
                     let entry = try decoder.decode(TermBankV1Entry.self, from: entryData)
-                    return ParsedTerm(from: entry, dictionary: dictionaryURI)
+                    return ParsedTerm(from: entry)
                 case 3:
                     let entry = try decoder.decode(TermBankV3Entry.self, from: entryData)
-                    return ParsedTerm(from: entry, dictionary: dictionaryURI)
+                    return ParsedTerm(from: entry)
                 default:
                     throw DictionaryImportError.unsupportedFormat
                 }

@@ -11,4 +11,5 @@ enum DictionaryImportError: Error {
     case importNotFound
     case dictionaryCreationFailed
     case invalidData
+    case batchInsertFailed
 }

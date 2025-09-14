@@ -51,7 +51,15 @@ struct DictionaryImportCoordinator {
     func runImport() async throws {
         let (dictionaryID, dataFormat) = try await processIndex()
         logger.debug("Created dictionary object with ID: \(dictionaryID) and format: \(dataFormat)")
+
+        // Process term banks if available
+        if let termBankURLs, !termBankURLs.isEmpty {
+            try await processTermBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
+            logger.debug("Processed \(termBankURLs.count) term bank(s)")
+        }
+
         // Process the other bank types here...
+
         // Mark the dictionary object as complete
         try await container.performBackgroundTask { context in
             guard let dict = try context.existingObject(with: dictionaryID) as? Dictionary else {
@@ -121,5 +129,67 @@ struct DictionaryImportCoordinator {
             }
             return (dict.objectID, indexFormat)
         }
+    }
+
+    /// Process term banks and send to the persistence layer.
+    private func processTermBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
+        guard let termBankURLs else { return }
+        let iterator = TermBankIterator(termBankURLs: termBankURLs, dataFormat: dataFormat)
+        let dictionaryURI = dictionaryID.uriRepresentation()
+
+        let batchSize = 5000
+        var termsBatch: [ParsedTerm] = []
+        termsBatch.reserveCapacity(batchSize)
+
+        for try await term in iterator {
+            termsBatch.append(term)
+            if termsBatch.count >= batchSize {
+                try await performTermBatchInsert(terms: termsBatch, dictionaryURI: dictionaryURI)
+                termsBatch.removeAll(keepingCapacity: true)
+            }
+        }
+
+        // Insert any remaining terms
+        if !termsBatch.isEmpty {
+            try await performTermBatchInsert(terms: termsBatch, dictionaryURI: dictionaryURI)
+        }
+    }
+
+    /// Perform a batch insert of terms into Core Data.
+    private func performTermBatchInsert(terms: [ParsedTerm], dictionaryURI: URL) async throws {
+        try await container.performBackgroundTask { context in
+            let batchInsert = createTermBatchInsertRequest(terms: terms, dictionaryURI: dictionaryURI)
+
+            do {
+                try context.execute(batchInsert)
+            } catch {
+                throw DictionaryImportError.batchInsertFailed
+            }
+        }
+    }
+
+    /// Create a batch insert request for terms.
+    private func createTermBatchInsertRequest(terms: [ParsedTerm], dictionaryURI: URL) -> NSBatchInsertRequest {
+        var index = 0
+        let total = terms.count
+
+        let batchInsert = NSBatchInsertRequest(entity: Term.entity()) { (managedObject: NSManagedObject) -> Bool in
+            guard index < total else { return true }
+            if let term = managedObject as? Term {
+                let parsedTerm = terms[index]
+                term.expression = parsedTerm.expression
+                term.reading = parsedTerm.reading
+                term.score = Double(parsedTerm.score)
+                term.rules = parsedTerm.rules
+                term.definitionTags = parsedTerm.definitionTags
+                term.termTags = parsedTerm.termTags
+                term.glossary = parsedTerm.glossary
+                term.sequence = parsedTerm.sequence ?? 0
+                term.dictionary = dictionaryURI
+            }
+            index += 1
+            return false
+        }
+        return batchInsert
     }
 }

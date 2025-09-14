@@ -24,11 +24,9 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [tempURL],
             dataFormat: 3,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
@@ -41,17 +39,19 @@ struct TermBankIteratorTests {
         // Check first term
         #expect(terms[0].expression == "食べる")
         #expect(terms[0].reading == "たべる")
-        #expect(terms[0].definitionTags == ["v1"])
+        let definitionTags0 = StringArrayTransformer().reverseTransformedValue(terms[0].definitionTags) as? [String]
+        #expect(definitionTags0 == ["v1"])
         #expect(terms[0].rules == "A")
         #expect(terms[0].score == 100)
         #expect(terms[0].sequence == 1)
-        #expect(terms[0].termTags == ["common"])
-        #expect(terms[0].dictionary == dictionaryURI)
+        let termTags0 = StringArrayTransformer().reverseTransformedValue(terms[0].termTags) as? [String]
+        #expect(termTags0 == ["common"])
 
         // Check second term
         #expect(terms[1].expression == "飲む")
         #expect(terms[1].reading == "のむ")
-        #expect(terms[1].definitionTags == ["v5m"])
+        let definitionTags1 = StringArrayTransformer().reverseTransformedValue(terms[1].definitionTags) as? [String]
+        #expect(definitionTags1 == ["v5m"])
         #expect(terms[1].rules == "B")
         #expect(terms[1].score == 95)
         #expect(terms[1].sequence == 2)
@@ -59,7 +59,8 @@ struct TermBankIteratorTests {
         // Check third term
         #expect(terms[2].expression == "走る")
         #expect(terms[2].reading == "はしる")
-        #expect(terms[2].definitionTags == ["v5r"])
+        let definitionTags2 = StringArrayTransformer().reverseTransformedValue(terms[2].definitionTags) as? [String]
+        #expect(definitionTags2 == ["v5r"])
         #expect(terms[2].rules == "C")
         #expect(terms[2].score == 90)
         #expect(terms[2].sequence == 3)
@@ -79,11 +80,9 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [tempURL],
             dataFormat: 1,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
@@ -96,21 +95,24 @@ struct TermBankIteratorTests {
         // Check first term
         #expect(terms[0].expression == "食べる")
         #expect(terms[0].reading == "たべる")
-        #expect(terms[0].definitionTags == ["v1"])
+        let definitionTags = StringArrayTransformer().reverseTransformedValue(terms[0].definitionTags) as? [String]
+        #expect(definitionTags == ["v1"])
         #expect(terms[0].rules == "A")
         #expect(terms[0].score == 100)
         #expect(terms[0].sequence == nil)
         #expect(terms[0].termTags == nil)
-        #expect(terms[0].dictionary == dictionaryURI)
-        #expect(terms[0].glossary.count == 2)
+        let glossary0 = DefinitionArrayTransformer().reverseTransformedValue(terms[0].glossary) as? [Definition]
+        #expect(glossary0?.count == 2)
 
         // Check second term (single definition)
         #expect(terms[1].expression == "飲む")
-        #expect(terms[1].glossary.count == 1)
+        let glossary1 = DefinitionArrayTransformer().reverseTransformedValue(terms[1].glossary) as? [Definition]
+        #expect(glossary1?.count == 1)
 
         // Check third term (multiple definitions)
         #expect(terms[2].expression == "走る")
-        #expect(terms[2].glossary.count == 2)
+        let glossary2 = DefinitionArrayTransformer().reverseTransformedValue(terms[2].glossary) as? [Definition]
+        #expect(glossary2?.count == 2)
     }
 
     @Test func termBankIterator_MultipleFiles_StreamsAllTerms() async throws {
@@ -138,11 +140,9 @@ struct TermBankIteratorTests {
             try? FileManager.default.removeItem(at: tempURL2)
         }
 
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [tempURL1, tempURL2],
             dataFormat: 3,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
@@ -170,11 +170,9 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [tempURL],
             dataFormat: 3,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
@@ -200,11 +198,9 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [tempURL],
             dataFormat: 3,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
@@ -216,11 +212,9 @@ struct TermBankIteratorTests {
     }
 
     @Test func termBankIterator_NoFiles_ReturnsNoTerms() async throws {
-        let dictionaryURI = URL(string: "dict://test-dictionary")!
         let iterator = TermBankIterator(
             termBankURLs: [],
             dataFormat: 3,
-            dictionaryURI: dictionaryURI
         )
 
         var terms: [ParsedTerm] = []
