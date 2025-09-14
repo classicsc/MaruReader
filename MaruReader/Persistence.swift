@@ -26,6 +26,9 @@ struct PersistenceController {
         dictionary.targetLanguage = "en"
         dictionary.isComplete = true
         dictionary.isTermDictionary = true
+        dictionary.isFreqDictionary = true
+        dictionary.isKanjiFreqDictionary = true
+        dictionary.isKanjiDictionary = true
         dictionary.hasTags = true
         dictionary.sequenced = true
 

@@ -12,6 +12,8 @@
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isFreqDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isIpaDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isKanjiDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isKanjiFreqDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isPitchDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isTermDictionary" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
