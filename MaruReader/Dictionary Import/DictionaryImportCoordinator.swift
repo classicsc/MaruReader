@@ -61,6 +61,12 @@ struct DictionaryImportCoordinator {
             logger.debug("Processed \(termBankURLs.count) term bank(s)")
         }
 
+        // Process term meta banks (only valid for format 3)
+        if let termMetaBankURLs, !termMetaBankURLs.isEmpty {
+            try await processTermMetaBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
+            logger.debug("Processed \(termMetaBankURLs.count) term meta bank(s)")
+        }
+
         // Process tag banks (only valid for format 3)
         if let tagBankURLs, !tagBankURLs.isEmpty {
             try await processTagBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
@@ -271,6 +277,76 @@ struct DictionaryImportCoordinator {
                 tag.notes = entry.notes
                 tag.score = entry.score
                 tag.dictionary = dictionaryURI
+            }
+            index += 1
+            return false
+        }
+        return batchInsert
+    }
+
+    /// Process term meta banks and send to the persistence layer (format 3 only). If format 1 has term meta banks, treat as invalid data.
+    private func processTermMetaBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
+        guard let termMetaBankURLs else { return }
+        let dictionaryURI = dictionaryID.uriRepresentation()
+
+        switch dataFormat {
+        case 1:
+            // v1 dictionaries should not have external term meta banks
+            throw DictionaryImportError.invalidData
+        case 3:
+            var metaBatch: [TermMetaBankV3Entry] = []
+            metaBatch.reserveCapacity(batchSize)
+            let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: termMetaBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                metaBatch.append(entry)
+                if metaBatch.count >= batchSize {
+                    try await performTermMetaBatchInsert(entries: metaBatch, dictionaryURI: dictionaryURI)
+                    metaBatch.removeAll(keepingCapacity: true)
+                }
+            }
+            if !metaBatch.isEmpty {
+                try await performTermMetaBatchInsert(entries: metaBatch, dictionaryURI: dictionaryURI)
+            }
+        default:
+            throw DictionaryImportError.unsupportedFormat
+        }
+    }
+
+    /// Perform a batch insert of term meta entries into Core Data.
+    private func performTermMetaBatchInsert(entries: [TermMetaBankV3Entry], dictionaryURI: URL) async throws {
+        try await container.performBackgroundTask { context in
+            let batchInsert = createTermMetaBatchInsertRequest(entries: entries, dictionaryURI: dictionaryURI)
+            do {
+                try context.execute(batchInsert)
+            } catch {
+                throw DictionaryImportError.batchInsertFailed
+            }
+        }
+    }
+
+    /// Create a batch insert request for term meta entries.
+    private func createTermMetaBatchInsertRequest(entries: [TermMetaBankV3Entry], dictionaryURI: URL) -> NSBatchInsertRequest {
+        var index = 0
+        let total = entries.count
+        let batchInsert = NSBatchInsertRequest(entity: TermMeta.entity()) { (managedObject: NSManagedObject) -> Bool in
+            guard index < total else { return true }
+            if let meta = managedObject as? TermMeta {
+                let entry = entries[index]
+                meta.expression = entry.term
+                meta.type = entry.kind.rawValue
+                // Assign transformable value using KVC to avoid NSObject cast requirements
+                meta.setValue(entry.data, forKey: "data")
+                switch entry.data {
+                case let .frequency(freq):
+                    meta.frequencyValue = freq.value
+                    if let display = freq.displayValue { meta.displayFrequency = display }
+                case let .frequencyWithReading(rf):
+                    meta.frequencyValue = rf.frequency.value
+                    if let display = rf.frequency.displayValue { meta.displayFrequency = display }
+                case .pitch, .ipa:
+                    break // no frequency fields
+                }
+                meta.dictionary = dictionaryURI
             }
             index += 1
             return false
