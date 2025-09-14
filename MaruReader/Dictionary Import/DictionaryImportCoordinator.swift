@@ -65,6 +65,11 @@ struct DictionaryImportCoordinator {
             try await processKanjiBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
             logger.debug("Processed \(kanjiBankURLs.count) kanji bank(s)")
         }
+        // Process kanji meta banks (only valid for format 3)
+        if let kanjiMetaBankURLs, !kanjiMetaBankURLs.isEmpty {
+            try await processKanjiMetaBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
+            logger.debug("Processed \(kanjiMetaBankURLs.count) kanji meta bank(s)")
+        }
 
         // Process term meta banks (only valid for format 3)
         if let termMetaBankURLs, !termMetaBankURLs.isEmpty {
@@ -77,8 +82,6 @@ struct DictionaryImportCoordinator {
             try await processTagBanks(dictionaryID: dictionaryID, dataFormat: dataFormat)
             logger.debug("Processed \(tagBankURLs.count) tag bank(s)")
         }
-
-        // Process the other bank types here...
 
         // Mark the dictionary object as complete
         try await container.performBackgroundTask { context in
@@ -424,6 +427,74 @@ struct DictionaryImportCoordinator {
                 k.meanings = parsed.meanings
                 k.stats = parsed.stats
                 k.dictionary = dictionaryURI
+            }
+            index += 1
+            return false
+        }
+        return batchInsert
+    }
+
+    /// Process kanji meta banks and send to the persistence layer (format 3 only). If format 1 has kanji meta banks, treat as invalid data.
+    private func processKanjiMetaBanks(dictionaryID: NSManagedObjectID, dataFormat: Int) async throws {
+        guard let kanjiMetaBankURLs else { return }
+        let dictionaryURI = dictionaryID.uriRepresentation()
+
+        switch dataFormat {
+        case 1:
+            // v1 dictionaries should not have external kanji meta banks
+            throw DictionaryImportError.invalidData
+        case 3:
+            var metaBatch: [KanjiMetaBankV3Entry] = []
+            metaBatch.reserveCapacity(batchSize)
+            let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: kanjiMetaBankURLs, dataFormat: dataFormat)
+            for try await entry in iterator {
+                metaBatch.append(entry)
+                if metaBatch.count >= batchSize {
+                    try await performKanjiMetaBatchInsert(entries: metaBatch, dictionaryURI: dictionaryURI)
+                    metaBatch.removeAll(keepingCapacity: true)
+                }
+            }
+            if !metaBatch.isEmpty {
+                try await performKanjiMetaBatchInsert(entries: metaBatch, dictionaryURI: dictionaryURI)
+            }
+        default:
+            throw DictionaryImportError.unsupportedFormat
+        }
+    }
+
+    /// Perform a batch insert of kanji meta entries into Core Data.
+    private func performKanjiMetaBatchInsert(entries: [KanjiMetaBankV3Entry], dictionaryURI: URL) async throws {
+        try await container.performBackgroundTask { context in
+            let batchInsert = createKanjiMetaBatchInsertRequest(entries: entries, dictionaryURI: dictionaryURI)
+            do {
+                try context.execute(batchInsert)
+            } catch {
+                throw DictionaryImportError.batchInsertFailed
+            }
+        }
+    }
+
+    /// Create a batch insert request for kanji meta entries.
+    private func createKanjiMetaBatchInsertRequest(entries: [KanjiMetaBankV3Entry], dictionaryURI: URL) -> NSBatchInsertRequest {
+        var index = 0
+        let total = entries.count
+        let batchInsert = NSBatchInsertRequest(entity: KanjiMeta.entity()) { (managedObject: NSManagedObject) -> Bool in
+            guard index < total else { return true }
+            if let meta = managedObject as? KanjiMeta {
+                let entry = entries[index]
+                meta.character = entry.kanji
+                meta.type = entry.type
+                switch entry.frequency {
+                case let .number(num):
+                    meta.frequencyValue = num
+                case let .string(str):
+                    meta.displayFrequency = str
+                    if let num = Double(str) { meta.frequencyValue = num }
+                case let .object(value, displayValue):
+                    meta.frequencyValue = value
+                    if let displayValue { meta.displayFrequency = displayValue }
+                }
+                meta.dictionary = dictionaryURI
             }
             index += 1
             return false
