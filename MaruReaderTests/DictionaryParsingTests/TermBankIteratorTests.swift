@@ -16,7 +16,25 @@ struct TermBankIteratorTests {
         [
             ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1, "common"],
             ["飲む", "のむ", "v5m", "B", 95, ["to drink"], 2, "common"],
-            ["走る", "はしる", "v5r", "C", 90, ["to run"], 3, "common"]
+            ["走る", "はしる", "v5r", "C", 90, ["to run"], 3, "common"],
+            ["説明", "せつめい", "n", "", 80, [
+                {"type":"structured-content","content":[
+                    "An explanation:",
+                    {"tag":"ul","content":[
+                        {"tag":"li","content":"Detail 1"},
+                        {"tag":"li","content":{"tag":"strong","content":"Important"}}
+                    ]},
+                    {"tag":"a","href":"https://example.com","content":"More info"}
+                ]}
+            ], 4, "info"],
+            ["画像", "がぞう", "n", "", 70, [
+                {"type":"structured-content","content":{
+                    "tag":"figure","content":[
+                        {"tag":"img","path":"pic.png","width":128,"height":64,"alt":"Picture"},
+                        {"tag":"figcaption","content":"A picture"}
+                    ]
+                }}
+            ], 5, "media"]
         ]
         """
 
@@ -35,7 +53,7 @@ struct TermBankIteratorTests {
             terms.append(term)
         }
 
-        #expect(terms.count == 3)
+        #expect(terms.count == 5)
 
         // Check first term
         #expect(terms[0].expression == "食べる")
@@ -65,6 +83,74 @@ struct TermBankIteratorTests {
         #expect(terms[2].rules == "C")
         #expect(terms[2].score == 90)
         #expect(terms[2].sequence == 3)
+
+        // Check fourth term with complex structured-content array
+        #expect(terms[3].expression == "説明")
+        #expect(terms[3].reading == "せつめい")
+        let glossary3 = DefinitionArrayTransformer().reverseTransformedValue(terms[3].glossary) as? [Definition]
+        #expect(glossary3?.count == 1)
+        if let def = glossary3?.first, case let .detailed(.structured(structDef)) = def {
+            // Root structured content should be an array
+            if case let .array(rootArray) = structDef.content {
+                #expect(rootArray.count == 3)
+                // 0: text
+                if case let .text(t0) = rootArray[0] { #expect(t0 == "An explanation:") } else { Issue.record("Expected first element text") }
+                // 1: ul element with two li children
+                if case let .element(ulElem) = rootArray[1] {
+                    #expect(ulElem.tag == "ul")
+                    if case let .array(liArray) = ulElem.content {
+                        #expect(liArray.count == 2)
+                        if case let .element(li1) = liArray[0] {
+                            #expect(li1.tag == "li")
+                            if case let .text(liText1) = li1.content { #expect(liText1 == "Detail 1") } else { Issue.record("Expected li1 text") }
+                        } else { Issue.record("Expected first li element") }
+                        if case let .element(li2) = liArray[1] {
+                            #expect(li2.tag == "li")
+                            if case let .element(strongElem) = li2.content { #expect(strongElem.tag == "strong") } else { Issue.record("Expected strong element inside second li") }
+                        } else { Issue.record("Expected second li element") }
+                    } else { Issue.record("Expected ul content array") }
+                } else { Issue.record("Expected ul element as second root item") }
+                // 2: anchor element
+                if case let .element(aElem) = rootArray[2] {
+                    #expect(aElem.tag == "a")
+                    #expect(aElem.href == "https://example.com")
+                    if case let .text(linkText) = aElem.content { #expect(linkText == "More info") } else { Issue.record("Expected link text") }
+                } else { Issue.record("Expected anchor element as third root item") }
+            } else {
+                Issue.record("Expected root structured content array")
+            }
+        } else {
+            Issue.record("Expected structured-content definition for 説明")
+        }
+
+        // Check fifth term with figure/image structured-content
+        #expect(terms[4].expression == "画像")
+        #expect(terms[4].reading == "がぞう")
+        let glossary4 = DefinitionArrayTransformer().reverseTransformedValue(terms[4].glossary) as? [Definition]
+        #expect(glossary4?.count == 1)
+        if let def = glossary4?.first, case let .detailed(.structured(structDef)) = def {
+            if case let .element(figureElem) = structDef.content {
+                #expect(figureElem.tag == "figure")
+                if case let .array(figureChildren) = figureElem.content {
+                    #expect(figureChildren.count == 2)
+                    // img element
+                    if case let .element(imgElem) = figureChildren[0] {
+                        #expect(imgElem.tag == "img")
+                        #expect(imgElem.path == "pic.png")
+                        #expect(imgElem.width == 128)
+                        #expect(imgElem.height == 64)
+                        #expect(imgElem.alt == "Picture")
+                    } else { Issue.record("Expected img element") }
+                    // figcaption element
+                    if case let .element(captionElem) = figureChildren[1] {
+                        #expect(captionElem.tag == "figcaption")
+                        if case let .text(captionText) = captionElem.content { #expect(captionText == "A picture") } else { Issue.record("Expected figcaption text") }
+                    } else { Issue.record("Expected figcaption element") }
+                } else { Issue.record("Expected figure content array") }
+            } else { Issue.record("Expected figure element as root structured content") }
+        } else {
+            Issue.record("Expected structured-content definition for 画像")
+        }
     }
 
     @Test func termBankIterator_V1Format_ParsesCorrectly() async throws {

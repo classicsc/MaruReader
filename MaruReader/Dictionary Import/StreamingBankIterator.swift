@@ -77,14 +77,14 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
 
             while let token = try stream.read() {
                 switch token {
-                case .startArray(let key) where key == nil && arrayDepth == 0:
+                case let .startArray(key) where key == nil && arrayDepth == 0:
                     // This is the root array
                     isInArray = true
                     arrayDepth = 1
 
                 case .startArray(_) where isInArray:
                     // Start of an array element (entries are arrays in both V1 and V3)
-                    if arrayDepth == 1 && objectDepth == 0 {
+                    if arrayDepth == 1, objectDepth == 0 {
                         isCollectingElement = true
                         tokenBuffer.removeAll()
                     }
@@ -99,7 +99,7 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                         arrayDepth -= 1
 
                         // Check if we finished collecting an element
-                        if arrayDepth == 1 && objectDepth == 0 {
+                        if arrayDepth == 1, objectDepth == 0 {
                             isCollectingElement = false
 
                             // Convert tokens back to JSON and decode
@@ -125,7 +125,7 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                     tokenBuffer.append(token)
                     objectDepth -= 1
 
-                case .string(_, _), .number(_, _), .bool(_, _), .null(_):
+                case .string(_, _), .number(_, _), .bool(_, _), .null:
                     if isCollectingElement {
                         tokenBuffer.append(token)
                     }
@@ -146,10 +146,14 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
 
             for token in tokens {
                 switch token {
-                case .startObject(_):
+                case let .startObject(key):
+                    // Add key if we're in an object
+                    if case .object = containerStack.last, let key {
+                        json.append("\"\(keyDescription(key))\":")
+                    }
                     json.append("{")
                     containerStack.append(.object)
-                case .endObject(_):
+                case .endObject:
                     if json.last == "," {
                         json.removeLast()
                     }
@@ -159,10 +163,14 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                     if !containerStack.isEmpty {
                         json.append(",")
                     }
-                case .startArray(_):
+                case let .startArray(key):
+                    // Add key if we're in an object
+                    if case .object = containerStack.last, let key {
+                        json.append("\"\(keyDescription(key))\":")
+                    }
                     json.append("[")
                     containerStack.append(.array)
-                case .endArray(_):
+                case .endArray:
                     if json.last == "," {
                         json.removeLast()
                     }
@@ -172,34 +180,34 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                     if !containerStack.isEmpty {
                         json.append(",")
                     }
-                case .string(let key, let value):
+                case let .string(key, value):
                     // Only add key if we're in an object, not an array
-                    if case .object = containerStack.last, let key = key {
+                    if case .object = containerStack.last, let key {
                         json.append("\"\(keyDescription(key))\":")
                     }
                     json.append("\"\(escapeString(value))\",")
-                case .number(let key, let value):
+                case let .number(key, value):
                     // Only add key if we're in an object, not an array
-                    if case .object = containerStack.last, let key = key {
+                    if case .object = containerStack.last, let key {
                         json.append("\"\(keyDescription(key))\":")
                     }
                     switch value {
-                    case .int(let n):
+                    case let .int(n):
                         json.append("\(n),")
-                    case .double(let d):
+                    case let .double(d):
                         json.append("\(d),")
-                    case .decimal(let dec):
+                    case let .decimal(dec):
                         json.append("\(dec),")
                     }
-                case .bool(let key, let value):
+                case let .bool(key, value):
                     // Only add key if we're in an object, not an array
-                    if case .object = containerStack.last, let key = key {
+                    if case .object = containerStack.last, let key {
                         json.append("\"\(keyDescription(key))\":")
                     }
                     json.append("\(value),")
-                case .null(let key):
+                case let .null(key):
                     // Only add key if we're in an object, not an array
-                    if case .object = containerStack.last, let key = key {
+                    if case .object = containerStack.last, let key {
                         json.append("\"\(keyDescription(key))\":")
                     }
                     json.append("null,")
@@ -220,15 +228,15 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
 
         private func keyDescription(_ key: JsonKey) -> String {
             switch key {
-            case .name(let name):
-                return name
-            case .index(_):
-                return ""
+            case let .name(name):
+                name
+            case .index:
+                ""
             }
         }
 
         private func escapeString(_ str: String) -> String {
-            return str
+            str
                 .replacingOccurrences(of: "\\", with: "\\\\")
                 .replacingOccurrences(of: "\"", with: "\\\"")
                 .replacingOccurrences(of: "\n", with: "\\n")
