@@ -12,6 +12,11 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Data") {
+                    NavigationLink(destination: DictionaryManagementView()) {
+                        Label("Dictionaries", systemImage: "book.closed")
+                    }
+                }
                 Section("Appearance") {
                     Toggle("Dark Mode (stub)", isOn: $darkMode)
                 }
