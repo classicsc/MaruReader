@@ -9,19 +9,14 @@ import CoreData
 import SwiftUI
 
 struct ContentView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        sortDescriptors: [NSSortDescriptor(keyPath: \Dictionary.title, ascending: true)],
-        animation: .default
-    )
-    private var items: FetchedResults<Dictionary>
-
     var body: some View {
-        List {
-            ForEach(items) { item in
-                Text("Item at \(item.title ?? "No title")")
-            }
+        TabView {
+            BookLibraryView()
+                .tabItem { Label("Library", systemImage: "books.vertical") }
+            DictionarySearchView()
+                .tabItem { Label("Dictionary", systemImage: "magnifyingglass") }
+            SettingsView()
+                .tabItem { Label("Settings", systemImage: "gear") }
         }
     }
 }
