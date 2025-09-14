@@ -27,6 +27,12 @@ struct DictionaryImportInfo {
     /// The time the import was completed.
     var completionTime: Date?
 
+    /// The time the import failed.
+    var failureTime: Date?
+
+    /// The error encountered during import, if any.
+    var error: Error?
+
     /// Initialize a new import info instance for a file URL source.
     init(displayName: String, id: UUID, zipFileURL: URL) {
         self.displayName = displayName

@@ -12,4 +12,24 @@ enum DictionaryImportError: Error {
     case dictionaryCreationFailed
     case invalidData
     case batchInsertFailed
+    case fileAccessDenied
+
+    var localizedDescription: String {
+        switch self {
+        case .notADictionary:
+            "The selected file is not a valid dictionary."
+        case .unsupportedFormat:
+            "The dictionary format is unsupported."
+        case .importNotFound:
+            "The import operation the component requested was not found."
+        case .dictionaryCreationFailed:
+            "A database error occurred."
+        case .invalidData:
+            "The dictionary contains invalid data."
+        case .batchInsertFailed:
+            "A database error occurred while importing the dictionary."
+        case .fileAccessDenied:
+            "Could not access the dictionary file."
+        }
+    }
 }

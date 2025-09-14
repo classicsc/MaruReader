@@ -10,9 +10,13 @@ import Foundation
 import Zip
 
 /// Provides import management and observable progress tracking for dictionary imports.
-actor DictionaryImportManager {
+@MainActor
+class DictionaryImportManager: ObservableObject {
+    /// Singleton instance of the import manager.
+    static let shared = DictionaryImportManager()
+
     private var importCoordinators: [DictionaryImportCoordinator] = []
-    private var importTasks: [UUID: Task<Void, Error>] = [:]
+    private var importTasks: [UUID: Task<Void, Never>] = [:]
     @Published var activeImports: [DictionaryImportInfo] = []
     let container: NSPersistentContainer
 
@@ -21,51 +25,116 @@ actor DictionaryImportManager {
     }
 
     /// Adds a new dictionary import operation from a zip file URL.
-    func runImport(fromZipFile url: URL) throws -> UUID {
+    func runImport(fromZipFile url: URL) -> UUID {
         let importID = UUID()
         let destinationURL = FileManager.default.temporaryDirectory.appendingPathComponent(importID.uuidString)
-        try Zip.unzipFile(url, destination: destinationURL, overwrite: true, password: nil)
-        guard let indexURL = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).first(where: { $0.lastPathComponent == "index.json" }) else {
-            throw DictionaryImportError.notADictionary
-        }
-        let tagBankURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("tag_bank_") && $0.pathExtension == "json" }
-        let termBankURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("term_bank_") && $0.pathExtension == "json" }
-        let kanjiBankURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("kanji_bank_") && $0.pathExtension == "json" }
-        let termMetaBankURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("term_meta_bank_") && $0.pathExtension == "json" }
-        let kanjiMetaBankURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { $0.lastPathComponent.hasPrefix("kanji_meta_bank_") && $0.pathExtension == "json" }
-        let mediaURLs = try FileManager.default.contentsOfDirectory(at: destinationURL, includingPropertiesForKeys: nil).filter { !$0.pathExtension.isEmpty && !$0.lastPathComponent.hasSuffix(".json") }
-        let coordinator = DictionaryImportCoordinator(
-            displayName: url.deletingPathExtension().lastPathComponent,
-            indexURL: indexURL,
-            termBankURLs: termBankURLs.isEmpty ? nil : termBankURLs,
-            kanjiBankURLs: kanjiBankURLs.isEmpty ? nil : kanjiBankURLs,
-            termMetaBankURLs: termMetaBankURLs.isEmpty ? nil : termMetaBankURLs,
-            kanjiMetaBankURLs: kanjiMetaBankURLs.isEmpty ? nil : kanjiMetaBankURLs,
-            tagBankURLs: tagBankURLs.isEmpty ? nil : tagBankURLs,
-            mediaURLs: mediaURLs.isEmpty ? nil : mediaURLs,
-            container: container,
-            id: importID
-        )
-        importCoordinators.append(coordinator)
-        let importInfo = DictionaryImportInfo(displayName: url.deletingPathExtension().lastPathComponent, id: importID, zipFileURL: url)
+        let baseName = url.deletingPathExtension().lastPathComponent
+        let importInfo = DictionaryImportInfo(displayName: baseName, id: importID, zipFileURL: url)
         activeImports.append(importInfo)
-        let task = Task {
-            try await coordinator.runImport()
+        Task {
+            do {
+                try unzipDictionary(at: url, to: destinationURL)
+                let indexURL = try locateIndexFile(in: destinationURL)
+                let banks = try collectBankAndMediaURLs(in: destinationURL)
+                let coordinator = makeCoordinator(
+                    displayName: baseName,
+                    indexURL: indexURL,
+                    banks: banks,
+                    id: importID
+                )
+                registerAndStartCoordinator(coordinator, id: importID)
+            } catch {
+                markImportFailed(id: importID, error: error)
+            }
         }
-        importTasks[importID] = task
+
         return importID
+    }
+
+    // MARK: - Helper Steps
+
+    private func unzipDictionary(at source: URL, to destination: URL) throws {
+        try Zip.unzipFile(source, destination: destination, overwrite: true, password: nil)
+    }
+
+    private func locateIndexFile(in directory: URL) throws -> URL {
+        let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+        if let index = contents.first(where: { $0.lastPathComponent == "index.json" }) {
+            return index
+        }
+        throw DictionaryImportError.notADictionary
+    }
+
+    private struct BankURLsBundle {
+        let termBankURLs: [URL]?
+        let kanjiBankURLs: [URL]?
+        let termMetaBankURLs: [URL]?
+        let kanjiMetaBankURLs: [URL]?
+        let tagBankURLs: [URL]?
+        let mediaURLs: [URL]?
+    }
+
+    private func collectBankAndMediaURLs(in directory: URL) throws -> BankURLsBundle {
+        let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
+        func filtered(_ prefix: String) -> [URL]? {
+            let matches = contents.filter { $0.lastPathComponent.hasPrefix(prefix) && $0.pathExtension == "json" }
+            return matches.isEmpty ? nil : matches
+        }
+        let media = contents.filter { !$0.pathExtension.isEmpty && !$0.lastPathComponent.hasSuffix(".json") }
+        return BankURLsBundle(
+            termBankURLs: filtered("term_bank_"),
+            kanjiBankURLs: filtered("kanji_bank_"),
+            termMetaBankURLs: filtered("term_meta_bank_"),
+            kanjiMetaBankURLs: filtered("kanji_meta_bank_"),
+            tagBankURLs: filtered("tag_bank_"),
+            mediaURLs: media.isEmpty ? nil : media
+        )
+    }
+
+    private func makeCoordinator(displayName: String, indexURL: URL, banks: BankURLsBundle, id: UUID) -> DictionaryImportCoordinator {
+        DictionaryImportCoordinator(
+            displayName: displayName,
+            indexURL: indexURL,
+            termBankURLs: banks.termBankURLs,
+            kanjiBankURLs: banks.kanjiBankURLs,
+            termMetaBankURLs: banks.termMetaBankURLs,
+            kanjiMetaBankURLs: banks.kanjiMetaBankURLs,
+            tagBankURLs: banks.tagBankURLs,
+            mediaURLs: banks.mediaURLs,
+            container: container,
+            id: id
+        )
+    }
+
+    private func registerAndStartCoordinator(_ coordinator: DictionaryImportCoordinator, id: UUID) {
+        importCoordinators.append(coordinator)
+        let task = Task { [weak self] in
+            do {
+                try await coordinator.runImport()
+            } catch {
+                self?.markImportFailed(id: id, error: error)
+            }
+        }
+        importTasks[id] = task
     }
 
     func waitForImport(id: UUID) async throws {
         guard let task = importTasks[id] else {
             throw DictionaryImportError.importNotFound
         }
-        try await task.value
+        await task.value
     }
 
     func markImportComplete(id: UUID) {
         if let index = activeImports.firstIndex(where: { $0.id == id }) {
             activeImports[index].completionTime = Date()
+        }
+    }
+
+    func markImportFailed(id: UUID, error: Error) {
+        if let index = activeImports.firstIndex(where: { $0.id == id }) {
+            activeImports[index].error = error
+            activeImports[index].failureTime = Date()
         }
     }
 }
