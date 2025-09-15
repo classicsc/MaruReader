@@ -31,7 +31,7 @@ class DictionaryImportManager: ObservableObject {
         let baseName = url.deletingPathExtension().lastPathComponent
         let importInfo = DictionaryImportInfo(displayName: baseName, id: importID, zipFileURL: url)
         activeImports.append(importInfo)
-        Task {
+        importTasks[importID] = Task {
             do {
                 try unzipDictionary(at: url, to: destinationURL)
                 let indexURL = try locateIndexFile(in: destinationURL)
@@ -43,7 +43,7 @@ class DictionaryImportManager: ObservableObject {
                     id: importID,
                     rootDirectory: destinationURL
                 )
-                registerAndStartCoordinator(coordinator, id: importID)
+                await registerAndStartCoordinator(coordinator, id: importID)
             } catch {
                 markImportFailed(id: importID, error: error)
             }
@@ -130,16 +130,13 @@ class DictionaryImportManager: ObservableObject {
         )
     }
 
-    private func registerAndStartCoordinator(_ coordinator: DictionaryImportCoordinator, id: UUID) {
+    private func registerAndStartCoordinator(_ coordinator: DictionaryImportCoordinator, id: UUID) async {
         importCoordinators.append(coordinator)
-        let task = Task { [weak self] in
-            do {
-                try await coordinator.runImport()
-            } catch {
-                self?.markImportFailed(id: id, error: error)
-            }
+        do {
+            try await coordinator.runImport()
+        } catch {
+            markImportFailed(id: id, error: error)
         }
-        importTasks[id] = task
     }
 
     func waitForImport(id: UUID) async throws {

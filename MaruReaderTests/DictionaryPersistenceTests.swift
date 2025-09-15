@@ -202,9 +202,9 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = await DictionaryImportManager(container: persistenceController.container)
 
-        let importID = try await importManager.runImport(fromZipFile: zipURL)
+        let importID = await importManager.runImport(fromZipFile: zipURL)
 
         // Wait for completion
         try await importManager.waitForImport(id: importID)
@@ -293,8 +293,8 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
-        let importID = try await importManager.runImport(fromZipFile: zipURL)
+        let importManager = await DictionaryImportManager(container: persistenceController.container)
+        let importID = await importManager.runImport(fromZipFile: zipURL)
         try await importManager.waitForImport(id: importID)
 
         let context = persistenceController.container.viewContext
