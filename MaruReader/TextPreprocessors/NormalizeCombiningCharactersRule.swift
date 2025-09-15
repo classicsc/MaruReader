@@ -1,0 +1,85 @@
+//
+//  NormalizeCombiningCharactersRule.swift
+//  MaruReader
+//
+//  Created by Sam Smoker on 8/15/25.
+//
+
+import Foundation
+
+/// Normalizes combining dakuten and handakuten characters
+/// Based on Yomitan's normalizeCombiningCharacters function
+class NormalizeCombiningCharactersRule: TextPreprocessorRule {
+    let name = "normalizeCombiningCharacters"
+    let description = "Normalize combining dakuten/handakuten: が → が, ぱ → ぱ"
+
+    // Unicode code points for combining diacritics
+    private static let combiningVoicedSoundMark: UInt32 = 0x3099 // ゙ (dakuten)
+    private static let combiningSemiVoicedSoundMark: UInt32 = 0x309A // ゚ (handakuten)
+
+    /// Check if a code point can take dakuten (voiced sound mark)
+    /// Based on Yomitan's dakutenAllowed function
+    private func dakutenAllowed(_ codePoint: UInt32) -> Bool {
+        // か-と (hiragana: ka-to)
+        // カ-ト (katakana: ka-to)
+        // は-ほ (hiragana: ha-ho)
+        // ハ-ホ (katakana: ha-ho)
+        (codePoint >= 0x304B && codePoint <= 0x3068) ||
+            (codePoint >= 0x306F && codePoint <= 0x307B) ||
+            (codePoint >= 0x30AB && codePoint <= 0x30C8) ||
+            (codePoint >= 0x30CF && codePoint <= 0x30DB)
+    }
+
+    /// Check if a code point can take handakuten (semi-voiced sound mark)
+    /// Based on Yomitan's handakutenAllowed function
+    private func handakutenAllowed(_ codePoint: UInt32) -> Bool {
+        // は-ほ (hiragana: ha-ho)
+        // ハ-ホ (katakana: ha-ho)
+        (codePoint >= 0x306F && codePoint <= 0x307B) ||
+            (codePoint >= 0x30CF && codePoint <= 0x30DB)
+    }
+
+    func process(_ text: String) -> String {
+        var result = ""
+        let scalars = Array(text.unicodeScalars)
+        var i = scalars.count - 1
+
+        // Process from right to left (ignoring first character intentionally)
+        while i > 0 {
+            let currentScalar = scalars[i]
+            let previousScalar = scalars[i - 1]
+
+            switch currentScalar.value {
+            case Self.combiningVoicedSoundMark:
+                // Check if previous character can take dakuten
+                if dakutenAllowed(previousScalar.value) {
+                    let newCodePoint = previousScalar.value + 1
+                    result = String(UnicodeScalar(newCodePoint)!) + result
+                    i -= 2 // Skip both characters
+                    continue
+                }
+            case Self.combiningSemiVoicedSoundMark:
+                // Check if previous character can take handakuten
+                if handakutenAllowed(previousScalar.value) {
+                    let newCodePoint = previousScalar.value + 2
+                    result = String(UnicodeScalar(newCodePoint)!) + result
+                    i -= 2 // Skip both characters
+                    continue
+                }
+            default:
+                break
+            }
+
+            // Add current character as-is
+            result = String(currentScalar) + result
+            i -= 1
+        }
+
+        // Add first character if we haven't processed it yet (i === 0)
+        if i == 0 {
+            result = String(scalars[0]) + result
+        }
+
+        return result
+    }
+}
