@@ -4,6 +4,9 @@
 //
 //  Created by Sam Smoker on 8/15/25.
 //
+// This file is derived from japanese.js, part of the Yomitan project.
+// Copyright (C) 2024-2025  Yomitan Authors
+// Used under the terms of the GNU General Public License v3.0
 
 import Foundation
 
