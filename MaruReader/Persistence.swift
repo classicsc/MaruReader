@@ -31,6 +31,7 @@ struct PersistenceController {
         dictionary.isKanjiDictionary = true
         dictionary.hasTags = true
         dictionary.sequenced = true
+        dictionary.id = UUID()
 
         let dictionaryURI = dictionary.objectID.uriRepresentation()
 
