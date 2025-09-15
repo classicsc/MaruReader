@@ -6,8 +6,8 @@
 //
 
 import Foundation
-import Testing
 @testable import MaruReader
+import Testing
 
 struct ContentStyleCSSTests {
     @Test func toCSSString_AllPropertiesSet_ReturnsCompleteCSS() throws {
@@ -35,9 +35,9 @@ struct ContentStyleCSSTests {
             whiteSpace: "nowrap",
             wordBreak: "break-all"
         )
-        
+
         let cssString = style.toCSSString()
-        
+
         #expect(cssString.contains("font-style: italic"))
         #expect(cssString.contains("font-weight: bold"))
         #expect(cssString.contains("font-size: 16px"))
@@ -61,7 +61,7 @@ struct ContentStyleCSSTests {
         #expect(cssString.contains("white-space: nowrap"))
         #expect(cssString.contains("word-break: break-all"))
     }
-    
+
     @Test func toCSSString_PartialProperties_ReturnsPartialCSS() throws {
         let style = ContentStyle(
             fontStyle: nil,
@@ -87,21 +87,21 @@ struct ContentStyleCSSTests {
             whiteSpace: nil,
             wordBreak: nil
         )
-        
+
         let cssString = style.toCSSString()
-        
+
         #expect(cssString.contains("font-weight: bold"))
         #expect(cssString.contains("font-size: 16px"))
         #expect(cssString.contains("background-color: #ffffff"))
         #expect(cssString.contains("text-align: center"))
         #expect(cssString.contains("padding: 5px"))
-        
+
         #expect(!cssString.contains("font-style"))
         #expect(!cssString.hasPrefix("color:") && !cssString.contains("; color:"))
         #expect(!cssString.contains("text-decoration"))
         #expect(!cssString.contains("margin"))
     }
-    
+
     @Test func toCSSString_EmptyStyle_ReturnsEmptyString() throws {
         let style = ContentStyle(
             fontStyle: nil,
@@ -127,12 +127,12 @@ struct ContentStyleCSSTests {
             whiteSpace: nil,
             wordBreak: nil
         )
-        
+
         let cssString = style.toCSSString()
-        
+
         #expect(cssString.isEmpty)
     }
-    
+
     @Test func toCSSString_EmptyTextDecorationLine_IgnoresProperty() throws {
         let style = ContentStyle(
             fontStyle: nil,
@@ -158,13 +158,13 @@ struct ContentStyleCSSTests {
             whiteSpace: nil,
             wordBreak: nil
         )
-        
+
         let cssString = style.toCSSString()
-        
+
         #expect(cssString == "font-weight: bold")
         #expect(!cssString.contains("text-decoration-line"))
     }
-    
+
     @Test func toCSSString_SingleTextDecorationLine_FormatsCorrectly() throws {
         let style = ContentStyle(
             fontStyle: nil,
@@ -190,9 +190,9 @@ struct ContentStyleCSSTests {
             whiteSpace: nil,
             wordBreak: nil
         )
-        
+
         let cssString = style.toCSSString()
-        
+
         #expect(cssString == "text-decoration-line: underline")
     }
 }

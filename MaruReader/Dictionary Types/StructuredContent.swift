@@ -1,0 +1,69 @@
+//
+//  StructuredContent.swift
+//  MaruReader
+//
+//  Created by Sam Smoker on 9/15/25.
+//
+
+import Foundation
+
+/// Recursive structured content type
+enum StructuredContent: Codable {
+    case text(String)
+    case array([StructuredContent])
+    case element(StructuredElement)
+
+    init(from decoder: Decoder) throws {
+        if let str = try? decoder.singleValueContainer().decode(String.self) {
+            self = .text(str)
+            return
+        }
+        if let arr = try? decoder.singleValueContainer().decode([StructuredContent].self) {
+            self = .array(arr)
+            return
+        }
+        if let element = try? decoder.singleValueContainer().decode(StructuredElement.self) {
+            self = .element(element)
+            return // ensure we don't fall through to error
+        }
+        throw DecodingError.dataCorrupted(
+            DecodingError.Context(codingPath: decoder.codingPath,
+                                  debugDescription: "Invalid StructuredContent")
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        switch self {
+        case let .text(str):
+            var c = encoder.singleValueContainer(); try c.encode(str)
+        case let .array(arr):
+            var c = encoder.singleValueContainer(); try c.encode(arr)
+        case let .element(elem):
+            var c = encoder.singleValueContainer(); try c.encode(elem)
+        }
+    }
+}
+
+// MARK: - HTML Conversion
+
+extension StructuredContent {
+    func toHTML(baseURL: URL? = nil) -> String {
+        switch self {
+        case let .text(string):
+            escapeHTML(string)
+        case let .array(contents):
+            contents.map { $0.toHTML(baseURL: baseURL) }.joined()
+        case let .element(element):
+            element.toHTML(baseURL: baseURL)
+        }
+    }
+
+    private func escapeHTML(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
+    }
+}
