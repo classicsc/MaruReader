@@ -40,7 +40,8 @@ class DictionaryImportManager: ObservableObject {
                     displayName: baseName,
                     indexURL: indexURL,
                     banks: banks,
-                    id: importID
+                    id: importID,
+                    rootDirectory: destinationURL
                 )
                 registerAndStartCoordinator(coordinator, id: importID)
             } catch {
@@ -75,23 +76,44 @@ class DictionaryImportManager: ObservableObject {
     }
 
     private func collectBankAndMediaURLs(in directory: URL) throws -> BankURLsBundle {
+        // Collect only top-level JSON bank/index files (banks are expected at root)
         let contents = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
         func filtered(_ prefix: String) -> [URL]? {
             let matches = contents.filter { $0.lastPathComponent.hasPrefix(prefix) && $0.pathExtension == "json" }
             return matches.isEmpty ? nil : matches
         }
-        let media = contents.filter { !$0.pathExtension.isEmpty && !$0.lastPathComponent.hasSuffix(".json") }
+
+        // Recursively gather media (non-JSON) files from the root directory and any subdirectories.
+        // Banks and index files are JSON and intentionally excluded. Directories themselves are skipped.
+        var mediaFiles: [URL] = []
+        if let enumerator = FileManager.default.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) {
+            for case let fileURL as URL in enumerator {
+                let ext = fileURL.pathExtension
+                if ext.lowercased() == "json" { continue } // exclude JSON (banks, index)
+                var isDir: ObjCBool = false
+                if FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDir), !isDir.boolValue {
+                    mediaFiles.append(fileURL)
+                }
+            }
+        }
+        // Provide deterministic ordering (helps with tests / debugging)
+        mediaFiles.sort { $0.path < $1.path }
+
         return BankURLsBundle(
             termBankURLs: filtered("term_bank_"),
             kanjiBankURLs: filtered("kanji_bank_"),
             termMetaBankURLs: filtered("term_meta_bank_"),
             kanjiMetaBankURLs: filtered("kanji_meta_bank_"),
             tagBankURLs: filtered("tag_bank_"),
-            mediaURLs: media.isEmpty ? nil : media
+            mediaURLs: mediaFiles.isEmpty ? nil : mediaFiles
         )
     }
 
-    private func makeCoordinator(displayName: String, indexURL: URL, banks: BankURLsBundle, id: UUID) -> DictionaryImportCoordinator {
+    private func makeCoordinator(displayName: String, indexURL: URL, banks: BankURLsBundle, id: UUID, rootDirectory: URL) -> DictionaryImportCoordinator {
         DictionaryImportCoordinator(
             displayName: displayName,
             indexURL: indexURL,
@@ -101,7 +123,9 @@ class DictionaryImportManager: ObservableObject {
             kanjiMetaBankURLs: banks.kanjiMetaBankURLs,
             tagBankURLs: banks.tagBankURLs,
             mediaURLs: banks.mediaURLs,
+            mediaRootDirectory: rootDirectory,
             container: container,
+            importManager: self,
             id: id
         )
     }

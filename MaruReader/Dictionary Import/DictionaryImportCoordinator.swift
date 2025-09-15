@@ -39,6 +39,9 @@ struct DictionaryImportCoordinator {
     /// URLs of media resources - in a zip import, this is all non-json files.
     let mediaURLs: [URL]?
 
+    /// Root directory that was unzipped; used to reconstruct relative media paths.
+    let mediaRootDirectory: URL?
+
     /// The Core Data container to use for persistence.
     let container: NSPersistentContainer
 
@@ -135,6 +138,38 @@ struct DictionaryImportCoordinator {
             dict.isComplete = true
             try context.save()
         }
+
+        // If there are media files, persist them to an application support directory named by the dictionary ID
+        if let mediaURLs, !mediaURLs.isEmpty {
+            let fileManager = FileManager.default
+            let appSupportDir = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            let dictMediaDir = appSupportDir.appendingPathComponent("Dictionaries").appendingPathComponent(id.uuidString)
+            try fileManager.createDirectory(at: dictMediaDir, withIntermediateDirectories: true, attributes: nil)
+            let rootPath: String? = mediaRootDirectory?.path
+            for mediaURL in mediaURLs {
+                let destURL: URL
+                if let rootPath, mediaURL.path.hasPrefix(rootPath) {
+                    // Compute relative path preserving subdirectory structure
+                    var relative = String(mediaURL.path.dropFirst(rootPath.count))
+                    if relative.hasPrefix("/") { relative.removeFirst() }
+                    if relative.isEmpty { // Should not happen for a file, fallback to filename
+                        relative = mediaURL.lastPathComponent
+                    }
+                    destURL = dictMediaDir.appendingPathComponent(relative)
+                    // Ensure subdirectory exists
+                    try fileManager.createDirectory(at: destURL.deletingLastPathComponent(), withIntermediateDirectories: true, attributes: nil)
+                } else {
+                    // Fallback: flat copy
+                    destURL = dictMediaDir.appendingPathComponent(mediaURL.lastPathComponent)
+                }
+                if fileManager.fileExists(atPath: destURL.path) {
+                    try fileManager.removeItem(at: destURL)
+                }
+                try fileManager.copyItem(at: mediaURL, to: destURL)
+            }
+            logger.debug("Copied \(mediaURLs.count) media files to \(dictMediaDir.path)")
+        }
+
         // Then notify the import manager that we're done
         await importManager?.markImportComplete(id: id)
     }
@@ -163,10 +198,10 @@ struct DictionaryImportCoordinator {
             dict.frequencyMode = index.frequencyMode?.rawValue
             dict.sequenced = index.sequenced ?? false
             dict.format = Int64(dictionaryFormat.rawValue)
-            dict.revision = index.revision
             dict.downloadURL = index.downloadUrl
             dict.indexURL = index.indexUrl
             dict.url = index.url
+            dict.id = id
             dict.displayDescription = index.description
             do {
                 try context.save()
