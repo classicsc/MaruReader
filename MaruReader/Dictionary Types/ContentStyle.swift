@@ -32,6 +32,54 @@ struct ContentStyle: Codable {
     let whiteSpace: String?
     let wordBreak: String?
 
+    init(
+        fontStyle: String? = nil,
+        fontWeight: String? = nil,
+        fontSize: String? = nil,
+        color: String? = nil,
+        backgroundColor: String? = nil,
+        background: String? = nil,
+        textDecorationLine: [String]? = nil,
+        textDecorationStyle: String? = nil,
+        textDecorationColor: String? = nil,
+        listStyleType: String? = nil,
+        textAlign: String? = nil,
+        verticalAlign: String? = nil,
+        margin: String? = nil,
+        padding: String? = nil,
+        borderColor: String? = nil,
+        borderStyle: String? = nil,
+        borderRadius: String? = nil,
+        borderWidth: String? = nil,
+        textEmphasis: String? = nil,
+        textShadow: String? = nil,
+        whiteSpace: String? = nil,
+        wordBreak: String? = nil
+    ) {
+        self.fontStyle = fontStyle
+        self.fontWeight = fontWeight
+        self.fontSize = fontSize
+        self.color = color
+        self.backgroundColor = backgroundColor
+        self.background = background
+        self.textDecorationLine = textDecorationLine
+        self.textDecorationStyle = textDecorationStyle
+        self.textDecorationColor = textDecorationColor
+        self.listStyleType = listStyleType
+        self.textAlign = textAlign
+        self.verticalAlign = verticalAlign
+        self.margin = margin
+        self.padding = padding
+        self.borderColor = borderColor
+        self.borderStyle = borderStyle
+        self.borderRadius = borderRadius
+        self.borderWidth = borderWidth
+        self.textEmphasis = textEmphasis
+        self.textShadow = textShadow
+        self.whiteSpace = whiteSpace
+        self.wordBreak = wordBreak
+    }
+
     // Custom decoding to handle textDecorationLine as String or [String]
     enum CodingKeys: String, CodingKey {
         case fontStyle
@@ -119,6 +167,79 @@ struct ContentStyle: Codable {
         try container.encodeIfPresent(textShadow, forKey: .textShadow)
         try container.encodeIfPresent(whiteSpace, forKey: .whiteSpace)
         try container.encodeIfPresent(wordBreak, forKey: .wordBreak)
+    }
+
+    func toCSSString() -> String {
+        var cssProperties: [String] = []
+
+        if let fontStyle {
+            cssProperties.append("font-style: \(fontStyle)")
+        }
+        if let fontWeight {
+            cssProperties.append("font-weight: \(fontWeight)")
+        }
+        if let fontSize {
+            cssProperties.append("font-size: \(fontSize)")
+        }
+        if let color {
+            cssProperties.append("color: \(color)")
+        }
+        if let backgroundColor {
+            cssProperties.append("background-color: \(backgroundColor)")
+        }
+        if let background {
+            cssProperties.append("background: \(background)")
+        }
+        if let textDecorationLine, !textDecorationLine.isEmpty {
+            cssProperties.append("text-decoration-line: \(textDecorationLine.joined(separator: " "))")
+        }
+        if let textDecorationStyle {
+            cssProperties.append("text-decoration-style: \(textDecorationStyle)")
+        }
+        if let textDecorationColor {
+            cssProperties.append("text-decoration-color: \(textDecorationColor)")
+        }
+        if let listStyleType {
+            cssProperties.append("list-style-type: \(listStyleType)")
+        }
+        if let textAlign {
+            cssProperties.append("text-align: \(textAlign)")
+        }
+        if let verticalAlign {
+            cssProperties.append("vertical-align: \(verticalAlign)")
+        }
+        if let margin {
+            cssProperties.append("margin: \(margin)")
+        }
+        if let padding {
+            cssProperties.append("padding: \(padding)")
+        }
+        if let borderColor {
+            cssProperties.append("border-color: \(borderColor)")
+        }
+        if let borderStyle {
+            cssProperties.append("border-style: \(borderStyle)")
+        }
+        if let borderRadius {
+            cssProperties.append("border-radius: \(borderRadius)")
+        }
+        if let borderWidth {
+            cssProperties.append("border-width: \(borderWidth)")
+        }
+        if let textEmphasis {
+            cssProperties.append("text-emphasis: \(textEmphasis)")
+        }
+        if let textShadow {
+            cssProperties.append("text-shadow: \(textShadow)")
+        }
+        if let whiteSpace {
+            cssProperties.append("white-space: \(whiteSpace)")
+        }
+        if let wordBreak {
+            cssProperties.append("word-break: \(wordBreak)")
+        }
+
+        return cssProperties.joined(separator: "; ")
     }
 }
 
