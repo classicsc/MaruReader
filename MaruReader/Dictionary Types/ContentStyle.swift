@@ -15,7 +15,7 @@ struct ContentStyle: Codable {
     let color: String?
     let backgroundColor: String?
     let background: String?
-    let textDecorationLine: Any? // Can be String or [String]
+    let textDecorationLine: [String]?
     let textDecorationStyle: String?
     let textDecorationColor: String?
     let listStyleType: String?
@@ -70,7 +70,7 @@ struct ContentStyle: Codable {
 
         // Handle textDecorationLine as either String or [String]
         if let singleDecoration = try? container.decode(String.self, forKey: .textDecorationLine) {
-            textDecorationLine = singleDecoration
+            textDecorationLine = [singleDecoration]
         } else if let multipleDecorations = try? container.decode([String].self, forKey: .textDecorationLine) {
             textDecorationLine = multipleDecorations
         } else {
@@ -103,14 +103,7 @@ struct ContentStyle: Codable {
         try container.encodeIfPresent(color, forKey: .color)
         try container.encodeIfPresent(backgroundColor, forKey: .backgroundColor)
         try container.encodeIfPresent(background, forKey: .background)
-
-        // Encode textDecorationLine based on its type
-        if let singleDecoration = textDecorationLine as? String {
-            try container.encode(singleDecoration, forKey: .textDecorationLine)
-        } else if let multipleDecorations = textDecorationLine as? [String] {
-            try container.encode(multipleDecorations, forKey: .textDecorationLine)
-        }
-
+        try container.encodeIfPresent(textDecorationLine, forKey: .textDecorationLine)
         try container.encodeIfPresent(textDecorationStyle, forKey: .textDecorationStyle)
         try container.encodeIfPresent(textDecorationColor, forKey: .textDecorationColor)
         try container.encodeIfPresent(listStyleType, forKey: .listStyleType)
