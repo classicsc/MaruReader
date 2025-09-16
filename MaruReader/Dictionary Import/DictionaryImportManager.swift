@@ -94,8 +94,11 @@ class DictionaryImportManager: ObservableObject {
             for case let fileURL as URL in enumerator {
                 let ext = fileURL.pathExtension
                 if ext.lowercased() == "json" { continue } // exclude JSON (banks, index)
-                var isDir: ObjCBool = false
-                if FileManager.default.fileExists(atPath: fileURL.path, isDirectory: &isDir), !isDir.boolValue {
+
+                // Use URL resource values instead of fileExists for safety
+                if let resourceValues = try? fileURL.resourceValues(forKeys: [.isDirectoryKey]),
+                   let isDirectory = resourceValues.isDirectory,
+                   !isDirectory {
                     mediaFiles.append(fileURL)
                 }
             }
