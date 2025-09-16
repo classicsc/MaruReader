@@ -88,6 +88,114 @@ enum DefinitionDetailed: Codable {
     }
 }
 
+// MARK: - HTML Conversion
+
+extension Definition {
+    func toHTML(baseURL: URL? = nil) -> String {
+        switch self {
+        case let .text(text):
+            return wrapDefinitionText(text)
+        case let .detailed(detail):
+            switch detail {
+            case let .text(textDef):
+                return wrapDefinitionText(textDef.text)
+            case let .structured(structuredDef):
+                return structuredDef.content.toHTML(baseURL: baseURL)
+            case let .image(imageDef):
+                return imageHTML(from: imageDef, baseURL: baseURL)
+            }
+        case let .deinflection(uninflected, rules):
+            let escapedUninflected = escapeHTML(uninflected)
+            let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
+            return "<p class=\"deinflection\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
+        }
+    }
+
+    private func wrapDefinitionText(_ text: String) -> String {
+        "<p class=\"definition-text\">\(escapeHTML(text))</p>"
+    }
+
+    private func imageHTML(from image: ImageDef, baseURL: URL?) -> String {
+        var attributes: [String] = []
+
+        if let resolvedSource = resolveImageSource(path: image.path, baseURL: baseURL) {
+            attributes.append("src=\"\(escapeHTMLAttribute(resolvedSource))\"")
+        }
+
+        if let width = image.width {
+            attributes.append("width=\"\(width)\"")
+        }
+
+        if let height = image.height {
+            attributes.append("height=\"\(height)\"")
+        }
+
+        if let alt = image.alt {
+            attributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
+        }
+
+        if let title = image.title {
+            attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
+        }
+
+        if let style = imageStyle(from: image) {
+            attributes.append("style=\"\(escapeHTMLAttribute(style))\"")
+        }
+
+        let attributeString = attributes.isEmpty ? "" : " " + attributes.joined(separator: " ")
+        return "<img\(attributeString) />"
+    }
+
+    private func resolveImageSource(path: String, baseURL: URL?) -> String? {
+        guard let url = URL(string: path) else {
+            return nil
+        }
+
+        // If the path has a scheme, it should be treated as invalid per schema rules.
+        guard url.scheme == nil else {
+            return nil
+        }
+
+        if let baseURL {
+            return baseURL.appendingPathComponent(path).absoluteString
+        }
+
+        return path
+    }
+
+    private func imageStyle(from image: ImageDef) -> String? {
+        var styleComponents: [String] = []
+
+        if let imageRendering = image.imageRendering {
+            if imageRendering != "auto" {
+                styleComponents.append("image-rendering: \(imageRendering)")
+            }
+        } else if image.pixelated == true {
+            styleComponents.append("image-rendering: pixelated")
+        }
+
+        return styleComponents.isEmpty ? nil : styleComponents.joined(separator: "; ")
+    }
+
+    private func escapeHTML(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
+    }
+
+    private func escapeHTMLAttribute(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "'", with: "&#39;")
+    }
+}
+
 /// Text definition
 struct TextDef: Codable {
     let type: String // always "text"
