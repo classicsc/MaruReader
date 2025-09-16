@@ -321,4 +321,93 @@ struct DictionaryPersistenceTests {
         #expect(tagName == "noun")
         #expect(tagDictTitle == "LegacyDict")
     }
+
+    @Test func importDictionary_MediaFiles_PersistsToCorrectLocation() async throws {
+        // Test Description: Verifies that media files in a dictionary ZIP are persisted
+        // to the correct location in Application Support directory.
+        // - Setup: Mock ZIP with index.json and media files (including subdirectories)
+        // - Action: Call importDictionary and wait for completion
+        // - Expected: Media files are copied to Application Support/Dictionaries/{import-id}/
+        //   preserving their relative directory structure
+
+        let indexJSON = """
+        {
+            "title": "MediaTestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+
+        // Create media files with subdirectory structure
+        let mediaFiles = [
+            "icon.png",
+            "audio/word1.mp3",
+            "audio/word2.mp3",
+            "images/kanji/食.png",
+        ]
+
+        let zipURL = try createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: nil,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil,
+            mediaFiles: mediaFiles
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = await DictionaryImportManager(container: persistenceController.container)
+        let importID = await importManager.runImport(fromZipFile: zipURL)
+        try await importManager.waitForImport(id: importID)
+
+        // Verify dictionary was created
+        let context = persistenceController.container.viewContext
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let (dictionaryCount, title, dictID) = try await context.perform {
+            let dictionaries = try context.fetch(dictRequest)
+            return (dictionaries.count, dictionaries.first?.title ?? "", dictionaries.first?.id)
+        }
+        #expect(dictionaryCount == 1)
+        #expect(title == "MediaTestDict")
+        #expect(dictID != nil)
+
+        // Verify media files were copied to the correct location
+        let fileManager = FileManager.default
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        let dictMediaDir = appSupportDir
+            .appendingPathComponent("Dictionaries")
+            .appendingPathComponent(dictID!.uuidString)
+
+        // Check that the media directory exists
+        #expect(fileManager.fileExists(atPath: dictMediaDir.path))
+
+        // Check that each media file exists at its expected location
+        for mediaPath in mediaFiles {
+            let expectedURL = dictMediaDir.appendingPathComponent(mediaPath)
+            #expect(fileManager.fileExists(atPath: expectedURL.path), "Media file should exist at: \(expectedURL.path)")
+
+            // Verify the file has content (our mock PNG data)
+            if fileManager.fileExists(atPath: expectedURL.path) {
+                let data = try Data(contentsOf: expectedURL)
+                #expect(data.count > 0, "Media file should have content")
+
+                // For PNG files, verify they start with PNG signature
+                if mediaPath.hasSuffix(".png") {
+                    let pngSignature: [UInt8] = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]
+                    let fileSignature = Array(data.prefix(8))
+                    #expect(fileSignature == pngSignature, "PNG file should have valid PNG signature")
+                }
+            }
+        }
+
+        // Clean up the created media directory
+        try? fileManager.removeItem(at: dictMediaDir.deletingLastPathComponent())
+    }
 }
