@@ -196,6 +196,14 @@ extension Definition {
     }
 }
 
+/// Render arrays of definitions as ordered lists in HTML.
+extension [Definition] {
+    func toHTML(baseURL: URL? = nil) -> String {
+        let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL))</li>" }.joined()
+        return "<ol class=\"glossary-list\">\(itemsHTML)</ol>"
+    }
+}
+
 /// Text definition
 struct TextDef: Codable {
     let type: String // always "text"
