@@ -5,29 +5,33 @@
 //  Created by Sam Smoker on 9/20/25.
 //
 
-import Foundation
 import CoreData
-import Zip
+import Foundation
 import os.log
+import Zip
 
 actor DictionaryImportManager {
     static let shared = DictionaryImportManager()
-    
+
+    // Constants
+    /// The supported dictionary format versions
+    static let supportedFormats: Set<Int> = [1, 3]
+
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
     private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
-    
+
     private init() {
         container = PersistenceController.shared.container
     }
-    
+
     // Initializer for testing with custom container
     init(container: NSPersistentContainer) {
         self.container = container
     }
-    
+
     /// Enqueue a new dictionary import from the given ZIP file URL.
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
     func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
@@ -50,12 +54,12 @@ actor DictionaryImportManager {
         job.timeQueued = Date()
         try context.save()
         let importJob = job.objectID
-        
+
         queue.append(importJob)
         processNextIfIdle()
         return importJob
     }
-    
+
     /// Cancel an ongoing or queued import job.
     /// - Parameter jobID: The NSManagedObjectID of the DictionaryZIPFileImport to cancel.
     func cancelImport(jobID: NSManagedObjectID) async {
@@ -74,7 +78,7 @@ actor DictionaryImportManager {
             }
         }
     }
-    
+
     /// Wait for a given import job to complete.
     /// - Parameter jobID: The NSManagedObjectID of the DictionaryZIPFileImport to wait for.
     func waitForCompletion(jobID: NSManagedObjectID) async {
@@ -92,10 +96,10 @@ actor DictionaryImportManager {
             }
         }
     }
-    
+
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
-        
+
         currentTask = Task {
             await runImport(for: nextJob)
             queue.removeFirst()
@@ -105,7 +109,7 @@ actor DictionaryImportManager {
         }
         currentJobID = nextJob
     }
-    
+
     private func runImport(for jobID: NSManagedObjectID) async {
         logger.debug("Starting import job \(jobID)")
         let context = container.newBackgroundContext()
@@ -135,7 +139,7 @@ actor DictionaryImportManager {
             try await copyMedia(job)
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
-            
+
             job.isComplete = true
             job.dictionary?.isComplete = true
             job.timeCompleted = Date()
@@ -157,7 +161,7 @@ actor DictionaryImportManager {
             }
             try? context.save()
         }
-        
+
         await cleanup(job)
     }
 }
@@ -170,46 +174,46 @@ extension DictionaryImportManager {
         guard let jobDirectory = job.workingDirectory else {
             throw DictionaryImportError.noWorkingDirectory
         }
-        
+
         // Update progress message
         job.displayProgressMessage = "Extracting dictionary archive..."
-        
+
         // Check if file exists and is accessible
         guard FileManager.default.fileExists(atPath: jobURL.path) else {
             throw DictionaryImportError.missingFile
         }
-        
+
         guard jobURL.startAccessingSecurityScopedResource() else {
             throw DictionaryImportError.fileAccessDenied
         }
-        
+
         defer {
             jobURL.stopAccessingSecurityScopedResource()
         }
-        
+
         do {
             // Use Zip.unzipFile to extract the archive
             // This preserves directory structure automatically
             try Zip.unzipFile(jobURL, destination: jobDirectory, overwrite: true, password: nil)
-            
+
             let extractedContents = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
-            
+
             // Update job status
             job.archiveExtracted = true
             job.displayProgressMessage = "Extracted dictionary archive."
             try context.save()
-            
+
         } catch let error as NSError {
             throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
     }
-    
+
     private func processIndex(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
         // Load index.json
         // Create Dictionary entity
         // Populate job.termBanks, job.kanjiBanks, etc.
         // Index can contain tag metadata that needs to be processed
-        
+
         guard let workingDir = job.workingDirectory else {
             throw DictionaryImportError.noWorkingDirectory
         }
@@ -217,12 +221,17 @@ extension DictionaryImportManager {
         guard FileManager.default.fileExists(atPath: indexURL.path) else {
             throw DictionaryImportError.notADictionary
         }
-        
+
         // Decode index.json to type DictionaryIndex
         let data = try Data(contentsOf: indexURL)
         let decoder = JSONDecoder()
         let index = try decoder.decode(DictionaryIndex.self, from: data)
-        
+
+        // Ensure format is supported
+        guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
+            throw DictionaryImportError.unsupportedFormat
+        }
+
         // Find the bank files in working directory
         let contents = try FileManager.default.contentsOfDirectory(at: workingDir, includingPropertiesForKeys: nil)
         let termBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_bank_") && $0.pathExtension == "json" }
@@ -230,12 +239,12 @@ extension DictionaryImportManager {
         let termMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_meta_bank_") && $0.pathExtension == "json" }
         let kanjiMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_meta_bank_") && $0.pathExtension == "json" }
         let tagBanks = contents.filter { $0.lastPathComponent.hasPrefix("tag_bank_") && $0.pathExtension == "json" }
-        
+
         // Dictionary must have at least one of termBanks, kanjiBanks, termMetaBanks, kanjiMetaBanks
-        if termBanks.isEmpty && kanjiBanks.isEmpty && termMetaBanks.isEmpty && kanjiMetaBanks.isEmpty {
+        if termBanks.isEmpty, kanjiBanks.isEmpty, termMetaBanks.isEmpty, kanjiMetaBanks.isEmpty {
             throw DictionaryImportError.notADictionary
         }
-        
+
         // Create the Dictionary entity and link to job
         let dictionary = Dictionary(context: context)
         dictionary.id = UUID()
@@ -252,11 +261,11 @@ extension DictionaryImportManager {
         dictionary.sourceLanguage = index.sourceLanguage
         dictionary.targetLanguage = index.targetLanguage
         dictionary.revision = index.revision
-        dictionary.format = Int64(index.format ?? 0)
-        
+        dictionary.format = Int64(format)
+
         try dictionary.validateForInsert()
         context.insert(dictionary)
-        
+
         // If the index has embedded tags, create DictionaryTagMeta entities
         if let embeddedTags = index.tagMeta {
             for (name, entry) in embeddedTags {
@@ -274,46 +283,66 @@ extension DictionaryImportManager {
                 tag.dictionary = dictionary
             }
         }
-        
+
         job.dictionary = dictionary
         job.setValue(termBanks, forKey: "termBanks")
         job.setValue(kanjiBanks, forKey: "kanjiBanks")
         job.setValue(termMetaBanks, forKey: "termMetaBanks")
         job.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
         job.setValue(tagBanks, forKey: "tagBanks")
-        
+
         job.indexProcessed = true
         job.displayProgressMessage = "Processed dictionary index."
-        
+
         try context.save()
     }
-    
+
     private func processBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
-        // Example with term banks, actually tag banks should be processed first
-        guard let termBankURLs = job.termBanks as? [URL] else { return }
-        
-        var iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: termBankURLs,
-            dataFormat: 3
-        )
-        
-        for try await entry in iterator {
-            // Insert into Core Data
+        // Get the dictionary entity
+        guard let dictionary = job.dictionary else {
+            throw DictionaryImportError.databaseError
         }
-        
-        job.processedTermBanks = termBankURLs as NSArray
+
+        // Get the dictionary format
+        let format = dictionary.format
+
+        // Process tag banks
+        guard let tagBankURLs = job.tagBanks as? [URL] else {
+            throw DictionaryImportError.databaseError
+        }
+
+        let tagIterator = StreamingBankIterator<TagBankV3Entry>(
+            bankURLs: tagBankURLs,
+            dataFormat: Int(format)
+        )
+
+        for try await entry in tagIterator {
+            // Insert into Core Data
+            let tag = DictionaryTagMeta(context: context)
+            tag.id = UUID()
+            tag.name = entry.name
+            tag.category = entry.category
+            tag.order = Double(entry.order)
+            tag.notes = entry.notes
+            tag.score = Double(entry.score)
+
+            try tag.validateForInsert()
+            context.insert(tag)
+
+            tag.dictionary = dictionary
+        }
+
+        job.setValue(tagBankURLs, forKey: "processedTagBanks")
         try context.save()
-        
         try Task.checkCancellation()
-        // Then process the other banks similarly
     }
-    
-    private func copyMedia(_ job: DictionaryZIPFileImport) async throws {
+
+    private func copyMedia(_: DictionaryZIPFileImport) async throws {
         // Walk workingDirectory, copy non-json files preserving structure
         // Update job.mediaImported
     }
-    
-    private func cleanup(_ job: DictionaryZIPFileImport) async {
+
+    private func cleanup(_: DictionaryZIPFileImport) async {
         // Delete working directory if complete/failed/cancelled
     }
 }

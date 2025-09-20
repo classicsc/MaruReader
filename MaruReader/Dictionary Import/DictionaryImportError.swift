@@ -37,7 +37,7 @@ enum DictionaryImportError: Error, Equatable {
             "The dictionary file is missing."
         case .noWorkingDirectory:
             "No working directory is available."
-        case .unzipFailed(let underlyingError):
+        case let .unzipFailed(underlyingError):
             "Failed to unzip the dictionary file: \(underlyingError.localizedDescription)"
         }
     }
@@ -53,12 +53,12 @@ enum DictionaryImportError: Error, Equatable {
              (.fileAccessDenied, .fileAccessDenied),
              (.missingFile, .missingFile),
              (.noWorkingDirectory, .noWorkingDirectory):
-            return true
+            true
         case (.unzipFailed, .unzipFailed):
             // Ignore underlying error when comparing for equality in tests
-            return true
+            true
         default:
-            return false
+            false
         }
     }
 }

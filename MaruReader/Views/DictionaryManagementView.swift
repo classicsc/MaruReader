@@ -176,7 +176,6 @@ struct DictionaryRow: View {
     }
 }
 
-
 #Preview {
     NavigationStack {
         DictionaryManagementView()

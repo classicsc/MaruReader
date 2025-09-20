@@ -20,6 +20,24 @@ struct DictionaryPersistenceTests {
         case missingFile(String)
     }
 
+    // Helper struct for tag fetch results
+    struct TagResult {
+        let name: String
+        let category: String
+        let notes: String
+        let order: Double
+        let score: Double
+        let dictionaryTitle: String
+    }
+
+    // Helper struct for dictionary fetch results
+    struct DictionaryResult {
+        let title: String
+        let revision: String
+        let format: Int64
+        let isComplete: Bool
+    }
+
     // Helper: Create a mock ZIP file with given JSON contents
     private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -208,7 +226,7 @@ struct DictionaryPersistenceTests {
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
-        
+
         // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
         let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
@@ -216,17 +234,53 @@ struct DictionaryPersistenceTests {
         #expect(job?.isCancelled == false)
         #expect(job?.isFailed == false)
         #expect(job?.displayProgressMessage == "Import complete.")
+        // Assert: tag banks marked processed
+        let tagBanks = job?.tagBanks as? [URL]
+        let processedTagBanks = job?.processedTagBanks as? [URL]
+        // Confirm contents match
+        let tagBankSet = Set(tagBanks ?? [])
+        let processedTagBankSet = Set(processedTagBanks ?? [])
+        #expect(tagBankSet == processedTagBankSet)
 
         // Assert: Data persisted
 
-        let (dictionaryCount, isComplete, title) = try await context.perform {
+        let dictResult = try await context.perform {
             let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
             let dictionaries = try context.fetch(dictRequest)
-            return (dictionaries.count, dictionaries.first?.isComplete ?? false, dictionaries.first?.title ?? "")
+            return dictionaries.map { dict in
+                DictionaryResult(
+                    title: dict.title ?? "",
+                    revision: dict.revision ?? "",
+                    format: dict.format,
+                    isComplete: dict.isComplete
+                )
+            }.first
         }
-        #expect(dictionaryCount == 1)
-        #expect(isComplete == true)
-        #expect(title == "TestDict")
+        #expect(dictResult?.title == "TestDict")
+        #expect(dictResult?.revision == "1.0")
+        #expect(dictResult?.format == 3)
+        #expect(dictResult?.isComplete == true)
+
+        let tagResult = try await context.perform {
+            let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
+            let tags = try context.fetch(tagRequest)
+            return tags.map { tag in
+                TagResult(
+                    name: tag.name ?? "",
+                    category: tag.category ?? "",
+                    notes: tag.notes ?? "",
+                    order: tag.order,
+                    score: tag.score,
+                    dictionaryTitle: tag.dictionary?.title ?? ""
+                )
+            }.first
+        }
+        #expect(tagResult?.name == "noun")
+        #expect(tagResult?.category == "partOfSpeech")
+        #expect(tagResult?.notes == "Common noun")
+        #expect(tagResult?.order == 1)
+        #expect(tagResult?.score == 0)
+        #expect(tagResult?.dictionaryTitle == "TestDict")
     }
 
     @Test func importDictionary_LegacyTagMeta_PersistsTags() async throws {
@@ -267,13 +321,25 @@ struct DictionaryPersistenceTests {
         #expect(dictionaryCount == 1)
         #expect(title == "LegacyDict")
 
-        let (tagCount, tagName, tagDictTitle) = try await context.perform {
+        let tagResult = try await context.perform {
             let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
             let tags = try context.fetch(tagRequest)
-            return (tags.count, tags.first?.name ?? "", tags.first?.dictionary?.title ?? "" )
+            return tags.map { tag in
+                TagResult(
+                    name: tag.name ?? "",
+                    category: tag.category ?? "",
+                    notes: tag.notes ?? "",
+                    order: tag.order,
+                    score: tag.score,
+                    dictionaryTitle: tag.dictionary?.title ?? ""
+                )
+            }.first
         }
-        #expect(tagCount == 1)
-        #expect(tagName == "noun")
-        #expect(tagDictTitle == "LegacyDict")
+        #expect(tagResult?.name == "noun")
+        #expect(tagResult?.category == "partOfSpeech")
+        #expect(tagResult?.notes == "Common noun")
+        #expect(tagResult?.order == 1)
+        #expect(tagResult?.score == 0)
+        #expect(tagResult?.dictionaryTitle == "LegacyDict")
     }
 }
