@@ -15,6 +15,7 @@ enum DictionaryImportError: Error {
     case fileAccessDenied
     case missingFile
     case noWorkingDirectory
+    case unzipFailed(underlyingError: Error)
 
     var localizedDescription: String {
         switch self {
@@ -36,6 +37,8 @@ enum DictionaryImportError: Error {
             "The dictionary file is missing."
         case .noWorkingDirectory:
             "No working directory is available."
+        case .unzipFailed(let underlyingError):
+            "Failed to unzip the dictionary file: \(underlyingError.localizedDescription)"
         }
     }
 }

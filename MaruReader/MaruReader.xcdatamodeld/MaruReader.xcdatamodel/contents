@@ -50,6 +50,7 @@
         <relationship name="termTags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermEntry" inverseName="richTermTags" inverseEntity="TermEntry"/>
     </entity>
     <entity name="DictionaryZIPFileImport" representedClassName="DictionaryZIPFileImport" syncable="YES" codeGenerationType="class">
+        <attribute name="archiveExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
         <attribute name="file" attributeType="URI"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>

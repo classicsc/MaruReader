@@ -83,14 +83,8 @@ actor DictionaryImportManager {
             job.timeStarted = Date()
             job.displayProgressMessage = "Starting import..."
             try context.save()
-            guard let jobURL = job.file else {
-                throw DictionaryImportError.missingFile
-            }
-            guard let jobDirectory = job.workingDirectory else {
-                throw DictionaryImportError.noWorkingDirectory
-            }
             try Task.checkCancellation()
-            try await unzip(jobURL, into: jobDirectory)
+            try await unzip(job)
             try Task.checkCancellation()
             try await processIndex(job, context: context)
             try Task.checkCancellation()
@@ -124,9 +118,51 @@ actor DictionaryImportManager {
 }
 
 extension DictionaryImportManager {
-    private func unzip(_ url: URL, into directory: URL) async throws {
-        // Use Zip.unzipFile(...)
-        // Store to job.workingDirectory
+    private func unzip(_ job: DictionaryZIPFileImport) async throws {
+        guard let jobURL = job.file else {
+            throw DictionaryImportError.missingFile
+        }
+        guard let jobDirectory = job.workingDirectory else {
+            throw DictionaryImportError.noWorkingDirectory
+        }
+        
+        // Update progress message
+        job.displayProgressMessage = "Extracting dictionary archive..."
+        
+        // Check if file exists and is accessible
+        guard FileManager.default.fileExists(atPath: jobURL.path) else {
+            throw DictionaryImportError.missingFile
+        }
+        
+        guard jobURL.startAccessingSecurityScopedResource() else {
+            throw DictionaryImportError.fileAccessDenied
+        }
+        
+        defer {
+            jobURL.stopAccessingSecurityScopedResource()
+        }
+        
+        do {
+            // Use Zip.unzipFile to extract the archive
+            // This preserves directory structure automatically
+            try Zip.unzipFile(jobURL, destination: jobDirectory, overwrite: true, password: nil)
+            
+            let extractedContents = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
+            
+            // Look for index.json which should be present in all Yomitan dictionaries
+            let hasIndex = extractedContents.contains { $0.lastPathComponent == "index.json" }
+            
+            guard hasIndex else {
+                throw DictionaryImportError.notADictionary
+            }
+            
+            // Update job status
+            job.archiveExtracted = true
+            job.displayProgressMessage = "Extracted dictionary archive."
+            
+        } catch let error as NSError {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
     }
     
     private func processIndex(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
