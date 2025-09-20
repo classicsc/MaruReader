@@ -11,8 +11,10 @@ enum DictionaryImportError: Error {
     case importNotFound
     case dictionaryCreationFailed
     case invalidData
-    case batchInsertFailed
+    case databaseError
     case fileAccessDenied
+    case missingFile
+    case noWorkingDirectory
 
     var localizedDescription: String {
         switch self {
@@ -26,10 +28,14 @@ enum DictionaryImportError: Error {
             "A database error occurred."
         case .invalidData:
             "The dictionary contains invalid data."
-        case .batchInsertFailed:
+        case .databaseError:
             "A database error occurred while importing the dictionary."
         case .fileAccessDenied:
             "Could not access the dictionary file."
+        case .missingFile:
+            "The dictionary file is missing."
+        case .noWorkingDirectory:
+            "No working directory is available."
         }
     }
 }
