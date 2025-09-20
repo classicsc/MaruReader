@@ -13,6 +13,7 @@
   },
   "testTargets" : [
     {
+      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:MaruReader.xcodeproj",
         "identifier" : "DB2B699D2E660F8D00EDA656",

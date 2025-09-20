@@ -5,7 +5,7 @@
 //  Created by Sam Smoker on 9/6/25.
 //
 
-enum DictionaryImportError: Error {
+enum DictionaryImportError: Error, Equatable {
     case notADictionary
     case unsupportedFormat
     case importNotFound
@@ -39,6 +39,26 @@ enum DictionaryImportError: Error {
             "No working directory is available."
         case .unzipFailed(let underlyingError):
             "Failed to unzip the dictionary file: \(underlyingError.localizedDescription)"
+        }
+    }
+
+    static func == (lhs: DictionaryImportError, rhs: DictionaryImportError) -> Bool {
+        switch (lhs, rhs) {
+        case (.notADictionary, .notADictionary),
+             (.unsupportedFormat, .unsupportedFormat),
+             (.importNotFound, .importNotFound),
+             (.dictionaryCreationFailed, .dictionaryCreationFailed),
+             (.invalidData, .invalidData),
+             (.databaseError, .databaseError),
+             (.fileAccessDenied, .fileAccessDenied),
+             (.missingFile, .missingFile),
+             (.noWorkingDirectory, .noWorkingDirectory):
+            return true
+        case (.unzipFailed, .unzipFailed):
+            // Ignore underlying error when comparing for equality in tests
+            return true
+        default:
+            return false
         }
     }
 }
