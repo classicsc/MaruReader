@@ -27,7 +27,7 @@
         <attribute name="termFrequencyCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="termFrequency.@count" usesScalarValueType="YES"/>
         <attribute name="title" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
-        <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Cascade" destinationEntity="DictionaryZIPFileImport" inverseName="dictionary" inverseEntity="DictionaryZIPFileImport"/>
+        <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DictionaryZIPFileImport" inverseName="dictionary" inverseEntity="DictionaryZIPFileImport"/>
         <relationship name="ipa" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="IPAEntry" inverseName="dictionary" inverseEntity="IPAEntry"/>
         <relationship name="kanjiEntries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiEntry" inverseName="dictionary" inverseEntity="KanjiEntry"/>
         <relationship name="kanjiFrequency" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiFrequencyEntry" inverseName="dictionary" inverseEntity="KanjiFrequencyEntry"/>

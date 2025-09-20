@@ -7,17 +7,19 @@
 
 import Foundation
 import CoreData
+import Zip
 
 actor DictionaryImportManager {
     static let shared = DictionaryImportManager()
     
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
+    private var currentJobID: NSManagedObjectID?
     
     func enqueueImport(from zipURL: URL) async throws {
         // Create DictionaryZIPFileImport in Core Data (on MainActor)
-        let context = PersistenceController.shared.container.viewContext
         let importJob = try await MainActor.run {
+            let context = PersistenceController.shared.container.viewContext
             let job = DictionaryZIPFileImport(context: context)
             job.id = UUID()
             job.file = zipURL
@@ -40,6 +42,23 @@ actor DictionaryImportManager {
         processNextIfIdle()
     }
     
+    func cancelImport(jobID: NSManagedObjectID) async {
+        if currentJobID == jobID {
+            currentTask?.cancel()
+        } else {
+            queue.removeAll { $0 == jobID }
+            // Also mark as cancelled in Core Data
+            await MainActor.run {
+                let context = PersistenceController.shared.container.viewContext
+                if let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport {
+                    job.isCancelled = true
+                    job.timeCancelled = Date()
+                    try? context.save()
+                }
+            }
+        }
+    }
+    
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
         
@@ -47,8 +66,10 @@ actor DictionaryImportManager {
             await runImport(for: nextJob)
             queue.removeFirst()
             currentTask = nil
+            currentJobID = nil
             processNextIfIdle() // Move on to next
         }
+        currentJobID = nextJob
     }
     
     private func runImport(for jobID: NSManagedObjectID) async {
@@ -68,10 +89,15 @@ actor DictionaryImportManager {
             guard let jobDirectory = job.workingDirectory else {
                 throw DictionaryImportError.noWorkingDirectory
             }
+            try Task.checkCancellation()
             try await unzip(jobURL, into: jobDirectory)
+            try Task.checkCancellation()
             try await processIndex(job, context: context)
+            try Task.checkCancellation()
             try await processBanks(job, context: context)
+            try Task.checkCancellation()
             try await copyMedia(job)
+            try Task.checkCancellation()
             
             job.isComplete = true
             job.timeCompleted = Date()
@@ -79,11 +105,17 @@ actor DictionaryImportManager {
         } catch is CancellationError {
             job.isCancelled = true
             job.timeCancelled = Date()
+            if let dict = job.dictionary {
+                context.delete(dict)
+            }
             try? context.save()
         } catch {
             job.isFailed = true
             job.displayProgressMessage = error.localizedDescription
             job.timeFailed = Date()
+            if let dict = job.dictionary {
+                context.delete(dict)
+            }
             try? context.save()
         }
         
@@ -108,7 +140,6 @@ extension DictionaryImportManager {
         // Example with term banks, actually tag banks should be processed first
         guard let termBankURLs = job.termBanks as? [URL] else { return }
         
-        // Consider batching for memory efficiency
         var iterator = StreamingBankIterator<TermBankV3Entry>(
             bankURLs: termBankURLs,
             dataFormat: 3
@@ -121,6 +152,7 @@ extension DictionaryImportManager {
         job.processedTermBanks = termBankURLs as NSArray
         try context.save()
         
+        try Task.checkCancellation()
         // Then process the other banks similarly
     }
     
