@@ -74,7 +74,7 @@ enum TermMetaEntryData: Codable {
     case ipa(IPAData)
 }
 
-struct FrequencyData: Codable {
+struct FrequencyData: Codable, Comparable {
     let value: Double
     let displayValue: String?
 
@@ -104,6 +104,10 @@ struct FrequencyData: Codable {
         }
     }
 
+    static func < (lhs: FrequencyData, rhs: FrequencyData) -> Bool {
+        lhs.value < rhs.value
+    }
+
     private struct FrequencyObject: Codable {
         let value: Double
         let displayValue: String?
@@ -118,57 +122,57 @@ struct ReadingFrequencyData: Codable {
 struct PitchData: Codable {
     let reading: String
     let pitches: [PitchAccent]
+}
 
-    struct PitchAccent: Codable {
-        let position: PitchPosition
-        let nasal: [Int]?
-        let devoice: [Int]?
-        let tags: [String]?
+struct PitchAccent: Codable {
+    let position: PitchPosition
+    let nasal: [Int]?
+    let devoice: [Int]?
+    let tags: [String]?
 
-        enum PitchPosition: Codable {
-            case mora(Int)
-            case pattern(String) // e.g. "HHLL"
-
-            init(from decoder: Decoder) throws {
-                let container = try decoder.singleValueContainer()
-                if let num = try? container.decode(Int.self) {
-                    self = .mora(num)
-                } else {
-                    self = try .pattern(container.decode(String.self))
-                }
-            }
-
-            func encode(to encoder: Encoder) throws {
-                var container = encoder.singleValueContainer()
-                switch self {
-                case let .mora(n): try container.encode(n)
-                case let .pattern(p): try container.encode(p)
-                }
-            }
-        }
-
-        // nasal/devoice can be int or array
-        private enum CodingKeys: String, CodingKey {
-            case position, nasal, devoice, tags
-        }
+    enum PitchPosition: Codable {
+        case mora(Int)
+        case pattern(String) // e.g. "HHLL"
 
         init(from decoder: Decoder) throws {
-            let c = try decoder.container(keyedBy: CodingKeys.self)
-            self.position = try c.decode(PitchPosition.self, forKey: .position)
-
-            func decodeIntOrArray(for key: CodingKeys) throws -> [Int]? {
-                if let n = try? c.decode(Int.self, forKey: key) {
-                    return [n]
-                } else if let arr = try? c.decode([Int].self, forKey: key) {
-                    return arr
-                }
-                return nil
+            let container = try decoder.singleValueContainer()
+            if let num = try? container.decode(Int.self) {
+                self = .mora(num)
+            } else {
+                self = try .pattern(container.decode(String.self))
             }
-
-            self.nasal = try decodeIntOrArray(for: .nasal)
-            self.devoice = try decodeIntOrArray(for: .devoice)
-            self.tags = try c.decodeIfPresent([String].self, forKey: .tags)
         }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case let .mora(n): try container.encode(n)
+            case let .pattern(p): try container.encode(p)
+            }
+        }
+    }
+
+    // nasal/devoice can be int or array
+    private enum CodingKeys: String, CodingKey {
+        case position, nasal, devoice, tags
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.position = try c.decode(PitchPosition.self, forKey: .position)
+
+        func decodeIntOrArray(for key: CodingKeys) throws -> [Int]? {
+            if let n = try? c.decode(Int.self, forKey: key) {
+                return [n]
+            } else if let arr = try? c.decode([Int].self, forKey: key) {
+                return arr
+            }
+            return nil
+        }
+
+        self.nasal = try decodeIntOrArray(for: .nasal)
+        self.devoice = try decodeIntOrArray(for: .devoice)
+        self.tags = try c.decodeIfPresent([String].self, forKey: .tags)
     }
 }
 

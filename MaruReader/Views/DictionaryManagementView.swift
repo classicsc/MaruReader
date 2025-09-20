@@ -18,7 +18,6 @@ private enum ImportTiming {
 struct DictionaryManagementView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @State private var activeImports: [DictionaryImportInfo] = []
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
@@ -35,25 +34,6 @@ struct DictionaryManagementView: View {
 
     var body: some View {
         List {
-            // Import Progress Section
-            if !activeImports.isEmpty || hasRecentImports || hasRecentFailures {
-                Section("Import Progress") {
-                    ForEach(activeImports.filter { $0.completionTime == nil }, id: \.id) { importInfo in
-                        ImportProgressRow(importInfo: importInfo)
-                    }
-
-                    ForEach(recentlyCompletedImports, id: \.id) { importInfo in
-                        CompletedImportRow(importInfo: importInfo)
-                    }
-
-                    ForEach(recentlyFailedImports, id: \.id) { importInfo in
-                        if let error = importInfo.error {
-                            FailedImportRow(importInfo: importInfo, error: error)
-                        }
-                    }
-                }
-            }
-
             // Dictionaries Section
             Section("Dictionaries") {
                 if completeDictionaries.isEmpty {
@@ -85,54 +65,6 @@ struct DictionaryManagementView: View {
         ) { result in
             handleFileImport(result: result)
         }
-        .onAppear {
-            Task {
-                let importManager = DictionaryImportManager.shared
-                let imports = importManager.activeImports
-                await MainActor.run {
-                    activeImports = imports
-                }
-            }
-        }
-        .task {
-            // Auto-cleanup completed imports after the configured delay
-            try? await Task.sleep(for: .seconds(ImportTiming.cleanupDelaySeconds))
-            let cutoffDate = Date().addingTimeInterval(-ImportTiming.cleanupDelaySeconds)
-            activeImports.removeAll { importInfo in
-                if let completionTime = importInfo.completionTime {
-                    return completionTime < cutoffDate
-                }
-                return false
-            }
-        }
-    }
-
-    private var hasRecentImports: Bool {
-        !recentlyCompletedImports.isEmpty
-    }
-
-    private var hasRecentFailures: Bool {
-        !recentlyFailedImports.isEmpty
-    }
-
-    private var recentlyCompletedImports: [DictionaryImportInfo] {
-        let windowStart = Date().addingTimeInterval(-ImportTiming.recentWindowSeconds)
-        return activeImports.filter { importInfo in
-            if let completionTime = importInfo.completionTime {
-                return completionTime > windowStart
-            }
-            return false
-        }
-    }
-
-    private var recentlyFailedImports: [DictionaryImportInfo] {
-        let windowStart = Date().addingTimeInterval(-ImportTiming.recentWindowSeconds)
-        return activeImports.filter { importInfo in
-            if let failureTime = importInfo.failureTime {
-                return failureTime > windowStart
-            }
-            return false
-        }
     }
 
     private func handleFileImport(result: Result<[URL], Error>) {
@@ -148,32 +80,7 @@ struct DictionaryManagementView: View {
             }
 
             Task {
-                do {
-                    let importManager = DictionaryImportManager.shared
-                    let importID = importManager.runImport(fromZipFile: url)
-
-                    // Update UI with new import
-                    let importInfo = DictionaryImportInfo(displayName: url.deletingPathExtension().lastPathComponent, id: importID, zipFileURL: url)
-                    await MainActor.run {
-                        activeImports.append(importInfo)
-                    }
-
-                    // Keep the security-scoped resource active during import
-                    try await importManager.waitForImport(id: importID)
-
-                    // Update UI to mark import as complete
-                    await MainActor.run {
-                        if let index = activeImports.firstIndex(where: { $0.id == importID }) {
-                            activeImports[index].completionTime = Date()
-                        }
-                    }
-                } catch {
-                    await MainActor.run {
-                        importError = error
-                        showingError = true
-                    }
-                }
-
+                // Perform import on background queue
                 // Always stop accessing the security-scoped resource when done
                 url.stopAccessingSecurityScopedResource()
             }
@@ -206,12 +113,12 @@ struct DictionaryRow: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         let types: [(label: String, systemImage: String, isPresent: Bool)] = [
-                            ("Terms", "textformat", dictionary.isTermDictionary),
-                            ("Kanji", "character.zh", dictionary.isKanjiDictionary),
-                            ("Frequency", "chart.line.uptrend.xyaxis", dictionary.isFreqDictionary),
-                            ("Kanji Frequency", "chart.bar", dictionary.isKanjiFreqDictionary),
-                            ("Pitch", "waveform", dictionary.isPitchDictionary),
-                            ("IPA", "speaker.wave.2", dictionary.isIpaDictionary),
+                            ("Terms", "textformat", dictionary.termCount > 0),
+                            ("Kanji", "character.zh", dictionary.kanjiCount > 0),
+                            ("Frequency", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
+                            ("Kanji Frequency", "chart.bar", dictionary.kanjiFrequencyCount > 0),
+                            ("Pitch", "waveform", dictionary.pitchesCount > 0),
+                            ("IPA", "speaker.wave.2", dictionary.ipaCount > 0),
                         ]
                         ForEach(types.filter(\.isPresent), id: \.label) { type in
                             Label(type.label, systemImage: type.systemImage)
@@ -269,87 +176,6 @@ struct DictionaryRow: View {
     }
 }
 
-struct ImportProgressRow: View {
-    let importInfo: DictionaryImportInfo
-
-    var body: some View {
-        HStack {
-            Image(systemName: "arrow.down.circle")
-                .foregroundStyle(.blue)
-                .symbolEffect(.pulse, isActive: importInfo.completionTime == nil)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(importInfo.displayName)
-                    .font(.headline)
-                Text("Importing...")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            ProgressView()
-                .scaleEffect(0.8)
-        }
-        .padding(.vertical, 2)
-    }
-}
-
-struct CompletedImportRow: View {
-    let importInfo: DictionaryImportInfo
-
-    var body: some View {
-        // Use a TimelineView so the relative time string updates automatically.
-        TimelineView(.periodic(from: importInfo.completionTime ?? Date(), by: 1)) { context in
-            HStack {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.green)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(importInfo.displayName)
-                        .font(.headline)
-                    if let completionTime = importInfo.completionTime {
-                        Text("Completed \(timeAgoText(from: completionTime, relativeTo: context.date))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Spacer()
-            }
-            .padding(.vertical, 2)
-        }
-    }
-
-    private func timeAgoText(from date: Date, relativeTo reference: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .short
-        return formatter.localizedString(for: date, relativeTo: reference)
-    }
-}
-
-struct FailedImportRow: View {
-    let importInfo: DictionaryImportInfo
-    let error: Error
-
-    var body: some View {
-        HStack {
-            Image(systemName: "xmark.octagon.fill")
-                .foregroundStyle(.red)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(importInfo.displayName)
-                    .font(.headline)
-                Text("Failed: \(error.localizedDescription)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 2)
-    }
-}
 
 #Preview {
     NavigationStack {
