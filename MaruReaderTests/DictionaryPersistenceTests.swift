@@ -236,13 +236,29 @@ struct DictionaryPersistenceTests {
         #expect(dictResult?.isComplete == true)
 
         let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
-        let tagResult = try? context.fetch(tagRequest).first
-        #expect(tagResult?.name == "noun")
-        #expect(tagResult?.category == "partOfSpeech")
-        #expect(tagResult?.notes == "Common noun")
-        #expect(tagResult?.order == 1)
-        #expect(tagResult?.score == 0)
-        #expect(tagResult?.dictionary?.title == "TestDict")
+        let tagResults = try context.fetch(tagRequest)
+        #expect(tagResults.count == 3)
+
+        let nounTag = tagResults.first { $0.name == "noun" }
+        #expect(nounTag?.category == "partOfSpeech")
+        #expect(nounTag?.notes == "Common noun")
+        #expect(nounTag?.order == 1)
+        #expect(nounTag?.score == 0)
+        #expect(nounTag?.dictionary?.title == "TestDict")
+
+        let termTag = tagResults.first { $0.name == "term-tag" }
+        #expect(termTag?.category == "termTag")
+        #expect(termTag?.notes == "Term tag")
+        #expect(termTag?.order == 2)
+        #expect(termTag?.score == 0)
+        #expect(termTag?.dictionary?.title == "TestDict")
+
+        let defTag = tagResults.first { $0.name == "def-tag" }
+        #expect(defTag?.category == "definitionTag")
+        #expect(defTag?.notes == "Definition tag")
+        #expect(defTag?.order == 3)
+        #expect(defTag?.score == 0)
+        #expect(defTag?.dictionary?.title == "TestDict")
 
         // Assert: Term and TermEntry persisted with all attributes
         let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()

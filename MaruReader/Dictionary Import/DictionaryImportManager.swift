@@ -133,8 +133,11 @@ actor DictionaryImportManager {
             try await processIndex(job, context: context)
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
-            try await processBanks(job, context: context)
-            logger.debug("Import job \(jobID) banks processed")
+            try await processTagBanks(job, context: context)
+            logger.debug("Import job \(jobID) tag banks processed")
+            try Task.checkCancellation()
+            try await processTermBanks(job, context: context)
+            logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
             try await copyMedia(job)
             logger.debug("Import job \(jobID) media copied")
@@ -295,7 +298,7 @@ extension DictionaryImportManager {
         try context.save()
     }
 
-    private func processBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
+    private func processTagBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
         // Get the dictionary entity
         guard let dictionary = job.dictionary else {
             throw DictionaryImportError.databaseError
@@ -334,6 +337,16 @@ extension DictionaryImportManager {
         job.setValue(tagBankURLs, forKey: "processedTagBanks")
         try context.save()
         try Task.checkCancellation()
+    }
+
+    private func processTermBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
+        // Get the dictionary entity
+        guard let dictionary = job.dictionary else {
+            throw DictionaryImportError.databaseError
+        }
+
+        // Get the dictionary format
+        let format = dictionary.format
 
         // Process term banks
         guard let termBankURLs = job.termBanks as? [URL] else {
