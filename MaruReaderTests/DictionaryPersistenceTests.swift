@@ -20,24 +20,6 @@ struct DictionaryPersistenceTests {
         case missingFile(String)
     }
 
-    // Helper struct for tag fetch results
-    struct TagResult {
-        let name: String
-        let category: String
-        let notes: String
-        let order: Double
-        let score: Double
-        let dictionaryTitle: String
-    }
-
-    // Helper struct for dictionary fetch results
-    struct DictionaryResult {
-        let title: String
-        let revision: String
-        let format: Int64
-        let isComplete: Bool
-    }
-
     // Helper: Create a mock ZIP file with given JSON contents
     private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -162,7 +144,7 @@ struct DictionaryPersistenceTests {
         return zipURL
     }
 
-    @Test func importDictionary_ValidZIP_ImportsSuccessfully() async throws {
+    @Test func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
         // - Action: Call importDictionary
@@ -244,81 +226,47 @@ struct DictionaryPersistenceTests {
 
         // Assert: Data persisted
 
-        let dictResult = try await context.perform {
-            let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
-            let dictionaries = try context.fetch(dictRequest)
-            return dictionaries.map { dict in
-                DictionaryResult(
-                    title: dict.title ?? "",
-                    revision: dict.revision ?? "",
-                    format: dict.format,
-                    isComplete: dict.isComplete
-                )
-            }.first
-        }
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResult = try? context.fetch(dictRequest).first
         #expect(dictResult?.title == "TestDict")
         #expect(dictResult?.revision == "1.0")
         #expect(dictResult?.format == 3)
         #expect(dictResult?.isComplete == true)
 
-        let tagResult = try await context.perform {
-            let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
-            let tags = try context.fetch(tagRequest)
-            return tags.map { tag in
-                TagResult(
-                    name: tag.name ?? "",
-                    category: tag.category ?? "",
-                    notes: tag.notes ?? "",
-                    order: tag.order,
-                    score: tag.score,
-                    dictionaryTitle: tag.dictionary?.title ?? ""
-                )
-            }.first
-        }
+        let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
+        let tagResult = try? context.fetch(tagRequest).first
         #expect(tagResult?.name == "noun")
         #expect(tagResult?.category == "partOfSpeech")
         #expect(tagResult?.notes == "Common noun")
         #expect(tagResult?.order == 1)
         #expect(tagResult?.score == 0)
-        #expect(tagResult?.dictionaryTitle == "TestDict")
+        #expect(tagResult?.dictionary?.title == "TestDict")
 
         // Assert: Term and TermEntry persisted
-        let (termCount, termExpression, termReading) = try await context.perform {
-            let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
-            let terms = try context.fetch(termRequest)
-            return (terms.count, terms.first?.expression ?? "", terms.first?.reading ?? "")
-        }
-        #expect(termCount == 1)
-        #expect(termExpression == "食べる")
-        #expect(termReading == "たべる")
+        let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
+        let termResult = try? context.fetch(termRequest)
+        #expect(termResult?.count == 1)
+        #expect(termResult?.first?.expression == "食べる")
+        #expect(termResult?.first?.reading == "たべる")
 
-        let (termEntryCount, termEntryScore, termEntryGlossary) = try await context.perform {
-            let termEntryRequest: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
-            let termEntries = try context.fetch(termEntryRequest)
-            let glossaryData = termEntries.first?.glossary as? Data
-            let glossary = glossaryData.flatMap { try? JSONDecoder().decode([Definition].self, from: $0) }
-            return (termEntries.count, termEntries.first?.score ?? 0, glossary?.first)
-        }
-        #expect(termEntryCount == 1)
-        #expect(termEntryScore == 100)
-        if case let .text(glossaryText) = termEntryGlossary {
+        let termEntryResult = try? context.fetch(MaruReader.TermEntry.fetchRequest())
+        #expect(termEntryResult?.count == 1)
+        #expect(termEntryResult?.first?.score == 100)
+        let definitions = termEntryResult?.first?.glossary as? [MaruReader.Definition]
+        if case let .text(glossaryText) = definitions?.first {
             #expect(glossaryText == "to eat")
         }
+        let rules = termEntryResult?.first?.rules as? [String]
+        #expect(rules == ["A"])
 
         // Assert: Tag linking worked
-        let tagLinkingResult = try await context.perform {
-            let termEntryRequest: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
-            let termEntries = try context.fetch(termEntryRequest)
-            guard let termEntry = termEntries.first else { return (0, "") }
-
-            let richTermTags = termEntry.richTermTags?.allObjects as? [MaruReader.DictionaryTagMeta] ?? []
-            return (richTermTags.count, richTermTags.first?.name ?? "")
-        }
-        #expect(tagLinkingResult.0 == 1)
-        #expect(tagLinkingResult.1 == "noun")
+        // Fetch linked tags via relationship
+        #expect(termEntryResult?.first?.richTermTags?.count == 1)
+        let linkedTag = termEntryResult?.first?.richTermTags?.allObjects.first as? MaruReader.DictionaryTagMeta
+        #expect(linkedTag?.name == "noun")
     }
 
-    @Test func importDictionary_LegacyTagMeta_PersistsTags() async throws {
+    @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
         // Setup: index.json with legacy tagMeta and no tag_bank file.
         let indexJSON = """
         {
@@ -355,33 +303,18 @@ struct DictionaryPersistenceTests {
         #expect(job?.isFailed == false)
         #expect(job?.displayProgressMessage == "Import complete.")
 
-        let (dictionaryCount, title) = try await context.perform {
-            let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
-            let dictionaries = try context.fetch(dictRequest)
-            return (dictionaries.count, dictionaries.first?.title ?? "")
-        }
-        #expect(dictionaryCount == 1)
-        #expect(title == "LegacyDict")
+        let dictionaryRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictionaryResult = try context.fetch(dictionaryRequest)
+        #expect(dictionaryResult.count == 1)
+        #expect(dictionaryResult.first?.title == "LegacyDict")
 
-        let tagResult = try await context.perform {
-            let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
-            let tags = try context.fetch(tagRequest)
-            return tags.map { tag in
-                TagResult(
-                    name: tag.name ?? "",
-                    category: tag.category ?? "",
-                    notes: tag.notes ?? "",
-                    order: tag.order,
-                    score: tag.score,
-                    dictionaryTitle: tag.dictionary?.title ?? ""
-                )
-            }.first
-        }
+        let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
+        let tagResult = try? context.fetch(tagRequest).first
         #expect(tagResult?.name == "noun")
         #expect(tagResult?.category == "partOfSpeech")
         #expect(tagResult?.notes == "Common noun")
         #expect(tagResult?.order == 1)
         #expect(tagResult?.score == 0)
-        #expect(tagResult?.dictionaryTitle == "LegacyDict")
+        #expect(tagResult?.dictionary?.title == "LegacyDict")
     }
 }
