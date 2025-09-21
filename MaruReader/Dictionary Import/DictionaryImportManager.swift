@@ -23,6 +23,10 @@ actor DictionaryImportManager {
     private var container: NSPersistentContainer
     private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
 
+    // Test hooks for controlled testing
+    var testCancellationHook: (() async throws -> Void)?
+    var testErrorInjection: (() throws -> Void)?
+
     private init() {
         container = PersistenceController.shared.container
     }
@@ -127,30 +131,39 @@ actor DictionaryImportManager {
             logger.debug("Import job \(jobID) started")
             try context.save()
             try Task.checkCancellation()
+            try testErrorInjection?()
             try await unzip(job, context: context)
             logger.debug("Import job \(jobID) unzipped")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processIndex(job, context: context)
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processTagBanks(job, context: context)
             logger.debug("Import job \(jobID) tag banks processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processTermBanks(job, context: context)
             logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processTermMetaBanks(job, context: context)
             logger.debug("Import job \(jobID) term meta banks processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processKanjiBanks(job, context: context)
             logger.debug("Import job \(jobID) kanji banks processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await processKanjiMetaBanks(job, context: context)
             logger.debug("Import job \(jobID) kanji meta banks processed")
             try Task.checkCancellation()
+            try await testCancellationHook?()
             try await copyMedia(job, context: context)
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
+            try await testCancellationHook?()
 
             job.isComplete = true
             job.dictionary?.isComplete = true
@@ -885,7 +898,7 @@ extension DictionaryImportManager {
         try context.save()
     }
 
-    private func cleanMediaDirectory(job: DictionaryZIPFileImport) {
+    func cleanMediaDirectory(job: DictionaryZIPFileImport) {
         let fileManager = FileManager.default
         guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else {
             return
@@ -908,7 +921,7 @@ extension DictionaryImportManager {
         }
     }
 
-    private func cleanup(job: DictionaryZIPFileImport) async {
+    func cleanup(job: DictionaryZIPFileImport) async {
         // Delete working directory if complete/failed/cancelled
         let fileManager = FileManager.default
         if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
@@ -917,6 +930,42 @@ extension DictionaryImportManager {
             } catch {
                 logger.error("Failed to remove working directory at \(workingDir.path): \(error.localizedDescription)")
             }
+        }
+    }
+
+    // MARK: - Test Helper Methods
+
+    /// Set test cancellation hook for controlled testing
+    func setTestCancellationHook(_ hook: (() async throws -> Void)?) {
+        testCancellationHook = hook
+    }
+
+    /// Set test error injection for controlled testing
+    func setTestErrorInjection(_ injection: (() throws -> Void)?) {
+        testErrorInjection = injection
+    }
+
+    /// Check if working directory exists for a given job
+    func workingDirectoryExists(for job: DictionaryZIPFileImport) -> Bool {
+        guard let workingDir = job.workingDirectory else { return false }
+        return FileManager.default.fileExists(atPath: workingDir.path)
+    }
+
+    /// Check if media directory exists for a given job
+    func mediaDirectoryExists(for job: DictionaryZIPFileImport) -> Bool {
+        guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else { return false }
+
+        do {
+            let appSupportDir = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+            return FileManager.default.fileExists(atPath: mediaDir.path)
+        } catch {
+            return false
         }
     }
 }

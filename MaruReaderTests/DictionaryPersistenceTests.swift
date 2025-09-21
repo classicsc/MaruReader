@@ -144,6 +144,58 @@ struct DictionaryPersistenceTests {
         return zipURL
     }
 
+    // Helper: Create a corrupted ZIP file for testing error handling
+    private func createCorruptedZIP() throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let zipURL = tempDir.appendingPathComponent("corrupted.zip")
+        let corruptedData = Data([0x50, 0x4B, 0x03, 0x04, 0xFF, 0xFF]) // Invalid ZIP header
+        try corruptedData.write(to: zipURL)
+
+        return zipURL
+    }
+
+    // Helper: Create ZIP without index.json
+    private func createZIPWithoutIndex() throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        // Create some other file
+        let dummyURL = tempDir.appendingPathComponent("dummy.txt")
+        try "dummy content".write(to: dummyURL, atomically: true, encoding: .utf8)
+
+        let zipURL = tempDir.appendingPathComponent("no_index.zip")
+        try Zip.zipFiles(paths: [dummyURL], zipFilePath: zipURL, password: nil, progress: nil)
+
+        return zipURL
+    }
+
+    // Helper: Verify job is properly cancelled
+    private func verifyJobCancelled(_ job: MaruReader.DictionaryZIPFileImport?) {
+        #expect(job != nil)
+        #expect(job?.isCancelled == true)
+        #expect(job?.isFailed == false)
+        #expect(job?.isComplete == false)
+        #expect(job?.timeCancelled != nil)
+    }
+
+    // Helper: Verify job is properly marked as failed
+    private func verifyJobFailed(_ job: MaruReader.DictionaryZIPFileImport?) {
+        #expect(job != nil)
+        #expect(job?.isFailed == true)
+        #expect(job?.isCancelled == false)
+        #expect(job?.isComplete == false)
+        #expect(job?.timeFailed != nil)
+        #expect(job?.displayProgressMessage?.isEmpty == false)
+    }
+
+    // Helper: Verify directory cleanup
+    private func verifyDirectoryCleanup(importManager: MaruReader.DictionaryImportManager, job: MaruReader.DictionaryZIPFileImport) async {
+        #expect(await importManager.workingDirectoryExists(for: job) == false)
+        #expect(await importManager.mediaDirectoryExists(for: job) == false)
+    }
+
     @Test func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
@@ -714,5 +766,441 @@ struct DictionaryPersistenceTests {
             let expectedPath = mediaDir.appendingPathComponent(mediaFile)
             #expect(fileManager.fileExists(atPath: expectedPath.path), "V1 media file should exist at: \(expectedPath.path)")
         }
+    }
+
+    // MARK: - Cancellation Tests
+
+    @Test func importDictionary_CancelDuringUnzip_CleansUpProperly() async throws {
+        // Test cancellation during unzip phase
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        // Set up cancellation hook to trigger during unzip (after first cancellation check)
+        var cancellationCount = 0
+        await importManager.setTestCancellationHook {
+            cancellationCount += 1
+            if cancellationCount == 1 {
+                throw CancellationError()
+            }
+        }
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly cancelled
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobCancelled(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+
+        let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
+        let termResults = try context.fetch(termRequest)
+        #expect(termResults.isEmpty)
+    }
+
+    @Test func importDictionary_CancelAfterIndex_CleansUpProperly() async throws {
+        // Test cancellation after index processing but before term processing
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: ["test.png"])
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        // Set up cancellation hook to trigger after index processing
+        var cancellationCount = 0
+        await importManager.setTestCancellationHook {
+            cancellationCount += 1
+            if cancellationCount == 2 { // Second call is after index processing
+                throw CancellationError()
+            }
+        }
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly cancelled
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobCancelled(job)
+
+        // Verify cleanup (dictionary should be deleted)
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify dictionary was deleted during cleanup
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_CancelAfterMediaCopy_CleansUpProperly() async throws {
+        // Test cancellation after media files are copied
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let mediaFiles = ["images/test.png", "audio/sound.mp3"]
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        // Set up cancellation hook to trigger after media copy
+        var cancellationCount = 0
+        await importManager.setTestCancellationHook {
+            cancellationCount += 1
+            if cancellationCount == 7 { // After media copy
+                throw CancellationError()
+            }
+        }
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly cancelled
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobCancelled(job)
+
+        // Verify cleanup (media directory should be removed despite being created)
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify dictionary was deleted during cleanup
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_CancelQueuedJob_CleansUpProperly() async throws {
+        // Test cancellation of a job that's still in queue (not started)
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Cancel immediately (while still in queue)
+        await importManager.cancelImport(jobID: importID)
+
+        // Wait a bit to ensure cancellation is processed
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+
+        // Verify job is properly cancelled
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobCancelled(job)
+
+        // For queued jobs, no directories should be created
+        if let job {
+            #expect(await importManager.workingDirectoryExists(for: job) == false)
+            #expect(await importManager.mediaDirectoryExists(for: job) == false)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    // MARK: - Failure Tests
+
+    @Test func importDictionary_MalformedZIP_FailsAndCleansUp() async throws {
+        // Test failure with corrupted ZIP file
+        let zipURL = try createCorruptedZIP()
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_MissingIndexJSON_FailsAndCleansUp() async throws {
+        // Test failure when index.json is missing
+        let zipURL = try createZIPWithoutIndex()
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_InvalidJSON_FailsAndCleansUp() async throws {
+        // Test failure with malformed JSON in bank files
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let invalidTermJSON = """
+        [
+            ["invalid", "json", "structure"  // Missing closing bracket and quotes
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: invalidTermJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify dictionary was deleted during cleanup
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_UnsupportedFormat_FailsAndCleansUp() async throws {
+        // Test failure with unsupported format version
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 2
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_FileSystemError_FailsAndCleansUp() async throws {
+        // Test failure with file system error during processing
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
+        ]
+        """
+
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        // Set up error injection to simulate file system error
+        await importManager.setTestErrorInjection {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteFileExistsError, userInfo: [
+                NSLocalizedDescriptionKey: "Simulated file system error",
+            ])
+        }
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
+    }
+
+    @Test func importDictionary_NoBankFiles_FailsAndCleansUp() async throws {
+        // Test failure when no valid bank files are present
+        let indexJSON = """
+        {
+            "title": "TestDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+
+        // Create ZIP with only index.json, no bank files
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = MaruReader.PersistenceController(inMemory: true)
+        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+
+        // Wait for completion
+        await importManager.waitForCompletion(jobID: importID)
+
+        // Verify job is properly marked as failed
+        let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        verifyJobFailed(job)
+
+        // Verify cleanup
+        if let job {
+            await verifyDirectoryCleanup(importManager: importManager, job: job)
+        }
+
+        // Verify no Core Data entities were created
+        let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        let dictResults = try context.fetch(dictRequest)
+        #expect(dictResults.isEmpty)
     }
 }
