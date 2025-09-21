@@ -11,7 +11,7 @@ import os.log
 import Zip
 
 actor DictionaryImportManager {
-    static let shared = DictionaryImportManager()
+    static let shared = DictionaryImportManager(container: PersistenceController.shared.container)
 
     // Constants
     /// The supported dictionary format versions
@@ -27,11 +27,7 @@ actor DictionaryImportManager {
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
 
-    private init() {
-        container = PersistenceController.shared.container
-    }
-
-    // Initializer for testing with custom container
+    // Initializer for both shared instance and testing with custom container
     init(container: NSPersistentContainer) {
         self.container = container
     }

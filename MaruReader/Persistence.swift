@@ -7,6 +7,21 @@
 
 import CoreData
 
+// Immutable wrapper for the shared Core Data model.
+// Safe if the model is created once and never mutated afterwards.
+final class CoreDataModel: @unchecked Sendable {
+    static let shared = CoreDataModel()
+    let model: NSManagedObjectModel
+    private init() {
+        guard let url = Bundle.main.url(forResource: "MaruReader", withExtension: "momd"),
+              let m = NSManagedObjectModel(contentsOf: url)
+        else {
+            fatalError("Failed to load MaruReader.momd")
+        }
+        model = m
+    }
+}
+
 struct PersistenceController {
     static let shared = PersistenceController()
 
@@ -189,28 +204,18 @@ struct PersistenceController {
 
     let container: NSPersistentContainer
 
-    init(inMemory: Bool = false) {
-        // Register custom value transformers used by Transformable attributes before loading stores
+    init(inMemory: Bool = false, model: NSManagedObjectModel = CoreDataModel.shared.model) {
         CoreDataTransformers.register()
-        container = NSPersistentContainer(name: "MaruReader")
+        container = NSPersistentContainer(name: "MaruReader", managedObjectModel: model)
         if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
-        container.loadPersistentStores(completionHandler: { _, error in
-            if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+        container.loadPersistentStores { _, error in
+            if let error {
+                let nsError = error as NSError
+                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
             }
-        })
+        }
         container.viewContext.automaticallyMergesChangesFromParent = true
     }
 
