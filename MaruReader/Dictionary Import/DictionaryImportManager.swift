@@ -145,6 +145,9 @@ actor DictionaryImportManager {
             try await processKanjiBanks(job, context: context)
             logger.debug("Import job \(jobID) kanji banks processed")
             try Task.checkCancellation()
+            try await processKanjiMetaBanks(job, context: context)
+            logger.debug("Import job \(jobID) kanji meta banks processed")
+            try Task.checkCancellation()
             try await copyMedia(job)
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
@@ -319,6 +322,11 @@ extension DictionaryImportManager {
         }
 
         if !tagBankURLs.isEmpty {
+            // Tag banks should only be processed for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
+            }
+
             let tagIterator = StreamingBankIterator<TagBankV3Entry>(
                 bankURLs: tagBankURLs,
                 dataFormat: Int(format)
@@ -534,16 +542,16 @@ extension DictionaryImportManager {
         // Get the dictionary format
         let format = dictionary.format
 
-        // Process term meta banks only for format 3
-        guard format == 3 else {
-            return
-        }
-
         guard let termMetaBankURLs = job.termMetaBanks as? [URL] else {
             throw DictionaryImportError.databaseError
         }
 
         if !termMetaBankURLs.isEmpty {
+            // Process term meta banks only for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
+            }
+
             job.displayProgressMessage = "Processing term metadata..."
             try context.save()
 
@@ -649,6 +657,72 @@ extension DictionaryImportManager {
 
             job.setValue(termMetaBankURLs, forKey: "processedTermMetaBanks")
             job.displayProgressMessage = "Processed term metadata."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
+    }
+
+    private func processKanjiMetaBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
+        // Get the dictionary entity
+        guard let dictionary = job.dictionary else {
+            throw DictionaryImportError.databaseError
+        }
+
+        // Get the dictionary format
+        let format = dictionary.format
+
+        guard let kanjiMetaBankURLs = job.kanjiMetaBanks as? [URL] else {
+            throw DictionaryImportError.databaseError
+        }
+
+        if !kanjiMetaBankURLs.isEmpty {
+            // Process kanji meta banks only for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
+            }
+
+            job.displayProgressMessage = "Processing kanji metadata..."
+            try context.save()
+
+            let kanjiMetaIterator = StreamingBankIterator<KanjiMetaBankV3Entry>(
+                bankURLs: kanjiMetaBankURLs,
+                dataFormat: Int(format)
+            )
+
+            for try await entry in kanjiMetaIterator {
+                try Task.checkCancellation()
+
+                // Find or create Kanji entity
+                let kanji = try findOrCreateKanji(character: entry.kanji, context: context)
+
+                // Create KanjiFrequencyEntry
+                let frequencyEntry = KanjiFrequencyEntry(context: context)
+                frequencyEntry.id = UUID()
+
+                // Handle different frequency formats
+                switch entry.frequency {
+                case let .number(value):
+                    frequencyEntry.frequencyValue = value
+                    frequencyEntry.displayFrequency = String(value)
+                case let .string(displayValue):
+                    // Try to parse as number, default to 0 if can't parse
+                    frequencyEntry.frequencyValue = Double(displayValue) ?? 0.0
+                    frequencyEntry.displayFrequency = displayValue
+                case let .object(value, displayValue):
+                    frequencyEntry.frequencyValue = value
+                    frequencyEntry.displayFrequency = displayValue ?? String(value)
+                }
+
+                context.insert(frequencyEntry)
+
+                // Link relationships
+                frequencyEntry.kanji = kanji
+                frequencyEntry.dictionary = dictionary
+            }
+
+            job.setValue(kanjiMetaBankURLs, forKey: "processedKanjiMetaBanks")
+            job.displayProgressMessage = "Processed kanji metadata."
             try context.save()
         }
 

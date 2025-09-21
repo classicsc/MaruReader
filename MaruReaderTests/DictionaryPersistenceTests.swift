@@ -380,13 +380,27 @@ struct DictionaryPersistenceTests {
         // Test relationships
         #expect(kanjiEntry?.kanji === kanji)
         #expect(kanjiEntry?.dictionary === dictResult)
-        #expect(kanji?.entries?.contains(kanjiEntry!) == true)
+        if let kanjiEntry, let entries = kanji?.entries {
+            #expect(entries.contains(kanjiEntry))
+        } else {
+            Issue.record("Kanji entries relationship is nil")
+        }
 
         // Assert: Tag linking for kanji through richTags relationship
         #expect(kanjiEntry?.richTags?.count == 2)
         let linkedKanjiTags = kanjiEntry?.richTags?.allObjects as? [MaruReader.DictionaryTagMeta]
         let kanjiTagNames = linkedKanjiTags?.map { $0.name ?? "" }.sorted()
         #expect(kanjiTagNames == ["noun", "term-tag"])
+
+        // Assert: Kanji frequency entries persisted
+        let kanjiFreqRequest: NSFetchRequest<MaruReader.KanjiFrequencyEntry> = MaruReader.KanjiFrequencyEntry.fetchRequest()
+        let kanjiFreqResults = try context.fetch(kanjiFreqRequest)
+        #expect(kanjiFreqResults.count == 1)
+        let kanjiFreq = kanjiFreqResults.first
+        #expect(kanjiFreq?.frequencyValue == 200)
+        #expect(kanjiFreq?.displayFrequency == "200★")
+        #expect(kanjiFreq?.dictionary === dictResult)
+        #expect(kanjiFreq?.kanji?.character == "食")
 
         // Assert: Term frequency entries persisted
         let termFreqRequest: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
@@ -576,7 +590,11 @@ struct DictionaryPersistenceTests {
         // Test relationships
         #expect(termEntry?.term === term)
         #expect(termEntry?.dictionary === dictionaryResult.first)
-        #expect(term?.entries?.contains(termEntry!) == true)
+        if let termEntry, let entries = term?.entries {
+            #expect(entries.contains(termEntry))
+        } else {
+            Issue.record("Term entries relationship is nil")
+        }
 
         // Assert: Definition tag linking through richDefinitionTags relationship
         #expect(termEntry?.richDefinitionTags?.count == 2)
@@ -623,7 +641,11 @@ struct DictionaryPersistenceTests {
         // Test relationships
         #expect(kanjiEntry?.kanji === kanji)
         #expect(kanjiEntry?.dictionary === dictionaryResult.first)
-        #expect(kanji?.entries?.contains(kanjiEntry!) == true)
+        if let kanjiEntry, let entries = kanji?.entries {
+            #expect(entries.contains(kanjiEntry))
+        } else {
+            Issue.record("Kanji entries relationship is nil")
+        }
 
         // Assert: Tag linking for kanji through richTags relationship
         #expect(kanjiEntry?.richTags?.count == 1)
