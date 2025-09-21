@@ -46,6 +46,7 @@
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="tags" inverseEntity="Dictionary"/>
         <relationship name="ipa" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="IPAEntry" inverseName="richTags" inverseEntity="IPAEntry"/>
         <relationship name="kanjiTags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiEntry" inverseName="richTags" inverseEntity="KanjiEntry"/>
+        <relationship name="pitches" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PitchAccentEntry" inverseName="richTags" inverseEntity="PitchAccentEntry"/>
         <relationship name="termDefinitionTags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermEntry" inverseName="richDefinitionTags" inverseEntity="TermEntry"/>
         <relationship name="termTags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermEntry" inverseName="richTermTags" inverseEntity="TermEntry"/>
     </entity>
@@ -114,9 +115,14 @@
         <relationship name="kanji" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Kanji" inverseName="frequency" inverseEntity="Kanji"/>
     </entity>
     <entity name="PitchAccentEntry" representedClassName="PitchAccentEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="devoice" optional="YES" attributeType="Transformable" valueTransformerName="IntArrayTransformer"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="pitches" attributeType="Transformable" valueTransformerName="PitchAccentArrayTransformer"/>
+        <attribute name="mora" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="nasal" optional="YES" attributeType="Transformable" valueTransformerName="IntArrayTransformer"/>
+        <attribute name="pattern" optional="YES" attributeType="String"/>
+        <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="pitches" inverseEntity="Dictionary"/>
+        <relationship name="richTags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DictionaryTagMeta" inverseName="pitches" inverseEntity="DictionaryTagMeta"/>
         <relationship name="term" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Term" inverseName="pitches" inverseEntity="Term"/>
     </entity>
     <entity name="Term" representedClassName="Term" syncable="YES" codeGenerationType="class">

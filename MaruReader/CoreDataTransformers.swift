@@ -19,6 +19,7 @@ extension NSValueTransformerName {
     static let termMetaEntryDataTransformer = NSValueTransformerName("TermMetaEntryDataTransformer")
     static let urlArrayTransformer = NSValueTransformerName("URLArrayTransformer")
     static let pitchAccentArrayTransformer = NSValueTransformerName("PitchAccentArrayTransformer")
+    static let intArrayTransformer = NSValueTransformerName("IntArrayTransformer")
 }
 
 // MARK: - Registration Helper
@@ -32,6 +33,7 @@ enum CoreDataTransformers {
         ValueTransformer.setValueTransformer(TermMetaEntryDataTransformer(), forName: .termMetaEntryDataTransformer)
         ValueTransformer.setValueTransformer(URLArrayTransformer(), forName: .urlArrayTransformer)
         ValueTransformer.setValueTransformer(PitchAccentArrayTransformer(), forName: .pitchAccentArrayTransformer)
+        ValueTransformer.setValueTransformer(IntArrayTransformer(), forName: .intArrayTransformer)
     }
 }
 
@@ -83,5 +85,9 @@ final class URLArrayTransformer: JSONValueTransformer<[URL]> {
 }
 
 final class PitchAccentArrayTransformer: JSONValueTransformer<[PitchAccent]> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class IntArrayTransformer: JSONValueTransformer<[Int]> {
     // Nothing extra needed; subclass exists to provide unique name
 }
