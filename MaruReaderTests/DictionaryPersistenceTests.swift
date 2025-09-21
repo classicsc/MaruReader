@@ -184,7 +184,7 @@ struct DictionaryPersistenceTests {
                 "食",
                 "ショク",
                 "た.べ",
-                "",
+                "noun term-tag",
                 ["eat", "food"],
                 {"freq": "100"}
             ]
@@ -310,6 +310,50 @@ struct DictionaryPersistenceTests {
         #expect(termEntry?.richDefinitionTags?.count == 1)
         let linkedDefTag = termEntry?.richDefinitionTags?.allObjects.first as? MaruReader.DictionaryTagMeta
         #expect(linkedDefTag?.name == "def-tag")
+
+        // Assert: Kanji and KanjiEntry persisted with all V3 attributes
+        let kanjiRequest: NSFetchRequest<MaruReader.Kanji> = MaruReader.Kanji.fetchRequest()
+        let kanjiResult = try context.fetch(kanjiRequest)
+        #expect(kanjiResult.count == 1)
+        let kanji = kanjiResult.first
+        #expect(kanji?.character == "食")
+        #expect(kanji?.id != nil)
+
+        let kanjiEntryResult = try context.fetch(MaruReader.KanjiEntry.fetchRequest())
+        #expect(kanjiEntryResult.count == 1)
+        let kanjiEntry = kanjiEntryResult.first
+        #expect(kanjiEntry?.id != nil)
+
+        // Test onyomi
+        let onyomi = kanjiEntry?.onyomi as? [String]
+        #expect(onyomi == ["ショク"])
+
+        // Test kunyomi
+        let kunyomi = kanjiEntry?.kunyomi as? [String]
+        #expect(kunyomi == ["た.べ"])
+
+        // Test meanings
+        let meanings = kanjiEntry?.meanings as? [String]
+        #expect(meanings?.sorted() == ["eat", "food"])
+
+        // Test stats
+        let stats = kanjiEntry?.stats as? [String: String]
+        #expect(stats?["freq"] == "100")
+
+        // Test tags
+        let kanjiTags = kanjiEntry?.tags as? [String]
+        #expect(kanjiTags?.sorted() == ["noun", "term-tag"])
+
+        // Test relationships
+        #expect(kanjiEntry?.kanji === kanji)
+        #expect(kanjiEntry?.dictionary === dictResult)
+        #expect(kanji?.entries?.contains(kanjiEntry!) == true)
+
+        // Assert: Tag linking for kanji through richTags relationship
+        #expect(kanjiEntry?.richTags?.count == 2)
+        let linkedKanjiTags = kanjiEntry?.richTags?.allObjects as? [MaruReader.DictionaryTagMeta]
+        let kanjiTagNames = linkedKanjiTags?.map { $0.name ?? "" }.sorted()
+        #expect(kanjiTagNames == ["noun", "term-tag"])
     }
 
     @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
@@ -331,7 +375,13 @@ struct DictionaryPersistenceTests {
             ["猫", "ねこ", "noun def-tag", "v1", 100, "cat", "feline"]
         ]
         """
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        // V1 kanji bank for testing
+        let kanjiJSON = """
+        [
+            ["猫", "ビョウ", "ねこ", "noun", "cat", "feline animal"]
+        ]
+        """
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)
@@ -424,5 +474,48 @@ struct DictionaryPersistenceTests {
 
         // Assert: No term tags for V1
         #expect(termEntry?.richTermTags?.count == 0)
+
+        // Assert: Kanji and KanjiEntry persisted with all V1 attributes
+        let kanjiRequest: NSFetchRequest<MaruReader.Kanji> = MaruReader.Kanji.fetchRequest()
+        let kanjiResult = try context.fetch(kanjiRequest)
+        #expect(kanjiResult.count == 1)
+        let kanji = kanjiResult.first
+        #expect(kanji?.character == "猫")
+        #expect(kanji?.id != nil)
+
+        let kanjiEntryResult = try context.fetch(MaruReader.KanjiEntry.fetchRequest())
+        #expect(kanjiEntryResult.count == 1)
+        let kanjiEntry = kanjiEntryResult.first
+        #expect(kanjiEntry?.id != nil)
+
+        // Test onyomi
+        let onyomi = kanjiEntry?.onyomi as? [String]
+        #expect(onyomi == ["ビョウ"])
+
+        // Test kunyomi
+        let kunyomi = kanjiEntry?.kunyomi as? [String]
+        #expect(kunyomi == ["ねこ"])
+
+        // Test meanings (V1 format has meanings as remaining string elements)
+        let meanings = kanjiEntry?.meanings as? [String]
+        #expect(meanings?.sorted() == ["cat", "feline animal"])
+
+        // Test stats (V1 doesn't have stats, should be empty)
+        let stats = kanjiEntry?.stats as? [String: String]
+        #expect(stats?.isEmpty == true)
+
+        // Test tags
+        let kanjiTags = kanjiEntry?.tags as? [String]
+        #expect(kanjiTags == ["noun"])
+
+        // Test relationships
+        #expect(kanjiEntry?.kanji === kanji)
+        #expect(kanjiEntry?.dictionary === dictionaryResult.first)
+        #expect(kanji?.entries?.contains(kanjiEntry!) == true)
+
+        // Assert: Tag linking for kanji through richTags relationship
+        #expect(kanjiEntry?.richTags?.count == 1)
+        let linkedKanjiTag = kanjiEntry?.richTags?.allObjects.first as? MaruReader.DictionaryTagMeta
+        #expect(linkedKanjiTag?.name == "noun")
     }
 }

@@ -139,6 +139,9 @@ actor DictionaryImportManager {
             try await processTermBanks(job, context: context)
             logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
+            try await processKanjiBanks(job, context: context)
+            logger.debug("Import job \(jobID) kanji banks processed")
+            try Task.checkCancellation()
             try await copyMedia(job)
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
@@ -430,6 +433,95 @@ extension DictionaryImportManager {
         try Task.checkCancellation()
     }
 
+    private func processKanjiBanks(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
+        // Get the dictionary entity
+        guard let dictionary = job.dictionary else {
+            throw DictionaryImportError.databaseError
+        }
+
+        // Get the dictionary format
+        let format = dictionary.format
+
+        // Process kanji banks
+        guard let kanjiBankURLs = job.kanjiBanks as? [URL] else {
+            throw DictionaryImportError.databaseError
+        }
+
+        if !kanjiBankURLs.isEmpty {
+            job.displayProgressMessage = "Processing kanji..."
+            try context.save()
+
+            if format == 3 {
+                let kanjiIterator = StreamingBankIterator<KanjiBankV3Entry>(
+                    bankURLs: kanjiBankURLs,
+                    dataFormat: Int(format)
+                )
+
+                for try await entry in kanjiIterator {
+                    try Task.checkCancellation()
+
+                    // Find or create Kanji entity
+                    let kanji = try findOrCreateKanji(character: entry.character, context: context)
+
+                    // Create KanjiEntry
+                    let kanjiEntry = KanjiEntry(context: context)
+                    kanjiEntry.id = UUID()
+                    kanjiEntry.setValue(entry.onyomi, forKey: "onyomi")
+                    kanjiEntry.setValue(entry.kunyomi, forKey: "kunyomi")
+                    kanjiEntry.setValue(entry.meanings, forKey: "meanings")
+                    kanjiEntry.setValue(entry.stats, forKey: "stats")
+                    kanjiEntry.setValue(entry.tags, forKey: "tags")
+
+                    context.insert(kanjiEntry)
+
+                    // Link relationships
+                    kanjiEntry.kanji = kanji
+                    kanjiEntry.dictionary = dictionary
+
+                    // Link tags
+                    try linkTagsToKanjiEntry(kanjiEntry, tags: entry.tags, dictionary: dictionary, context: context)
+                }
+            } else if format == 1 {
+                logger.debug("Processing kanji bank in format V1")
+                let kanjiIterator = StreamingBankIterator<KanjiBankV1Entry>(
+                    bankURLs: kanjiBankURLs,
+                    dataFormat: Int(format)
+                )
+
+                for try await entry in kanjiIterator {
+                    try Task.checkCancellation()
+
+                    // Find or create Kanji entity
+                    let kanji = try findOrCreateKanji(character: entry.character, context: context)
+
+                    // Create KanjiEntry
+                    let kanjiEntry = KanjiEntry(context: context)
+                    kanjiEntry.id = UUID()
+                    kanjiEntry.setValue(entry.onyomi, forKey: "onyomi")
+                    kanjiEntry.setValue(entry.kunyomi, forKey: "kunyomi")
+                    kanjiEntry.setValue(entry.meanings, forKey: "meanings")
+                    kanjiEntry.setValue([:], forKey: "stats") // V1 doesn't have stats
+                    kanjiEntry.setValue(entry.tags, forKey: "tags")
+
+                    context.insert(kanjiEntry)
+
+                    // Link relationships
+                    kanjiEntry.kanji = kanji
+                    kanjiEntry.dictionary = dictionary
+
+                    // Link tags
+                    try linkTagsToKanjiEntry(kanjiEntry, tags: entry.tags, dictionary: dictionary, context: context)
+                }
+            }
+
+            job.setValue(kanjiBankURLs, forKey: "processedKanjiBanks")
+            job.displayProgressMessage = "Processed kanji."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
+    }
+
     private func findOrCreateTerm(expression: String, reading: String, context: NSManagedObjectContext) throws -> Term {
         let request: NSFetchRequest<Term> = Term.fetchRequest()
         request.predicate = NSPredicate(format: "expression == %@ AND reading == %@", expression, reading)
@@ -474,6 +566,34 @@ extension DictionaryImportManager {
         request.fetchLimit = 1
 
         return try context.fetch(request).first
+    }
+
+    private func findOrCreateKanji(character: String, context: NSManagedObjectContext) throws -> Kanji {
+        let request: NSFetchRequest<Kanji> = Kanji.fetchRequest()
+        request.predicate = NSPredicate(format: "character == %@", character)
+        request.fetchLimit = 1
+
+        if let existingKanji = try context.fetch(request).first {
+            return existingKanji
+        }
+
+        // Create new Kanji
+        let kanji = Kanji(context: context)
+        kanji.id = UUID()
+        kanji.character = character
+
+        context.insert(kanji)
+
+        return kanji
+    }
+
+    private func linkTagsToKanjiEntry(_ kanjiEntry: KanjiEntry, tags: [String], dictionary: Dictionary, context: NSManagedObjectContext) throws {
+        // Link kanji tags
+        for tagName in tags {
+            if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                kanjiEntry.addToRichTags(tagMeta)
+            }
+        }
     }
 
     private func copyMedia(_: DictionaryZIPFileImport) async throws {
