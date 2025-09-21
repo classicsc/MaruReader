@@ -148,7 +148,7 @@ actor DictionaryImportManager {
             try await processKanjiMetaBanks(job, context: context)
             logger.debug("Import job \(jobID) kanji meta banks processed")
             try Task.checkCancellation()
-            try await copyMedia(job)
+            try await copyMedia(job, context: context)
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
 
@@ -164,6 +164,7 @@ actor DictionaryImportManager {
                 context.delete(dict)
             }
             try? context.save()
+            cleanMediaDirectory(job: job)
         } catch {
             job.isFailed = true
             job.displayProgressMessage = error.localizedDescription
@@ -172,9 +173,10 @@ actor DictionaryImportManager {
                 context.delete(dict)
             }
             try? context.save()
+            cleanMediaDirectory(job: job)
         }
 
-        await cleanup(job)
+        await cleanup(job: job)
     }
 }
 
@@ -821,12 +823,100 @@ extension DictionaryImportManager {
         }
     }
 
-    private func copyMedia(_: DictionaryZIPFileImport) async throws {
+    private func copyMedia(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
         // Walk workingDirectory, copy non-json files preserving structure
+        // Destination: Application Support/Media/<dictionary-id>/
+        // Create directory if needed
         // Update job.mediaImported
+
+        let fileManager = FileManager.default
+        guard let jobDirectory = job.workingDirectory else {
+            throw DictionaryImportError.noWorkingDirectory
+        }
+        guard let dictionary = job.dictionary else {
+            throw DictionaryImportError.databaseError
+        }
+
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        guard let dictionaryID = dictionary.id else {
+            throw DictionaryImportError.databaseError
+        }
+        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+        // Create media directory if it doesn't exist
+        if !fileManager.fileExists(atPath: mediaDir.path) {
+            try fileManager.createDirectory(at: mediaDir, withIntermediateDirectories: true, attributes: nil)
+        }
+
+        // Recursively copy files
+        let enumerator = fileManager.enumerator(at: jobDirectory, includingPropertiesForKeys: nil)
+        while let fileURL = enumerator?.nextObject() as? URL {
+            try Task.checkCancellation()
+            // Skip JSON files
+            if fileURL.pathExtension.lowercased() == "json" {
+                continue
+            }
+
+            // Determine relative path
+            let relativePath = fileURL.path.replacingOccurrences(of: jobDirectory.path, with: "")
+            let destinationURL = mediaDir.appendingPathComponent(relativePath)
+            let destinationDir = destinationURL.deletingLastPathComponent()
+
+            // Create destination directory if needed
+            if !fileManager.fileExists(atPath: destinationDir.path) {
+                try fileManager.createDirectory(at: destinationDir, withIntermediateDirectories: true, attributes: nil)
+            }
+
+            // Copy file
+            if fileManager.fileExists(atPath: destinationURL.path) {
+                try fileManager.removeItem(at: destinationURL)
+            }
+            try fileManager.copyItem(at: fileURL, to: destinationURL)
+        }
+
+        job.mediaImported = true
+        job.displayProgressMessage = "Copied media files."
+        try Task.checkCancellation()
+        try context.save()
     }
 
-    private func cleanup(_: DictionaryZIPFileImport) async {
+    private func cleanMediaDirectory(job: DictionaryZIPFileImport) {
+        let fileManager = FileManager.default
+        guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else {
+            return
+        }
+
+        do {
+            let appSupportDir = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+            if fileManager.fileExists(atPath: mediaDir.path) {
+                try fileManager.removeItem(at: mediaDir)
+            }
+        } catch {
+            logger.error("Failed to clean media directory for dictionary \(dictionaryID): \(error.localizedDescription)")
+        }
+    }
+
+    private func cleanup(job: DictionaryZIPFileImport) async {
         // Delete working directory if complete/failed/cancelled
+        let fileManager = FileManager.default
+        if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
+            do {
+                try fileManager.removeItem(at: workingDir)
+            } catch {
+                logger.error("Failed to remove working directory at \(workingDir.path): \(error.localizedDescription)")
+            }
+        }
     }
 }

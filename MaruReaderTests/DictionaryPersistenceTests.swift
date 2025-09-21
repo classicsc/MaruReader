@@ -222,7 +222,8 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON)
+        let mediaFiles = ["images/test.png", "audio/pronunciation.mp3", "nested/folder/file.jpg"]
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = MaruReader.PersistenceController(inMemory: true)
@@ -480,6 +481,43 @@ struct DictionaryPersistenceTests {
         #expect(taggedIPA?.richTags?.count == 1)
         let linkedIPATag = taggedIPA?.richTags?.allObjects.first as? MaruReader.DictionaryTagMeta
         #expect(linkedIPATag?.name == "noun")
+
+        // Assert: Media files are copied to application support directory
+        guard let dictionaryID = dictResult?.id else {
+            Issue.record("Dictionary ID is nil")
+            return
+        }
+
+        let fileManager = FileManager.default
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+        // Verify media directory exists
+        #expect(fileManager.fileExists(atPath: mediaDir.path))
+
+        // Verify each media file was copied with correct path structure
+        for mediaFile in mediaFiles {
+            let expectedPath = mediaDir.appendingPathComponent(mediaFile)
+            #expect(fileManager.fileExists(atPath: expectedPath.path), "Media file should exist at: \(expectedPath.path)")
+
+            // Verify it's not empty (our mock files have content)
+            let fileSize = try? fileManager.attributesOfItem(atPath: expectedPath.path)[.size] as? Int
+            #expect((fileSize ?? 0) > 0, "Media file should not be empty: \(expectedPath.path)")
+        }
+
+        // Verify nested directory structure is preserved
+        let nestedDir = mediaDir.appendingPathComponent("nested/folder")
+        #expect(fileManager.fileExists(atPath: nestedDir.path), "Nested directory structure should be preserved")
+
+        // Verify JSON files are NOT copied to media directory
+        let jsonFiles = try fileManager.contentsOfDirectory(at: mediaDir, includingPropertiesForKeys: nil, options: .skipsHiddenFiles)
+        let jsonInMedia = jsonFiles.filter { $0.pathExtension.lowercased() == "json" }
+        #expect(jsonInMedia.isEmpty, "JSON files should not be copied to media directory")
     }
 
     @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
@@ -507,7 +545,8 @@ struct DictionaryPersistenceTests {
             ["猫", "ビョウ", "ねこ", "noun", "cat", "feline animal"]
         ]
         """
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil)
+        let mediaFiles = ["sounds/audio.wav", "pictures/image.gif"]
+        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = PersistenceController(inMemory: true)
@@ -651,5 +690,29 @@ struct DictionaryPersistenceTests {
         #expect(kanjiEntry?.richTags?.count == 1)
         let linkedKanjiTag = kanjiEntry?.richTags?.allObjects.first as? MaruReader.DictionaryTagMeta
         #expect(linkedKanjiTag?.name == "noun")
+
+        // Assert: Media files are copied for V1 format as well
+        guard let dictionaryID = dictionaryResult.first?.id else {
+            Issue.record("Dictionary ID is nil")
+            return
+        }
+
+        let fileManager = FileManager.default
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        )
+        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+        // Verify media directory exists
+        #expect(fileManager.fileExists(atPath: mediaDir.path))
+
+        // Verify each media file was copied
+        for mediaFile in mediaFiles {
+            let expectedPath = mediaDir.appendingPathComponent(mediaFile)
+            #expect(fileManager.fileExists(atPath: expectedPath.path), "V1 media file should exist at: \(expectedPath.path)")
+        }
     }
 }
