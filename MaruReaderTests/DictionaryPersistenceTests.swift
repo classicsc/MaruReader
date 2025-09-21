@@ -158,12 +158,14 @@ struct DictionaryPersistenceTests {
         """
         let tagJSON = """
         [
-            ["noun", "partOfSpeech", 1, "Common noun", 0]
+            ["noun", "partOfSpeech", 1, "Common noun", 0],
+            ["term-tag", "termTag", 2, "Term tag", 0],
+            ["def-tag", "definitionTag", 3, "Definition tag", 0]
         ]
         """
         let termJSON = """
         [
-            ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1, "noun"]
+            ["食べる", "たべる", "def-tag", "A", 100, ["to eat"], 1, "noun term-tag"]
         ]
         """
 
@@ -242,28 +244,56 @@ struct DictionaryPersistenceTests {
         #expect(tagResult?.score == 0)
         #expect(tagResult?.dictionary?.title == "TestDict")
 
-        // Assert: Term and TermEntry persisted
+        // Assert: Term and TermEntry persisted with all attributes
         let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
         let termResult = try? context.fetch(termRequest)
         #expect(termResult?.count == 1)
-        #expect(termResult?.first?.expression == "食べる")
-        #expect(termResult?.first?.reading == "たべる")
+        let term = termResult?.first
+        #expect(term?.expression == "食べる")
+        #expect(term?.reading == "たべる")
+        #expect(term?.id != nil)
 
         let termEntryResult = try? context.fetch(MaruReader.TermEntry.fetchRequest())
         #expect(termEntryResult?.count == 1)
-        #expect(termEntryResult?.first?.score == 100)
-        let definitions = termEntryResult?.first?.glossary as? [MaruReader.Definition]
+        let termEntry = termEntryResult?.first
+        #expect(termEntry?.score == 100)
+        #expect(termEntry?.sequence == 1)
+        #expect(termEntry?.id != nil)
+
+        // Test glossary (definitions)
+        let definitions = termEntry?.glossary as? [MaruReader.Definition]
+        #expect(definitions?.count == 1)
         if case let .text(glossaryText) = definitions?.first {
             #expect(glossaryText == "to eat")
         }
-        let rules = termEntryResult?.first?.rules as? [String]
+
+        // Test rules
+        let rules = termEntry?.rules as? [String]
         #expect(rules == ["A"])
 
-        // Assert: Tag linking worked
-        // Fetch linked tags via relationship
-        #expect(termEntryResult?.first?.richTermTags?.count == 1)
-        let linkedTag = termEntryResult?.first?.richTermTags?.allObjects.first as? MaruReader.DictionaryTagMeta
-        #expect(linkedTag?.name == "noun")
+        // Test definition tags (3rd element in V3 schema)
+        let definitionTags = termEntry?.definitionTags as? [String]
+        #expect(definitionTags == ["def-tag"])
+
+        // Test term tags (8th element in V3 schema)
+        let termTags = termEntry?.termTags as? [String]
+        #expect(termTags?.sorted() == ["noun", "term-tag"])
+
+        // Test relationships
+        #expect(termEntry?.term === term)
+        #expect(termEntry?.dictionary === dictResult)
+        #expect(term?.entries?.contains(termEntry!) == true)
+
+        // Assert: Tag linking worked through richTermTags relationship
+        #expect(termEntry?.richTermTags?.count == 2)
+        let linkedTermTags = termEntry?.richTermTags?.allObjects as? [MaruReader.DictionaryTagMeta]
+        let termTagNames = linkedTermTags?.map { $0.name ?? "" }.sorted()
+        #expect(termTagNames == ["noun", "term-tag"])
+
+        // Assert: Definition tag linking through richDefinitionTags relationship
+        #expect(termEntry?.richDefinitionTags?.count == 1)
+        let linkedDefTag = termEntry?.richDefinitionTags?.allObjects.first as? MaruReader.DictionaryTagMeta
+        #expect(linkedDefTag?.name == "def-tag")
     }
 
     @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
@@ -274,14 +304,15 @@ struct DictionaryPersistenceTests {
             "revision": "1.0",
             "format": 1,
             "tagMeta": {
-                "noun": {"category": "partOfSpeech", "order": 1, "notes": "Common noun", "score": 0}
+                "noun": {"category": "partOfSpeech", "order": 1, "notes": "Common noun", "score": 0},
+                "def-tag": {"category": "definitionTag", "order": 2, "notes": "Definition tag", "score": 0}
             }
         }
         """
         // Need a term bank to be a valid dictionary
         let termJSON = """
         [
-            ["猫", "ねこ", "noun", "", 100, "cat"]
+            ["猫", "ねこ", "noun def-tag", "v1", 100, "cat", "feline"]
         ]
         """
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
@@ -309,12 +340,73 @@ struct DictionaryPersistenceTests {
         #expect(dictionaryResult.first?.title == "LegacyDict")
 
         let tagRequest: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
-        let tagResult = try? context.fetch(tagRequest).first
-        #expect(tagResult?.name == "noun")
-        #expect(tagResult?.category == "partOfSpeech")
-        #expect(tagResult?.notes == "Common noun")
-        #expect(tagResult?.order == 1)
-        #expect(tagResult?.score == 0)
-        #expect(tagResult?.dictionary?.title == "LegacyDict")
+        let tagResults = try context.fetch(tagRequest)
+        #expect(tagResults.count == 2)
+
+        let nounTag = tagResults.first { $0.name == "noun" }
+        #expect(nounTag?.category == "partOfSpeech")
+        #expect(nounTag?.notes == "Common noun")
+        #expect(nounTag?.order == 1)
+        #expect(nounTag?.score == 0)
+        #expect(nounTag?.dictionary?.title == "LegacyDict")
+
+        let defTag = tagResults.first { $0.name == "def-tag" }
+        #expect(defTag?.category == "definitionTag")
+        #expect(defTag?.notes == "Definition tag")
+        #expect(defTag?.order == 2)
+        #expect(defTag?.score == 0)
+        #expect(defTag?.dictionary?.title == "LegacyDict")
+
+        // Assert: Term and TermEntry persisted with all V1 attributes
+        let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
+        let termResult = try context.fetch(termRequest)
+        #expect(termResult.count == 1)
+        let term = termResult.first
+        #expect(term?.expression == "猫")
+        #expect(term?.reading == "ねこ")
+        #expect(term?.id != nil)
+
+        let termEntryResult = try context.fetch(MaruReader.TermEntry.fetchRequest())
+        #expect(termEntryResult.count == 1)
+        let termEntry = termEntryResult.first
+        #expect(termEntry?.score == 100)
+        #expect(termEntry?.sequence == 0) // V1 doesn't have sequence, defaults to 0
+        #expect(termEntry?.id != nil)
+
+        // Test glossary (V1 uses remaining elements as string definitions)
+        let definitions = termEntry?.glossary as? [MaruReader.Definition]
+        #expect(definitions?.count == 2)
+        if case let .text(firstGlossary) = definitions?[0] {
+            #expect(firstGlossary == "cat")
+        }
+        if case let .text(secondGlossary) = definitions?[1] {
+            #expect(secondGlossary == "feline")
+        }
+
+        // Test rules
+        let rules = termEntry?.rules as? [String]
+        #expect(rules == ["v1"])
+
+        // Test definition tags (V1 has only definition tags, no separate term tags)
+        let definitionTags = termEntry?.definitionTags as? [String]
+        #expect(definitionTags?.sorted() == ["def-tag", "noun"])
+
+        // Test term tags (should be empty for V1)
+        let termTags = termEntry?.termTags as? [String]
+        #expect(termTags?.isEmpty == true)
+
+        // Test relationships
+        #expect(termEntry?.term === term)
+        #expect(termEntry?.dictionary === dictionaryResult.first)
+        #expect(term?.entries?.contains(termEntry!) == true)
+
+        // Assert: Definition tag linking through richDefinitionTags relationship
+        #expect(termEntry?.richDefinitionTags?.count == 2)
+        let linkedDefTags = termEntry?.richDefinitionTags?.allObjects as? [MaruReader.DictionaryTagMeta]
+        let defTagNames = linkedDefTags?.map { $0.name ?? "" }.sorted()
+        #expect(defTagNames == ["def-tag", "noun"])
+
+        // Assert: No term tags for V1
+        #expect(termEntry?.richTermTags?.count == 0)
     }
 }
