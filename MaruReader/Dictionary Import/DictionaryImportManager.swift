@@ -196,7 +196,7 @@ extension DictionaryImportManager {
             // This preserves directory structure automatically
             try Zip.unzipFile(jobURL, destination: jobDirectory, overwrite: true, password: nil)
 
-            let extractedContents = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
+            _ = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
 
             // Update job status
             job.archiveExtracted = true
@@ -263,7 +263,6 @@ extension DictionaryImportManager {
         dictionary.revision = index.revision
         dictionary.format = Int64(format)
 
-        try dictionary.validateForInsert()
         context.insert(dictionary)
 
         // If the index has embedded tags, create DictionaryTagMeta entities
@@ -277,7 +276,6 @@ extension DictionaryImportManager {
                 tag.notes = entry.notes
                 tag.score = Double(entry.score ?? 0)
 
-                try tag.validateForInsert()
                 context.insert(tag)
 
                 tag.dictionary = dictionary
@@ -311,30 +309,158 @@ extension DictionaryImportManager {
             throw DictionaryImportError.databaseError
         }
 
-        let tagIterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: tagBankURLs,
-            dataFormat: Int(format)
-        )
+        if !tagBankURLs.isEmpty {
+            let tagIterator = StreamingBankIterator<TagBankV3Entry>(
+                bankURLs: tagBankURLs,
+                dataFormat: Int(format)
+            )
 
-        for try await entry in tagIterator {
-            // Insert into Core Data
-            let tag = DictionaryTagMeta(context: context)
-            tag.id = UUID()
-            tag.name = entry.name
-            tag.category = entry.category
-            tag.order = Double(entry.order)
-            tag.notes = entry.notes
-            tag.score = Double(entry.score)
+            for try await entry in tagIterator {
+                // Insert into Core Data
+                let tag = DictionaryTagMeta(context: context)
+                tag.id = UUID()
+                tag.name = entry.name
+                tag.category = entry.category
+                tag.order = Double(entry.order)
+                tag.notes = entry.notes
+                tag.score = Double(entry.score)
 
-            try tag.validateForInsert()
-            context.insert(tag)
+                context.insert(tag)
 
-            tag.dictionary = dictionary
+                tag.dictionary = dictionary
+            }
         }
 
         job.setValue(tagBankURLs, forKey: "processedTagBanks")
         try context.save()
         try Task.checkCancellation()
+
+        // Process term banks
+        guard let termBankURLs = job.termBanks as? [URL] else {
+            throw DictionaryImportError.databaseError
+        }
+
+        if !termBankURLs.isEmpty {
+            job.displayProgressMessage = "Processing terms..."
+            try context.save()
+
+            if format == 3 {
+                let termIterator = StreamingBankIterator<TermBankV3Entry>(
+                    bankURLs: termBankURLs,
+                    dataFormat: Int(format)
+                )
+
+                for try await entry in termIterator {
+                    try Task.checkCancellation()
+
+                    // Find or create Term entity
+                    let term = try findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+
+                    // Create TermEntry
+                    let termEntry = TermEntry(context: context)
+                    termEntry.id = UUID()
+                    termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
+                    termEntry.setValue(entry.rules, forKey: "rules")
+                    termEntry.score = entry.score
+                    termEntry.setValue(entry.glossary, forKey: "glossary")
+                    termEntry.sequence = Int64(entry.sequence)
+                    termEntry.setValue(entry.termTags, forKey: "termTags")
+
+                    context.insert(termEntry)
+
+                    // Link relationships
+                    termEntry.term = term
+                    termEntry.dictionary = dictionary
+
+                    // Link tags
+                    try linkTagsToTermEntry(termEntry, termTags: entry.termTags, definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+                }
+            } else if format == 1 {
+                logger.debug("Processing term bank in format V1")
+                let termIterator = StreamingBankIterator<TermBankV1Entry>(
+                    bankURLs: termBankURLs,
+                    dataFormat: Int(format)
+                )
+
+                for try await entry in termIterator {
+                    try Task.checkCancellation()
+
+                    // Find or create Term entity
+                    let term = try findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+
+                    // Create TermEntry
+                    let termEntry = TermEntry(context: context)
+                    termEntry.id = UUID()
+                    termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
+                    termEntry.setValue(entry.rules, forKey: "rules")
+                    termEntry.score = entry.score
+                    termEntry.setValue(entry.glossary, forKey: "glossary")
+                    termEntry.sequence = 0
+                    termEntry.setValue([], forKey: "termTags")
+
+                    context.insert(termEntry)
+
+                    // Link relationships
+                    termEntry.term = term
+                    termEntry.dictionary = dictionary
+
+                    // Link tags (V1 only has definition tags)
+                    try linkTagsToTermEntry(termEntry, termTags: [], definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+                }
+            }
+
+            job.setValue(termBankURLs, forKey: "processedTermBanks")
+            job.displayProgressMessage = "Processed terms."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
+    }
+
+    private func findOrCreateTerm(expression: String, reading: String, context: NSManagedObjectContext) throws -> Term {
+        let request: NSFetchRequest<Term> = Term.fetchRequest()
+        request.predicate = NSPredicate(format: "expression == %@ AND reading == %@", expression, reading)
+        request.fetchLimit = 1
+
+        if let existingTerm = try context.fetch(request).first {
+            return existingTerm
+        }
+
+        // Create new Term
+        let term = Term(context: context)
+        term.id = UUID()
+        term.expression = expression
+        term.reading = reading
+
+        context.insert(term)
+
+        return term
+    }
+
+    private func linkTagsToTermEntry(_ termEntry: TermEntry, termTags: [String], definitionTags: [String]?, dictionary: Dictionary, context: NSManagedObjectContext) throws {
+        // Link term tags
+        for tagName in termTags {
+            if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                termEntry.addToRichTermTags(tagMeta)
+            }
+        }
+
+        // Link definition tags
+        if let definitionTags {
+            for tagName in definitionTags {
+                if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                    termEntry.addToRichDefinitionTags(tagMeta)
+                }
+            }
+        }
+    }
+
+    private func findTagMeta(name: String, dictionary: Dictionary, context: NSManagedObjectContext) throws -> DictionaryTagMeta? {
+        let request: NSFetchRequest<DictionaryTagMeta> = DictionaryTagMeta.fetchRequest()
+        request.predicate = NSPredicate(format: "name == %@ AND dictionary == %@", name, dictionary)
+        request.fetchLimit = 1
+
+        return try context.fetch(request).first
     }
 
     private func copyMedia(_: DictionaryZIPFileImport) async throws {

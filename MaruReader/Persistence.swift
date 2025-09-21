@@ -63,7 +63,7 @@ struct PersistenceController {
         term1.expression = "食べる"
         term1.reading = "たべる"
         let termEntry1 = TermEntry(context: viewContext)
-        termEntry1.rules = "v1"
+        termEntry1.setValue(["v1"], forKey: "rules")
         termEntry1.score = 100
         termEntry1.sequence = 1
         termEntry1.setValue([["to eat", "to consume food"]], forKey: "glossary")
@@ -77,7 +77,7 @@ struct PersistenceController {
         term2.expression = "飲む"
         term2.reading = "のむ"
         let termEntry2 = TermEntry(context: viewContext)
-        termEntry2.rules = "v5m"
+        termEntry2.setValue(["v5m"], forKey: "rules")
         termEntry2.score = 95
         termEntry2.sequence = 2
         termEntry2.setValue([["to drink", "to swallow liquid"]], forKey: "glossary")
@@ -91,7 +91,7 @@ struct PersistenceController {
         term3.expression = "本"
         term3.reading = "ほん"
         let termEntry3 = TermEntry(context: viewContext)
-        termEntry3.rules = "noun"
+        termEntry3.setValue(["n"], forKey: "rules")
         termEntry3.score = 98
         termEntry3.sequence = 3
         termEntry3.setValue([["book", "volume"], ["main", "head", "this", "our"]], forKey: "glossary")

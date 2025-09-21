@@ -138,7 +138,7 @@
         <attribute name="definitionTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="rules" attributeType="String"/>
+        <attribute name="rules" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>

@@ -165,8 +165,8 @@ struct DictionaryPersistenceTests {
     @Test func importDictionary_ValidZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
-        // - Action: Call importDictionary; track progress calls.
-        // - Expected: DictionaryEntry created and marked complete; fetchable Tags and Terms.
+        // - Action: Call importDictionary
+        // - Expected: DictionaryEntry created and marked complete; fetchable data.
         let indexJSON = """
         {
             "title": "TestDict",
@@ -181,7 +181,7 @@ struct DictionaryPersistenceTests {
         """
         let termJSON = """
         [
-            ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1, "common"]
+            ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1, "noun"]
         ]
         """
 
@@ -281,6 +281,41 @@ struct DictionaryPersistenceTests {
         #expect(tagResult?.order == 1)
         #expect(tagResult?.score == 0)
         #expect(tagResult?.dictionaryTitle == "TestDict")
+
+        // Assert: Term and TermEntry persisted
+        let (termCount, termExpression, termReading) = try await context.perform {
+            let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
+            let terms = try context.fetch(termRequest)
+            return (terms.count, terms.first?.expression ?? "", terms.first?.reading ?? "")
+        }
+        #expect(termCount == 1)
+        #expect(termExpression == "食べる")
+        #expect(termReading == "たべる")
+
+        let (termEntryCount, termEntryScore, termEntryGlossary) = try await context.perform {
+            let termEntryRequest: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
+            let termEntries = try context.fetch(termEntryRequest)
+            let glossaryData = termEntries.first?.glossary as? Data
+            let glossary = glossaryData.flatMap { try? JSONDecoder().decode([Definition].self, from: $0) }
+            return (termEntries.count, termEntries.first?.score ?? 0, glossary?.first)
+        }
+        #expect(termEntryCount == 1)
+        #expect(termEntryScore == 100)
+        if case let .text(glossaryText) = termEntryGlossary {
+            #expect(glossaryText == "to eat")
+        }
+
+        // Assert: Tag linking worked
+        let tagLinkingResult = try await context.perform {
+            let termEntryRequest: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
+            let termEntries = try context.fetch(termEntryRequest)
+            guard let termEntry = termEntries.first else { return (0, "") }
+
+            let richTermTags = termEntry.richTermTags?.allObjects as? [MaruReader.DictionaryTagMeta] ?? []
+            return (richTermTags.count, richTermTags.first?.name ?? "")
+        }
+        #expect(tagLinkingResult.0 == 1)
+        #expect(tagLinkingResult.1 == "noun")
     }
 
     @Test func importDictionary_LegacyTagMeta_PersistsTags() async throws {
@@ -298,7 +333,7 @@ struct DictionaryPersistenceTests {
         // Need a term bank to be a valid dictionary
         let termJSON = """
         [
-            ["猫", "ねこ", "n", "A", 100, ["cat"], 1, "noun"]
+            ["猫", "ねこ", "noun", "", 100, "cat"]
         ]
         """
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
@@ -311,7 +346,14 @@ struct DictionaryPersistenceTests {
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
+
+        // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
+        let job = context.object(with: importID) as? MaruReader.DictionaryZIPFileImport
+        #expect(job != nil)
+        #expect(job?.isCancelled == false)
+        #expect(job?.isFailed == false)
+        #expect(job?.displayProgressMessage == "Import complete.")
 
         let (dictionaryCount, title) = try await context.perform {
             let dictRequest: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
