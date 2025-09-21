@@ -82,10 +82,10 @@
     </entity>
     <entity name="IPAEntry" representedClassName="IPAEntry" syncable="YES" codeGenerationType="class">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="tags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="transcription" attributeType="String"/>
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="ipa" inverseEntity="Dictionary"/>
-        <relationship name="richTags" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="DictionaryTagMeta" inverseName="ipa" inverseEntity="DictionaryTagMeta"/>
+        <relationship name="richTags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DictionaryTagMeta" inverseName="ipa" inverseEntity="DictionaryTagMeta"/>
         <relationship name="term" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Term" inverseName="ipa" inverseEntity="Term"/>
     </entity>
     <entity name="Kanji" representedClassName="Kanji" syncable="YES" codeGenerationType="class">

@@ -175,6 +175,28 @@ struct DictionaryPersistenceTests {
                 "食べる",
                 "freq",
                 {"value": 5000, "displayValue": "5000㋕"}
+            ],
+            [
+                "食べる",
+                "pitch",
+                {
+                    "reading": "たべる",
+                    "pitches": [
+                        {"position": 2, "nasal": [1], "devoice": [3], "tags": ["noun", "term-tag"]},
+                        {"position": "HLL", "tags": ["def-tag"]}
+                    ]
+                }
+            ],
+            [
+                "食べる",
+                "ipa",
+                {
+                    "reading": "たべる",
+                    "transcriptions": [
+                        {"ipa": "/tabe̞ɾɯ̟ᵝ/", "tags": ["noun"]},
+                        {"ipa": "/tabeɾɯ/"}
+                    ]
+                }
             ]
         ]
         """
@@ -263,11 +285,19 @@ struct DictionaryPersistenceTests {
         // Assert: Term and TermEntry persisted with all attributes
         let termRequest: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
         let termResult = try? context.fetch(termRequest)
-        #expect(termResult?.count == 1)
-        let term = termResult?.first
-        #expect(term?.expression == "食べる")
-        #expect(term?.reading == "たべる")
-        #expect(term?.id != nil)
+        #expect(termResult?.count == 2) // One with reading, one with empty reading from frequency
+
+        // Find the term with reading (from term bank, pitch, and IPA)
+        let termWithReading = termResult?.first { $0.reading == "たべる" }
+        #expect(termWithReading?.expression == "食べる")
+        #expect(termWithReading?.reading == "たべる")
+        #expect(termWithReading?.id != nil)
+
+        // Find the term with empty reading (from frequency)
+        let termWithoutReading = termResult?.first { $0.reading == "" }
+        #expect(termWithoutReading?.expression == "食べる")
+        #expect(termWithoutReading?.reading == "")
+        #expect(termWithoutReading?.id != nil)
 
         let termEntryResult = try? context.fetch(MaruReader.TermEntry.fetchRequest())
         #expect(termEntryResult?.count == 1)
@@ -296,9 +326,12 @@ struct DictionaryPersistenceTests {
         #expect(termTags?.sorted() == ["noun", "term-tag"])
 
         // Test relationships
-        #expect(termEntry?.term === term)
+        #expect(termEntry?.term === termWithReading)
         #expect(termEntry?.dictionary === dictResult)
-        #expect(term?.entries?.contains(termEntry!) == true)
+        let termEntries = termWithReading?.entries as? Set<MaruReader.TermEntry>
+        if let termEntry, let termEntries {
+            #expect(termEntries.contains(termEntry))
+        }
 
         // Assert: Tag linking worked through richTermTags relationship
         #expect(termEntry?.richTermTags?.count == 2)
@@ -354,6 +387,85 @@ struct DictionaryPersistenceTests {
         let linkedKanjiTags = kanjiEntry?.richTags?.allObjects as? [MaruReader.DictionaryTagMeta]
         let kanjiTagNames = linkedKanjiTags?.map { $0.name ?? "" }.sorted()
         #expect(kanjiTagNames == ["noun", "term-tag"])
+
+        // Assert: Term frequency entries persisted
+        let termFreqRequest: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
+        let termFreqResults = try context.fetch(termFreqRequest)
+        #expect(termFreqResults.count == 1)
+        let termFreq = termFreqResults.first
+        #expect(termFreq?.value == 5000)
+        #expect(termFreq?.displayValue == "5000㋕")
+        #expect(termFreq?.dictionary === dictResult)
+        #expect(termFreq?.term?.expression == "食べる")
+        #expect(termFreq?.term?.reading == "") // Frequency entries use empty reading term
+
+        // Assert: Pitch accent entries persisted (2 pitch accents from the test data)
+        let pitchRequest: NSFetchRequest<MaruReader.PitchAccentEntry> = MaruReader.PitchAccentEntry.fetchRequest()
+        let pitchResults = try context.fetch(pitchRequest)
+        #expect(pitchResults.count == 2)
+
+        // First pitch accent: mora position 2 with nasal [1], devoice [3]
+        let moraPitch = pitchResults.first { $0.mora == 2 }
+        #expect(moraPitch != nil)
+        #expect(moraPitch?.pattern == nil)
+        #expect(moraPitch?.mora == 2)
+        let moraNasal = moraPitch?.nasal as? [Int]
+        let moraDevoice = moraPitch?.devoice as? [Int]
+        #expect(moraNasal == [1])
+        #expect(moraDevoice == [3])
+        let moraTags = moraPitch?.tags as? [String]
+        #expect(moraTags?.sorted() == ["noun", "term-tag"])
+        #expect(moraPitch?.dictionary === dictResult)
+        #expect(moraPitch?.term?.expression == "食べる")
+        #expect(moraPitch?.term?.reading == "たべる")
+
+        // Second pitch accent: pattern "HLL"
+        let patternPitch = pitchResults.first { $0.pattern == "HLL" }
+        #expect(patternPitch != nil)
+        #expect(patternPitch?.pattern == "HLL")
+        #expect(patternPitch?.mora == 0)
+        #expect(patternPitch?.nasal == nil)
+        #expect(patternPitch?.devoice == nil)
+        let patternTags = patternPitch?.tags as? [String]
+        #expect(patternTags == ["def-tag"])
+        #expect(patternPitch?.dictionary === dictResult)
+
+        // Assert: Pitch accent tag linking through richTags relationship
+        #expect(moraPitch?.richTags?.count == 2)
+        let linkedPitchTags = moraPitch?.richTags?.allObjects as? [MaruReader.DictionaryTagMeta]
+        let pitchTagNames = linkedPitchTags?.map { $0.name ?? "" }.sorted()
+        #expect(pitchTagNames == ["noun", "term-tag"])
+
+        #expect(patternPitch?.richTags?.count == 1)
+        let linkedPatternTag = patternPitch?.richTags?.allObjects.first as? MaruReader.DictionaryTagMeta
+        #expect(linkedPatternTag?.name == "def-tag")
+
+        // Assert: IPA entries persisted (2 transcriptions from the test data)
+        let ipaRequest: NSFetchRequest<MaruReader.IPAEntry> = MaruReader.IPAEntry.fetchRequest()
+        let ipaResults = try context.fetch(ipaRequest)
+        #expect(ipaResults.count == 2)
+
+        // First IPA transcription with tags
+        let taggedIPA = ipaResults.first { ($0.tags as? [String])?.contains("noun") == true }
+        #expect(taggedIPA != nil)
+        #expect(taggedIPA?.transcription == "/tabe̞ɾɯ̟ᵝ/")
+        let ipaTags = taggedIPA?.tags as? [String]
+        #expect(ipaTags == ["noun"])
+        #expect(taggedIPA?.dictionary === dictResult)
+        #expect(taggedIPA?.term?.expression == "食べる")
+        #expect(taggedIPA?.term?.reading == "たべる")
+
+        // Second IPA transcription without tags
+        let untaggedIPA = ipaResults.first { ($0.tags as? [String])?.isEmpty != false }
+        #expect(untaggedIPA != nil)
+        #expect(untaggedIPA?.transcription == "/tabeɾɯ/")
+        #expect(untaggedIPA?.tags == nil)
+        #expect(untaggedIPA?.dictionary === dictResult)
+
+        // Assert: IPA tag linking through richTags relationship
+        #expect(taggedIPA?.richTags?.count == 1)
+        let linkedIPATag = taggedIPA?.richTags?.allObjects.first as? MaruReader.DictionaryTagMeta
+        #expect(linkedIPATag?.name == "noun")
     }
 
     @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
