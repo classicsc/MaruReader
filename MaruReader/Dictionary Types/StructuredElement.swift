@@ -7,7 +7,7 @@
 
 import Foundation
 
-class StructuredElement: Codable {
+final class StructuredElement: Codable, Sendable {
     let tag: String
     let content: StructuredContent?
     let data: [String: String]?

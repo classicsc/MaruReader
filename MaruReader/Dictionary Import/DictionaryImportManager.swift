@@ -37,24 +37,27 @@ actor DictionaryImportManager {
     func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
         // Create DictionaryZIPFileImport in Core Data (on MainActor)
         let context = container.newBackgroundContext()
-        let job = DictionaryZIPFileImport(context: context)
-        let jobID = UUID()
-        job.id = jobID
-        job.file = zipURL
-        // Use application support directory with job ID as working directory for resume capability
-        let appSupport = try FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )
-        let workingDir = appSupport.appendingPathComponent("DictionaryImports").appendingPathComponent(jobID.uuidString)
-        try FileManager.default.createDirectory(at: workingDir, withIntermediateDirectories: true)
-        job.workingDirectory = workingDir
-        job.timeQueued = Date()
-        try context.save()
-        let importJob = job.objectID
+        let importJob = try await context.perform {
+            let job = DictionaryZIPFileImport(context: context)
+            let jobID = UUID()
+            job.id = jobID
+            job.file = zipURL
+            // Use application support directory with job ID as working directory for resume capability
+            let appSupport = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            let workingDir = appSupport.appendingPathComponent("DictionaryImports").appendingPathComponent(jobID.uuidString)
+            try FileManager.default.createDirectory(at: workingDir, withIntermediateDirectories: true)
+            job.workingDirectory = workingDir
+            job.timeQueued = Date()
+            try context.save()
+            let importJob = job.objectID
 
+            return importJob
+        }
         queue.append(importJob)
         processNextIfIdle()
         return importJob
@@ -116,121 +119,102 @@ actor DictionaryImportManager {
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
-        guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-            logger.error("Import job \(jobID) not found in context")
-            return
-        }
         do {
-            job.isStarted = true
-            job.timeStarted = Date()
-            job.displayProgressMessage = "Starting import..."
-            logger.debug("Import job \(jobID) started")
-            try context.save()
+            try await context.perform {
+                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                    throw DictionaryImportError.databaseError
+                }
+                job.isStarted = true
+                job.timeStarted = Date()
+                job.displayProgressMessage = "Starting import..."
+                try context.save()
+            }
             try Task.checkCancellation()
             try testErrorInjection?()
-            try await unzip(job, context: context)
+            let unzipTask = UnzipTask(jobID: jobID)
+            unzipTask.start()
+            try await unzipTask.waitUntilFinished()
             logger.debug("Import job \(jobID) unzipped")
             try Task.checkCancellation()
             try await testCancellationHook?()
-            try await processIndex(job, context: context)
-            logger.debug("Import job \(jobID) index processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await processTagBanks(job, context: context)
-            logger.debug("Import job \(jobID) tag banks processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await processTermBanks(job, context: context)
-            logger.debug("Import job \(jobID) term banks processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await processTermMetaBanks(job, context: context)
-            logger.debug("Import job \(jobID) term meta banks processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await processKanjiBanks(job, context: context)
-            logger.debug("Import job \(jobID) kanji banks processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await processKanjiMetaBanks(job, context: context)
-            logger.debug("Import job \(jobID) kanji meta banks processed")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-            try await copyMedia(job, context: context)
-            logger.debug("Import job \(jobID) media copied")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
+//            try await processIndex(job, context: context)
+//            logger.debug("Import job \(jobID) index processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await processTagBanks(job, context: context)
+//            logger.debug("Import job \(jobID) tag banks processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await processTermBanks(job, context: context)
+//            logger.debug("Import job \(jobID) term banks processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await processTermMetaBanks(job, context: context)
+//            logger.debug("Import job \(jobID) term meta banks processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await processKanjiBanks(job, context: context)
+//            logger.debug("Import job \(jobID) kanji banks processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await processKanjiMetaBanks(job, context: context)
+//            logger.debug("Import job \(jobID) kanji meta banks processed")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
+//            try await copyMedia(job, context: context)
+//            logger.debug("Import job \(jobID) media copied")
+//            try Task.checkCancellation()
+//            try await testCancellationHook?()
 
-            job.isComplete = true
-            job.dictionary?.isComplete = true
-            job.timeCompleted = Date()
-            job.displayProgressMessage = "Import complete."
-            try context.save()
+            try await context.perform {
+                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                    throw DictionaryImportError.databaseError
+                }
+                job.isComplete = true
+                job.dictionary?.isComplete = true
+                job.timeCompleted = Date()
+                job.displayProgressMessage = "Import complete."
+                try context.save()
+            }
         } catch is CancellationError {
-            job.isCancelled = true
-            job.timeCancelled = Date()
-            if let dict = job.dictionary {
-                context.delete(dict)
+            await context.perform {
+                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                    return
+                }
+                job.isCancelled = true
+                job.timeCancelled = Date()
+                if let dict = job.dictionary {
+                    context.delete(dict)
+                }
+                try? context.save()
+                self.cleanMediaDirectory(job: job)
             }
-            try? context.save()
-            cleanMediaDirectory(job: job)
         } catch {
-            job.isFailed = true
-            job.displayProgressMessage = error.localizedDescription
-            job.timeFailed = Date()
-            if let dict = job.dictionary {
-                context.delete(dict)
+            await context.perform {
+                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                    return
+                }
+                job.isFailed = true
+                job.displayProgressMessage = error.localizedDescription
+                job.timeFailed = Date()
+                if let dict = job.dictionary {
+                    context.delete(dict)
+                }
+                try? context.save()
+                self.cleanMediaDirectory(job: job)
             }
-            try? context.save()
-            cleanMediaDirectory(job: job)
         }
 
-        await cleanup(job: job)
+        await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                return
+            }
+            self.cleanup(job: job)
+        }
     }
 }
 
 extension DictionaryImportManager {
-    private func unzip(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
-        guard let jobURL = job.file else {
-            throw DictionaryImportError.missingFile
-        }
-        guard let jobDirectory = job.workingDirectory else {
-            throw DictionaryImportError.noWorkingDirectory
-        }
-
-        // Update progress message
-        job.displayProgressMessage = "Extracting dictionary archive..."
-
-        // Check if file exists and is accessible
-        guard FileManager.default.fileExists(atPath: jobURL.path) else {
-            throw DictionaryImportError.missingFile
-        }
-
-        guard jobURL.startAccessingSecurityScopedResource() else {
-            throw DictionaryImportError.fileAccessDenied
-        }
-
-        defer {
-            jobURL.stopAccessingSecurityScopedResource()
-        }
-
-        do {
-            // Use Zip.unzipFile to extract the archive
-            // This preserves directory structure automatically
-            try Zip.unzipFile(jobURL, destination: jobDirectory, overwrite: true, password: nil)
-
-            _ = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
-
-            // Update job status
-            job.archiveExtracted = true
-            job.displayProgressMessage = "Extracted dictionary archive."
-            try context.save()
-
-        } catch let error as NSError {
-            throw DictionaryImportError.unzipFailed(underlyingError: error)
-        }
-    }
-
     private func processIndex(_ job: DictionaryZIPFileImport, context: NSManagedObjectContext) async throws {
         // Load index.json
         // Create Dictionary entity
@@ -917,7 +901,7 @@ extension DictionaryImportManager {
         }
     }
 
-    func cleanup(job: DictionaryZIPFileImport) async {
+    func cleanup(job: DictionaryZIPFileImport) {
         // Delete working directory if complete/failed/cancelled
         let fileManager = FileManager.default
         if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
@@ -942,26 +926,38 @@ extension DictionaryImportManager {
     }
 
     /// Check if working directory exists for a given job
-    func workingDirectoryExists(for job: DictionaryZIPFileImport) -> Bool {
-        guard let workingDir = job.workingDirectory else { return false }
-        return FileManager.default.fileExists(atPath: workingDir.path)
+    func workingDirectoryExists(for job: NSManagedObjectID) async throws -> Bool {
+        let context = PersistenceController.shared.container.newBackgroundContext()
+        return try await context.perform {
+            guard let job = try? context.existingObject(with: job) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let workingDir = job.workingDirectory else { return false }
+            return FileManager.default.fileExists(atPath: workingDir.path)
+        }
     }
 
     /// Check if media directory exists for a given job
-    func mediaDirectoryExists(for job: DictionaryZIPFileImport) -> Bool {
-        guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else { return false }
+    func mediaDirectoryExists(for jobID: NSManagedObjectID) async throws -> Bool {
+        let context = PersistenceController.shared.container.newBackgroundContext()
+        return try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else { return false }
 
-        do {
-            let appSupportDir = try FileManager.default.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: false
-            )
-            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
-            return FileManager.default.fileExists(atPath: mediaDir.path)
-        } catch {
-            return false
+            do {
+                let appSupportDir = try FileManager.default.url(
+                    for: .applicationSupportDirectory,
+                    in: .userDomainMask,
+                    appropriateFor: nil,
+                    create: false
+                )
+                let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+                return FileManager.default.fileExists(atPath: mediaDir.path)
+            } catch {
+                return false
+            }
         }
     }
 }

@@ -8,7 +8,7 @@
 import Foundation
 
 /// A definition can take several shapes per schema.
-enum Definition: Codable {
+enum Definition: Codable, Sendable {
     case text(String)
     case detailed(DefinitionDetailed)
     case deinflection(uninflected: String, rules: [String])
@@ -54,7 +54,7 @@ enum Definition: Codable {
 }
 
 /// Detailed definition object (text, structured-content, or image).
-enum DefinitionDetailed: Codable {
+enum DefinitionDetailed: Codable, Sendable {
     case text(TextDef)
     case structured(StructuredContentDef)
     case image(ImageDef)
@@ -205,19 +205,19 @@ extension [Definition] {
 }
 
 /// Text definition
-struct TextDef: Codable {
+struct TextDef: Codable, Sendable {
     let type: String // always "text"
     let text: String
 }
 
 /// Structured-content definition
-struct StructuredContentDef: Codable {
+struct StructuredContentDef: Codable, Sendable {
     let type: String // always "structured-content"
     let content: StructuredContent
 }
 
 /// Image definition
-struct ImageDef: Codable {
+struct ImageDef: Codable, Sendable {
     let type: String // always "image"
     let path: String
     let width: Int?

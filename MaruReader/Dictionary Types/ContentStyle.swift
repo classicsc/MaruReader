@@ -8,7 +8,7 @@
 import Foundation
 import SwiftUI
 
-struct ContentStyle: Codable {
+struct ContentStyle: Codable, Sendable {
     let fontStyle: String?
     let fontWeight: String?
     let fontSize: String?
