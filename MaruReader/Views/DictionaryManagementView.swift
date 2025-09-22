@@ -21,6 +21,8 @@ struct DictionaryManagementView: View {
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
+    @State private var dictionaryToDelete: Dictionary?
+    @State private var showingDeleteConfirmation = false
 
     @FetchRequest(
         entity: Dictionary.entity(),
@@ -66,7 +68,10 @@ struct DictionaryManagementView: View {
                     )
                 } else {
                     ForEach(completeDictionaries, id: \.objectID) { dictionary in
-                        DictionaryRow(dictionary: dictionary)
+                        DictionaryRow(dictionary: dictionary, onDelete: {
+                            dictionaryToDelete = dictionary
+                            showingDeleteConfirmation = true
+                        })
                     }
                 }
             }
@@ -96,6 +101,14 @@ struct DictionaryManagementView: View {
             if let error = importError {
                 Text(error.localizedDescription)
             }
+        }
+        .confirmationDialog("Delete Dictionary", isPresented: $showingDeleteConfirmation, presenting: dictionaryToDelete) { dictionary in
+            Button("Delete", role: .destructive) {
+                deleteDictionary(dictionary)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { dictionary in
+            Text("Are you sure you want to delete \"\(dictionary.title ?? "Unknown Dictionary")\"? This action cannot be undone.")
         }
     }
 
@@ -134,6 +147,12 @@ struct DictionaryManagementView: View {
         } catch {
             importError = error
             showingError = true
+        }
+    }
+
+    private func deleteDictionary(_ dictionary: Dictionary) {
+        Task {
+            await DictionaryImportManager.shared.deleteDictionary(dictionaryID: dictionary.objectID)
         }
     }
 }
@@ -222,6 +241,7 @@ struct ImportJobRow: View {
 
 struct DictionaryRow: View {
     let dictionary: Dictionary
+    let onDelete: () -> Void
     @State private var showExpandedMetadata = false
 
     var body: some View {
@@ -240,18 +260,24 @@ struct DictionaryRow: View {
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
-                        let types: [(label: String, systemImage: String, isPresent: Bool)] = [
-                            ("Terms", "textformat", dictionary.termCount > 0),
-                            ("Kanji", "character.zh", dictionary.kanjiCount > 0),
-                            ("Frequency", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
-                            ("Kanji Frequency", "chart.bar", dictionary.kanjiFrequencyCount > 0),
-                            ("Pitch", "waveform", dictionary.pitchesCount > 0),
-                            ("IPA", "speaker.wave.2", dictionary.ipaCount > 0),
-                        ]
-                        ForEach(types.filter(\.isPresent), id: \.label) { type in
-                            Label(type.label, systemImage: type.systemImage)
+                        if let errorMessage = dictionary.errorMessage {
+                            Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.red)
+                        } else {
+                            let types: [(label: String, systemImage: String, isPresent: Bool)] = [
+                                ("Terms", "textformat", dictionary.termCount > 0),
+                                ("Kanji", "character.zh", dictionary.kanjiCount > 0),
+                                ("Frequency", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
+                                ("Kanji Frequency", "chart.bar", dictionary.kanjiFrequencyCount > 0),
+                                ("Pitch", "waveform", dictionary.pitchesCount > 0),
+                                ("IPA", "speaker.wave.2", dictionary.ipaCount > 0),
+                            ]
+                            ForEach(types.filter(\.isPresent), id: \.label) { type in
+                                Label(type.label, systemImage: type.systemImage)
+                                    .font(.caption2)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -301,6 +327,20 @@ struct DictionaryRow: View {
             }
         }
         .padding(.vertical, 2)
+        .opacity(dictionary.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if dictionary.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if !dictionary.pendingDeletion {
+                Button("Delete", role: .destructive, action: onDelete)
+            }
+        }
+        .disabled(dictionary.pendingDeletion)
     }
 }
 

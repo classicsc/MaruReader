@@ -290,6 +290,27 @@ actor DictionaryImportManager {
         } catch {}
     }
 
+    static func cleanMediaDirectoryForDictionary(dictionary: Dictionary) {
+        let fileManager = FileManager.default
+        guard let dictionaryID = dictionary.id else {
+            return
+        }
+
+        do {
+            let appSupportDir = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+            if fileManager.fileExists(atPath: mediaDir.path) {
+                try fileManager.removeItem(at: mediaDir)
+            }
+        } catch {}
+    }
+
     static func cleanup(job: DictionaryZIPFileImport) {
         // Delete working directory if complete/failed/cancelled
         let fileManager = FileManager.default
@@ -310,5 +331,60 @@ actor DictionaryImportManager {
     /// Set test error injection for controlled testing
     func setTestErrorInjection(_ injection: (() throws -> Void)?) {
         testErrorInjection = injection
+    }
+
+    /// Delete a dictionary and all its associated data.
+    /// - Parameter dictionaryID: The NSManagedObjectID of the Dictionary to delete.
+    func deleteDictionary(dictionaryID: NSManagedObjectID) async {
+        logger.debug("Starting dictionary deletion for \\(dictionaryID)")
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        do {
+            try await context.perform {
+                guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
+                    throw DictionaryImportError.databaseError
+                }
+
+                // Mark as pending deletion for immediate UI feedback
+                dictionary.pendingDeletion = true
+                dictionary.errorMessage = nil
+                try context.save()
+            }
+
+            // Perform the actual deletion in a background task
+            Task {
+                do {
+                    try await context.perform {
+                        guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
+                            throw DictionaryImportError.databaseError
+                        }
+
+                        // Clean up media directory before deleting the dictionary
+                        Self.cleanMediaDirectoryForDictionary(dictionary: dictionary)
+
+                        // Delete the dictionary (cascade deletions will handle related entities)
+                        context.delete(dictionary)
+                        try context.save()
+                    }
+                    logger.debug("Dictionary deletion completed for \\(dictionaryID)")
+                } catch {
+                    logger.error("Dictionary deletion failed for \\(dictionaryID): \\(error.localizedDescription)")
+                    // Update the dictionary with error information
+                    await context.perform {
+                        guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
+                            return
+                        }
+                        dictionary.pendingDeletion = false
+                        dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
+                        try? context.save()
+                    }
+                }
+            }
+        } catch {
+            logger.error("Failed to mark dictionary for deletion \\(dictionaryID): \\(error.localizedDescription)")
+        }
     }
 }

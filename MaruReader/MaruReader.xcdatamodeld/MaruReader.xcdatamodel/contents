@@ -7,6 +7,7 @@
         <attribute name="displayOrder" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="downloadURL" optional="YES" attributeType="String"/>
         <attribute name="enabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
         <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="frequencyMode" optional="YES" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
@@ -17,6 +18,7 @@
         <attribute name="kanjiCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="kanjiEntries.@count" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="kanjiFrequency.@count" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
+        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="pitchesCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="pitches.@count" usesScalarValueType="YES"/>
         <attribute name="revision" optional="YES" attributeType="String"/>
         <attribute name="sequenced" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
