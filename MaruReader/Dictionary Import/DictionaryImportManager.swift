@@ -179,10 +179,12 @@ actor DictionaryImportManager {
             logger.debug("Import job \(jobID) kanji meta banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
-//            try await copyMedia(job, context: context)
-//            logger.debug("Import job \(jobID) media copied")
-//            try Task.checkCancellation()
-//            try await testCancellationHook?()
+            let mediaCopyTask = MediaCopyProcessingTask(jobID: jobID, container: container)
+            await mediaCopyTask.start()
+            try await mediaCopyTask.task?.value
+            logger.debug("Import job \(jobID) media copied")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
 
             try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
