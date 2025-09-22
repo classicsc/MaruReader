@@ -54,4 +54,22 @@ enum DictionaryImportUtilities {
 
         return try context.fetch(request).first
     }
+
+    static func linkTagsToPitchEntry(_ pitchEntry: PitchAccentEntry, tags: [String], dictionary: Dictionary, context: NSManagedObjectContext) throws {
+        // Link pitch accent tags
+        for tagName in tags {
+            if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                pitchEntry.addToRichTags(tagMeta)
+            }
+        }
+    }
+
+    static func linkTagsToIPAEntry(_ ipaEntry: IPAEntry, tags: [String], dictionary: Dictionary, context: NSManagedObjectContext) throws {
+        // Link IPA tags
+        for tagName in tags {
+            if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                ipaEntry.addToRichTags(tagMeta)
+            }
+        }
+    }
 }

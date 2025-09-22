@@ -158,10 +158,13 @@ actor DictionaryImportManager {
             logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
-//            try await processTermMetaBanks(job, context: context)
-//            logger.debug("Import job \(jobID) term meta banks processed")
-//            try Task.checkCancellation()
-//            try await testCancellationHook?()
+
+            let termMetaBankProcessingTask = TermMetaBankProcessingTask(jobID: jobID, container: container)
+            await termMetaBankProcessingTask.start()
+            try await termMetaBankProcessingTask.task?.value
+            logger.debug("Import job \(jobID) term meta banks processed")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
 //            try await processKanjiBanks(job, context: context)
 //            logger.debug("Import job \(jobID) kanji banks processed")
 //            try Task.checkCancellation()
