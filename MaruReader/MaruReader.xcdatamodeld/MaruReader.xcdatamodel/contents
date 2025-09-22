@@ -4,7 +4,6 @@
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
         <attribute name="displayDescription" optional="YES" attributeType="String"/>
-        <attribute name="displayOrder" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="downloadURL" optional="YES" attributeType="String"/>
         <attribute name="errorMessage" optional="YES" attributeType="String"/>
         <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -12,16 +11,20 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="indexURL" optional="YES" attributeType="String"/>
         <attribute name="ipaCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="ipa.@count" usesScalarValueType="YES"/>
+        <attribute name="ipaDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="ipaEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="kanjiCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="kanjiEntries.@count" usesScalarValueType="YES"/>
+        <attribute name="kanjiDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="kanjiFrequency.@count" usesScalarValueType="YES"/>
+        <attribute name="kanjiFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="kanjiResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
         <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="pitchAccentEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="pitchDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="pitchesCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="pitches.@count" usesScalarValueType="YES"/>
         <attribute name="revision" optional="YES" attributeType="String"/>
         <attribute name="sequenced" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -29,7 +32,9 @@
         <attribute name="tagCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="tags.@count" usesScalarValueType="YES"/>
         <attribute name="targetLanguage" optional="YES" attributeType="String"/>
         <attribute name="termCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="termEntries.@count" usesScalarValueType="YES"/>
+        <attribute name="termDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyCount" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="termFrequency.@count" usesScalarValueType="YES"/>
+        <attribute name="termFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="termResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="title" attributeType="String"/>
@@ -88,6 +93,7 @@
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="importJob" inverseEntity="Dictionary"/>
     </entity>
     <entity name="IPAEntry" representedClassName="IPAEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.ipaDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.ipaEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
@@ -105,6 +111,7 @@
         <relationship name="frequency" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiFrequencyEntry" inverseName="kanji" inverseEntity="KanjiFrequencyEntry"/>
     </entity>
     <entity name="KanjiEntry" representedClassName="KanjiEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.kanjiDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.kanjiResultsEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="kunyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
@@ -118,6 +125,7 @@
     </entity>
     <entity name="KanjiFrequencyEntry" representedClassName="KanjiFrequencyEntry" syncable="YES" codeGenerationType="class">
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.kanjiFrequencyDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.kanjiFrequencyEnabled" usesScalarValueType="YES"/>
         <attribute name="frequencyValue" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
@@ -127,6 +135,7 @@
     </entity>
     <entity name="PitchAccentEntry" representedClassName="PitchAccentEntry" syncable="YES" codeGenerationType="class">
         <attribute name="devoice" optional="YES" attributeType="Transformable" valueTransformerName="IntArrayTransformer"/>
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.pitchDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.pitchAccentEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="mora" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -152,6 +161,7 @@
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.termDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.termResultsEnabled" usesScalarValueType="YES"/>
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
@@ -165,6 +175,7 @@
         <relationship name="term" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Term" inverseName="entries" inverseEntity="Term"/>
     </entity>
     <entity name="TermFrequencyEntry" representedClassName="TermFrequencyEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.termFrequencyDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="displayValue" optional="YES" attributeType="String"/>
         <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.termFrequencyEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>

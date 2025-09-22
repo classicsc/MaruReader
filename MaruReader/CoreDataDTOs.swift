@@ -17,7 +17,7 @@ struct DictionaryDTO: Sendable, Identifiable {
     let author: String?
     let attribution: String?
     let displayDescription: String?
-    let displayOrder: Int64
+    let termDisplayPriority: Int64
     let downloadURL: String?
     let termResultsEnabled: Bool
     let pitchAccentEnabled: Bool
@@ -36,6 +36,15 @@ struct DictionaryDTO: Sendable, Identifiable {
     let sourceLanguage: String?
     let targetLanguage: String?
     let url: String?
+    let errorMessage: String?
+    let pendingDeletion: Bool
+
+    // Display priorities
+    let ipaDisplayPriority: Int64
+    let kanjiDisplayPriority: Int64
+    let kanjiFrequencyDisplayPriority: Int64
+    let pitchDisplayPriority: Int64
+    let termFrequencyDisplayPriority: Int64
 
     // Derived counts (computed on Core Data side)
     let termCount: Int64?
@@ -52,7 +61,7 @@ struct DictionaryDTO: Sendable, Identifiable {
         self.author = dictionary.author
         self.attribution = dictionary.attribution
         self.displayDescription = dictionary.displayDescription
-        self.displayOrder = dictionary.displayOrder
+        self.termDisplayPriority = dictionary.termDisplayPriority
         self.downloadURL = dictionary.downloadURL
         self.termResultsEnabled = dictionary.termResultsEnabled
         self.pitchAccentEnabled = dictionary.pitchAccentEnabled
@@ -71,6 +80,13 @@ struct DictionaryDTO: Sendable, Identifiable {
         self.sourceLanguage = dictionary.sourceLanguage
         self.targetLanguage = dictionary.targetLanguage
         self.url = dictionary.url
+        self.errorMessage = dictionary.errorMessage
+        self.pendingDeletion = dictionary.pendingDeletion
+        self.ipaDisplayPriority = dictionary.ipaDisplayPriority
+        self.kanjiDisplayPriority = dictionary.kanjiDisplayPriority
+        self.kanjiFrequencyDisplayPriority = dictionary.kanjiFrequencyDisplayPriority
+        self.pitchDisplayPriority = dictionary.pitchDisplayPriority
+        self.termFrequencyDisplayPriority = dictionary.termFrequencyDisplayPriority
         self.termCount = dictionary.termCount
         self.kanjiCount = dictionary.kanjiCount
         self.tagCount = dictionary.tagCount
@@ -193,6 +209,8 @@ struct TermEntryDTO: Sendable, Identifiable {
     let definitionTags: [String]
     let glossary: [Definition]
     let rules: [String]
+    let displayPriority: Int64?
+    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
 
@@ -204,6 +222,8 @@ struct TermEntryDTO: Sendable, Identifiable {
         self.definitionTags = (termEntry.definitionTags as? [String]) ?? []
         self.glossary = (termEntry.glossary as? [Definition]) ?? []
         self.rules = (termEntry.rules as? [String]) ?? []
+        self.displayPriority = termEntry.displayPriority
+        self.enabled = termEntry.enabled
         self.termID = termEntry.term?.id
         self.dictionaryID = termEntry.dictionary?.id
     }
@@ -215,6 +235,9 @@ struct TermFrequencyEntryDTO: Sendable, Identifiable {
     let id: UUID
     let value: Double
     let displayValue: String?
+    let displayPriority: Int64?
+    let enabled: Bool?
+    let mode: String?
     let termID: UUID?
     let dictionaryID: UUID?
 
@@ -222,6 +245,9 @@ struct TermFrequencyEntryDTO: Sendable, Identifiable {
         self.id = frequency.id ?? UUID()
         self.value = frequency.value
         self.displayValue = frequency.displayValue
+        self.displayPriority = frequency.displayPriority
+        self.enabled = frequency.enabled
+        self.mode = frequency.mode
         self.termID = frequency.term?.id
         self.dictionaryID = frequency.dictionary?.id
     }
@@ -252,6 +278,8 @@ struct KanjiEntryDTO: Sendable, Identifiable {
     let meanings: [String]
     let tags: [String]
     let stats: [String: String]
+    let displayPriority: Int64?
+    let enabled: Bool?
     let kanjiID: UUID?
     let dictionaryID: UUID?
 
@@ -262,6 +290,8 @@ struct KanjiEntryDTO: Sendable, Identifiable {
         self.meanings = (kanjiEntry.meanings as? [String]) ?? []
         self.tags = (kanjiEntry.tags as? [String]) ?? []
         self.stats = (kanjiEntry.stats as? [String: String]) ?? [:]
+        self.displayPriority = kanjiEntry.displayPriority
+        self.enabled = kanjiEntry.enabled
         self.kanjiID = kanjiEntry.kanji?.id
         self.dictionaryID = kanjiEntry.dictionary?.id
     }
@@ -273,6 +303,9 @@ struct KanjiFrequencyEntryDTO: Sendable, Identifiable {
     let id: UUID
     let frequencyValue: Double
     let displayFrequency: String?
+    let displayPriority: Int64?
+    let enabled: Bool?
+    let mode: String?
     let kanjiID: UUID?
     let dictionaryID: UUID?
 
@@ -280,6 +313,9 @@ struct KanjiFrequencyEntryDTO: Sendable, Identifiable {
         self.id = frequency.id ?? UUID()
         self.frequencyValue = frequency.frequencyValue
         self.displayFrequency = frequency.displayFrequency
+        self.displayPriority = frequency.displayPriority
+        self.enabled = frequency.enabled
+        self.mode = frequency.mode
         self.kanjiID = frequency.kanji?.id
         self.dictionaryID = frequency.dictionary?.id
     }
@@ -294,6 +330,8 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
     let nasal: [Int]?
     let devoice: [Int]?
     let tags: [String]?
+    let displayPriority: Int64?
+    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
 
@@ -304,6 +342,8 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
         self.nasal = pitchEntry.nasal as? [Int]
         self.devoice = pitchEntry.devoice as? [Int]
         self.tags = pitchEntry.tags as? [String]
+        self.displayPriority = pitchEntry.displayPriority
+        self.enabled = pitchEntry.enabled
         self.termID = pitchEntry.term?.id
         self.dictionaryID = pitchEntry.dictionary?.id
     }
@@ -315,6 +355,8 @@ struct IPAEntryDTO: Sendable, Identifiable {
     let id: UUID
     let transcription: String
     let tags: [String]?
+    let displayPriority: Int64?
+    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
 
@@ -322,6 +364,8 @@ struct IPAEntryDTO: Sendable, Identifiable {
         self.id = ipaEntry.id ?? UUID()
         self.transcription = ipaEntry.transcription ?? ""
         self.tags = ipaEntry.tags as? [String]
+        self.displayPriority = ipaEntry.displayPriority
+        self.enabled = ipaEntry.enabled
         self.termID = ipaEntry.term?.id
         self.dictionaryID = ipaEntry.dictionary?.id
     }
