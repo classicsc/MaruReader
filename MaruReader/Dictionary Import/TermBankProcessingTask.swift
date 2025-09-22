@@ -57,198 +57,9 @@ actor TermBankProcessingTask {
                 }
 
                 if format == 3 {
-                    let termIterator = StreamingBankIterator<TermBankV3Entry>(
-                        bankURLs: termBankURLs,
-                        dataFormat: Int(format)
-                    )
-
-                    var termBatch: [TermBankV3Entry] = []
-                    var processedCount = 0
-
-                    for try await entry in termIterator {
-                        try Task.checkCancellation()
-
-                        termBatch.append(entry)
-                        processedCount += 1
-
-                        if termBatch.count >= Self.batchSize {
-                            let currentBatch = termBatch
-                            termBatch.removeAll(keepingCapacity: true)
-
-                            try await context.perform {
-                                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                      let dictionary = job.dictionary
-                                else {
-                                    throw DictionaryImportError.databaseError
-                                }
-
-                                for entry in currentBatch {
-                                    // Find or create Term entity
-                                    let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
-
-                                    // Create TermEntry
-                                    let termEntry = TermEntry(context: context)
-                                    termEntry.id = UUID()
-                                    termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
-                                    termEntry.setValue(entry.rules, forKey: "rules")
-                                    termEntry.score = entry.score
-                                    termEntry.setValue(entry.glossary, forKey: "glossary")
-                                    termEntry.sequence = Int64(entry.sequence)
-                                    termEntry.setValue(entry.termTags, forKey: "termTags")
-
-                                    context.insert(termEntry)
-
-                                    // Link relationships
-                                    termEntry.term = term
-                                    termEntry.dictionary = dictionary
-
-                                    // Link tags
-                                    try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: entry.termTags, definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
-                                }
-
-                                try context.save()
-                            }
-                            try Task.checkCancellation()
-                        }
-                    }
-
-                    // Process any remaining terms in the batch
-                    if !termBatch.isEmpty {
-                        let currentBatch = termBatch
-                        termBatch.removeAll()
-
-                        try await context.perform {
-                            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                  let dictionary = job.dictionary
-                            else {
-                                throw DictionaryImportError.databaseError
-                            }
-
-                            for entry in currentBatch {
-                                // Find or create Term entity
-                                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
-
-                                // Create TermEntry
-                                let termEntry = TermEntry(context: context)
-                                termEntry.id = UUID()
-                                termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
-                                termEntry.setValue(entry.rules, forKey: "rules")
-                                termEntry.score = entry.score
-                                termEntry.setValue(entry.glossary, forKey: "glossary")
-                                termEntry.sequence = Int64(entry.sequence)
-                                termEntry.setValue(entry.termTags, forKey: "termTags")
-
-                                context.insert(termEntry)
-
-                                // Link relationships
-                                termEntry.term = term
-                                termEntry.dictionary = dictionary
-
-                                // Link tags
-                                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: entry.termTags, definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
-                            }
-
-                            try context.save()
-                        }
-                        try Task.checkCancellation()
-                    }
-
+                    try await processTermBankV3(termBankURLs, jobID: jobID, context: context)
                 } else if format == 1 {
-                    let termIterator = StreamingBankIterator<TermBankV1Entry>(
-                        bankURLs: termBankURLs,
-                        dataFormat: Int(format)
-                    )
-
-                    var termBatch: [TermBankV1Entry] = []
-                    var processedCount = 0
-
-                    for try await entry in termIterator {
-                        try Task.checkCancellation()
-
-                        termBatch.append(entry)
-                        processedCount += 1
-
-                        if termBatch.count >= Self.batchSize {
-                            let currentBatch = termBatch
-                            termBatch.removeAll(keepingCapacity: true)
-
-                            try await context.perform {
-                                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                      let dictionary = job.dictionary
-                                else {
-                                    throw DictionaryImportError.databaseError
-                                }
-
-                                for entry in currentBatch {
-                                    // Find or create Term entity
-                                    let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
-
-                                    // Create TermEntry
-                                    let termEntry = TermEntry(context: context)
-                                    termEntry.id = UUID()
-                                    termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
-                                    termEntry.setValue(entry.rules, forKey: "rules")
-                                    termEntry.score = entry.score
-                                    termEntry.setValue(entry.glossary, forKey: "glossary")
-                                    termEntry.sequence = 0 // V1 doesn't have sequence
-                                    termEntry.setValue([], forKey: "termTags") // V1 doesn't have termTags
-
-                                    context.insert(termEntry)
-
-                                    // Link relationships
-                                    termEntry.term = term
-                                    termEntry.dictionary = dictionary
-
-                                    // Link tags (V1 only has definition tags)
-                                    try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: [], definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
-                                }
-
-                                try context.save()
-                            }
-                            try Task.checkCancellation()
-                        }
-                    }
-
-                    // Process any remaining terms in the batch
-                    if !termBatch.isEmpty {
-                        let currentBatch = termBatch
-                        termBatch.removeAll()
-
-                        try await context.perform {
-                            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                  let dictionary = job.dictionary
-                            else {
-                                throw DictionaryImportError.databaseError
-                            }
-
-                            for entry in currentBatch {
-                                // Find or create Term entity
-                                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
-
-                                // Create TermEntry
-                                let termEntry = TermEntry(context: context)
-                                termEntry.id = UUID()
-                                termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
-                                termEntry.setValue(entry.rules, forKey: "rules")
-                                termEntry.score = entry.score
-                                termEntry.setValue(entry.glossary, forKey: "glossary")
-                                termEntry.sequence = 0 // V1 doesn't have sequence
-                                termEntry.setValue([], forKey: "termTags") // V1 doesn't have termTags
-
-                                context.insert(termEntry)
-
-                                // Link relationships
-                                termEntry.term = term
-                                termEntry.dictionary = dictionary
-
-                                // Link tags (V1 only has definition tags)
-                                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: [], definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
-                            }
-
-                            try context.save()
-                        }
-                        try Task.checkCancellation()
-                    }
+                    try await processTermBankV1(termBankURLs, jobID: jobID, context: context)
                 }
             }
 
@@ -263,6 +74,144 @@ actor TermBankProcessingTask {
             }
 
             try Task.checkCancellation()
+        }
+    }
+
+    private func processTermBankV3(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let termIterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: termBankURLs,
+            dataFormat: 3
+        )
+
+        var termBatch: [TermBankV3Entry] = []
+
+        for try await entry in termIterator {
+            try Task.checkCancellation()
+
+            termBatch.append(entry)
+
+            if termBatch.count >= Self.batchSize {
+                let currentBatch = termBatch
+                termBatch.removeAll(keepingCapacity: true)
+
+                try await processV3Batch(currentBatch, jobID: jobID, context: context)
+                try Task.checkCancellation()
+            }
+        }
+
+        // Process any remaining terms in the batch
+        if !termBatch.isEmpty {
+            let currentBatch = termBatch
+            termBatch.removeAll()
+
+            try await processV3Batch(currentBatch, jobID: jobID, context: context)
+            try Task.checkCancellation()
+        }
+    }
+
+    private func processTermBankV1(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let termIterator = StreamingBankIterator<TermBankV1Entry>(
+            bankURLs: termBankURLs,
+            dataFormat: 1
+        )
+
+        var termBatch: [TermBankV1Entry] = []
+
+        for try await entry in termIterator {
+            try Task.checkCancellation()
+
+            termBatch.append(entry)
+
+            if termBatch.count >= Self.batchSize {
+                let currentBatch = termBatch
+                termBatch.removeAll(keepingCapacity: true)
+
+                try await processV1Batch(currentBatch, jobID: jobID, context: context)
+                try Task.checkCancellation()
+            }
+        }
+
+        // Process any remaining terms in the batch
+        if !termBatch.isEmpty {
+            let currentBatch = termBatch
+            termBatch.removeAll()
+
+            try await processV1Batch(currentBatch, jobID: jobID, context: context)
+            try Task.checkCancellation()
+        }
+    }
+
+    private func processV3Batch(_ batch: [TermBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            for entry in batch {
+                // Find or create Term entity
+                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+
+                // Create TermEntry
+                let termEntry = TermEntry(context: context)
+                termEntry.id = UUID()
+                termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
+                termEntry.setValue(entry.rules, forKey: "rules")
+                termEntry.score = entry.score
+                termEntry.setValue(entry.glossary, forKey: "glossary")
+                termEntry.sequence = Int64(entry.sequence)
+                termEntry.setValue(entry.termTags, forKey: "termTags")
+
+                context.insert(termEntry)
+
+                // Link relationships
+                termEntry.term = term
+                termEntry.dictionary = dictionary
+
+                // Link tags
+                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: entry.termTags, definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+            }
+
+            try context.save()
+            context.reset()
+        }
+    }
+
+    private func processV1Batch(_ batch: [TermBankV1Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            for entry in batch {
+                // Find or create Term entity
+                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+
+                // Create TermEntry
+                let termEntry = TermEntry(context: context)
+                termEntry.id = UUID()
+                termEntry.setValue(entry.definitionTags, forKey: "definitionTags")
+                termEntry.setValue(entry.rules, forKey: "rules")
+                termEntry.score = entry.score
+                termEntry.setValue(entry.glossary, forKey: "glossary")
+                termEntry.sequence = 0 // V1 doesn't have sequence
+                termEntry.setValue([], forKey: "termTags") // V1 doesn't have termTags
+
+                context.insert(termEntry)
+
+                // Link relationships
+                termEntry.term = term
+                termEntry.dictionary = dictionary
+
+                // Link tags (V1 only has definition tags)
+                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: [], definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+            }
+
+            try context.save()
+            context.reset()
         }
     }
 }
