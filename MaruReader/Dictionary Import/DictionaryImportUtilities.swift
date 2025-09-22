@@ -72,4 +72,32 @@ enum DictionaryImportUtilities {
             }
         }
     }
+
+    static func findOrCreateKanji(character: String, context: NSManagedObjectContext) throws -> Kanji {
+        let request: NSFetchRequest<Kanji> = Kanji.fetchRequest()
+        request.predicate = NSPredicate(format: "character == %@", character)
+        request.fetchLimit = 1
+
+        if let existingKanji = try context.fetch(request).first {
+            return existingKanji
+        }
+
+        // Create new Kanji
+        let kanji = Kanji(context: context)
+        kanji.id = UUID()
+        kanji.character = character
+
+        context.insert(kanji)
+
+        return kanji
+    }
+
+    static func linkTagsToKanjiEntry(_ kanjiEntry: KanjiEntry, tags: [String], dictionary: Dictionary, context: NSManagedObjectContext) throws {
+        // Link kanji tags
+        for tagName in tags {
+            if let tagMeta = try findTagMeta(name: tagName, dictionary: dictionary, context: context) {
+                kanjiEntry.addToRichTags(tagMeta)
+            }
+        }
+    }
 }

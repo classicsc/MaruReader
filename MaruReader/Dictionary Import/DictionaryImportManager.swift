@@ -165,14 +165,20 @@ actor DictionaryImportManager {
             logger.debug("Import job \(jobID) term meta banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
-//            try await processKanjiBanks(job, context: context)
-//            logger.debug("Import job \(jobID) kanji banks processed")
-//            try Task.checkCancellation()
-//            try await testCancellationHook?()
-//            try await processKanjiMetaBanks(job, context: context)
-//            logger.debug("Import job \(jobID) kanji meta banks processed")
-//            try Task.checkCancellation()
-//            try await testCancellationHook?()
+
+            let kanjiBankProcessingTask = KanjiBankProcessingTask(jobID: jobID, container: container)
+            await kanjiBankProcessingTask.start()
+            try await kanjiBankProcessingTask.task?.value
+            logger.debug("Import job \(jobID) kanji banks processed")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
+
+            let kanjiMetaBankProcessingTask = KanjiMetaBankProcessingTask(jobID: jobID, container: container)
+            await kanjiMetaBankProcessingTask.start()
+            try await kanjiMetaBankProcessingTask.task?.value
+            logger.debug("Import job \(jobID) kanji meta banks processed")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
 //            try await copyMedia(job, context: context)
 //            logger.debug("Import job \(jobID) media copied")
 //            try Task.checkCancellation()
@@ -199,7 +205,7 @@ actor DictionaryImportManager {
                     context.delete(dict)
                 }
                 try? context.save()
-                self.cleanMediaDirectory(job: job)
+                Self.cleanMediaDirectory(job: job)
             }
         } catch {
             await context.perform {
@@ -213,7 +219,7 @@ actor DictionaryImportManager {
                     context.delete(dict)
                 }
                 try? context.save()
-                self.cleanMediaDirectory(job: job)
+                Self.cleanMediaDirectory(job: job)
             }
         }
 
@@ -221,7 +227,7 @@ actor DictionaryImportManager {
             guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                 return
             }
-            self.cleanup(job: job)
+            Self.cleanup(job: job)
         }
     }
 
@@ -259,5 +265,48 @@ actor DictionaryImportManager {
                 return false
             }
         }
+    }
+
+    static func cleanMediaDirectory(job: DictionaryZIPFileImport) {
+        let fileManager = FileManager.default
+        guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else {
+            return
+        }
+
+        do {
+            let appSupportDir = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+
+            if fileManager.fileExists(atPath: mediaDir.path) {
+                try fileManager.removeItem(at: mediaDir)
+            }
+        } catch {}
+    }
+
+    static func cleanup(job: DictionaryZIPFileImport) {
+        // Delete working directory if complete/failed/cancelled
+        let fileManager = FileManager.default
+        if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
+            do {
+                try fileManager.removeItem(at: workingDir)
+            } catch {}
+        }
+    }
+
+    // MARK: - Test Helper Methods
+
+    /// Set test cancellation hook for controlled testing
+    func setTestCancellationHook(_ hook: (() async throws -> Void)?) {
+        testCancellationHook = hook
+    }
+
+    /// Set test error injection for controlled testing
+    func setTestErrorInjection(_ injection: (() throws -> Void)?) {
+        testErrorInjection = injection
     }
 }
