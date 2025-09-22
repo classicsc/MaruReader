@@ -311,6 +311,24 @@ actor DictionaryImportManager {
         } catch {}
     }
 
+    static func cleanMediaDirectoryByUUID(dictionaryUUID: UUID) {
+        let fileManager = FileManager.default
+
+        do {
+            let appSupportDir = try fileManager.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: false
+            )
+            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
+
+            if fileManager.fileExists(atPath: mediaDir.path) {
+                try fileManager.removeItem(at: mediaDir)
+            }
+        } catch {}
+    }
+
     static func cleanup(job: DictionaryZIPFileImport) {
         // Delete working directory if complete/failed/cancelled
         let fileManager = FileManager.default
@@ -333,58 +351,136 @@ actor DictionaryImportManager {
         testErrorInjection = injection
     }
 
-    /// Delete a dictionary and all its associated data.
+    /// Delete a dictionary and all its associated data using batch deletions for performance.
     /// - Parameter dictionaryID: The NSManagedObjectID of the Dictionary to delete.
-    func deleteDictionary(dictionaryID: NSManagedObjectID) async {
-        logger.debug("Starting dictionary deletion for \\(dictionaryID)")
+    /// - Parameter batchSize: The number of entities to delete in each batch (default: 1000).
+    func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 1000) async {
+        logger.debug("Starting dictionary deletion for \\(dictionaryID) with batch size \\(batchSize)")
+
+        // First, mark as pending deletion for immediate UI feedback
+        let uiContext = container.newBackgroundContext()
+        do {
+            try await uiContext.perform {
+                guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+                    throw DictionaryImportError.databaseError
+                }
+                dictionary.pendingDeletion = true
+                dictionary.errorMessage = nil
+                try uiContext.save()
+            }
+        } catch {
+            logger.error("Failed to mark dictionary for deletion \\(dictionaryID): \\(error.localizedDescription)")
+            return
+        }
+
+        // Perform the actual deletion in a background task
+        Task {
+            do {
+                // Get dictionary UUID for media cleanup
+                let dictionaryUUID = try await uiContext.perform {
+                    guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+                        throw DictionaryImportError.databaseError
+                    }
+                    return dictionary.id
+                }
+
+                // Clean up media directory first
+                if let uuid = dictionaryUUID {
+                    Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+                }
+
+                // Delete entry entities in batches
+                try await deleteDictionaryEntitiesInBatches(dictionaryID: dictionaryID, batchSize: batchSize)
+
+                // Finally delete the dictionary itself
+                let finalContext = container.newBackgroundContext()
+                finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+                finalContext.undoManager = nil
+
+                try await finalContext.perform {
+                    guard let dictionary = try? finalContext.existingObject(with: dictionaryID) as? Dictionary else {
+                        throw DictionaryImportError.databaseError
+                    }
+                    finalContext.delete(dictionary)
+                    try finalContext.save()
+                }
+
+                logger.debug("Dictionary deletion completed for \\(dictionaryID)")
+
+            } catch {
+                logger.error("Dictionary deletion failed for \\(dictionaryID): \\(error.localizedDescription)")
+                // Update the dictionary with error information
+                await uiContext.perform {
+                    guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+                        return
+                    }
+                    dictionary.pendingDeletion = false
+                    dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
+                    try? uiContext.save()
+                }
+            }
+        }
+    }
+
+    /// Delete dictionary entry entities in batches for memory efficiency.
+    private func deleteDictionaryEntitiesInBatches(dictionaryID: NSManagedObjectID, batchSize: Int) async throws {
+        let entityNames = [
+            "TermEntry",
+            "KanjiEntry",
+            "TermFrequencyEntry",
+            "KanjiFrequencyEntry",
+            "IPAEntry",
+            "PitchAccentEntry",
+            "DictionaryTagMeta",
+        ]
+
+        for entityName in entityNames {
+            logger.debug("Deleting \\(entityName) entities for dictionary \\(dictionaryID)")
+            try await deleteBatchesForEntity(entityName: entityName, dictionaryID: dictionaryID, batchSize: batchSize)
+        }
+    }
+
+    /// Delete entities of a specific type in batches.
+    private func deleteBatchesForEntity(entityName: String, dictionaryID: NSManagedObjectID, batchSize: Int) async throws {
+        while true {
+            let moreToDelete = try await deleteEntityBatch(entityName: entityName, dictionaryID: dictionaryID, batchSize: batchSize)
+            if !moreToDelete {
+                break
+            }
+        }
+    }
+
+    private func deleteEntityBatch(entityName: String, dictionaryID: NSManagedObjectID, batchSize: Int) async throws -> Bool {
+        // Create a fresh context for each batch to manage memory
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        do {
-            try await context.perform {
-                guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
+        return try await context.perform {
+            // Get dictionary in this context
+            guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
+                throw DictionaryImportError.databaseError
+            }
 
-                // Mark as pending deletion for immediate UI feedback
-                dictionary.pendingDeletion = true
-                dictionary.errorMessage = nil
+            // Create fetch request for this entity type
+            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
+            fetchRequest.predicate = NSPredicate(format: "dictionary == %@", dictionary)
+            fetchRequest.fetchLimit = batchSize
+            fetchRequest.includesPropertyValues = false
+
+            let objects = try context.fetch(fetchRequest)
+
+            if objects.isEmpty {
+                return false
+            } else {
+                // Delete the batch
+                for object in objects {
+                    context.delete(object)
+                }
                 try context.save()
             }
-
-            // Perform the actual deletion in a background task
-            Task {
-                do {
-                    try await context.perform {
-                        guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
-                            throw DictionaryImportError.databaseError
-                        }
-
-                        // Clean up media directory before deleting the dictionary
-                        Self.cleanMediaDirectoryForDictionary(dictionary: dictionary)
-
-                        // Delete the dictionary (cascade deletions will handle related entities)
-                        context.delete(dictionary)
-                        try context.save()
-                    }
-                    logger.debug("Dictionary deletion completed for \\(dictionaryID)")
-                } catch {
-                    logger.error("Dictionary deletion failed for \\(dictionaryID): \\(error.localizedDescription)")
-                    // Update the dictionary with error information
-                    await context.perform {
-                        guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
-                            return
-                        }
-                        dictionary.pendingDeletion = false
-                        dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
-                        try? context.save()
-                    }
-                }
-            }
-        } catch {
-            logger.error("Failed to mark dictionary for deletion \\(dictionaryID): \\(error.localizedDescription)")
+            return true
         }
     }
 }
