@@ -144,6 +144,13 @@ actor DictionaryImportManager {
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
+
+            let tagBankProcessingTask = TagBankProcessingTask(jobID: jobID, container: container)
+            await tagBankProcessingTask.start()
+            try await tagBankProcessingTask.task?.value
+            logger.debug("Import job \(jobID) tag banks processed")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
 //            try await processIndex(job, context: context)
 //            logger.debug("Import job \(jobID) index processed")
 //            try Task.checkCancellation()
