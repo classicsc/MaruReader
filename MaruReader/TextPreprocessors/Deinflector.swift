@@ -229,6 +229,25 @@ class JapaneseDeinflector {
         return candidates
     }
 
+    /// Generate deinflected LookupCandidates, preserving original metadata and adding deinflection rules
+    func deinflect(_ candidate: LookupCandidate, maxDepth: Int = 10) -> [LookupCandidate] {
+        let deinflectionCandidates = deinflect(candidate.text, maxDepth: maxDepth)
+
+        return deinflectionCandidates.map { deinflectionCandidate in
+            // Add deinflection rules
+            let newDeinflectionInputRules = candidate.deinflectionInputRules + [deinflectionCandidate.transforms]
+
+            // Create new LookupCandidate with preserved metadata
+            return LookupCandidate(
+                text: deinflectionCandidate.base,
+                originalSubstring: candidate.originalSubstring,
+                preprocessorRules: candidate.preprocessorRules,
+                deinflectionInputRules: newDeinflectionInputRules,
+                deinflectionOutputRules: deinflectionCandidate.conditions
+            )
+        }
+    }
+
     // Clear cache if needed (e.g., memory pressure)
     func clearCache() { cache = [:] }
 }

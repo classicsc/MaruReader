@@ -213,6 +213,7 @@ struct TermEntryDTO: Sendable, Identifiable {
     let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from termEntry: TermEntry) {
         self.id = termEntry.id ?? UUID()
@@ -226,6 +227,7 @@ struct TermEntryDTO: Sendable, Identifiable {
         self.enabled = termEntry.enabled
         self.termID = termEntry.term?.id
         self.dictionaryID = termEntry.dictionary?.id
+        self.dictionaryTitle = termEntry.dictionaryTitle
     }
 }
 
@@ -240,6 +242,7 @@ struct TermFrequencyEntryDTO: Sendable, Identifiable {
     let mode: String?
     let termID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from frequency: TermFrequencyEntry) {
         self.id = frequency.id ?? UUID()
@@ -250,6 +253,7 @@ struct TermFrequencyEntryDTO: Sendable, Identifiable {
         self.mode = frequency.mode
         self.termID = frequency.term?.id
         self.dictionaryID = frequency.dictionary?.id
+        self.dictionaryTitle = frequency.dictionaryTitle
     }
 }
 
@@ -282,6 +286,7 @@ struct KanjiEntryDTO: Sendable, Identifiable {
     let enabled: Bool?
     let kanjiID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from kanjiEntry: KanjiEntry) {
         self.id = kanjiEntry.id ?? UUID()
@@ -294,6 +299,7 @@ struct KanjiEntryDTO: Sendable, Identifiable {
         self.enabled = kanjiEntry.enabled
         self.kanjiID = kanjiEntry.kanji?.id
         self.dictionaryID = kanjiEntry.dictionary?.id
+        self.dictionaryTitle = kanjiEntry.dictionaryTitle
     }
 }
 
@@ -308,6 +314,7 @@ struct KanjiFrequencyEntryDTO: Sendable, Identifiable {
     let mode: String?
     let kanjiID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from frequency: KanjiFrequencyEntry) {
         self.id = frequency.id ?? UUID()
@@ -318,6 +325,7 @@ struct KanjiFrequencyEntryDTO: Sendable, Identifiable {
         self.mode = frequency.mode
         self.kanjiID = frequency.kanji?.id
         self.dictionaryID = frequency.dictionary?.id
+        self.dictionaryTitle = frequency.dictionaryTitle
     }
 }
 
@@ -334,6 +342,7 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
     let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from pitchEntry: PitchAccentEntry) {
         self.id = pitchEntry.id ?? UUID()
@@ -346,6 +355,7 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
         self.enabled = pitchEntry.enabled
         self.termID = pitchEntry.term?.id
         self.dictionaryID = pitchEntry.dictionary?.id
+        self.dictionaryTitle = pitchEntry.dictionaryTitle
     }
 }
 
@@ -359,6 +369,7 @@ struct IPAEntryDTO: Sendable, Identifiable {
     let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
+    let dictionaryTitle: String?
 
     init(from ipaEntry: IPAEntry) {
         self.id = ipaEntry.id ?? UUID()
@@ -368,6 +379,7 @@ struct IPAEntryDTO: Sendable, Identifiable {
         self.enabled = ipaEntry.enabled
         self.termID = ipaEntry.term?.id
         self.dictionaryID = ipaEntry.dictionary?.id
+        self.dictionaryTitle = ipaEntry.dictionaryTitle
     }
 }
 

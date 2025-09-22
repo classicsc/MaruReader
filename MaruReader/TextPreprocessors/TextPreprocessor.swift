@@ -88,6 +88,30 @@ class JapaneseTextPreprocessor {
         return (result, appliedRules)
     }
 
+    /// Generate LookupCandidates by applying preprocessor rules, preserving original metadata
+    /// - Parameters:
+    ///   - candidate: Input LookupCandidate to preprocess
+    ///   - rules: Array of preprocessor rules to apply
+    /// - Returns: Array of LookupCandidates with preprocessing rules applied
+    func generateVariants(_ candidate: LookupCandidate, using rules: [TextPreprocessorRule]) -> [LookupCandidate] {
+        let (variants, appliedRules) = generateVariants(candidate.text, using: rules)
+
+        return variants.map { variant in
+            // Add preprocessor rules for this variant
+            let rulesForVariant = appliedRules[variant] ?? []
+            let newPreprocessorRules = candidate.preprocessorRules + [rulesForVariant]
+
+            // Create new LookupCandidate with preserved metadata
+            return LookupCandidate(
+                text: variant,
+                originalSubstring: candidate.originalSubstring,
+                preprocessorRules: newPreprocessorRules,
+                deinflectionInputRules: candidate.deinflectionInputRules,
+                deinflectionOutputRules: candidate.deinflectionOutputRules
+            )
+        }
+    }
+
     // MARK: - Private Methods
 
     private func createCacheKey(text: String, rules: [TextPreprocessorRule]) -> String {
