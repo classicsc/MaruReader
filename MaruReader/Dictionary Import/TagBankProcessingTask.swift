@@ -86,6 +86,7 @@ actor TagBankProcessingTask {
                                     tag.dictionary = dictionary
                                 }
                                 try context.save()
+                                context.reset()
                             }
                             try Task.checkCancellation()
                         }

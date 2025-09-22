@@ -207,6 +207,7 @@ actor TermMetaBankProcessingTask {
             }
 
             try context.save()
+            context.reset()
         }
     }
 }

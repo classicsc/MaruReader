@@ -116,6 +116,7 @@ actor KanjiMetaBankProcessingTask {
                             }
 
                             try context.save()
+                            context.reset()
                         }
                         try Task.checkCancellation()
                     }
