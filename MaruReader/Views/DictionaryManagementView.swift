@@ -32,8 +32,30 @@ struct DictionaryManagementView: View {
     )
     private var completeDictionaries: FetchedResults<Dictionary>
 
+    @FetchRequest(
+        entity: DictionaryZIPFileImport.entity(),
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \DictionaryZIPFileImport.timeQueued, ascending: false),
+        ],
+        animation: .default
+    )
+    private var importJobs: FetchedResults<DictionaryZIPFileImport>
+
     var body: some View {
         List {
+            // Import Progress Section
+            if !importJobs.isEmpty {
+                Section("Import Progress") {
+                    ForEach(importJobs, id: \.objectID) { job in
+                        ImportJobRow(
+                            job: job,
+                            onCancel: { cancelImport(job) },
+                            onDismiss: { dismissImport(job) }
+                        )
+                    }
+                }
+            }
+
             // Dictionaries Section
             Section("Dictionaries") {
                 if completeDictionaries.isEmpty {
@@ -65,6 +87,16 @@ struct DictionaryManagementView: View {
         ) { result in
             handleFileImport(result: result)
         }
+        .alert("Import Error", isPresented: $showingError) {
+            Button("OK") {
+                showingError = false
+                importError = nil
+            }
+        } message: {
+            if let error = importError {
+                Text(error.localizedDescription)
+            }
+        }
     }
 
     private func handleFileImport(result: Result<[URL], Error>) {
@@ -72,23 +104,119 @@ struct DictionaryManagementView: View {
         case let .success(urls):
             guard let url = urls.first else { return }
 
-            // Start accessing security-scoped resource
-            guard url.startAccessingSecurityScopedResource() else {
-                importError = DictionaryImportError.fileAccessDenied
-                showingError = true
-                return
-            }
-
             Task {
-                // Perform import on background queue
-                // Always stop accessing the security-scoped resource when done
-                url.stopAccessingSecurityScopedResource()
+                do {
+                    _ = try await DictionaryImportManager.shared.enqueueImport(from: url)
+                } catch {
+                    await MainActor.run {
+                        importError = error
+                        showingError = true
+                    }
+                }
             }
 
         case let .failure(error):
             importError = error
             showingError = true
         }
+    }
+
+    private func cancelImport(_ job: DictionaryZIPFileImport) {
+        Task {
+            await DictionaryImportManager.shared.cancelImport(jobID: job.objectID)
+        }
+    }
+
+    private func dismissImport(_ job: DictionaryZIPFileImport) {
+        viewContext.delete(job)
+        do {
+            try viewContext.save()
+        } catch {
+            importError = error
+            showingError = true
+        }
+    }
+}
+
+struct ImportJobRow: View {
+    let job: DictionaryZIPFileImport
+    let onCancel: () -> Void
+    let onDismiss: () -> Void
+
+    private var fileName: String {
+        job.file?.lastPathComponent ?? "Unknown File"
+    }
+
+    private var statusIcon: String {
+        if job.isCancelled {
+            "xmark.circle.fill"
+        } else if job.isFailed {
+            "exclamationmark.triangle.fill"
+        } else if job.isComplete {
+            "checkmark.circle.fill"
+        } else if job.isStarted {
+            "gear"
+        } else {
+            "clock"
+        }
+    }
+
+    private var statusColor: Color {
+        if job.isCancelled {
+            .secondary
+        } else if job.isFailed {
+            .red
+        } else if job.isComplete {
+            .green
+        } else if job.isStarted {
+            .blue
+        } else {
+            .orange
+        }
+    }
+
+    private var canCancel: Bool {
+        !job.isComplete && !job.isFailed && !job.isCancelled
+    }
+
+    private var canDismiss: Bool {
+        job.isComplete || job.isFailed || job.isCancelled
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusColor)
+                    .imageScale(.small)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(fileName)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    if let message = job.displayProgressMessage {
+                        Text(message)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
+                }
+
+                Spacer()
+
+                if canCancel {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                } else if canDismiss {
+                    Button("Dismiss", action: onDismiss)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
+            }
+        }
+        .padding(.vertical, 2)
     }
 }
 
