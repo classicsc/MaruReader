@@ -49,17 +49,17 @@ actor UnzipTask {
 
             try Task.checkCancellation()
 
-            // Check if file exists and is accessible
-            guard FileManager.default.fileExists(atPath: jobURL.path) else {
-                throw DictionaryImportError.missingFile
-            }
-
             guard jobURL.startAccessingSecurityScopedResource() else {
                 throw DictionaryImportError.fileAccessDenied
             }
 
             defer {
                 jobURL.stopAccessingSecurityScopedResource()
+            }
+
+            // Check if file exists and is accessible
+            guard FileManager.default.fileExists(atPath: jobURL.path) else {
+                throw DictionaryImportError.missingFile
             }
 
             do {

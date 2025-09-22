@@ -33,7 +33,7 @@ actor TermMetaBankProcessingTask {
             context.shouldDeleteInaccessibleFaults = true
 
             // Fetch format and term meta bank URLs on the context queue
-            let (format, termMetaBankURLs, dictionary): (Int64, [URL], Dictionary) = try await context.perform {
+            let (format, termMetaBankURLs): (Int64, [URL]) = try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                     throw DictionaryImportError.databaseError
                 }
@@ -44,7 +44,7 @@ actor TermMetaBankProcessingTask {
                 guard let termMetaBankURLs = job.termMetaBanks as? [URL] else {
                     throw DictionaryImportError.databaseError
                 }
-                return (format, termMetaBankURLs, dictionary)
+                return (format, termMetaBankURLs)
             }
 
             if !termMetaBankURLs.isEmpty {
