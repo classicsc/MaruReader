@@ -19,7 +19,12 @@ struct DictionaryDTO: Sendable, Identifiable {
     let displayDescription: String?
     let displayOrder: Int64
     let downloadURL: String?
-    let enabled: Bool
+    let termResultsEnabled: Bool
+    let pitchAccentEnabled: Bool
+    let termFrequencyEnabled: Bool
+    let kanjiResultsEnabled: Bool
+    let kanjiFrequencyEnabled: Bool
+    let ipaEnabled: Bool
     let format: Int64
     let frequencyMode: String?
     let indexURL: String?
@@ -49,7 +54,12 @@ struct DictionaryDTO: Sendable, Identifiable {
         self.displayDescription = dictionary.displayDescription
         self.displayOrder = dictionary.displayOrder
         self.downloadURL = dictionary.downloadURL
-        self.enabled = dictionary.enabled
+        self.termResultsEnabled = dictionary.termResultsEnabled
+        self.pitchAccentEnabled = dictionary.pitchAccentEnabled
+        self.termFrequencyEnabled = dictionary.termFrequencyEnabled
+        self.kanjiResultsEnabled = dictionary.kanjiResultsEnabled
+        self.kanjiFrequencyEnabled = dictionary.kanjiFrequencyEnabled
+        self.ipaEnabled = dictionary.ipaEnabled
         self.format = dictionary.format
         self.frequencyMode = dictionary.frequencyMode
         self.indexURL = dictionary.indexURL
