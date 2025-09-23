@@ -209,11 +209,8 @@ struct TermEntryDTO: Sendable, Identifiable {
     let definitionTags: [String]
     let glossary: [Definition]
     let rules: [String]
-    let displayPriority: Int64?
-    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from termEntry: TermEntry) {
         self.id = termEntry.id ?? UUID()
@@ -223,11 +220,8 @@ struct TermEntryDTO: Sendable, Identifiable {
         self.definitionTags = (termEntry.definitionTags as? [String]) ?? []
         self.glossary = (termEntry.glossary as? [Definition]) ?? []
         self.rules = (termEntry.rules as? [String]) ?? []
-        self.displayPriority = termEntry.displayPriority
-        self.enabled = termEntry.enabled
         self.termID = termEntry.term?.id
         self.dictionaryID = termEntry.dictionary?.id
-        self.dictionaryTitle = termEntry.dictionaryTitle
     }
 }
 
@@ -237,23 +231,15 @@ struct TermFrequencyEntryDTO: Sendable, Identifiable {
     let id: UUID
     let value: Double
     let displayValue: String?
-    let displayPriority: Int64?
-    let enabled: Bool?
-    let mode: String?
     let termID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from frequency: TermFrequencyEntry) {
         self.id = frequency.id ?? UUID()
         self.value = frequency.value
         self.displayValue = frequency.displayValue
-        self.displayPriority = frequency.displayPriority
-        self.enabled = frequency.enabled
-        self.mode = frequency.mode
         self.termID = frequency.term?.id
         self.dictionaryID = frequency.dictionary?.id
-        self.dictionaryTitle = frequency.dictionaryTitle
     }
 }
 
@@ -282,11 +268,8 @@ struct KanjiEntryDTO: Sendable, Identifiable {
     let meanings: [String]
     let tags: [String]
     let stats: [String: String]
-    let displayPriority: Int64?
-    let enabled: Bool?
     let kanjiID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from kanjiEntry: KanjiEntry) {
         self.id = kanjiEntry.id ?? UUID()
@@ -295,11 +278,8 @@ struct KanjiEntryDTO: Sendable, Identifiable {
         self.meanings = (kanjiEntry.meanings as? [String]) ?? []
         self.tags = (kanjiEntry.tags as? [String]) ?? []
         self.stats = (kanjiEntry.stats as? [String: String]) ?? [:]
-        self.displayPriority = kanjiEntry.displayPriority
-        self.enabled = kanjiEntry.enabled
         self.kanjiID = kanjiEntry.kanji?.id
         self.dictionaryID = kanjiEntry.dictionary?.id
-        self.dictionaryTitle = kanjiEntry.dictionaryTitle
     }
 }
 
@@ -338,11 +318,8 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
     let nasal: [Int]?
     let devoice: [Int]?
     let tags: [String]?
-    let displayPriority: Int64?
-    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from pitchEntry: PitchAccentEntry) {
         self.id = pitchEntry.id ?? UUID()
@@ -351,11 +328,8 @@ struct PitchAccentEntryDTO: Sendable, Identifiable {
         self.nasal = pitchEntry.nasal as? [Int]
         self.devoice = pitchEntry.devoice as? [Int]
         self.tags = pitchEntry.tags as? [String]
-        self.displayPriority = pitchEntry.displayPriority
-        self.enabled = pitchEntry.enabled
         self.termID = pitchEntry.term?.id
         self.dictionaryID = pitchEntry.dictionary?.id
-        self.dictionaryTitle = pitchEntry.dictionaryTitle
     }
 }
 
@@ -365,21 +339,15 @@ struct IPAEntryDTO: Sendable, Identifiable {
     let id: UUID
     let transcription: String
     let tags: [String]?
-    let displayPriority: Int64?
-    let enabled: Bool?
     let termID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from ipaEntry: IPAEntry) {
         self.id = ipaEntry.id ?? UUID()
         self.transcription = ipaEntry.transcription ?? ""
         self.tags = ipaEntry.tags as? [String]
-        self.displayPriority = ipaEntry.displayPriority
-        self.enabled = ipaEntry.enabled
         self.termID = ipaEntry.term?.id
         self.dictionaryID = ipaEntry.dictionary?.id
-        self.dictionaryTitle = ipaEntry.dictionaryTitle
     }
 }
 

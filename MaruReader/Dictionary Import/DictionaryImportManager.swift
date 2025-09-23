@@ -194,6 +194,40 @@ actor DictionaryImportManager {
                 job.dictionary?.isComplete = true
                 job.timeCompleted = Date()
                 job.displayProgressMessage = "Import complete."
+                // Enable the dictionary for each type of entry if the import completed successfully
+                if job.isComplete, let dictionary = job.dictionary {
+                    if dictionary.termCount > 0 {
+                        dictionary.termResultsEnabled = true
+                    }
+                    if dictionary.kanjiCount > 0 {
+                        dictionary.kanjiResultsEnabled = true
+                    }
+                    if dictionary.ipaCount > 0 {
+                        dictionary.ipaEnabled = true
+                    }
+                    if dictionary.pitchesCount > 0 {
+                        dictionary.pitchAccentEnabled = true
+                    }
+                    // If this is a frequency dictionary and we imported frequency:
+                    // it should be enabled for the frequency type if there is not already a frequency dictionary enabled
+                    if dictionary.termFrequencyCount > 0 {
+                        let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+                        fetchRequest.predicate = NSPredicate(format: "termFrequencyResultsEnabled == true AND id != %@", dictionary.objectID)
+                        fetchRequest.fetchLimit = 1
+                        if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
+                            dictionary.termFrequencyEnabled = true
+                        }
+                    }
+
+                    if dictionary.kanjiFrequencyCount > 0 {
+                        let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+                        fetchRequest.predicate = NSPredicate(format: "kanjiFrequencyResultsEnabled == true AND id != %@", dictionary.objectID)
+                        fetchRequest.fetchLimit = 1
+                        if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
+                            dictionary.kanjiFrequencyEnabled = true
+                        }
+                    }
+                }
                 try context.save()
             }
         } catch is CancellationError {

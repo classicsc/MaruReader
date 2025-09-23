@@ -47,10 +47,27 @@
         <relationship name="tags" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="DictionaryTagMeta" inverseName="dictionary" inverseEntity="DictionaryTagMeta"/>
         <relationship name="termEntries" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermEntry" inverseName="dictionary" inverseEntity="TermEntry"/>
         <relationship name="termFrequency" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermFrequencyEntry" inverseName="dictionary" inverseEntity="TermFrequencyEntry"/>
+        <fetchIndex name="byTermResultsEnabled">
+            <fetchIndexElement property="termResultsEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byTermFrequencyEnabled">
+            <fetchIndexElement property="termFrequencyEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byKanjiResultsEnabled">
+            <fetchIndexElement property="kanjiResultsEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byKanjiFrequencyEnabled">
+            <fetchIndexElement property="kanjiFrequencyEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byPitchesEnabled">
+            <fetchIndexElement property="pitchAccentEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byIPAEnabled">
+            <fetchIndexElement property="ipaEnabled" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="DictionaryTagMeta" representedClassName="DictionaryTagMeta" syncable="YES" codeGenerationType="class">
         <attribute name="category" attributeType="String"/>
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="notes" attributeType="String"/>
@@ -94,9 +111,6 @@
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="importJob" inverseEntity="Dictionary"/>
     </entity>
     <entity name="IPAEntry" representedClassName="IPAEntry" syncable="YES" codeGenerationType="class">
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.ipaDisplayPriority" usesScalarValueType="YES"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.ipaEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="tags" optional="YES" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="transcription" attributeType="String"/>
@@ -111,11 +125,11 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <relationship name="entries" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="KanjiEntry" inverseName="kanji" inverseEntity="KanjiEntry"/>
         <relationship name="frequency" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="KanjiFrequencyEntry" inverseName="kanji" inverseEntity="KanjiFrequencyEntry"/>
+        <fetchIndex name="byCharacter">
+            <fetchIndexElement property="character" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="KanjiEntry" representedClassName="KanjiEntry" syncable="YES" codeGenerationType="class">
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.kanjiDisplayPriority" usesScalarValueType="YES"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.kanjiResultsEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="kunyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
         <attribute name="meanings" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
@@ -139,9 +153,6 @@
     </entity>
     <entity name="PitchAccentEntry" representedClassName="PitchAccentEntry" syncable="YES" codeGenerationType="class">
         <attribute name="devoice" optional="YES" attributeType="Transformable" valueTransformerName="IntArrayTransformer"/>
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.pitchDisplayPriority" usesScalarValueType="YES"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.pitchAccentEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="mora" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="nasal" optional="YES" attributeType="Transformable" valueTransformerName="IntArrayTransformer"/>
@@ -163,12 +174,13 @@
         <relationship name="frequency" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="TermFrequencyEntry" inverseName="term" inverseEntity="TermFrequencyEntry"/>
         <relationship name="ipa" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="IPAEntry" inverseName="term" inverseEntity="IPAEntry"/>
         <relationship name="pitches" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PitchAccentEntry" inverseName="term" inverseEntity="PitchAccentEntry"/>
+        <fetchIndex name="byExpressionReading">
+            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.termDisplayPriority" usesScalarValueType="YES"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.termResultsEnabled" usesScalarValueType="YES"/>
         <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="rules" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
@@ -181,12 +193,8 @@
         <relationship name="term" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Term" inverseName="entries" inverseEntity="Term"/>
     </entity>
     <entity name="TermFrequencyEntry" representedClassName="TermFrequencyEntry" syncable="YES" codeGenerationType="class">
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.termFrequencyDisplayPriority" usesScalarValueType="YES"/>
         <attribute name="displayValue" optional="YES" attributeType="String"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.termFrequencyEnabled" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="mode" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.frequencyMode"/>
         <attribute name="value" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="termFrequency" inverseEntity="Dictionary"/>
         <relationship name="term" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Term" inverseName="frequency" inverseEntity="Term"/>
