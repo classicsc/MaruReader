@@ -5,7 +5,7 @@
 //  Created by Sam Smoker on 9/23/25.
 //
 
-struct SearchResult: Identifiable {
+struct SearchResult: Identifiable, Comparable {
     let candidate: LookupCandidate
     let term: String
     let reading: String?
@@ -13,7 +13,7 @@ struct SearchResult: Identifiable {
     let frequency: Double?
     let dictionaryTitle: String
     let displayPriority: Int
-    let rankScore: Double
+    let rankingCriteria: RankingCriteria
 
     var html: String {
         definitions.toHTML()
@@ -22,5 +22,15 @@ struct SearchResult: Identifiable {
     // Unique identifier combining multiple properties
     var id: String {
         "\(term)|\(reading ?? "")|\(dictionaryTitle)|\(candidate.text)|\(candidate.originalSubstring)"
+    }
+
+    // MARK: - Comparable Implementation
+
+    static func < (lhs: SearchResult, rhs: SearchResult) -> Bool {
+        lhs.rankingCriteria < rhs.rankingCriteria
+    }
+
+    static func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
+        lhs.rankingCriteria == rhs.rankingCriteria
     }
 }

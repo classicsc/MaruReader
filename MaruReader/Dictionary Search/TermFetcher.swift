@@ -107,11 +107,15 @@ class TermFetcher {
                     // Calculate frequency for ranking
                     let frequency = calculateFrequency(for: term)
 
-                    // Calculate rank score
-                    let rankScore = calculateRankScore(
+                    // Create ranking criteria
+                    let rankingCriteria = RankingCriteria(
                         candidate: candidate,
+                        term: term.expression ?? "",
                         entry: entry,
-                        frequency: frequency
+                        definitions: entry.glossary as? [Definition] ?? [],
+                        frequency: frequency,
+                        dictionaryTitle: dictionary.title ?? "",
+                        dictionaryPriority: Int(dictionary.termDisplayPriority)
                     )
 
                     // Create SearchResult
@@ -120,10 +124,10 @@ class TermFetcher {
                         term: term.expression ?? "",
                         reading: term.reading?.isEmpty == false ? term.reading : nil,
                         definitions: entry.glossary as? [Definition] ?? [],
-                        frequency: frequency,
+                        frequency: frequency.value,
                         dictionaryTitle: dictionary.title ?? "",
                         displayPriority: Int(dictionary.termDisplayPriority),
-                        rankScore: rankScore
+                        rankingCriteria: rankingCriteria
                     )
 
                     searchResults.append(searchResult)
@@ -131,68 +135,31 @@ class TermFetcher {
             }
         }
 
-        // Sort by rank score (higher scores first)
-        return searchResults.sorted { $0.rankScore > $1.rankScore }
+        // Sort by ranking criteria (best ranks first - reverse sort since we want higher ranking first)
+        return searchResults.sorted { $0 > $1 }
     }
 
     /// Calculate frequency score for a term across all dictionaries
     /// - Parameter term: The term to calculate frequency for
-    /// - Returns: Frequency value or nil if no frequency data available
-    private static func calculateFrequency(for term: Term) -> Double? {
+    /// - Returns: Tuple containing frequency value and mode, or (nil, nil) if no frequency data available
+    private static func calculateFrequency(for term: Term) -> (value: Double?, mode: String?) {
         guard let frequencySet = term.frequency as? Set<TermFrequencyEntry>,
-              !frequencySet.isEmpty else { return nil }
+              !frequencySet.isEmpty else { return (nil, nil) }
 
         // Use the frequency from the highest priority enabled dictionary
-        let enabledFrequencies = frequencySet.compactMap { entry -> (Double, Int64)? in
+        let enabledFrequencies = frequencySet.compactMap { entry -> (Double, Int64, String?)? in
             guard let dictionary = entry.dictionary,
                   dictionary.termFrequencyEnabled else { return nil }
-            return (entry.value, dictionary.termFrequencyDisplayPriority)
+            return (entry.value, dictionary.termFrequencyDisplayPriority, dictionary.frequencyMode)
         }
 
-        guard !enabledFrequencies.isEmpty else { return nil }
+        guard !enabledFrequencies.isEmpty else { return (nil, nil) }
 
-        // Return frequency from highest priority dictionary
-        return enabledFrequencies.max { $0.1 < $1.1 }?.0
-    }
-
-    /// Calculate ranking score for search result ordering
-    /// - Parameters:
-    ///   - candidate: The lookup candidate that matched
-    ///   - entry: The term entry from Core Data
-    ///   - frequency: Calculated frequency value
-    /// - Returns: Ranking score (higher = better)
-    private static func calculateRankScore(
-        candidate: LookupCandidate,
-        entry: TermEntry,
-        frequency: Double?
-    ) -> Double {
-        var score: Double = 0
-
-        // Dictionary priority (higher priority = higher score)
-        if let dictionary = entry.dictionary {
-            score += Double(dictionary.termDisplayPriority) * 1000
+        // Return frequency and mode from highest priority dictionary
+        if let bestFrequency = enabledFrequencies.max(by: { $0.1 < $1.1 }) {
+            return (bestFrequency.0, bestFrequency.2)
         }
 
-        // Entry score from dictionary
-        score += entry.score
-
-        // Frequency boost (log scale to prevent domination)
-        if let freq = frequency, freq > 0 {
-            score += log10(freq + 1) * 100
-        }
-
-        // Prefer exact matches (no deinflection)
-        if candidate.deinflectionInputRules.isEmpty {
-            score += 500
-        } else {
-            // Penalize based on number of deinflection steps
-            let totalSteps = candidate.deinflectionInputRules.reduce(0) { $0 + $1.count }
-            score -= Double(totalSteps) * 10
-        }
-
-        // Prefer shorter candidates (more specific matches)
-        score -= Double(candidate.text.count) * 0.1
-
-        return score
+        return (nil, nil)
     }
 }

@@ -212,7 +212,7 @@ actor DictionaryImportManager {
                     // it should be enabled for the frequency type if there is not already a frequency dictionary enabled
                     if dictionary.termFrequencyCount > 0 {
                         let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                        fetchRequest.predicate = NSPredicate(format: "termFrequencyResultsEnabled == true AND id != %@", dictionary.objectID)
+                        fetchRequest.predicate = NSPredicate(format: "termFrequencyEnabled == true AND id != %@", dictionary.objectID)
                         fetchRequest.fetchLimit = 1
                         if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
                             dictionary.termFrequencyEnabled = true
@@ -221,7 +221,7 @@ actor DictionaryImportManager {
 
                     if dictionary.kanjiFrequencyCount > 0 {
                         let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                        fetchRequest.predicate = NSPredicate(format: "kanjiFrequencyResultsEnabled == true AND id != %@", dictionary.objectID)
+                        fetchRequest.predicate = NSPredicate(format: "kanjiFrequencyEnabled == true AND id != %@", dictionary.objectID)
                         fetchRequest.fetchLimit = 1
                         if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
                             dictionary.kanjiFrequencyEnabled = true
