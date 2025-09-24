@@ -5,6 +5,8 @@
 //  Created by Sam Smoker on 9/23/25.
 //
 
+import Foundation
+
 struct SearchResult: Identifiable, Comparable {
     let candidate: LookupCandidate
     let term: String
@@ -12,6 +14,7 @@ struct SearchResult: Identifiable, Comparable {
     let definitions: [Definition]
     let frequency: Double?
     let dictionaryTitle: String
+    let dictionaryUUID: UUID
     let displayPriority: Int
     let rankingCriteria: RankingCriteria
 

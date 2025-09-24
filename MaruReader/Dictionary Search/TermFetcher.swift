@@ -141,6 +141,7 @@ class TermFetcher {
                         definitions: entry.glossary as? [Definition] ?? [],
                         frequency: frequency.value,
                         dictionaryTitle: dictionary.title ?? "",
+                        dictionaryUUID: dictionary.id ?? UUID(),
                         displayPriority: Int(dictionary.termDisplayPriority),
                         rankingCriteria: rankingCriteria
                     )
