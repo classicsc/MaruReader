@@ -43,6 +43,10 @@ struct DictionarySearchView: View {
                         WebView(page)
                             .task {
                                 loadHTMLIfNeeded(searchViewModel.htmlDocument)
+                                // Ensure the view is inspectable when debugging
+                                #if DEBUG
+                                    page.isInspectable = true
+                                #endif
                             }
                             .onChange(of: searchViewModel.htmlDocument) { _, newHTML in
                                 loadHTMLIfNeeded(newHTML)
