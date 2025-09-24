@@ -112,7 +112,8 @@ extension Definition {
     }
 
     private func wrapDefinitionText(_ text: String) -> String {
-        "<p class=\"definition-text\">\(escapeHTML(text))</p>"
+        let escapedText = escapeHTML(text).replacingOccurrences(of: "\n", with: "<br>")
+        return "<p class=\"definition-text\">\(escapedText)</p>"
     }
 
     private func imageHTML(from image: ImageDef, baseURL: URL?) -> String {
