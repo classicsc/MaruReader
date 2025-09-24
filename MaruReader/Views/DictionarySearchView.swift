@@ -10,6 +10,8 @@ struct DictionarySearchView: View {
     @State private var query: String = ""
     @State private var searchViewModel = SearchViewModel()
     @State private var searchTask: Task<Void, Never>?
+    @State private var page = WebPage()
+    @State private var lastHTML: String = ""
 
     var body: some View {
         NavigationStack {
@@ -38,7 +40,13 @@ struct DictionarySearchView: View {
                     } else if searchViewModel.groupedResults.isEmpty {
                         ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No dictionary entries found for '\(query)'"))
                     } else {
-                        SearchResultsList(groupedResults: searchViewModel.groupedResults)
+                        WebView(page)
+                            .task {
+                                loadHTMLIfNeeded(searchViewModel.htmlDocument)
+                            }
+                            .onChange(of: searchViewModel.htmlDocument) { _, newHTML in
+                                loadHTMLIfNeeded(newHTML)
+                            }
                     }
                 }
                 .animation(.default, value: query)
@@ -51,9 +59,17 @@ struct DictionarySearchView: View {
         }
     }
 
+    private func loadHTMLIfNeeded(_ html: String) {
+        guard html != lastHTML else { return }
+        lastHTML = html
+        _ = page.load(html: html, baseURL: .temporaryDirectory)
+    }
+
     private func performSearch(_ searchQuery: String) {
         searchTask?.cancel()
         searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
+            if Task.isCancelled { return }
             await searchViewModel.search(query: searchQuery)
         }
     }

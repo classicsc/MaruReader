@@ -7,14 +7,19 @@
 
 import CoreData
 import Foundation
+import os.log
+import WebKit
 
 @MainActor
 @Observable
 class SearchViewModel {
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "SearchViewModel")
+
     var searchResults: [SearchResult] = []
     var groupedResults: [GroupedSearchResults] = []
     var isSearching = false
     var searchError: Error?
+    var htmlDocument = ""
 
     private let persistenceController: PersistenceController
     private var termFetcher: TermFetcher?
@@ -47,6 +52,7 @@ class SearchViewModel {
 
             searchResults = results
             groupedResults = groupResults(results)
+            updateWebContent()
 
         } catch {
             searchError = error
@@ -61,6 +67,7 @@ class SearchViewModel {
         searchResults = []
         groupedResults = []
         searchError = nil
+        htmlDocument = ""
     }
 
     private func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
@@ -104,6 +111,103 @@ class SearchViewModel {
     private func generateCombinedHTML(for results: [SearchResult]) -> String {
         let allDefinitions = results.flatMap(\.definitions)
         return allDefinitions.toHTML()
+    }
+
+    private func updateWebContent() {
+        htmlDocument = generateUnifiedHTML()
+        logger.debug("Generated HTML document of size \(self.htmlDocument.count) characters")
+    }
+
+    private func generateUnifiedHTML() -> String {
+        let termGroupsHTML = groupedResults.map { termGroup in
+            """
+            <div class="term-group">
+                <h1 class="term-header">\(escapeHTML(termGroup.displayTerm))</h1>
+                \(termGroup.dictionariesResults.map { dictionaryResult in
+                    """
+                    <div class="dictionary-section">
+                        <h2 class="dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h2>
+                        <div class="dictionary-content">
+                            \(dictionaryResult.combinedHTML)
+                        </div>
+                    </div>
+                    """
+                }.joined())
+            </div>
+            """
+        }.joined()
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                :root {
+                    color-scheme: light dark;
+                }
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                    margin: 12px;
+                    padding: 0;
+                    line-height: 1.4;
+                    font-size: 16px;
+                    color: CanvasText;
+                    background-color: Canvas;
+                }
+                .term-group {
+                    margin-bottom: 20px;
+                }
+                .term-header {
+                    font-size: 22px;
+                    font-weight: 600;
+                    margin: 0 0 12px 0;
+                    color: CanvasText;
+                }
+                .dictionary-section {
+                    margin-bottom: 12px;
+                }
+                .dictionary-header {
+                    font-size: 17px;
+                    font-weight: 600;
+                    margin: 0 0 8px 0;
+                    color: color-mix(in srgb, CanvasText 60%, transparent);
+                }
+                .dictionary-content {
+                    margin-bottom: 8px;
+                }
+                .glossary-list {
+                    margin: 0;
+                    padding-left: 20px;
+                }
+                .glossary-list li {
+                    margin-bottom: 8px;
+                }
+                .definition-text {
+                    margin: 4px 0;
+                }
+                .deinflection {
+                    font-style: italic;
+                    opacity: 0.7;
+                    margin: 4px 0;
+                }
+            </style>
+        </head>
+        <body>
+            \(termGroupsHTML)
+        </body>
+        </html>
+        """
+    }
+
+    private func escapeHTML(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
     }
 }
 
