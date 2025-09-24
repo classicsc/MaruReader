@@ -13,6 +13,9 @@ import WebKit
 @MainActor
 @Observable
 class SearchViewModel {
+    // Our custom URL scheme for loading local media files in the web view
+    static let mediaURLScheme = "marureader-media"
+
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "SearchViewModel")
 
     var searchResults: [SearchResult] = []
@@ -77,12 +80,14 @@ class SearchViewModel {
 
         return grouped.map { termKey, termResults in
             let firstResult = termResults.first!
-            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { $0.dictionaryTitle })
+            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { $0.dictionaryUUID })
 
-            let dictionaryResults = dictionaryGroups.map { dictionaryTitle, dictResults in
-                let combinedHTML = generateCombinedHTML(for: dictResults)
+            let dictionaryResults = dictionaryGroups.map { dictionaryUUID, dictResults in
+                let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
+                let combinedHTML = generateCombinedHTML(for: dictResults, dictionaryUUID: dictionaryUUID)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
+                    dictionaryUUID: dictionaryUUID,
                     results: dictResults,
                     combinedHTML: combinedHTML
                 )
@@ -108,8 +113,12 @@ class SearchViewModel {
         }
     }
 
-    private func generateCombinedHTML(for results: [SearchResult]) -> String {
+    private func generateCombinedHTML(for results: [SearchResult], dictionaryUUID: UUID? = nil) -> String {
         let allDefinitions = results.flatMap(\.definitions)
+        if let dictUUID = dictionaryUUID {
+            let baseURL = URL(string: "\(SearchViewModel.mediaURLScheme)://\(dictUUID.uuidString)/")!
+            return allDefinitions.toHTML(baseURL: baseURL)
+        }
         return allDefinitions.toHTML()
     }
 
@@ -229,8 +238,9 @@ struct GroupedSearchResults: Identifiable {
 
 struct DictionaryResults: Identifiable {
     let dictionaryTitle: String
+    let dictionaryUUID: UUID
     let results: [SearchResult]
     let combinedHTML: String
 
-    var id: String { dictionaryTitle }
+    var id: UUID { dictionaryUUID }
 }

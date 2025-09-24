@@ -10,8 +10,14 @@ struct DictionarySearchView: View {
     @State private var query: String = ""
     @State private var searchViewModel = SearchViewModel()
     @State private var searchTask: Task<Void, Never>?
-    @State private var page = WebPage()
+    @State private var page: WebPage
     @State private var lastHTML: String = ""
+
+    init() {
+        var config = WebPage.Configuration()
+        config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
+        self._page = State(initialValue: WebPage(configuration: config))
+    }
 
     var body: some View {
         NavigationStack {
@@ -66,7 +72,7 @@ struct DictionarySearchView: View {
     private func loadHTMLIfNeeded(_ html: String) {
         guard html != lastHTML else { return }
         lastHTML = html
-        _ = page.load(html: html, baseURL: .temporaryDirectory)
+        _ = page.load(html: html)
     }
 
     private func performSearch(_ searchQuery: String) {

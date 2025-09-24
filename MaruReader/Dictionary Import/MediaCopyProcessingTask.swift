@@ -14,7 +14,7 @@ actor MediaCopyProcessingTask {
     let jobID: NSManagedObjectID
     var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")
+    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")
 
     init(jobID: NSManagedObjectID, container: NSPersistentContainer) {
         self.jobID = jobID
@@ -72,6 +72,7 @@ actor MediaCopyProcessingTask {
 
             // Recursively copy files
             let enumerator = fileManager.enumerator(at: workingDirectory, includingPropertiesForKeys: nil)
+            let resolvedWorkingPath = workingDirectory.resolvingSymlinksInPath().path
             while let fileURL = enumerator?.nextObject() as? URL {
                 try Task.checkCancellation()
 
@@ -80,8 +81,24 @@ actor MediaCopyProcessingTask {
                     continue
                 }
 
+                // Skip directories; enumerator can walk them but we only copy files
+                if fileURL.hasDirectoryPath {
+                    continue
+                }
+
                 // Determine relative path
-                let relativePath = fileURL.path.replacingOccurrences(of: workingDirectory.path, with: "")
+                let resolvedFilePath = fileURL.resolvingSymlinksInPath().path
+
+                guard resolvedFilePath.hasPrefix(resolvedWorkingPath) else {
+                    MediaCopyProcessingTask.logger.error("File path \(resolvedFilePath, privacy: .public) outside working directory \(resolvedWorkingPath, privacy: .public)")
+                    continue
+                }
+
+                var relativePath = String(resolvedFilePath.dropFirst(resolvedWorkingPath.count))
+                if relativePath.hasPrefix("/") {
+                    relativePath.removeFirst()
+                }
+
                 let destinationURL = mediaDir.appendingPathComponent(relativePath)
                 let destinationDir = destinationURL.deletingLastPathComponent()
 
@@ -95,6 +112,7 @@ actor MediaCopyProcessingTask {
                     try fileManager.removeItem(at: destinationURL)
                 }
                 try fileManager.copyItem(at: fileURL, to: destinationURL)
+                MediaCopyProcessingTask.logger.debug("Copied media file to \(destinationURL.path, privacy: .public)")
             }
 
             try Task.checkCancellation()
