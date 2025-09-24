@@ -13,51 +13,37 @@ struct SearchResultsList: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: 20) {
-                ForEach(groupedResults) { termGroup in
-                    VStack(alignment: .leading, spacing: 12) {
-                        // Term header
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(termGroup.displayTerm)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                        }
-                        .padding(.horizontal)
-
-                        // Dictionary results
-                        ForEach(termGroup.dictionariesResults) { dictionaryResult in
-                            VStack(alignment: .leading, spacing: 8) {
-                                // Dictionary header
-                                Text(dictionaryResult.dictionaryTitle)
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
-                                    .padding(.horizontal)
-
-                                // HTML content
-                                DefinitionWebView(htmlContent: dictionaryResult.combinedHTML)
-                                    .frame(minHeight: 80)
-                                    .background(Color(.systemBackground))
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
-                                            .stroke(Color(.systemGray5), lineWidth: 1)
-                                    )
-                                    .padding(.horizontal)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 8)
-                }
-            }
-            .padding(.vertical)
+            UnifiedSearchWebView(groupedResults: groupedResults)
+                .padding()
         }
     }
 }
 
-struct DefinitionWebView: View {
-    let htmlContent: String
-    @State private var contentHeight: CGFloat = 80
+struct UnifiedSearchWebView: View {
+    let groupedResults: [GroupedSearchResults]
+    @State private var contentHeight: CGFloat = 200
+
+    private var unifiedHTML: String {
+        let termGroupsHTML = groupedResults.map { termGroup in
+            """
+            <div class="term-group">
+                <h1 class="term-header">\(escapeHTML(termGroup.displayTerm))</h1>
+                \(termGroup.dictionariesResults.map { dictionaryResult in
+                    """
+                    <div class="dictionary-section">
+                        <h2 class="dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h2>
+                        <div class="dictionary-content">
+                            \(dictionaryResult.combinedHTML)
+                        </div>
+                    </div>
+                    """
+                }.joined())
+            </div>
+            """
+        }.joined()
+
+        return termGroupsHTML
+    }
 
     private var htmlDocument: String {
         """
@@ -79,6 +65,27 @@ struct DefinitionWebView: View {
                     color: CanvasText;
                     background-color: Canvas;
                 }
+                .term-group {
+                    margin-bottom: 20px;
+                }
+                .term-header {
+                    font-size: 22px;
+                    font-weight: 600;
+                    margin: 0 0 12px 0;
+                    color: CanvasText;
+                }
+                .dictionary-section {
+                    margin-bottom: 12px;
+                }
+                .dictionary-header {
+                    font-size: 17px;
+                    font-weight: 600;
+                    margin: 0 0 8px 0;
+                    color: color-mix(in srgb, CanvasText 60%, transparent);
+                }
+                .dictionary-content {
+                    margin-bottom: 8px;
+                }
                 .glossary-list {
                     margin: 0;
                     padding-left: 20px;
@@ -97,7 +104,7 @@ struct DefinitionWebView: View {
             </style>
         </head>
         <body>
-            \(htmlContent)
+            \(unifiedHTML)
             <script>
                 function updateHeight() {
                     const height = document.body.scrollHeight;
@@ -112,15 +119,23 @@ struct DefinitionWebView: View {
         """
     }
 
+    private func escapeHTML(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
+    }
+
     var body: some View {
         if #available(iOS 26.0, *) {
             WebView(url: dataURL)
                 .frame(height: contentHeight)
         } else {
-            // Fallback for older iOS versions
-            Text("HTML content not available")
+            Text("Search results not available")
                 .foregroundColor(.secondary)
-                .frame(maxWidth: .infinity, minHeight: 80)
+                .frame(maxWidth: .infinity, minHeight: 200)
         }
     }
 
