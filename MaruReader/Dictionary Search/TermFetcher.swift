@@ -61,7 +61,7 @@ class TermFetcher {
         let fetchRequest: NSFetchRequest<Term> = Term.fetchRequest()
 
         // Batch lookup predicate
-        fetchRequest.predicate = NSPredicate(format: "expression IN %@", candidateTexts)
+        fetchRequest.predicate = NSPredicate(format: "(expression IN %@) OR (reading IN %@)", candidateTexts, candidateTexts)
 
         // Prefetch relationships to minimize database round trips
         fetchRequest.relationshipKeyPathsForPrefetching = [
@@ -85,7 +85,8 @@ class TermFetcher {
 
         for term in terms {
             // Find matching candidates for this term
-            let matchingCandidates = candidates.filter { $0.text == term.expression }
+            let matchingCandidates = candidates.filter { $0.text == term.expression || $0.text == term.reading }
+            logger.debug("Term '\(term.expression ?? "", privacy: .public)' matches candidates: \(matchingCandidates.map(\.text), privacy: .public)")
 
             for candidate in matchingCandidates {
                 // Process each term entry - properly cast NSSet to Set<TermEntry>
