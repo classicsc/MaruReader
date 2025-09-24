@@ -76,14 +76,16 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML(baseURL: baseURL)
 
-        #expect(html.contains("<img"))
-        #expect(html.contains("src=\"file:///dictionary/images/example.png\""))
-        #expect(html.contains("width=\"120\""))
-        #expect(html.contains("height=\"80\""))
-        #expect(html.contains("alt=\"An example image\""))
-        #expect(html.contains("title=\"Example\""))
-        #expect(html.contains("style=\"image-rendering: pixelated\""))
-        #expect(html.contains("/>"))
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(html.contains("data-path=\"images/example.png\""))
+        #expect(html.contains("data-image-load-state=\"not-loaded\""))
+        #expect(html.contains("<span class=\"gloss-image-container\" title=\"Example\" style=\"width: 120px\">"))
+        #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\"></span>"))
+        #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
+        #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
+        #expect(html.contains("<img class=\"gloss-image\" src=\"file:///dictionary/images/example.png\" width=\"120\" height=\"80\" alt=\"An example image\" style=\"image-rendering: pixelated\" />"))
+        #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
+        #expect(!html.contains("gloss-image-description"))
     }
 
     @Test func imageDefinition_toHTML_skipsAbsoluteSource() throws {
@@ -112,7 +114,9 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html == "<img width=\"100\" height=\"100\" />")
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(html.contains("<img class=\"gloss-image\" width=\"100\" height=\"100\""))
+        #expect(!html.contains("class=\"gloss-image\" src=\""))
     }
 
     @Test func deinflectionDefinition_toHTML_rendersInformationalParagraph() throws {
@@ -154,6 +158,8 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=150 and calculate height=75 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
+        #expect(html.contains("style=\"width: 150px\""))
+        #expect(html.contains("padding-top: 50%"))
     }
 
     @Test func imageDefinition_toHTML_preferredHeightOnlyCalculatesWidth() throws {
@@ -185,6 +191,8 @@ struct DefinitionHTMLGenerationTests {
         // Should calculate width=120 from preferredHeight=60 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"120\""))
         #expect(html.contains("height=\"60\""))
+        #expect(html.contains("style=\"width: 120px\""))
+        #expect(html.contains("padding-top: 50%"))
     }
 
     @Test func imageDefinition_toHTML_bothPreferredDimensionsUsesNewAspectRatio() throws {
@@ -216,6 +224,8 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=180 and calculate height from preferred aspect ratio (90/180 = 0.5)
         #expect(html.contains("width=\"180\""))
         #expect(html.contains("height=\"90\""))
+        #expect(html.contains("style=\"width: 180px\""))
+        #expect(html.contains("padding-top: 50%"))
     }
 
     // MARK: - CSS Styling Tests
@@ -246,6 +256,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
+        #expect(html.contains("data-vertical-align=\"middle\""))
         #expect(html.contains("style=\"vertical-align: middle\""))
     }
 
@@ -275,7 +286,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("style=\"border: 2px solid red\""))
+        #expect(html.contains("style=\"border: 2px solid red; width: 100px\""))
     }
 
     @Test func imageDefinition_toHTML_borderRadiusAppliesStyle() throws {
@@ -304,7 +315,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("style=\"border-radius: 8px\""))
+        #expect(html.contains("style=\"border-radius: 8px; width: 100px\""))
     }
 
     @Test func imageDefinition_toHTML_combinedStylesJoinCorrectly() throws {
@@ -333,11 +344,8 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        let styleAttribute = html.components(separatedBy: "style=\"")[1].components(separatedBy: "\"")[0]
-        #expect(styleAttribute.contains("image-rendering: pixelated"))
-        #expect(styleAttribute.contains("vertical-align: top"))
-        #expect(styleAttribute.contains("border: 1px solid blue"))
-        #expect(styleAttribute.contains("border-radius: 4px"))
+        #expect(html.contains("class=\"gloss-image-container\" style=\"border: 1px solid blue; border-radius: 4px; width: 100px\""))
+        #expect(html.contains("style=\"image-rendering: pixelated; vertical-align: top\""))
     }
 
     // MARK: - Size Units Tests
@@ -370,8 +378,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"120\"")) // HTML attributes still use pixel values
         #expect(html.contains("height=\"80\""))
-        #expect(html.contains("width: 120em")) // CSS style uses em
-        #expect(html.contains("height: 80em"))
+        #expect(html.contains("style=\"width: 120em\"")) // Container width uses em sizing
     }
 
     @Test func imageDefinition_toHTML_sizeUnitsEmWithPreferredDimensions() throws {
@@ -403,8 +410,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=150 and calculated height=75
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
-        #expect(html.contains("width: 150em"))
-        #expect(html.contains("height: 75em"))
+        #expect(html.contains("style=\"width: 150em\""))
     }
 
     @Test func imageDefinition_toHTML_sizeUnitsPxDoesNotApplyEmStyles() throws {
@@ -435,8 +441,8 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        #expect(!html.contains("width: 100em")) // Should NOT have em in CSS
-        #expect(!html.contains("height: 100em"))
+        #expect(html.contains("style=\"width: 100px\""))
+        #expect(!html.contains("width: 100em"))
     }
 
     // MARK: - Description Tests
@@ -467,10 +473,8 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("<img"))
-        #expect(html.contains("width=\"100\""))
-        #expect(html.contains("height=\"100\""))
-        #expect(html.contains("<span class=\"image-description\">This is a visible description</span>"))
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(html.contains("<span class=\"gloss-image-description\">This is a visible description</span>"))
     }
 
     @Test func imageDefinition_toHTML_noDescriptionRendersImageOnly() throws {
@@ -499,8 +503,8 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html == "<img src=\"image.png\" width=\"100\" height=\"100\" />")
-        #expect(!html.contains("image-description"))
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(!html.contains("gloss-image-description"))
     }
 
     @Test func imageDefinition_toHTML_descriptionEscapesHTMLCharacters() throws {
@@ -529,7 +533,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("Description with &lt;HTML&gt; &amp; &quot;quotes&quot;"))
+        #expect(html.contains("<span class=\"gloss-image-description\">Description with &lt;HTML&gt; &amp; &quot;quotes&quot;</span>"))
         #expect(!html.contains("Description with <HTML> & \"quotes\"")) // Should NOT contain unescaped HTML
     }
 
@@ -563,6 +567,9 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("width=\"350\""))
         #expect(html.contains("height=\"350\""))
         #expect(html.contains("style=\"image-rendering: pixelated\""))
-        #expect(html.contains("<span class=\"image-description\">gazou definition 2</span>"))
+        #expect(html.contains("<span class=\"gloss-image-description\">gazou definition 2</span>"))
+        #expect(html.contains("<span class=\"gloss-image-sizer\""))
+        #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
+        #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
     }
 }

@@ -117,37 +117,31 @@ extension Definition {
     }
 
     private func imageHTML(from image: ImageDef, baseURL: URL?) -> String {
-        var attributes: [String] = []
-
-        // Calculate responsive dimensions with aspect ratio handling
         let (finalWidth, finalHeight) = calculateImageDimensions(from: image)
+        let aspectRatioPadding = percentagePadding(forHeight: finalHeight, width: finalWidth)
+        let resolvedSource = resolveImageSource(path: image.path, baseURL: baseURL)
 
-        if let resolvedSource = resolveImageSource(path: image.path, baseURL: baseURL) {
-            attributes.append("src=\"\(escapeHTMLAttribute(resolvedSource))\"")
-        }
+        let linkAttributes = buildLinkAttributes(for: image)
+        let containerAttributes = buildContainerAttributes(for: image, finalWidth: finalWidth)
+        let imageAttributes = buildImageAttributes(
+            for: image,
+            resolvedSource: resolvedSource,
+            finalWidth: finalWidth,
+            finalHeight: finalHeight
+        )
 
-        // Use calculated responsive dimensions
-        attributes.append("width=\"\(finalWidth)\"")
-        attributes.append("height=\"\(finalHeight)\"")
+        var html = "<a \(linkAttributes)>"
+        html += "<span \(containerAttributes)>"
+        html += "<span class=\"gloss-image-sizer\" style=\"padding-top: \(aspectRatioPadding)%\"></span>"
+        html += "<span class=\"gloss-image-background\"></span>"
+        html += "<span class=\"gloss-image-container-overlay\"></span>"
+        html += "<img \(imageAttributes) />"
+        html += "</span>"
+        html += "<span class=\"gloss-image-link-text\">Image</span>"
+        html += "</a>"
 
-        if let alt = image.alt {
-            attributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
-        }
-
-        if let title = image.title {
-            attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
-        }
-
-        if let style = imageStyle(from: image) {
-            attributes.append("style=\"\(escapeHTMLAttribute(style))\"")
-        }
-
-        let attributeString = attributes.isEmpty ? "" : " " + attributes.joined(separator: " ")
-        var html = "<img\(attributeString) />"
-
-        // Add description as visible text if present
         if let description = image.description {
-            html += " <span class=\"image-description\">\(escapeHTML(description))</span>"
+            html += " <span class=\"gloss-image-description\">\(escapeHTML(description))</span>"
         }
 
         return html
@@ -201,10 +195,70 @@ extension Definition {
         return path
     }
 
-    private func imageStyle(from image: ImageDef) -> String? {
+    private func buildLinkAttributes(for image: ImageDef) -> String {
+        var attributes: [String] = [
+            "class=\"gloss-image-link\"",
+            "target=\"_blank\"",
+            "rel=\"noreferrer noopener\"",
+            "data-path=\"\(escapeHTMLAttribute(image.path))\"",
+            "data-image-load-state=\"not-loaded\"",
+            "data-has-aspect-ratio=\"true\"",
+            "data-image-rendering=\"\(escapeHTMLAttribute(image.imageRendering ?? (image.pixelated == true ? "pixelated" : "auto")))\"",
+            "data-appearance=\"\(escapeHTMLAttribute(image.appearance ?? "auto"))\"",
+            "data-background=\"\(escapeHTMLAttribute(String(image.background ?? true)))\"",
+            "data-collapsed=\"\(escapeHTMLAttribute(String(image.collapsed ?? false)))\"",
+            "data-collapsible=\"\(escapeHTMLAttribute(String(image.collapsible ?? true)))\"",
+        ]
+
+        if let verticalAlign = image.verticalAlign {
+            attributes.append("data-vertical-align=\"\(escapeHTMLAttribute(verticalAlign))\"")
+        }
+
+        if let sizeUnits = image.sizeUnits, image.preferredWidth != nil || image.preferredHeight != nil {
+            attributes.append("data-size-units=\"\(escapeHTMLAttribute(sizeUnits))\"")
+        }
+
+        return attributes.joined(separator: " ")
+    }
+
+    private func buildContainerAttributes(for image: ImageDef, finalWidth: Int) -> String {
+        var attributes = ["class=\"gloss-image-container\""]
+
+        if let title = image.title {
+            attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
+        }
+
+        if let style = imageContainerStyle(from: image, finalWidth: finalWidth) {
+            attributes.append("style=\"\(escapeHTMLAttribute(style))\"")
+        }
+
+        return attributes.joined(separator: " ")
+    }
+
+    private func buildImageAttributes(for image: ImageDef, resolvedSource: String?, finalWidth: Int, finalHeight: Int) -> String {
+        var attributes = ["class=\"gloss-image\""]
+
+        if let resolvedSource {
+            attributes.append("src=\"\(escapeHTMLAttribute(resolvedSource))\"")
+        }
+
+        attributes.append("width=\"\(finalWidth)\"")
+        attributes.append("height=\"\(finalHeight)\"")
+
+        if let alt = image.alt {
+            attributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
+        }
+
+        if let style = imageNodeStyle(from: image) {
+            attributes.append("style=\"\(escapeHTMLAttribute(style))\"")
+        }
+
+        return attributes.joined(separator: " ")
+    }
+
+    private func imageNodeStyle(from image: ImageDef) -> String? {
         var styleComponents: [String] = []
 
-        // Image rendering (existing logic)
         if let imageRendering = image.imageRendering {
             if imageRendering != "auto" {
                 styleComponents.append("image-rendering: \(imageRendering)")
@@ -213,12 +267,16 @@ extension Definition {
             styleComponents.append("image-rendering: pixelated")
         }
 
-        // Vertical alignment
         if let verticalAlign = image.verticalAlign {
             styleComponents.append("vertical-align: \(verticalAlign)")
         }
 
-        // Border styling
+        return styleComponents.isEmpty ? nil : styleComponents.joined(separator: "; ")
+    }
+
+    private func imageContainerStyle(from image: ImageDef, finalWidth: Int) -> String? {
+        var styleComponents: [String] = []
+
         if let border = image.border {
             styleComponents.append("border: \(border)")
         }
@@ -227,14 +285,31 @@ extension Definition {
             styleComponents.append("border-radius: \(borderRadius)")
         }
 
-        // Size units handling for responsive dimensions
-        if let sizeUnits = image.sizeUnits, sizeUnits == "em" {
-            let (width, height) = calculateImageDimensions(from: image)
-            styleComponents.append("width: \(width)em")
-            styleComponents.append("height: \(height)em")
+        styleComponents.append(containerWidthStyle(from: image, finalWidth: finalWidth))
+
+        return styleComponents.joined(separator: "; ")
+    }
+
+    private func containerWidthStyle(from image: ImageDef, finalWidth: Int) -> String {
+        if image.sizeUnits == "em" {
+            return "width: \(finalWidth)em"
         }
 
-        return styleComponents.isEmpty ? nil : styleComponents.joined(separator: "; ")
+        return "width: \(finalWidth)px"
+    }
+
+    private func percentagePadding(forHeight height: Int, width: Int) -> String {
+        let width = max(width, 1)
+        let value = Double(height) * 100.0 / Double(width)
+        guard value.isFinite else { return "0" }
+
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 4
+        formatter.minimumIntegerDigits = 1
+        formatter.usesGroupingSeparator = false
+
+        return formatter.string(from: NSNumber(value: value)) ?? "0"
     }
 
     private func escapeHTML(_ string: String) -> String {
