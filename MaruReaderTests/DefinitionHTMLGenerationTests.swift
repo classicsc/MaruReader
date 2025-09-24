@@ -79,7 +79,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<a class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"images/example.png\""))
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
-        #expect(html.contains("<span class=\"gloss-image-container\" title=\"Example\" style=\"width: 120px\">"))
+        #expect(html.contains("<span class=\"gloss-image-container\" title=\"Example\" style=\"width: 8.5714em\">"))
         #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
@@ -158,7 +158,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=150 and calculate height=75 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
-        #expect(html.contains("style=\"width: 150px\""))
+        #expect(html.contains("style=\"width: 150em\""))
         #expect(html.contains("padding-top: 50%"))
     }
 
@@ -191,7 +191,7 @@ struct DefinitionHTMLGenerationTests {
         // Should calculate width=120 from preferredHeight=60 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"120\""))
         #expect(html.contains("height=\"60\""))
-        #expect(html.contains("style=\"width: 120px\""))
+        #expect(html.contains("style=\"width: 120em\""))
         #expect(html.contains("padding-top: 50%"))
     }
 
@@ -224,7 +224,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=180 and calculate height from preferred aspect ratio (90/180 = 0.5)
         #expect(html.contains("width=\"180\""))
         #expect(html.contains("height=\"90\""))
-        #expect(html.contains("style=\"width: 180px\""))
+        #expect(html.contains("style=\"width: 180em\""))
         #expect(html.contains("padding-top: 50%"))
     }
 
@@ -286,7 +286,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("style=\"border: 2px solid red; width: 100px\""))
+        #expect(html.contains("style=\"border: 2px solid red; width: 7.1429em\""))
     }
 
     @Test func imageDefinition_toHTML_borderRadiusAppliesStyle() throws {
@@ -315,7 +315,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("style=\"border-radius: 8px; width: 100px\""))
+        #expect(html.contains("style=\"border-radius: 8px; width: 7.1429em\""))
     }
 
     @Test func imageDefinition_toHTML_combinedStylesJoinCorrectly() throws {
@@ -344,7 +344,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("class=\"gloss-image-container\" style=\"border: 1px solid blue; border-radius: 4px; width: 100px\""))
+        #expect(html.contains("class=\"gloss-image-container\" style=\"border: 1px solid blue; border-radius: 4px; width: 7.1429em\""))
         #expect(html.contains("style=\"image-rendering: pixelated; vertical-align: top\""))
     }
 
@@ -441,8 +441,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 100px\""))
-        #expect(!html.contains("width: 100em"))
+        #expect(html.contains("style=\"width: 7.1429em\""))
     }
 
     // MARK: - Description Tests
@@ -571,5 +570,210 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-sizer\""))
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
+    }
+
+    // MARK: - Enhanced Sizing Algorithm Tests
+
+    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithEmUnits() throws {
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 200,
+            height: 100,
+            preferredWidth: 150,
+            preferredHeight: nil,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: "em"
+        )
+        let definition = Definition.detailed(.image(image))
+
+        let html = definition.toHTML(devicePixelRatio: 3.0, baseFontSize: 16.0)
+
+        // With device pixel ratio scaling: finalWidth=150, scaleFactor=2*3.0=6.0, baseFontSize=16.0
+        // scaledWidth = 150 * 16.0 * 6.0 = 14400
+        // scaledHeight = 14400 * (100/200) = 7200 (maintaining 2:1 aspect ratio)
+        #expect(html.contains("width=\"14400\""))
+        #expect(html.contains("height=\"7200\""))
+        #expect(html.contains("style=\"width: 150em\""))
+    }
+
+    @Test func imageDefinition_toHTML_dynamicEmCalculationWithCustomBaseFontSize() throws {
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 200,
+            height: 100,
+            preferredWidth: nil,
+            preferredHeight: nil,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: nil
+        )
+        let definition = Definition.detailed(.image(image))
+
+        let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 18.0)
+
+        // Should convert 200px to em using baseFontSize=18: 200/18 = 11.1111
+        #expect(html.contains("width=\"200\""))
+        #expect(html.contains("height=\"100\""))
+        #expect(html.contains("style=\"width: 11.1111em\""))
+    }
+
+    @Test func imageDefinition_toHTML_preferredDimensionsAlwaysUseEmUnits() throws {
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 200,
+            height: 100,
+            preferredWidth: 150,
+            preferredHeight: nil,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: nil // No explicit size units, but should use EM because of preferred dimensions
+        )
+        let definition = Definition.detailed(.image(image))
+
+        let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 14.0)
+
+        // Should use EM units due to preferred dimensions, even without explicit sizeUnits="em"
+        #expect(html.contains("width=\"150\""))
+        #expect(html.contains("height=\"75\""))
+        #expect(html.contains("style=\"width: 150em\""))
+    }
+
+    @Test func imageDefinition_toHTML_noDevicePixelRatioScalingWithoutEmAndPreferredDimensions() throws {
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 100,
+            height: 100,
+            preferredWidth: nil,
+            preferredHeight: nil,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: nil
+        )
+        let definition = Definition.detailed(.image(image))
+
+        let html = definition.toHTML(devicePixelRatio: 4.0, baseFontSize: 12.0)
+
+        // No device pixel ratio scaling because sizeUnits != "em" and no preferred dimensions
+        #expect(html.contains("width=\"100\""))
+        #expect(html.contains("height=\"100\""))
+        // Should convert to EM: 100/12 = 8.3333
+        #expect(html.contains("style=\"width: 8.3333em\""))
+    }
+
+    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() throws {
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 200,
+            height: 100,
+            preferredWidth: nil,
+            preferredHeight: 80,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: "em"
+        )
+        let definition = Definition.detailed(.image(image))
+
+        let html = definition.toHTML(devicePixelRatio: 2.5, baseFontSize: 15.0)
+
+        // With device pixel ratio scaling:
+        // finalWidth = 80 / (100/200) = 160 (calculated from preferred height maintaining aspect ratio)
+        // scaleFactor = 2 * 2.5 = 5.0, baseFontSize = 15.0
+        // scaledWidth = 160 * 15.0 * 5.0 = 12000
+        // scaledHeight = 12000 * (100/200) = 6000
+        #expect(html.contains("width=\"12000\""))
+        #expect(html.contains("height=\"6000\""))
+        #expect(html.contains("style=\"width: 160em\""))
+    }
+
+    @Test func imageDefinition_toHTML_matchingYomitanScaling() throws {
+        // Test case matching Yomitan's exact behavior from structured-content-generator.js:154-163
+        let image = ImageDef(
+            type: "image",
+            path: "image.png",
+            width: 200,
+            height: 100,
+            preferredWidth: 150,
+            preferredHeight: nil,
+            title: nil,
+            alt: nil,
+            description: nil,
+            pixelated: nil,
+            imageRendering: nil,
+            appearance: nil,
+            background: nil,
+            collapsed: nil,
+            collapsible: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            sizeUnits: "em"
+        )
+        let definition = Definition.detailed(.image(image))
+
+        // Using Yomitan's default values: emSize=14, devicePixelRatio=2.0
+        let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 14.0)
+
+        // Yomitan calculation: scaleFactor = 2 * 2.0 = 4.0
+        // image.width = usedWidth * emSize * scaleFactor = 150 * 14 * 4 = 8400
+        // image.height = image.width * invAspectRatio = 8400 * 0.5 = 4200
+        #expect(html.contains("width=\"8400\""))
+        #expect(html.contains("height=\"4200\""))
+        #expect(html.contains("style=\"width: 150em\""))
     }
 }

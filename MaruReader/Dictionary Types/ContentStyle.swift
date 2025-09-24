@@ -7,6 +7,45 @@
 
 import Foundation
 
+enum CSSValue: Codable, Sendable, Equatable {
+    case numeric(Double)
+    case string(String)
+
+    var cssString: String {
+        switch self {
+        case let .numeric(value):
+            "\(value)em"
+        case let .string(value):
+            value
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+
+        if let doubleValue = try? container.decode(Double.self) {
+            self = .numeric(doubleValue)
+        } else if let stringValue = try? container.decode(String.self) {
+            self = .string(stringValue)
+        } else {
+            throw DecodingError.typeMismatch(CSSValue.self, DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Expected Double or String"
+            ))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .numeric(value):
+            try container.encode(value)
+        case let .string(value):
+            try container.encode(value)
+        }
+    }
+}
+
 struct ContentStyle: Codable, Sendable {
     let fontStyle: String?
     let fontWeight: String?
@@ -31,6 +70,22 @@ struct ContentStyle: Codable, Sendable {
     let whiteSpace: String?
     let wordBreak: String?
 
+    // Individual margin properties
+    let marginTop: CSSValue?
+    let marginLeft: CSSValue?
+    let marginRight: CSSValue?
+    let marginBottom: CSSValue?
+
+    // Individual padding properties
+    let paddingTop: String?
+    let paddingLeft: String?
+    let paddingRight: String?
+    let paddingBottom: String?
+
+    // Advanced CSS properties
+    let clipPath: String?
+    let cursor: String?
+
     init(
         fontStyle: String? = nil,
         fontWeight: String? = nil,
@@ -53,7 +108,17 @@ struct ContentStyle: Codable, Sendable {
         textEmphasis: String? = nil,
         textShadow: String? = nil,
         whiteSpace: String? = nil,
-        wordBreak: String? = nil
+        wordBreak: String? = nil,
+        marginTop: CSSValue? = nil,
+        marginLeft: CSSValue? = nil,
+        marginRight: CSSValue? = nil,
+        marginBottom: CSSValue? = nil,
+        paddingTop: String? = nil,
+        paddingLeft: String? = nil,
+        paddingRight: String? = nil,
+        paddingBottom: String? = nil,
+        clipPath: String? = nil,
+        cursor: String? = nil
     ) {
         self.fontStyle = fontStyle
         self.fontWeight = fontWeight
@@ -77,6 +142,16 @@ struct ContentStyle: Codable, Sendable {
         self.textShadow = textShadow
         self.whiteSpace = whiteSpace
         self.wordBreak = wordBreak
+        self.marginTop = marginTop
+        self.marginLeft = marginLeft
+        self.marginRight = marginRight
+        self.marginBottom = marginBottom
+        self.paddingTop = paddingTop
+        self.paddingLeft = paddingLeft
+        self.paddingRight = paddingRight
+        self.paddingBottom = paddingBottom
+        self.clipPath = clipPath
+        self.cursor = cursor
     }
 
     // Custom decoding to handle textDecorationLine as String or [String]
@@ -103,6 +178,16 @@ struct ContentStyle: Codable, Sendable {
         case textShadow
         case whiteSpace
         case wordBreak
+        case marginTop
+        case marginLeft
+        case marginRight
+        case marginBottom
+        case paddingTop
+        case paddingLeft
+        case paddingRight
+        case paddingBottom
+        case clipPath
+        case cursor
     }
 
     init(from decoder: Decoder) throws {
@@ -139,6 +224,16 @@ struct ContentStyle: Codable, Sendable {
         textShadow = try container.decodeIfPresent(String.self, forKey: .textShadow)
         whiteSpace = try container.decodeIfPresent(String.self, forKey: .whiteSpace)
         wordBreak = try container.decodeIfPresent(String.self, forKey: .wordBreak)
+        marginTop = try container.decodeIfPresent(CSSValue.self, forKey: .marginTop)
+        marginLeft = try container.decodeIfPresent(CSSValue.self, forKey: .marginLeft)
+        marginRight = try container.decodeIfPresent(CSSValue.self, forKey: .marginRight)
+        marginBottom = try container.decodeIfPresent(CSSValue.self, forKey: .marginBottom)
+        paddingTop = try container.decodeIfPresent(String.self, forKey: .paddingTop)
+        paddingLeft = try container.decodeIfPresent(String.self, forKey: .paddingLeft)
+        paddingRight = try container.decodeIfPresent(String.self, forKey: .paddingRight)
+        paddingBottom = try container.decodeIfPresent(String.self, forKey: .paddingBottom)
+        clipPath = try container.decodeIfPresent(String.self, forKey: .clipPath)
+        cursor = try container.decodeIfPresent(String.self, forKey: .cursor)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -166,11 +261,22 @@ struct ContentStyle: Codable, Sendable {
         try container.encodeIfPresent(textShadow, forKey: .textShadow)
         try container.encodeIfPresent(whiteSpace, forKey: .whiteSpace)
         try container.encodeIfPresent(wordBreak, forKey: .wordBreak)
+        try container.encodeIfPresent(marginTop, forKey: .marginTop)
+        try container.encodeIfPresent(marginLeft, forKey: .marginLeft)
+        try container.encodeIfPresent(marginRight, forKey: .marginRight)
+        try container.encodeIfPresent(marginBottom, forKey: .marginBottom)
+        try container.encodeIfPresent(paddingTop, forKey: .paddingTop)
+        try container.encodeIfPresent(paddingLeft, forKey: .paddingLeft)
+        try container.encodeIfPresent(paddingRight, forKey: .paddingRight)
+        try container.encodeIfPresent(paddingBottom, forKey: .paddingBottom)
+        try container.encodeIfPresent(clipPath, forKey: .clipPath)
+        try container.encodeIfPresent(cursor, forKey: .cursor)
     }
 
     func toCSSString() -> String {
         var cssProperties: [String] = []
 
+        // Font and text styling
         if let fontStyle {
             cssProperties.append("font-style: \(fontStyle)")
         }
@@ -183,12 +289,16 @@ struct ContentStyle: Codable, Sendable {
         if let color {
             cssProperties.append("color: \(color)")
         }
+
+        // Background styling
         if let backgroundColor {
             cssProperties.append("background-color: \(backgroundColor)")
         }
         if let background {
             cssProperties.append("background: \(background)")
         }
+
+        // Text decoration
         if let textDecorationLine, !textDecorationLine.isEmpty {
             cssProperties.append("text-decoration-line: \(textDecorationLine.joined(separator: " "))")
         }
@@ -198,21 +308,60 @@ struct ContentStyle: Codable, Sendable {
         if let textDecorationColor {
             cssProperties.append("text-decoration-color: \(textDecorationColor)")
         }
-        if let listStyleType {
-            cssProperties.append("list-style-type: \(listStyleType)")
-        }
+
+        // Text alignment and emphasis
         if let textAlign {
             cssProperties.append("text-align: \(textAlign)")
         }
         if let verticalAlign {
             cssProperties.append("vertical-align: \(verticalAlign)")
         }
-        if let margin {
+        if let textEmphasis {
+            cssProperties.append("text-emphasis: \(textEmphasis)")
+        }
+        if let textShadow {
+            cssProperties.append("text-shadow: \(textShadow)")
+        }
+
+        // Margin handling - individual properties take precedence over shorthand
+        let hasIndividualMargins = marginTop != nil || marginLeft != nil || marginRight != nil || marginBottom != nil
+        if hasIndividualMargins {
+            if let marginTop {
+                cssProperties.append("margin-top: \(marginTop.cssString)")
+            }
+            if let marginLeft {
+                cssProperties.append("margin-left: \(marginLeft.cssString)")
+            }
+            if let marginRight {
+                cssProperties.append("margin-right: \(marginRight.cssString)")
+            }
+            if let marginBottom {
+                cssProperties.append("margin-bottom: \(marginBottom.cssString)")
+            }
+        } else if let margin {
             cssProperties.append("margin: \(margin)")
         }
-        if let padding {
+
+        // Padding handling - individual properties take precedence over shorthand
+        let hasIndividualPaddings = paddingTop != nil || paddingLeft != nil || paddingRight != nil || paddingBottom != nil
+        if hasIndividualPaddings {
+            if let paddingTop {
+                cssProperties.append("padding-top: \(paddingTop)")
+            }
+            if let paddingLeft {
+                cssProperties.append("padding-left: \(paddingLeft)")
+            }
+            if let paddingRight {
+                cssProperties.append("padding-right: \(paddingRight)")
+            }
+            if let paddingBottom {
+                cssProperties.append("padding-bottom: \(paddingBottom)")
+            }
+        } else if let padding {
             cssProperties.append("padding: \(padding)")
         }
+
+        // Border properties
         if let borderColor {
             cssProperties.append("border-color: \(borderColor)")
         }
@@ -225,12 +374,16 @@ struct ContentStyle: Codable, Sendable {
         if let borderWidth {
             cssProperties.append("border-width: \(borderWidth)")
         }
-        if let textEmphasis {
-            cssProperties.append("text-emphasis: \(textEmphasis)")
+
+        // Advanced CSS properties
+        if let clipPath {
+            cssProperties.append("clip-path: \(clipPath)")
         }
-        if let textShadow {
-            cssProperties.append("text-shadow: \(textShadow)")
+        if let cursor {
+            cssProperties.append("cursor: \(cursor)")
         }
+
+        // Text behavior
         if let whiteSpace {
             cssProperties.append("white-space: \(whiteSpace)")
         }
@@ -238,6 +391,124 @@ struct ContentStyle: Codable, Sendable {
             cssProperties.append("word-break: \(wordBreak)")
         }
 
+        // List styling
+        if let listStyleType {
+            cssProperties.append("list-style-type: \(listStyleType)")
+        }
+
         return cssProperties.joined(separator: "; ")
+    }
+
+    func toDataAttributes() -> [String: String] {
+        var attributes: [String: String] = [:]
+
+        // Generate data attributes for styling metadata
+        if fontStyle != nil || fontWeight != nil || fontSize != nil {
+            attributes["data-font-styled"] = "true"
+        }
+
+        if color != nil || backgroundColor != nil || background != nil {
+            attributes["data-color-styled"] = "true"
+        }
+
+        if textDecorationLine != nil || textDecorationStyle != nil || textDecorationColor != nil {
+            attributes["data-text-decorated"] = "true"
+        }
+
+        if marginTop != nil || marginLeft != nil || marginRight != nil || marginBottom != nil || margin != nil {
+            attributes["data-has-margin"] = "true"
+        }
+
+        if paddingTop != nil || paddingLeft != nil || paddingRight != nil || paddingBottom != nil || padding != nil {
+            attributes["data-has-padding"] = "true"
+        }
+
+        if borderColor != nil || borderStyle != nil || borderRadius != nil || borderWidth != nil {
+            attributes["data-has-border"] = "true"
+        }
+
+        if clipPath != nil {
+            attributes["data-has-clip-path"] = "true"
+        }
+
+        if cursor != nil {
+            attributes["data-has-cursor"] = "true"
+        }
+
+        return attributes
+    }
+
+    func toCSSClasses() -> [String] {
+        var classes: [String] = []
+
+        // Add semantic classes based on styling properties
+        if fontWeight != nil {
+            classes.append("styled-font-weight")
+        }
+
+        if fontStyle != nil {
+            classes.append("styled-font-style")
+        }
+
+        if textDecorationLine != nil && !textDecorationLine!.isEmpty {
+            classes.append("styled-text-decoration")
+            // Add specific decoration classes
+            for decoration in textDecorationLine! {
+                switch decoration.lowercased() {
+                case "underline":
+                    classes.append("text-underlined")
+                case "line-through":
+                    classes.append("text-strikethrough")
+                case "overline":
+                    classes.append("text-overlined")
+                default:
+                    break
+                }
+            }
+        }
+
+        if backgroundColor != nil || background != nil {
+            classes.append("styled-background")
+        }
+
+        if borderStyle != nil || borderWidth != nil || borderColor != nil {
+            classes.append("styled-border")
+        }
+
+        if marginTop != nil || marginLeft != nil || marginRight != nil || marginBottom != nil || margin != nil {
+            classes.append("styled-margin")
+        }
+
+        if paddingTop != nil || paddingLeft != nil || paddingRight != nil || paddingBottom != nil || padding != nil {
+            classes.append("styled-padding")
+        }
+
+        if textAlign != nil {
+            classes.append("styled-text-align")
+            switch textAlign!.lowercased() {
+            case "center":
+                classes.append("text-center")
+            case "right":
+                classes.append("text-right")
+            case "justify":
+                classes.append("text-justify")
+            default:
+                break
+            }
+        }
+
+        if verticalAlign != nil {
+            classes.append("styled-vertical-align")
+        }
+
+        if clipPath != nil {
+            classes.append("styled-clip-path")
+        }
+
+        if cursor != nil {
+            classes.append("styled-cursor")
+        }
+
+        return classes
     }
 }

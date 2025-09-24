@@ -91,7 +91,7 @@ enum DefinitionDetailed: Codable, Sendable {
 // MARK: - HTML Conversion
 
 extension Definition {
-    func toHTML(baseURL: URL? = nil) -> String {
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: CGFloat? = nil, baseFontSize: CGFloat? = nil) -> String {
         switch self {
         case let .text(text):
             return wrapDefinitionText(text)
@@ -102,7 +102,7 @@ extension Definition {
             case let .structured(structuredDef):
                 return structuredDef.content.toHTML(baseURL: baseURL)
             case let .image(imageDef):
-                return imageHTML(from: imageDef, baseURL: baseURL)
+                return imageHTML(from: imageDef, baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize)
             }
         case let .deinflection(uninflected, rules):
             let escapedUninflected = escapeHTML(uninflected)
@@ -116,13 +116,14 @@ extension Definition {
         return "<p class=\"definition-text\">\(escapedText)</p>"
     }
 
-    private func imageHTML(from image: ImageDef, baseURL: URL?) -> String {
-        let (finalWidth, finalHeight) = calculateImageDimensions(from: image)
-        let aspectRatioPadding = percentagePadding(forHeight: finalHeight, width: finalWidth)
+    private func imageHTML(from image: ImageDef, baseURL: URL?, devicePixelRatio: CGFloat?, baseFontSize: CGFloat?) -> String {
+        let (containerWidth, containerHeight) = calculateContainerDimensions(from: image)
+        let (finalWidth, finalHeight) = calculateImageDimensions(from: image, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize)
+        let aspectRatioPadding = percentagePadding(forHeight: containerHeight, width: containerWidth)
         let resolvedSource = resolveImageSource(path: image.path, baseURL: baseURL)
 
         let linkAttributes = buildLinkAttributes(for: image)
-        let containerAttributes = buildContainerAttributes(for: image, finalWidth: finalWidth)
+        let containerAttributes = buildContainerAttributes(for: image, finalWidth: containerWidth, baseFontSize: baseFontSize ?? 14.0)
         let imageAttributes = buildImageAttributes(
             for: image,
             resolvedSource: resolvedSource,
@@ -147,7 +148,7 @@ extension Definition {
         return html
     }
 
-    private func calculateImageDimensions(from image: ImageDef) -> (width: Int, height: Int) {
+    private func calculateContainerDimensions(from image: ImageDef) -> (width: Int, height: Int) {
         // Get base dimensions, fallback to 100x100 if not provided
         let baseWidth = image.width ?? 100
         let baseHeight = image.height ?? 100
@@ -176,6 +177,28 @@ extension Definition {
         let finalHeight = Int(Double(finalWidth) * invAspectRatio)
 
         return (width: finalWidth, height: finalHeight)
+    }
+
+    private func calculateImageDimensions(from image: ImageDef, devicePixelRatio: CGFloat?, baseFontSize: CGFloat?) -> (width: Int, height: Int) {
+        // Start with container dimensions
+        let (containerWidth, containerHeight) = calculateContainerDimensions(from: image)
+
+        // Check if we have preferred dimensions for responsive sizing
+        let hasPreferredWidth = image.preferredWidth != nil
+        let hasPreferredHeight = image.preferredHeight != nil
+
+        // Apply device pixel ratio scaling for EM units (matching Yomitan behavior)
+        // Only when both devicePixelRatio and baseFontSize are explicitly provided
+        if let devicePixelRatio, let baseFontSize,
+           image.sizeUnits == "em", hasPreferredWidth || hasPreferredHeight
+        {
+            let scaleFactor = 2.0 * devicePixelRatio
+            let scaledWidth = Int(Double(containerWidth) * Double(baseFontSize) * scaleFactor)
+            let scaledHeight = Int(Double(containerHeight) * Double(baseFontSize) * scaleFactor)
+            return (width: scaledWidth, height: scaledHeight)
+        }
+
+        return (width: containerWidth, height: containerHeight)
     }
 
     private func resolveImageSource(path: String, baseURL: URL?) -> String? {
@@ -221,14 +244,14 @@ extension Definition {
         return attributes.joined(separator: " ")
     }
 
-    private func buildContainerAttributes(for image: ImageDef, finalWidth: Int) -> String {
+    private func buildContainerAttributes(for image: ImageDef, finalWidth: Int, baseFontSize: CGFloat) -> String {
         var attributes = ["class=\"gloss-image-container\""]
 
         if let title = image.title {
             attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
         }
 
-        if let style = imageContainerStyle(from: image, finalWidth: finalWidth) {
+        if let style = imageContainerStyle(from: image, finalWidth: finalWidth, baseFontSize: baseFontSize) {
             attributes.append("style=\"\(escapeHTMLAttribute(style))\"")
         }
 
@@ -274,7 +297,7 @@ extension Definition {
         return styleComponents.isEmpty ? nil : styleComponents.joined(separator: "; ")
     }
 
-    private func imageContainerStyle(from image: ImageDef, finalWidth: Int) -> String? {
+    private func imageContainerStyle(from image: ImageDef, finalWidth: Int, baseFontSize: CGFloat) -> String? {
         var styleComponents: [String] = []
 
         if let border = image.border {
@@ -285,17 +308,29 @@ extension Definition {
             styleComponents.append("border-radius: \(borderRadius)")
         }
 
-        styleComponents.append(containerWidthStyle(from: image, finalWidth: finalWidth))
+        styleComponents.append(containerWidthStyle(from: image, finalWidth: finalWidth, baseFontSize: baseFontSize))
 
         return styleComponents.joined(separator: "; ")
     }
 
-    private func containerWidthStyle(from image: ImageDef, finalWidth: Int) -> String {
-        if image.sizeUnits == "em" {
+    private func containerWidthStyle(from image: ImageDef, finalWidth: Int, baseFontSize: CGFloat) -> String {
+        // Always use EM units for consistency with Yomitan (matching line 145 in structured-content-generator.js)
+        if image.sizeUnits == "em" || (image.preferredWidth != nil || image.preferredHeight != nil) {
             return "width: \(finalWidth)em"
         }
 
-        return "width: \(finalWidth)px"
+        // Convert px to em using dynamic calculation for legacy support
+        let emWidth = Double(finalWidth) / Double(baseFontSize)
+        return "width: \(formatNumber(emWidth))em"
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 4
+        formatter.minimumIntegerDigits = 1
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: value)) ?? "0"
     }
 
     private func percentagePadding(forHeight height: Int, width: Int) -> String {
@@ -333,8 +368,8 @@ extension Definition {
 
 /// Render arrays of definitions as ordered lists in HTML.
 extension [Definition] {
-    func toHTML(baseURL: URL? = nil) -> String {
-        let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL))</li>" }.joined()
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: CGFloat? = nil, baseFontSize: CGFloat? = nil) -> String {
+        let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize))</li>" }.joined()
         return "<ol class=\"glossary-list\">\(itemsHTML)</ol>"
     }
 }
