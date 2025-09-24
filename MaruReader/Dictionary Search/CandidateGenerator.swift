@@ -10,6 +10,11 @@ import Foundation
 /// Generates `LookupCandidate` objects from user input through substring generation,
 /// preprocessing, and deinflection pipelines.
 class DictionaryCandidateGenerator {
+    // MARK: - Constants
+
+    static let defaultMaxCandidates = 1000
+    static let defaultMaxPreprocessorVariants = 5
+
     // MARK: - Properties
 
     private let preprocessor: JapaneseTextPreprocessor
@@ -22,7 +27,7 @@ class DictionaryCandidateGenerator {
     /// - Parameters:
     ///   - maxCandidates: Maximum number of candidates to generate (default: 1000)
     ///   - maxPreprocessorVariants: Maximum variants per preprocessing step (default: 5)
-    init(maxCandidates: Int = 1000, maxPreprocessorVariants: Int = 5) {
+    init(maxCandidates: Int = DictionaryCandidateGenerator.defaultMaxCandidates, maxPreprocessorVariants: Int = DictionaryCandidateGenerator.defaultMaxPreprocessorVariants) {
         self.maxCandidates = maxCandidates
         self.preprocessor = JapaneseTextPreprocessor(maxVariants: maxPreprocessorVariants)
         self.deinflector = JapaneseDeinflector()
@@ -110,9 +115,20 @@ class DictionaryCandidateGenerator {
     /// - Parameter candidate: Base lookup candidate
     /// - Returns: Array of candidates with preprocessing applied
     private func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
-        // For now, we'll start with the base candidate as-is
-        // This can be extended with actual preprocessing rules later
-        [candidate]
+        // Preprocessor config for Japanese, currently all rules enabled
+        let defaultTextPreprocessorRules: [TextPreprocessorRule] = [
+            NormalizeCJKCompatibilityCharactersRule(),
+            NormalizeCombiningCharactersRule(),
+            ConvertKanjiVariantsRule(),
+            CollapseEmphaticSequencesRule(),
+            ConvertHalfWidthCharactersRule(),
+            ConvertAlphabeticToKanaRule(),
+            ConvertHiraganaToKatakanaRule(),
+            ConvertKatakanaToHiraganaRule(),
+            ConvertFullWidthAlphanumericToNormalRule(),
+            ConvertAlphanumericToFullWidthRule(),
+        ]
+        return preprocessor.generateVariants(candidate, using: defaultTextPreprocessorRules)
     }
 
     /// Apply deinflection rules to generate potential dictionary forms
