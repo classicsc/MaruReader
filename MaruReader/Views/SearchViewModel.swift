@@ -18,6 +18,7 @@ class SearchViewModel {
 
     private let persistenceController: PersistenceController
     private var termFetcher: TermFetcher?
+    private let candidateGenerator = DictionaryCandidateGenerator()
 
     init(persistenceController: PersistenceController = PersistenceController.shared) {
         self.persistenceController = persistenceController
@@ -39,16 +40,10 @@ class SearchViewModel {
         searchError = nil
 
         do {
-            // Create lookup candidate from query
-            let candidate = LookupCandidate(
-                text: query,
-                originalSubstring: query,
-                preprocessorRules: [],
-                deinflectionInputRules: [],
-                deinflectionOutputRules: []
-            )
+            // Create lookup candidates from query
+            let candidates = candidateGenerator.generateCandidates(from: query)
 
-            let results = try await termFetcher?.fetchTerms(for: [candidate]) ?? []
+            let results = try await termFetcher?.fetchTerms(for: candidates) ?? []
 
             searchResults = results
             groupedResults = groupResults(results)

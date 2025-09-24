@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 
 /// Fetches terms from Core Data using batch queries and converts them to SearchResult structs
 class TermFetcher {
@@ -51,8 +52,10 @@ class TermFetcher {
     ///   - context: NSManagedObjectContext to perform the fetch in
     /// - Returns: Array of SearchResult structs
     private static func performFetch(candidates: [LookupCandidate], context: NSManagedObjectContext) throws -> [SearchResult] {
+        let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermFetcher")
         // Extract unique candidate texts for batch lookup
         let candidateTexts = Array(Set(candidates.map(\.text)))
+        logger.debug("Fetching terms for candidates: \(candidateTexts, privacy: .public)")
 
         // Create fetch request for terms
         let fetchRequest: NSFetchRequest<Term> = Term.fetchRequest()
@@ -93,8 +96,10 @@ class TermFetcher {
                     guard let dictionary = entry.dictionary,
                           dictionary.termResultsEnabled else { continue }
 
+                    let entryRules = Set(entry.rules as? [String] ?? [])
+
                     // Check if deinflection rules match
-                    if !candidate.deinflectionOutputRules.isEmpty {
+                    if !candidate.deinflectionOutputRules.isEmpty, !entryRules.isEmpty {
                         let entryRules = Set(entry.rules as? [String] ?? [])
                         let candidateRules = Set(candidate.deinflectionOutputRules)
 
