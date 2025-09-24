@@ -90,22 +90,29 @@ class TermFetcher {
 
             for candidate in matchingCandidates {
                 // Process each term entry - properly cast NSSet to Set<TermEntry>
-                guard let entriesSet = term.entries as? Set<TermEntry> else { continue }
+                guard let entriesSet = term.entries as? Set<TermEntry> else {
+                    logger.debug("No entries found for term '\(term.expression ?? "", privacy: .public)'")
+                    continue
+                }
 
                 for entry in entriesSet {
                     // Skip disabled dictionaries
                     guard let dictionary = entry.dictionary,
-                          dictionary.termResultsEnabled else { continue }
+                          dictionary.termResultsEnabled
+                    else {
+                        logger.debug("Skipping entry from disabled dictionary for term '\(term.expression ?? "", privacy: .public)'")
+                        continue
+                    }
 
                     let entryRules = Set(entry.rules as? [String] ?? [])
 
                     // Check if deinflection rules match
                     if !candidate.deinflectionOutputRules.isEmpty, !entryRules.isEmpty {
-                        let entryRules = Set(entry.rules as? [String] ?? [])
                         let candidateRules = Set(candidate.deinflectionOutputRules)
 
                         // Skip if no rule overlap (this entry doesn't match the deinflection)
                         if entryRules.isDisjoint(with: candidateRules) {
+                            logger.debug("Skipping entry for term '\(term.expression ?? "", privacy: .public)' due to rule mismatch. Entry rules: \(entryRules, privacy: .public), Candidate rules: \(candidateRules, privacy: .public)")
                             continue
                         }
                     }
@@ -123,6 +130,8 @@ class TermFetcher {
                         dictionaryTitle: dictionary.title ?? "",
                         dictionaryPriority: Int(dictionary.termDisplayPriority)
                     )
+
+                    logger.debug("Created SearchResult: term='\(term.expression ?? "", privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count)")
 
                     // Create SearchResult
                     let searchResult = SearchResult(

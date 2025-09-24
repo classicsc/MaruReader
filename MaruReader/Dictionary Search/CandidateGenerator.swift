@@ -62,13 +62,15 @@ class DictionaryCandidateGenerator {
 
                 // Accumulate candidates by text, preserving all transformation chains
                 for candidate in deinflectedCandidates {
-                    if var accumulator = candidatesByText[candidate.text] {
-                        // Merge transformation chains
+                    let candidateKey = candidate.text + "|" + (candidate.deinflectionOutputRules.isEmpty ? "exact" : "deinflected")
+
+                    if var accumulator = candidatesByText[candidateKey] {
+                        // Merge transformation chains only for candidates of the same type
                         accumulator.addCandidate(candidate)
-                        candidatesByText[candidate.text] = accumulator
+                        candidatesByText[candidateKey] = accumulator
                     } else {
-                        // First occurrence of this text
-                        candidatesByText[candidate.text] = CandidateAccumulator(candidate)
+                        // First occurrence of this text+type combination
+                        candidatesByText[candidateKey] = CandidateAccumulator(candidate)
                         substringCandidateCount += 1
                     }
 
