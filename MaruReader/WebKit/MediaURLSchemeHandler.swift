@@ -111,28 +111,6 @@ class MediaURLSchemeHandler: URLSchemeHandler {
         }
     }
 
-    private static func getMediaFileURL(dictionaryUUID: UUID, filePath: String) throws -> URL {
-        // Get application support directory
-        let appSupportURL = try FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
-
-        // Construct path to media file: {Application Support}/Media/{dictionaryUUID}/{filePath}
-        let mediaURL = appSupportURL
-            .appendingPathComponent("Media")
-            .appendingPathComponent(dictionaryUUID.uuidString)
-            .appendingPathComponent(filePath)
-
-        // remove any redundant percent encoding
-        let filePathWithoutPercentEncoding = mediaURL.path.removingPercentEncoding?.removingPercentEncoding ?? mediaURL.path
-        let finalURL = URL(fileURLWithPath: filePathWithoutPercentEncoding)
-
-        return finalURL
-    }
-
     private static func getMimeType(for url: URL) -> String {
         let pathExtension = url.pathExtension.lowercased()
 
