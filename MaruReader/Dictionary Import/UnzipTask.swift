@@ -67,10 +67,6 @@ actor UnzipTask {
                 // This preserves directory structure automatically
                 try Zip.unzipFile(jobURL, destination: jobDirectory, overwrite: true, password: nil)
 
-                // Debug: List what was actually extracted
-                let extractedContents = try FileManager.default.contentsOfDirectory(at: jobDirectory, includingPropertiesForKeys: nil)
-                logger.debug("Extracted files: \(extractedContents.map(\.lastPathComponent).joined(separator: ", "), privacy: .public)")
-
             } catch let error as NSError {
                 throw DictionaryImportError.unzipFailed(underlyingError: error)
             }
