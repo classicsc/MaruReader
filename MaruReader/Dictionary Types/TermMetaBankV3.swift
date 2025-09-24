@@ -83,11 +83,15 @@ struct FrequencyData: Codable, Comparable {
         if let num = try? decoder.singleValueContainer().decode(Double.self) {
             self.value = num
             self.displayValue = nil
-        } else if let str = try? decoder.singleValueContainer().decode(String.self),
-                  let num = Double(str)
-        {
-            self.value = num
-            self.displayValue = str
+        } else if let str = try? decoder.singleValueContainer().decode(String.self) {
+            if let num = Double(str) {
+                self.value = num
+                self.displayValue = str
+            } else {
+                // String that can't be parsed as number - use as display value with default numeric value
+                self.value = 0.0
+                self.displayValue = str
+            }
         } else {
             let obj = try decoder.singleValueContainer().decode(FrequencyObject.self)
             self.value = obj.value

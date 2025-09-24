@@ -134,10 +134,10 @@ struct TermMetaParsingTests {
         }
     }
 
-    @Test func parseTermMetaData_FrequencyInvalidString_Throws() throws {
-        // Purpose: Test invalid frequency string now results in decoding error (strict schema).
+    @Test func parseTermMetaData_FrequencyNonNumericString_ParsesAsDisplayOnly() throws {
+        // Purpose: Test that non-numeric frequency strings are handled as display-only values.
         // Input: Frequency as string "invalid".
-        // Expected: Decoding throws.
+        // Expected: Parsed with value 0.0 and displayValue "invalid".
         let jsonString = """
         [
             ["食べる", "freq", "invalid"]
@@ -145,9 +145,16 @@ struct TermMetaParsingTests {
         """
         let data = jsonString.data(using: .utf8)!
         let decoder = JSONDecoder()
+        let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
-        #expect(throws: Error.self) {
-            _ = try decoder.decode([TermMetaBankV3Entry].self, from: data)
+        #expect(metaDataArray.count == 1)
+        let entry = metaDataArray[0]
+        switch entry.data {
+        case let .frequency(freq):
+            #expect(freq.value == 0.0)
+            #expect(freq.displayValue == "invalid")
+        default:
+            #expect(Bool(false), "Expected frequency data from non-numeric string")
         }
     }
 
@@ -451,6 +458,30 @@ struct TermMetaParsingTests {
         let decoder = JSONDecoder()
         #expect(throws: Error.self) {
             _ = try decoder.decode([TermMetaBankV3Entry].self, from: data)
+        }
+    }
+
+    @Test func parseTermMetaData_FrequencyAsNonNumericString_ParsesAsDisplayOnly() throws {
+        // Purpose: Test frequency data as string that can't be parsed as number.
+        // Input: Frequency as string "four".
+        // Expected: Parsed FrequencyData with value 0.0 and displayValue "four".
+        let jsonString = """
+        [
+            ["食べる", "freq", "four"]
+        ]
+        """
+        let data = jsonString.data(using: .utf8)!
+        let decoder = JSONDecoder()
+        let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
+
+        #expect(metaDataArray.count == 1)
+        let entry = metaDataArray[0]
+        switch entry.data {
+        case let .frequency(freq):
+            #expect(freq.value == 0.0)
+            #expect(freq.displayValue == "four")
+        default:
+            #expect(Bool(false), "Expected frequency data from non-numeric string")
         }
     }
 
