@@ -149,9 +149,21 @@ actor TermBankProcessingTask {
                 throw DictionaryImportError.databaseError
             }
 
+            // Prefetch existing terms for this batch
+            let termKeys = batch.map { (expression: $0.expression, reading: $0.reading) }
+            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
+
+            // Prefetch dictionary tags
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
             for entry in batch {
-                // Find or create Term entity
-                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+                // Find or create Term entity using cache
+                let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                    expression: entry.expression,
+                    reading: entry.reading,
+                    cache: &termCache,
+                    context: context
+                )
 
                 // Create TermEntry
                 let termEntry = TermEntry(context: context)
@@ -169,8 +181,13 @@ actor TermBankProcessingTask {
                 termEntry.term = term
                 termEntry.dictionary = dictionary
 
-                // Link tags
-                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: entry.termTags, definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+                // Link tags using cache
+                DictionaryImportUtilities.linkTagsToTermEntryWithCache(
+                    termEntry,
+                    termTags: entry.termTags,
+                    definitionTags: entry.definitionTags,
+                    tagCache: tagCache
+                )
             }
 
             try context.save()
@@ -186,9 +203,21 @@ actor TermBankProcessingTask {
                 throw DictionaryImportError.databaseError
             }
 
+            // Prefetch existing terms for this batch
+            let termKeys = batch.map { (expression: $0.expression, reading: $0.reading) }
+            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
+
+            // Prefetch dictionary tags
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
             for entry in batch {
-                // Find or create Term entity
-                let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.expression, reading: entry.reading, context: context)
+                // Find or create Term entity using cache
+                let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                    expression: entry.expression,
+                    reading: entry.reading,
+                    cache: &termCache,
+                    context: context
+                )
 
                 // Create TermEntry
                 let termEntry = TermEntry(context: context)
@@ -206,8 +235,13 @@ actor TermBankProcessingTask {
                 termEntry.term = term
                 termEntry.dictionary = dictionary
 
-                // Link tags (V1 only has definition tags)
-                try DictionaryImportUtilities.linkTagsToTermEntry(termEntry, termTags: [], definitionTags: entry.definitionTags, dictionary: dictionary, context: context)
+                // Link tags using cache (V1 only has definition tags)
+                DictionaryImportUtilities.linkTagsToTermEntryWithCache(
+                    termEntry,
+                    termTags: [],
+                    definitionTags: entry.definitionTags,
+                    tagCache: tagCache
+                )
             }
 
             try context.save()

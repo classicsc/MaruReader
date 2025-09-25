@@ -149,9 +149,20 @@ actor KanjiBankProcessingTask {
                 throw DictionaryImportError.databaseError
             }
 
+            // Prefetch existing kanji for this batch
+            let characters = batch.map(\.character)
+            var kanjiCache = try DictionaryImportUtilities.prefetchExistingKanji(characters: characters, context: context)
+
+            // Prefetch dictionary tags
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
             for entry in batch {
-                // Find or create Kanji entity
-                let kanji = try DictionaryImportUtilities.findOrCreateKanji(character: entry.character, context: context)
+                // Find or create Kanji entity using cache
+                let kanji = try DictionaryImportUtilities.findOrCreateKanjiWithCache(
+                    character: entry.character,
+                    cache: &kanjiCache,
+                    context: context
+                )
 
                 // Create KanjiEntry
                 let kanjiEntry = KanjiEntry(context: context)
@@ -168,8 +179,12 @@ actor KanjiBankProcessingTask {
                 kanjiEntry.kanji = kanji
                 kanjiEntry.dictionary = dictionary
 
-                // Link tags
-                try DictionaryImportUtilities.linkTagsToKanjiEntry(kanjiEntry, tags: entry.tags, dictionary: dictionary, context: context)
+                // Link tags using cache
+                DictionaryImportUtilities.linkTagsToKanjiEntryWithCache(
+                    kanjiEntry,
+                    tags: entry.tags,
+                    tagCache: tagCache
+                )
             }
 
             try context.save()
@@ -185,9 +200,20 @@ actor KanjiBankProcessingTask {
                 throw DictionaryImportError.databaseError
             }
 
+            // Prefetch existing kanji for this batch
+            let characters = batch.map(\.character)
+            var kanjiCache = try DictionaryImportUtilities.prefetchExistingKanji(characters: characters, context: context)
+
+            // Prefetch dictionary tags
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
             for entry in batch {
-                // Find or create Kanji entity
-                let kanji = try DictionaryImportUtilities.findOrCreateKanji(character: entry.character, context: context)
+                // Find or create Kanji entity using cache
+                let kanji = try DictionaryImportUtilities.findOrCreateKanjiWithCache(
+                    character: entry.character,
+                    cache: &kanjiCache,
+                    context: context
+                )
 
                 // Create KanjiEntry
                 let kanjiEntry = KanjiEntry(context: context)
@@ -204,8 +230,12 @@ actor KanjiBankProcessingTask {
                 kanjiEntry.kanji = kanji
                 kanjiEntry.dictionary = dictionary
 
-                // Link tags
-                try DictionaryImportUtilities.linkTagsToKanjiEntry(kanjiEntry, tags: entry.tags, dictionary: dictionary, context: context)
+                // Link tags using cache
+                DictionaryImportUtilities.linkTagsToKanjiEntryWithCache(
+                    kanjiEntry,
+                    tags: entry.tags,
+                    tagCache: tagCache
+                )
             }
 
             try context.save()

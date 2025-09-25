@@ -113,11 +113,38 @@ actor TermMetaBankProcessingTask {
             else {
                 throw DictionaryImportError.databaseError
             }
+
+            // Collect all term keys from the batch for prefetching
+            var termKeys: [(expression: String, reading: String)] = []
+            for entry in batch {
+                switch entry.data {
+                case .frequency:
+                    termKeys.append((expression: entry.term, reading: ""))
+                case let .frequencyWithReading(freqReading):
+                    termKeys.append((expression: entry.term, reading: freqReading.reading))
+                case let .pitch(pitchData):
+                    termKeys.append((expression: entry.term, reading: pitchData.reading))
+                case let .ipa(ipaData):
+                    termKeys.append((expression: entry.term, reading: ipaData.reading))
+                }
+            }
+
+            // Prefetch existing terms for this batch
+            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
+
+            // Prefetch dictionary tags
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
             for entry in batch {
                 switch entry.data {
                 case let .frequency(freq):
                     // Create Term entity with empty reading for frequency entries without reading
-                    let term = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.term, reading: "", context: context)
+                    let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                        expression: entry.term,
+                        reading: "",
+                        cache: &termCache,
+                        context: context
+                    )
 
                     // Create TermFrequencyEntry
                     let frequencyEntry = TermFrequencyEntry(context: context)
@@ -133,7 +160,12 @@ actor TermMetaBankProcessingTask {
 
                 case let .frequencyWithReading(freqReading):
                     // Create TermFrequencyEntry with reading-specific term
-                    let termWithReading = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.term, reading: freqReading.reading, context: context)
+                    let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                        expression: entry.term,
+                        reading: freqReading.reading,
+                        cache: &termCache,
+                        context: context
+                    )
                     let frequencyEntry = TermFrequencyEntry(context: context)
                     frequencyEntry.id = UUID()
                     frequencyEntry.value = freqReading.frequency.value
@@ -147,7 +179,12 @@ actor TermMetaBankProcessingTask {
 
                 case let .pitch(pitchData):
                     // Create Term with specific reading
-                    let termWithReading = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.term, reading: pitchData.reading, context: context)
+                    let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                        expression: entry.term,
+                        reading: pitchData.reading,
+                        cache: &termCache,
+                        context: context
+                    )
 
                     // Create PitchAccentEntry for each pitch accent
                     for pitch in pitchData.pitches {
@@ -175,15 +212,24 @@ actor TermMetaBankProcessingTask {
                         pitchEntry.term = termWithReading
                         pitchEntry.dictionary = dictionary
 
-                        // Link tags
+                        // Link tags using cache
                         if let tags = pitch.tags {
-                            try DictionaryImportUtilities.linkTagsToPitchEntry(pitchEntry, tags: tags, dictionary: dictionary, context: context)
+                            DictionaryImportUtilities.linkTagsToPitchEntryWithCache(
+                                pitchEntry,
+                                tags: tags,
+                                tagCache: tagCache
+                            )
                         }
                     }
 
                 case let .ipa(ipaData):
                     // Create Term with specific reading
-                    let termWithReading = try DictionaryImportUtilities.findOrCreateTerm(expression: entry.term, reading: ipaData.reading, context: context)
+                    let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
+                        expression: entry.term,
+                        reading: ipaData.reading,
+                        cache: &termCache,
+                        context: context
+                    )
 
                     // Create IPAEntry for each transcription
                     for transcription in ipaData.transcriptions {
@@ -198,9 +244,13 @@ actor TermMetaBankProcessingTask {
                         ipaEntry.term = termWithReading
                         ipaEntry.dictionary = dictionary
 
-                        // Link tags
+                        // Link tags using cache
                         if let tags = transcription.tags {
-                            try DictionaryImportUtilities.linkTagsToIPAEntry(ipaEntry, tags: tags, dictionary: dictionary, context: context)
+                            DictionaryImportUtilities.linkTagsToIPAEntryWithCache(
+                                ipaEntry,
+                                tags: tags,
+                                tagCache: tagCache
+                            )
                         }
                     }
                 }

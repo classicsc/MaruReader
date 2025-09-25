@@ -79,45 +79,7 @@ actor KanjiMetaBankProcessingTask {
                         let currentBatch = kanjiMetaBatch
                         kanjiMetaBatch.removeAll(keepingCapacity: true)
 
-                        try await context.perform {
-                            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                  let dictionary = job.dictionary
-                            else {
-                                throw DictionaryImportError.databaseError
-                            }
-
-                            for entry in currentBatch {
-                                // Find or create Kanji entity
-                                let kanji = try DictionaryImportUtilities.findOrCreateKanji(character: entry.kanji, context: context)
-
-                                // Create KanjiFrequencyEntry
-                                let frequencyEntry = KanjiFrequencyEntry(context: context)
-                                frequencyEntry.id = UUID()
-
-                                // Handle different frequency formats
-                                switch entry.frequency {
-                                case let .number(value):
-                                    frequencyEntry.frequencyValue = value
-                                    frequencyEntry.displayFrequency = String(value)
-                                case let .string(displayValue):
-                                    // Try to parse as number, default to 0 if can't parse
-                                    frequencyEntry.frequencyValue = Double(displayValue) ?? 0.0
-                                    frequencyEntry.displayFrequency = displayValue
-                                case let .object(value, displayValue):
-                                    frequencyEntry.frequencyValue = value
-                                    frequencyEntry.displayFrequency = displayValue ?? String(value)
-                                }
-
-                                context.insert(frequencyEntry)
-
-                                // Link relationships
-                                frequencyEntry.kanji = kanji
-                                frequencyEntry.dictionary = dictionary
-                            }
-
-                            try context.save()
-                            context.reset()
-                        }
+                        try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
                         try Task.checkCancellation()
                     }
                 }
@@ -127,44 +89,7 @@ actor KanjiMetaBankProcessingTask {
                     let currentBatch = kanjiMetaBatch
                     kanjiMetaBatch.removeAll()
 
-                    try await context.perform {
-                        guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                              let dictionary = job.dictionary
-                        else {
-                            throw DictionaryImportError.databaseError
-                        }
-
-                        for entry in currentBatch {
-                            // Find or create Kanji entity
-                            let kanji = try DictionaryImportUtilities.findOrCreateKanji(character: entry.kanji, context: context)
-
-                            // Create KanjiFrequencyEntry
-                            let frequencyEntry = KanjiFrequencyEntry(context: context)
-                            frequencyEntry.id = UUID()
-
-                            // Handle different frequency formats
-                            switch entry.frequency {
-                            case let .number(value):
-                                frequencyEntry.frequencyValue = value
-                                frequencyEntry.displayFrequency = String(value)
-                            case let .string(displayValue):
-                                // Try to parse as number, default to 0 if can't parse
-                                frequencyEntry.frequencyValue = Double(displayValue) ?? 0.0
-                                frequencyEntry.displayFrequency = displayValue
-                            case let .object(value, displayValue):
-                                frequencyEntry.frequencyValue = value
-                                frequencyEntry.displayFrequency = displayValue ?? String(value)
-                            }
-
-                            context.insert(frequencyEntry)
-
-                            // Link relationships
-                            frequencyEntry.kanji = kanji
-                            frequencyEntry.dictionary = dictionary
-                        }
-
-                        try context.save()
-                    }
+                    try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
                     try Task.checkCancellation()
                 }
             }
@@ -180,6 +105,56 @@ actor KanjiMetaBankProcessingTask {
             }
 
             try Task.checkCancellation()
+        }
+    }
+
+    private func processKanjiMetaBatch(_ batch: [KanjiMetaBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            // Prefetch existing kanji for this batch
+            let characters = batch.map(\.kanji)
+            var kanjiCache = try DictionaryImportUtilities.prefetchExistingKanji(characters: characters, context: context)
+
+            for entry in batch {
+                // Find or create Kanji entity using cache
+                let kanji = try DictionaryImportUtilities.findOrCreateKanjiWithCache(
+                    character: entry.kanji,
+                    cache: &kanjiCache,
+                    context: context
+                )
+
+                // Create KanjiFrequencyEntry
+                let frequencyEntry = KanjiFrequencyEntry(context: context)
+                frequencyEntry.id = UUID()
+
+                // Handle different frequency formats
+                switch entry.frequency {
+                case let .number(value):
+                    frequencyEntry.frequencyValue = value
+                    frequencyEntry.displayFrequency = String(value)
+                case let .string(displayValue):
+                    // Try to parse as number, default to 0 if can't parse
+                    frequencyEntry.frequencyValue = Double(displayValue) ?? 0.0
+                    frequencyEntry.displayFrequency = displayValue
+                case let .object(value, displayValue):
+                    frequencyEntry.frequencyValue = value
+                    frequencyEntry.displayFrequency = displayValue ?? String(value)
+                }
+
+                context.insert(frequencyEntry)
+
+                // Link relationships
+                frequencyEntry.kanji = kanji
+                frequencyEntry.dictionary = dictionary
+            }
+
+            try context.save()
+            context.reset()
         }
     }
 }
