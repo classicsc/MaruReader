@@ -72,7 +72,7 @@ final class StructuredElement: Codable, Sendable {
 extension StructuredElement {
     private static let selfClosingTags: Set<String> = ["img", "br", "hr", "input", "meta", "link"]
 
-    private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double = 2.0, emSize: Double = 14.0) -> String {
+    private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
         guard let path else { return "" }
 
         let width = self.width ?? 100
@@ -95,18 +95,21 @@ extension StructuredElement {
             width
         }
 
+        let resolvedPath = resolveImagePath(path: path, baseURL: baseURL)
+
         var attributes: [String] = [
             "class=\"gloss-image-link\"",
             "target=\"_blank\"",
             "rel=\"noreferrer noopener\"",
         ]
 
-        if let resolvedPath = resolveImagePath(path: path, baseURL: baseURL) {
+        if let resolvedPath {
             attributes.append("href=\"\(escapeHTMLAttribute(resolvedPath))\"")
         }
 
         attributes.append("data-path=\"\(escapeHTMLAttribute(path))\"")
-        attributes.append("data-image-load-state=\"loaded\"")
+        let loadState = "not-loaded"
+        attributes.append("data-image-load-state=\"\(loadState)\"")
         attributes.append("data-has-aspect-ratio=\"true\"")
 
         let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : "auto")
@@ -134,7 +137,18 @@ extension StructuredElement {
 
         let attributeString = attributes.joined(separator: " ")
 
-        var containerStyle = ["width: \(usedWidth)em"]
+        // Calculate width in em units - use precision similar to the old implementation
+        let widthInEm: String
+        if sizeUnits == "em" || (hasPreferredWidth || hasPreferredHeight) {
+            widthInEm = "\(formatNumber(usedWidth))em"
+        } else {
+            // Convert px to em using provided base font size or default 14px
+            let baseFontSize = emSize ?? 14.0
+            let emWidth = usedWidth / baseFontSize
+            widthInEm = "\(formatNumber(emWidth))em"
+        }
+
+        var containerStyle: [String] = []
         var containerAttributes: [String] = []
 
         if let border {
@@ -143,6 +157,7 @@ extension StructuredElement {
         if let borderRadius {
             containerStyle.append("border-radius: \(borderRadius)")
         }
+        containerStyle.append("width: \(widthInEm)")
         if let title {
             containerAttributes.append("title=\"\(escapeHTMLAttribute(title))\"")
         }
@@ -150,33 +165,56 @@ extension StructuredElement {
         let containerStyleString = containerStyle.joined(separator: "; ")
         let containerAttributeString = containerAttributes.isEmpty ? "" : " " + containerAttributes.joined(separator: " ")
 
-        let sizerStyle = "padding-top: \(invAspectRatio * 100)%"
+        let paddingTopValue = invAspectRatio * 100
+        let sizerStyle = "padding-top: \(formatNumber(paddingTopValue))%"
 
         var imageHTML = ""
-        if let resolvedPath = resolveImagePath(path: path, baseURL: baseURL) {
-            var imageAttributes: [String] = [
-                "class=\"gloss-image\"",
-                "src=\"\(escapeHTMLAttribute(resolvedPath))\"",
-                "style=\"width: 100%; height: 100%\"",
-            ]
 
-            if sizeUnits == "em", hasPreferredWidth || hasPreferredHeight {
-                let scaleFactor = 2 * devicePixelRatio
-                imageAttributes.append("width=\"\(Int(usedWidth * emSize * scaleFactor))\"")
-                imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio * emSize * scaleFactor))\"")
-            } else {
-                imageAttributes.append("width=\"\(Int(usedWidth))\"")
-                imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio))\"")
-            }
+        var imageAttributes = ["class=\"gloss-image\""]
 
-            if let alt {
-                imageAttributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
-            }
-
-            imageHTML = "<img \(imageAttributes.joined(separator: " ")) />"
+        if let resolvedPath {
+            imageAttributes.append("src=\"\(escapeHTMLAttribute(resolvedPath))\"")
         }
 
-        let descriptionHTML = title.map { "<span class=\"gloss-image-description\">\(escapeHTMLAttribute($0))</span>" } ?? ""
+        imageAttributes.append("style=\"width: 100%; height: 100%\"")
+
+        if sizeUnits == "em", hasPreferredWidth || hasPreferredHeight,
+           let devicePixelRatio, let emSize
+        {
+            let scaleFactor = 2 * devicePixelRatio
+            imageAttributes.append("width=\"\(Int(usedWidth * emSize * scaleFactor))\"")
+            imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio * emSize * scaleFactor))\"")
+        } else {
+            imageAttributes.append("width=\"\(Int(usedWidth))\"")
+            imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio))\"")
+        }
+
+        if let alt {
+            imageAttributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
+        }
+
+        // Add image-specific styles
+        var imageStyles: [String] = []
+        if let imageRendering, imageRendering != "auto" {
+            imageStyles.append("image-rendering: \(imageRendering)")
+        } else if pixelated == true {
+            imageStyles.append("image-rendering: pixelated")
+        }
+
+        if let verticalAlign {
+            imageStyles.append("vertical-align: \(verticalAlign)")
+        }
+
+        if !imageStyles.isEmpty {
+            let existingStyle = "width: 100%; height: 100%"
+            let combinedStyle = existingStyle + "; " + imageStyles.joined(separator: "; ")
+            // Replace the basic style with combined style
+            if let styleIndex = imageAttributes.firstIndex(where: { $0.contains("style=") }) {
+                imageAttributes[styleIndex] = "style=\"\(combinedStyle)\""
+            }
+        }
+
+        imageHTML = "<img \(imageAttributes.joined(separator: " ")) />"
 
         return """
         <a \(attributeString)>
@@ -187,7 +225,6 @@ extension StructuredElement {
                 <span class="gloss-image-container-overlay"></span>
             </span>
             <span class="gloss-image-link-text">Image</span>
-            \(descriptionHTML)
         </a>
         """
     }
@@ -203,7 +240,7 @@ extension StructuredElement {
         return nil
     }
 
-    func toHTML(baseURL: URL? = nil) -> String {
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
         var attributes: [String] = []
 
         // Add style attribute if present
@@ -226,7 +263,7 @@ extension StructuredElement {
                 attributes.append("href=\"\(escapeHTMLAttribute(href))\"")
             }
         case "img":
-            return createImageElement(baseURL: baseURL)
+            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
         case "td", "th":
             if let colSpan, colSpan > 1 {
                 attributes.append("colspan=\"\(colSpan)\"")
@@ -263,14 +300,14 @@ extension StructuredElement {
         }
 
         // Generate content
-        let contentHTML = generateContentHTML(baseURL: baseURL)
+        let contentHTML = generateContentHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
 
         return "<\(tag)\(attributeString)>\(contentHTML)</\(tag)>"
     }
 
-    private func generateContentHTML(baseURL: URL?) -> String {
+    private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
         guard let content else { return "" }
-        return content.toHTML(baseURL: baseURL)
+        return content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
     }
 
     private func escapeHTMLAttribute(_ string: String) -> String {
@@ -280,5 +317,14 @@ extension StructuredElement {
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "'", with: "&#39;")
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 4
+        formatter.minimumIntegerDigits = 1
+        formatter.usesGroupingSeparator = false
+        return formatter.string(from: NSNumber(value: value)) ?? "0"
     }
 }

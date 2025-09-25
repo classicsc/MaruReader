@@ -79,11 +79,11 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<a class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"images/example.png\""))
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
-        #expect(html.contains("<span class=\"gloss-image-container\" title=\"Example\" style=\"width: 8.5714em\">"))
+        #expect(html.contains("<span class=\"gloss-image-container\" style=\"width: 8.5714em\" title=\"Example\">"))
         #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
-        #expect(html.contains("<img class=\"gloss-image\" src=\"file:///dictionary/images/example.png\" width=\"120\" height=\"80\" alt=\"An example image\" style=\"image-rendering: pixelated\" />"))
+        #expect(html.contains("<img class=\"gloss-image\" src=\"file:///dictionary/images/example.png\" style=\"width: 100%; height: 100%; image-rendering: pixelated\" width=\"120\" height=\"80\" alt=\"An example image\" />"))
         #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
         #expect(!html.contains("gloss-image-description"))
     }
@@ -115,7 +115,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("<a class=\"gloss-image-link\""))
-        #expect(html.contains("<img class=\"gloss-image\" width=\"100\" height=\"100\""))
+        #expect(html.contains("<img class=\"gloss-image\" style=\"width: 100%; height: 100%\" width=\"100\" height=\"100\" />"))
         #expect(!html.contains("class=\"gloss-image\" src=\""))
     }
 
@@ -257,7 +257,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-vertical-align=\"middle\""))
-        #expect(html.contains("style=\"vertical-align: middle\""))
+        #expect(html.contains("style=\"width: 100%; height: 100%; vertical-align: middle\""))
     }
 
     @Test func imageDefinition_toHTML_borderAppliesStyle() throws {
@@ -345,7 +345,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("class=\"gloss-image-container\" style=\"border: 1px solid blue; border-radius: 4px; width: 7.1429em\""))
-        #expect(html.contains("style=\"image-rendering: pixelated; vertical-align: top\""))
+        #expect(html.contains("style=\"width: 100%; height: 100%; image-rendering: pixelated; vertical-align: top\""))
     }
 
     // MARK: - Size Units Tests
@@ -565,7 +565,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"350\""))
         #expect(html.contains("height=\"350\""))
-        #expect(html.contains("style=\"image-rendering: pixelated\""))
+        #expect(html.contains("style=\"width: 100%; height: 100%; image-rendering: pixelated\""))
         #expect(html.contains("<span class=\"gloss-image-description\">gazou definition 2</span>"))
         #expect(html.contains("<span class=\"gloss-image-sizer\""))
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
