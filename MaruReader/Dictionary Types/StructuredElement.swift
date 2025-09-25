@@ -19,13 +19,25 @@ final class StructuredElement: Codable, Sendable {
     let path: String? // for 'img' tags
     let width: Double? // for 'img' tags
     let height: Double? // for 'img' tags
+    let preferredWidth: Double? // for 'img' tags
+    let preferredHeight: Double? // for 'img' tags
     let title: String?
     let alt: String?
+    let pixelated: Bool? // for 'img' tags
+    let imageRendering: String? // for 'img' tags
+    let appearance: String? // for 'img' tags
+    let background: Bool? // for 'img' tags
+    let collapsed: Bool? // for 'img' tags
+    let collapsible: Bool? // for 'img' tags
+    let verticalAlign: String? // for 'img' tags
+    let border: String? // for 'img' tags
+    let borderRadius: String? // for 'img' tags
+    let sizeUnits: String? // for 'img' tags
     let colSpan: Int?
     let rowSpan: Int?
     let open: Bool? // for 'details' tags
 
-    init(tag: String, content: StructuredContent?, data: [String: String]?, style: ContentStyle?, lang: String?, href: String?, path: String?, width: Double?, height: Double?, title: String?, alt: String?, colSpan: Int?, rowSpan: Int?, open: Bool?) {
+    init(tag: String, content: StructuredContent?, data: [String: String]?, style: ContentStyle?, lang: String?, href: String?, path: String?, width: Double?, height: Double?, preferredWidth: Double? = nil, preferredHeight: Double? = nil, title: String?, alt: String?, pixelated: Bool? = nil, imageRendering: String? = nil, appearance: String? = nil, background: Bool? = nil, collapsed: Bool? = nil, collapsible: Bool? = nil, verticalAlign: String? = nil, border: String? = nil, borderRadius: String? = nil, sizeUnits: String? = nil, colSpan: Int?, rowSpan: Int?, open: Bool?) {
         self.tag = tag
         self.content = content
         self.data = data
@@ -35,8 +47,20 @@ final class StructuredElement: Codable, Sendable {
         self.path = path
         self.width = width
         self.height = height
+        self.preferredWidth = preferredWidth
+        self.preferredHeight = preferredHeight
         self.title = title
         self.alt = alt
+        self.pixelated = pixelated
+        self.imageRendering = imageRendering
+        self.appearance = appearance
+        self.background = background
+        self.collapsed = collapsed
+        self.collapsible = collapsible
+        self.verticalAlign = verticalAlign
+        self.border = border
+        self.borderRadius = borderRadius
+        self.sizeUnits = sizeUnits
         self.colSpan = colSpan
         self.rowSpan = rowSpan
         self.open = open
@@ -47,6 +71,137 @@ final class StructuredElement: Codable, Sendable {
 
 extension StructuredElement {
     private static let selfClosingTags: Set<String> = ["img", "br", "hr", "input", "meta", "link"]
+
+    private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double = 2.0, emSize: Double = 14.0) -> String {
+        guard let path else { return "" }
+
+        let width = self.width ?? 100
+        let height = self.height ?? 100
+
+        let hasPreferredWidth = preferredWidth != nil
+        let hasPreferredHeight = preferredHeight != nil
+
+        let invAspectRatio: Double = if hasPreferredWidth, hasPreferredHeight {
+            preferredHeight! / preferredWidth!
+        } else {
+            height / width
+        }
+
+        let usedWidth: Double = if hasPreferredWidth {
+            preferredWidth!
+        } else if hasPreferredHeight {
+            preferredHeight! / invAspectRatio
+        } else {
+            width
+        }
+
+        var attributes: [String] = [
+            "class=\"gloss-image-link\"",
+            "target=\"_blank\"",
+            "rel=\"noreferrer noopener\"",
+        ]
+
+        if let resolvedPath = resolveImagePath(path: path, baseURL: baseURL) {
+            attributes.append("href=\"\(escapeHTMLAttribute(resolvedPath))\"")
+        }
+
+        attributes.append("data-path=\"\(escapeHTMLAttribute(path))\"")
+        attributes.append("data-image-load-state=\"loaded\"")
+        attributes.append("data-has-aspect-ratio=\"true\"")
+
+        let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : "auto")
+        attributes.append("data-image-rendering=\"\(imageRenderingValue)\"")
+
+        let appearanceValue = appearance ?? "auto"
+        attributes.append("data-appearance=\"\(appearanceValue)\"")
+
+        let backgroundValue = background ?? true
+        attributes.append("data-background=\"\(backgroundValue)\"")
+
+        let collapsedValue = collapsed ?? false
+        attributes.append("data-collapsed=\"\(collapsedValue)\"")
+
+        let collapsibleValue = collapsible ?? true
+        attributes.append("data-collapsible=\"\(collapsibleValue)\"")
+
+        if let verticalAlign {
+            attributes.append("data-vertical-align=\"\(escapeHTMLAttribute(verticalAlign))\"")
+        }
+
+        if let sizeUnits, hasPreferredWidth || hasPreferredHeight {
+            attributes.append("data-size-units=\"\(escapeHTMLAttribute(sizeUnits))\"")
+        }
+
+        let attributeString = attributes.joined(separator: " ")
+
+        var containerStyle = ["width: \(usedWidth)em"]
+        var containerAttributes: [String] = []
+
+        if let border {
+            containerStyle.append("border: \(border)")
+        }
+        if let borderRadius {
+            containerStyle.append("border-radius: \(borderRadius)")
+        }
+        if let title {
+            containerAttributes.append("title=\"\(escapeHTMLAttribute(title))\"")
+        }
+
+        let containerStyleString = containerStyle.joined(separator: "; ")
+        let containerAttributeString = containerAttributes.isEmpty ? "" : " " + containerAttributes.joined(separator: " ")
+
+        let sizerStyle = "padding-top: \(invAspectRatio * 100)%"
+
+        var imageHTML = ""
+        if let resolvedPath = resolveImagePath(path: path, baseURL: baseURL) {
+            var imageAttributes: [String] = [
+                "class=\"gloss-image\"",
+                "src=\"\(escapeHTMLAttribute(resolvedPath))\"",
+                "style=\"width: 100%; height: 100%\"",
+            ]
+
+            if sizeUnits == "em", hasPreferredWidth || hasPreferredHeight {
+                let scaleFactor = 2 * devicePixelRatio
+                imageAttributes.append("width=\"\(Int(usedWidth * emSize * scaleFactor))\"")
+                imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio * emSize * scaleFactor))\"")
+            } else {
+                imageAttributes.append("width=\"\(Int(usedWidth))\"")
+                imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio))\"")
+            }
+
+            if let alt {
+                imageAttributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
+            }
+
+            imageHTML = "<img \(imageAttributes.joined(separator: " ")) />"
+        }
+
+        let descriptionHTML = title.map { "<span class=\"gloss-image-description\">\(escapeHTMLAttribute($0))</span>" } ?? ""
+
+        return """
+        <a \(attributeString)>
+            <span class="gloss-image-container" style="\(containerStyleString)"\(containerAttributeString)>
+                <span class="gloss-image-sizer" style="\(sizerStyle)"></span>
+                <span class="gloss-image-background"></span>
+                \(imageHTML)
+                <span class="gloss-image-container-overlay"></span>
+            </span>
+            <span class="gloss-image-link-text">Image</span>
+            \(descriptionHTML)
+        </a>
+        """
+    }
+
+    private func resolveImagePath(path: String, baseURL: URL?) -> String? {
+        if let url = URL(string: path), url.scheme == nil {
+            if let baseURL {
+                return baseURL.appendingPathComponent(path).absoluteString
+            } else {
+                return path
+            }
+        }
+        return nil
+    }
 
     func toHTML(baseURL: URL? = nil) -> String {
         var attributes: [String] = []
@@ -71,31 +226,7 @@ extension StructuredElement {
                 attributes.append("href=\"\(escapeHTMLAttribute(href))\"")
             }
         case "img":
-            if let path {
-                // Images in dictionary archives must use relative paths
-                // Absolute URLs (with any scheme) should be treated as an error condition
-                if let url = URL(string: path), url.scheme == nil {
-                    // Valid relative path
-                    let resolvedPath: String = if let baseURL {
-                        // Resolve relative path to full URL
-                        baseURL.appendingPathComponent(path).absoluteString
-                    } else {
-                        // No base URL provided, use path as-is
-                        path
-                    }
-                    attributes.append("src=\"\(escapeHTMLAttribute(resolvedPath))\"")
-                }
-                // If path has a scheme, skip the src attribute but continue with other attributes
-            }
-            if let width {
-                attributes.append("width=\"\(Int(width))\"")
-            }
-            if let height {
-                attributes.append("height=\"\(Int(height))\"")
-            }
-            if let alt {
-                attributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
-            }
+            return createImageElement(baseURL: baseURL)
         case "td", "th":
             if let colSpan, colSpan > 1 {
                 attributes.append("colspan=\"\(colSpan)\"")
