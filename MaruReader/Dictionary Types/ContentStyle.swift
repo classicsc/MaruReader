@@ -513,8 +513,28 @@ struct ContentStyle: Codable, Sendable {
             }
         }
 
-        if verticalAlign != nil {
-            classes.append("gloss-vertical-align")
+        if let verticalAlign {
+            let align = verticalAlign.lowercased()
+            switch align {
+            case "baseline":
+                classes.append("gloss-vertical-align-baseline")
+            case "sub":
+                classes.append("gloss-vertical-align-sub")
+            case "super":
+                classes.append("gloss-vertical-align-super")
+            case "text-top":
+                classes.append("gloss-vertical-align-text-top")
+            case "text-bottom":
+                classes.append("gloss-vertical-align-text-bottom")
+            case "middle":
+                classes.append("gloss-vertical-align-middle")
+            case "top":
+                classes.append("gloss-vertical-align-top")
+            case "bottom":
+                classes.append("gloss-vertical-align-bottom")
+            default:
+                classes.append("gloss-vertical-align")
+            }
         }
 
         if clipPath != nil {
@@ -532,7 +552,15 @@ struct ContentStyle: Codable, Sendable {
 
         // Additional Yomitan-like classes for complex properties
         if let listStyleType {
-            classes.append("gloss-list-\(listStyleType.lowercased())")
+            let cleanType = listStyleType
+                .lowercased()
+                .replacingOccurrences(of: "'", with: "")
+                .replacingOccurrences(of: "\"", with: "")
+
+            // Only add class for standard types, custom quoted ones will use inline styles
+            if !listStyleType.contains("'"), !listStyleType.contains("\"") {
+                classes.append("gloss-list-\(cleanType)")
+            }
         }
 
         if let whiteSpace {

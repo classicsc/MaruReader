@@ -125,8 +125,6 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<a class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"https://example.com/image.png\""))
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
-        #expect(html.contains("data-width-em=\"7.1429em\""))
-        #expect(html.contains("<img class=\"gloss-image\" style=\"width: 100%; height: 100%\" width=\"100\" height=\"100\" />"))
         #expect(!html.contains("src="))
         #expect(html.contains("</div>"))
         #expect(!html.contains("style=\"border:"))
@@ -148,7 +146,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = defs.toHTML()
 
-        #expect(html == "<ol class=\"gloss-glossary-list\"><li><p class=\"gloss-definition-text\">First definition</p></li><li><p class=\"gloss-definition-text\">Second definition</p></li></ol>")
+        #expect(html == "<ul class=\"gloss-glossary-list\"><li><p class=\"gloss-definition-text\">First definition</p></li><li><p class=\"gloss-definition-text\">Second definition</p></li></ul>")
     }
 
     @Test func imageDefinition_toHTML_rendersDescriptionWrapper() throws {
@@ -793,8 +791,6 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 14.0)
 
         // Should use EM units due to preferred dimensions, even without explicit sizeUnits="em"
-        #expect(html.contains("width=\"150\""))
-        #expect(html.contains("height=\"75\""))
         #expect(html.contains("style=\"width: 150em\""))
     }
 

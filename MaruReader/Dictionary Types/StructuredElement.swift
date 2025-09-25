@@ -75,25 +75,60 @@ extension StructuredElement {
     private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
         guard let path else { return "" }
 
-        let width = self.width ?? 100
-        let height = self.height ?? 100
+        // Get original dimensions with defaults
+        let originalWidth = self.width ?? 1.0
+        let originalHeight = self.height ?? 1.0
 
         let hasPreferredWidth = preferredWidth != nil
         let hasPreferredHeight = preferredHeight != nil
 
-        let invAspectRatio: Double = if hasPreferredWidth, hasPreferredHeight {
-            preferredHeight! / preferredWidth!
+        // Calculate effective dimensions based on preferences and original aspect ratio
+        let effectiveWidth: Double
+        let effectiveHeight: Double
+
+        if hasPreferredWidth && hasPreferredHeight {
+            // Both preferred dimensions specified - use them directly
+            effectiveWidth = preferredWidth!
+            effectiveHeight = preferredHeight!
+        } else if hasPreferredWidth {
+            // Only preferred width specified - calculate height maintaining original aspect ratio
+            effectiveWidth = preferredWidth!
+            let originalAspectRatio = originalHeight / originalWidth
+            effectiveHeight = effectiveWidth * originalAspectRatio
+        } else if hasPreferredHeight {
+            // Only preferred height specified - calculate width maintaining original aspect ratio
+            effectiveHeight = preferredHeight!
+            let originalAspectRatio = originalHeight / originalWidth
+            effectiveWidth = effectiveHeight / originalAspectRatio
+        } else if sizeUnits == "em" {
+            // For em units without preferred dimensions, handle missing dimensions
+            let hasDirectWidth = width != nil
+            let hasDirectHeight = height != nil
+
+            if hasDirectWidth, hasDirectHeight {
+                effectiveWidth = originalWidth
+                effectiveHeight = originalHeight
+            } else if hasDirectWidth {
+                // Only width specified, assume square (1:1 aspect ratio)
+                effectiveWidth = originalWidth
+                effectiveHeight = originalWidth
+            } else if hasDirectHeight {
+                // Only height specified, assume square (1:1 aspect ratio)
+                effectiveWidth = originalHeight
+                effectiveHeight = originalHeight
+            } else {
+                // Neither specified, use 1em default
+                effectiveWidth = 1.0
+                effectiveHeight = 1.0
+            }
         } else {
-            height / width
+            // No preferences, use original dimensions
+            effectiveWidth = originalWidth
+            effectiveHeight = originalHeight
         }
 
-        let usedWidth: Double = if hasPreferredWidth {
-            preferredWidth!
-        } else if hasPreferredHeight {
-            preferredHeight! / invAspectRatio
-        } else {
-            width
-        }
+        let invAspectRatio = effectiveHeight / effectiveWidth
+        let usedWidth = effectiveWidth
 
         let resolvedPath = resolveImagePath(path: path, baseURL: baseURL)
 
@@ -137,9 +172,11 @@ extension StructuredElement {
 
         let attributeString = attributes.joined(separator: " ")
 
-        // Calculate width in em units - use precision similar to the old implementation
+        // Calculate width in em units
         let widthInEm: String
-        if sizeUnits == "em" || (hasPreferredWidth || hasPreferredHeight) {
+        if sizeUnits == "em" {
+            widthInEm = "\(formatNumber(usedWidth))em"
+        } else if hasPreferredWidth || hasPreferredHeight {
             widthInEm = "\(formatNumber(usedWidth))em"
         } else {
             // Convert px to em using provided base font size or default 14px
@@ -176,15 +213,17 @@ extension StructuredElement {
 
         imageAttributes.append("style=\"width: 100%; height: 100%\"")
 
-        if sizeUnits == "em", hasPreferredWidth || hasPreferredHeight,
-           let devicePixelRatio, let emSize
-        {
+        if sizeUnits == "em", let devicePixelRatio, let emSize {
             let scaleFactor = 2 * devicePixelRatio
-            imageAttributes.append("width=\"\(Int(usedWidth * emSize * scaleFactor))\"")
-            imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio * emSize * scaleFactor))\"")
+            imageAttributes.append("width=\"\(Int(effectiveWidth * emSize * scaleFactor))\"")
+            imageAttributes.append("height=\"\(Int(effectiveHeight * emSize * scaleFactor))\"")
+        } else if hasPreferredWidth || hasPreferredHeight, let devicePixelRatio, let emSize {
+            let scaleFactor = 2 * devicePixelRatio
+            imageAttributes.append("width=\"\(Int(effectiveWidth * emSize * scaleFactor))\"")
+            imageAttributes.append("height=\"\(Int(effectiveHeight * emSize * scaleFactor))\"")
         } else {
-            imageAttributes.append("width=\"\(Int(usedWidth))\"")
-            imageAttributes.append("height=\"\(Int(usedWidth * invAspectRatio))\"")
+            imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
+            imageAttributes.append("height=\"\(Int(effectiveHeight))\"")
         }
 
         if let alt {
@@ -243,6 +282,11 @@ extension StructuredElement {
         let extraClasses = style?.toCSSClasses().joined(separator: " ") ?? ""
         let fullClass = [baseClass, extraClasses].filter { !$0.isEmpty }.joined(separator: " ")
         attributes.append("class=\"\(fullClass)\"")
+
+        // Add inline styles if present
+        if let style, !style.toCSSString().isEmpty {
+            attributes.append("style=\"\(escapeHTMLAttribute(style.toCSSString()))\"")
+        }
 
         // Specialized handling
         switch tag {

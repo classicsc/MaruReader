@@ -132,7 +132,7 @@ body {
 
 .gloss-sc-th,
 .gloss-sc-td {
-    border-width: calc(1em / var(--font-size-no-units));
+    border-width: 1px;
     border-style: solid;
     border-color: var(--text-color-light2);
     padding: 0.25em;
@@ -178,7 +178,7 @@ body {
     max-width: 100%;
     max-height: 100vh;
     position: relative;
-    vertical-align: top;
+    vertical-align: baseline;
     line-height: 0;
     font-size: calc(1em / var(--font-size-no-units));
     overflow: hidden;
@@ -290,10 +290,11 @@ body {
 .gloss-image-link {
     cursor: inherit;
     color: var(--accent-color);
-    display: inline-block;
+    display: inline;
     position: relative;
     line-height: 1;
     max-width: 100%;
+    vertical-align: baseline;
 }
 
 .gloss-image-link:hover, .gloss-link:hover {
@@ -344,6 +345,47 @@ body {
 .gloss-image-link[data-vertical-align=middle] { vertical-align: middle; }
 .gloss-image-link[data-vertical-align=top] { vertical-align: top; }
 .gloss-image-link[data-vertical-align=bottom] { vertical-align: bottom; }
+
+/* Vertical alignment classes for spans and inline elements */
+.gloss-vertical-align {
+    vertical-align: baseline;
+}
+
+.gloss-sc-span.gloss-vertical-align {
+    vertical-align: baseline;
+}
+
+.gloss-sc-span.gloss-vertical-align-baseline {
+    vertical-align: baseline;
+}
+
+.gloss-sc-span.gloss-vertical-align-sub {
+    vertical-align: sub;
+}
+
+.gloss-sc-span.gloss-vertical-align-super {
+    vertical-align: super;
+}
+
+.gloss-sc-span.gloss-vertical-align-text-top {
+    vertical-align: text-top;
+}
+
+.gloss-sc-span.gloss-vertical-align-text-bottom {
+    vertical-align: text-bottom;
+}
+
+.gloss-sc-span.gloss-vertical-align-middle {
+    vertical-align: middle;
+}
+
+.gloss-sc-span.gloss-vertical-align-top {
+    vertical-align: top;
+}
+
+.gloss-sc-span.gloss-vertical-align-bottom {
+    vertical-align: bottom;
+}
 /* Collapsible image system */
 .gloss-image-link[data-collapsed=true],
 .gloss-sc-collapsible .gloss-image-link[data-collapsible=true] {
@@ -458,6 +500,27 @@ body {
     text-decoration-line: line-through;
 }
 
+.gloss-text-decoration-none {
+    text-decoration-line: none;
+}
+
+/* Multiple text decorations support */
+.gloss-text-underline.gloss-text-overline {
+    text-decoration-line: underline overline;
+}
+
+.gloss-text-underline.gloss-text-strikethrough {
+    text-decoration-line: underline line-through;
+}
+
+.gloss-text-overline.gloss-text-strikethrough {
+    text-decoration-line: overline line-through;
+}
+
+.gloss-text-underline.gloss-text-overline.gloss-text-strikethrough {
+    text-decoration-line: underline overline line-through;
+}
+
 .text-center, .gloss-text-center {
     text-align: center;
 }
@@ -541,6 +604,14 @@ body {
 
 .gloss-list-none {
     list-style-type: none;
+}
+
+.gloss-list-hiragana-iroha {
+    list-style-type: hiragana-iroha;
+}
+
+.gloss-list-japanese-formal {
+    list-style-type: japanese-formal;
 }
 
 /* iOS-specific enhancements for Japanese text */

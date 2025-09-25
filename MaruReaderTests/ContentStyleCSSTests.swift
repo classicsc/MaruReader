@@ -454,7 +454,7 @@ struct ContentStyleCSSTests {
 
         #expect(classes.contains("gloss-clip-path"))
         #expect(classes.contains("gloss-cursor-pointer"))
-        #expect(classes.contains("gloss-vertical-align"))
+        #expect(classes.contains("gloss-vertical-align-middle"))
     }
 
     @Test func toCSSClasses_noStyling_returnsEmptyArray() throws {

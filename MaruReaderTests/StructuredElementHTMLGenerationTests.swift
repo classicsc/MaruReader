@@ -61,9 +61,9 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("<span class=\"gloss-sc-span gloss-font-bold gloss-font-italic\">Styled Text</span>"))
+        #expect(html.contains("<span class=\"gloss-sc-span gloss-font-bold gloss-font-italic\" style=\"font-style: italic; font-weight: bold; font-size: 16px; color: #000000\">Styled Text</span>"))
         #expect(html.contains("Styled Text</span>"))
-        #expect(!html.contains("style="))
+        #expect(html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_NoStyleAddsOnlyBaseClass() throws {
@@ -423,7 +423,7 @@ struct DictionaryContentMarkupTests {
         #expect(hrHtml.contains("<hr "))
         #expect(hrHtml.contains("/>"))
         #expect(!hrHtml.contains("data-scBorderWidth=\"1px\""))
-        #expect(!hrHtml.contains("style=\"border-width:"))
+        #expect(hrHtml.contains("style=\"border-width:"))
     }
 
     @Test func structuredElement_toHTML_NestedContent() throws {
@@ -559,11 +559,11 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = divElement.toHTML()
-        #expect(html.contains("lang=\"en\" class=\"gloss-sc-div gloss-background gloss-padding\" data-scSection=\"main\">"))
-        #expect(!html.contains("padding: 10px"))
-        #expect(!html.contains("style=\"background-color:"))
+        #expect(html.contains("lang=\"en\" class=\"gloss-sc-div gloss-background gloss-padding\" style=\"background-color: #f0f0f0; padding: 10px\" data-scSection=\"main\">"))
+        #expect(html.contains("padding: 10px"))
+        #expect(html.contains("style=\"background-color:"))
         #expect(html.contains("data-scSection=\"main\""))
-        #expect(html.contains("<a class=\"gloss-link gloss-text-underline\" href=\"https://example.com\" "))
+        #expect(html.contains("<a class=\"gloss-link gloss-text-underline\" style=\"color: #0000FF; text-decoration-line: underline\" href=\"https://example.com\" "))
         #expect(html.contains("gloss-text-underline"))
         #expect(!html.contains("style=\"color: #0000FF\""))
         #expect(!html.contains("style=\"text-decoration-line: underline\""))
