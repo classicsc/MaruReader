@@ -31,7 +31,7 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html == "<p>Hello World</p>")
+        #expect(html == "<p class=\"gloss-sc-p\">Hello World</p>")
     }
 
     @Test func structuredElement_toHTML_WithStyle() throws {
@@ -60,7 +60,7 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("<span style=\"font-style: italic; font-weight: bold; font-size: 16px; color: #000000\">"))
+        #expect(html.contains("<span style=\"font-style: italic; font-weight: bold; font-size: 16px; color: #000000\" class=\"gloss-sc-span\">Styled Text</span>"))
         #expect(html.contains("Styled Text</span>"))
     }
 
@@ -85,7 +85,7 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         #expect(html.contains("href=\"https://example.com\""))
         #expect(html.contains("title=\"Example Link\""))
-        #expect(html.contains(">Click me</a>"))
+        #expect(html.contains("<a class=\"gloss-link\" href=\"https://example.com\" data-external=\"true\" title=\"Example Link\"><span class=\"gloss-link-text\">Click me</span><span class=\"gloss-link-external-icon icon\" data-icon=\"external-link\"></span></a>"))
     }
 
     @Test func structuredElement_toHTML_ImageWithPath() throws {
@@ -220,7 +220,7 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("<details open>"))
+        #expect(html.contains("<details class=\"gloss-sc-details\" open>Details Content</details>"))
         #expect(html.contains("Details Content</details>"))
     }
 
@@ -266,8 +266,9 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("data-id=\"123\""))
-        #expect(html.contains("data-type=\"example\""))
+        #expect(html.contains("<div class=\"gloss-sc-div\""))
+        #expect(html.contains("data-scId=\"123\""))
+        #expect(html.contains("data-scType=\"example\""))
     }
 
     @Test func structuredElement_toHTML_SelfClosingTags() throws {
@@ -289,7 +290,7 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = br.toHTML()
-        #expect(html == "<br />")
+        #expect(html == "<br class=\"gloss-sc-br\" />")
 
         let hr = StructuredElement(
             tag: "hr",
@@ -353,7 +354,7 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = outerElement.toHTML()
-        #expect(html == "<p>This is <strong>Bold</strong> text.</p>")
+        #expect(html == "<p class=\"gloss-sc-p\">This is <strong class=\"gloss-sc-strong\">Bold</strong> text.</p>")
     }
 
     @Test func structuredElement_toHTML_EscapesHTMLCharacters() throws {
@@ -449,7 +450,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("padding: 10px"))
         #expect(html.contains("background-color: #f0f0f0"))
         #expect(html.contains("lang=\"en\""))
-        #expect(html.contains("data-section=\"main\""))
+        #expect(html.contains("data-scSection=\"main\""))
         #expect(html.contains("<a"))
         #expect(html.contains("href=\"https://example.com\""))
         #expect(html.contains("color: #0000FF"))

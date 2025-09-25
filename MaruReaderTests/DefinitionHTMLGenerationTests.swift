@@ -46,7 +46,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html == "This is <strong>bold</strong> text.")
+        #expect(html == "This is <strong class=\"gloss-sc-strong\">bold</strong> text.")
     }
 
     @Test func imageDefinition_toHTML_resolvesRelativeSource() throws {

@@ -240,7 +240,9 @@ extension StructuredElement {
         return nil
     }
 
-    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
+    private func createElementByType(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
+        let isSelfClosing = Self.selfClosingTags.contains(tag)
+
         var attributes: [String] = []
 
         // Add style attribute if present
@@ -256,53 +258,88 @@ extension StructuredElement {
             attributes.append("lang=\"\(escapeHTMLAttribute(lang))\"")
         }
 
-        // Add tag-specific attributes
+        // Add base class
+        let baseClass = if tag == "a" {
+            "gloss-link"
+        } else {
+            "gloss-sc-\(tag)"
+        }
+        attributes.append("class=\"\(baseClass)\"")
+
+        // Specialized handling
         switch tag {
-        case "a":
-            if let href {
-                attributes.append("href=\"\(escapeHTMLAttribute(href))\"")
-            }
-        case "img":
-            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
-        case "td", "th":
+        case "table":
+            // Will wrap later
+            fallthrough
+        case "br", "ruby", "rt", "rp", "div", "span", "ol", "ul", "li", "summary", "thead", "tbody", "tfoot", "tr":
+            // Simple/styled elements: base class applied
+            break
+        case "th", "td":
             if let colSpan, colSpan > 1 {
                 attributes.append("colspan=\"\(colSpan)\"")
             }
             if let rowSpan, rowSpan > 1 {
                 attributes.append("rowspan=\"\(rowSpan)\"")
             }
+        case "a":
+            if let href {
+                let isInternal = href.hasPrefix("?")
+                attributes.append("href=\"\(escapeHTMLAttribute(href))\"")
+                attributes.append("data-external=\"\(isInternal ? "false" : "true")\"")
+            }
+        case "img":
+            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
         case "details":
             if let open, open {
                 attributes.append("open")
             }
         default:
+            // Generic handling
             break
         }
 
-        // Add title attribute for any tag that has it
+        // Add title
         if let title {
             attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
         }
 
-        // Add any custom data attributes
-        if let data {
-            for (key, value) in data {
-                attributes.append("data-\(escapeHTMLAttribute(key))=\"\(escapeHTMLAttribute(value))\"")
-            }
-        }
+        // Add data attrs
+        attributes.append(contentsOf: transformedDataAttrs(data: data))
 
-        // Build the opening tag
         let attributeString = attributes.isEmpty ? "" : " " + attributes.joined(separator: " ")
 
-        // Self-closing tags
-        if Self.selfClosingTags.contains(tag) {
+        if isSelfClosing {
             return "<\(tag)\(attributeString) />"
         }
 
-        // Generate content
         let contentHTML = generateContentHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
 
-        return "<\(tag)\(attributeString)>\(contentHTML)</\(tag)>"
+        let fullContent: String
+        if tag == "a" {
+            let textSpan = "<span class=\"gloss-link-text\">\(contentHTML)</span>"
+            if let href, !href.hasPrefix("?") {
+                fullContent = "\(textSpan)<span class=\"gloss-link-external-icon icon\" data-icon=\"external-link\"></span>"
+            } else {
+                fullContent = textSpan
+            }
+        } else {
+            fullContent = contentHTML
+        }
+
+        let elementHTML = "<\(tag)\(attributeString)>\(fullContent)</\(tag)>"
+
+        if tag == "table" {
+            return "<div class=\"gloss-sc-table-container\">\(elementHTML)</div>"
+        } else {
+            return elementHTML
+        }
+    }
+
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
+        if tag == "img" {
+            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+        }
+        return createElementByType(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
     }
 
     private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
@@ -326,5 +363,37 @@ extension StructuredElement {
         formatter.minimumIntegerDigits = 1
         formatter.usesGroupingSeparator = false
         return formatter.string(from: NSNumber(value: value)) ?? "0"
+    }
+
+    private func keyToCamelCase(_ key: String) -> String {
+        let lowerKey = key.lowercased()
+        let parts = lowerKey.components(separatedBy: "-").filter { !$0.isEmpty }
+        guard !parts.isEmpty else { return "" }
+        let camelParts = parts.enumerated().map { index, part -> String in
+            if index == 0 {
+                return part
+            } else {
+                guard part.count > 0 else { return "" }
+                return String(part.prefix(1)).uppercased() + part.dropFirst()
+            }
+        }
+        let camel = camelParts.joined(separator: "")
+        guard camel.count > 0 else { return "" }
+        return String(camel.prefix(1)).uppercased() + camel.dropFirst()
+    }
+
+    private func transformedDataAttrs(data: [String: String]?) -> [String] {
+        guard let data, !data.isEmpty else { return [] }
+        var attrs: [String] = []
+        for (key, value) in data {
+            if key.isEmpty { continue }
+            let camel = keyToCamelCase(key)
+            if !camel.isEmpty {
+                let scKey = "sc\(camel)"
+                let attr = "data-\(scKey)=\"\(escapeHTMLAttribute(value))\""
+                attrs.append(attr)
+            }
+        }
+        return attrs
     }
 }
