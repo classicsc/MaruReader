@@ -400,8 +400,8 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-font-weight"))
-        #expect(classes.contains("styled-font-style"))
+        #expect(classes.contains("gloss-font-italic"))
+        #expect(classes.contains("gloss-font-bold"))
     }
 
     @Test func toCSSClasses_textDecoration_returnsSpecificDecorationClasses() throws {
@@ -411,9 +411,8 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-text-decoration"))
-        #expect(classes.contains("text-underlined"))
-        #expect(classes.contains("text-strikethrough"))
+        #expect(classes.contains("gloss-text-underline"))
+        #expect(classes.contains("gloss-text-strikethrough"))
     }
 
     @Test func toCSSClasses_textAlign_returnsAlignmentClasses() throws {
@@ -421,8 +420,7 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-text-align"))
-        #expect(classes.contains("text-center"))
+        #expect(classes.contains("gloss-text-center"))
     }
 
     @Test func toCSSClasses_rightAlignment_returnsRightClass() throws {
@@ -430,7 +428,7 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("text-right"))
+        #expect(classes.contains("gloss-text-right"))
     }
 
     @Test func toCSSClasses_spacing_returnsSpacingClasses() throws {
@@ -441,8 +439,8 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-margin"))
-        #expect(classes.contains("styled-padding"))
+        #expect(classes.contains("gloss-margin"))
+        #expect(classes.contains("gloss-padding"))
     }
 
     @Test func toCSSClasses_advancedProperties_returnsAdvancedClasses() throws {
@@ -454,9 +452,9 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-clip-path"))
-        #expect(classes.contains("styled-cursor"))
-        #expect(classes.contains("styled-vertical-align"))
+        #expect(classes.contains("gloss-clip-path"))
+        #expect(classes.contains("gloss-cursor-pointer"))
+        #expect(classes.contains("gloss-vertical-align"))
     }
 
     @Test func toCSSClasses_noStyling_returnsEmptyArray() throws {
@@ -479,13 +477,11 @@ struct ContentStyleCSSTests {
 
         let classes = style.toCSSClasses()
 
-        #expect(classes.contains("styled-font-weight"))
-        #expect(classes.contains("styled-text-decoration"))
-        #expect(classes.contains("text-underlined"))
-        #expect(classes.contains("styled-text-align"))
-        #expect(classes.contains("text-center"))
-        #expect(classes.contains("styled-background"))
-        #expect(classes.contains("styled-border"))
-        #expect(classes.contains("styled-margin"))
+        #expect(classes.contains("gloss-font-bold"))
+        #expect(classes.contains("gloss-text-underline"))
+        #expect(classes.contains("gloss-text-center"))
+        #expect(classes.contains("gloss-background"))
+        #expect(classes.contains("gloss-border-partial"))
+        #expect(classes.contains("gloss-margin"))
     }
 }

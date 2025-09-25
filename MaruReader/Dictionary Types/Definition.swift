@@ -107,25 +107,25 @@ extension Definition {
                 return structuredDef.content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatioDouble, emSize: emSizeDouble)
             case let .image(imageDef):
                 let imageElement = imageDef.toStructuredElement()
-                var html = imageElement.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatioDouble, emSize: emSizeDouble)
+                let html = imageElement.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatioDouble, emSize: emSizeDouble)
 
                 // Add description if present (StructuredElement doesn't handle this since it uses title for tooltip)
                 if let description = imageDef.description {
-                    html += " <span class=\"gloss-image-description\">\(escapeHTML(description))</span>"
+                    return "<div class=\"gloss-image-def\"><div class=\"gloss-image-main\">\(html)</div><span class=\"gloss-image-desc\">\(escapeHTML(description))</span></div>"
                 }
 
-                return html
+                return "<div class=\"gloss-image-def\">\(html)</div>"
             }
         case let .deinflection(uninflected, rules):
             let escapedUninflected = escapeHTML(uninflected)
             let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
-            return "<p class=\"deinflection\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
+            return "<p class=\"gloss-deinflection\" data-uninflected=\"\(escapedUninflected)\" data-rules=\"\(escapedRules)\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
         }
     }
 
     private func wrapDefinitionText(_ text: String) -> String {
         let escapedText = escapeHTML(text).replacingOccurrences(of: "\n", with: "<br>")
-        return "<p class=\"definition-text\">\(escapedText)</p>"
+        return "<p class=\"gloss-definition-text\">\(escapedText)</p>"
     }
 
     private func escapeHTML(_ string: String) -> String {
@@ -151,7 +151,7 @@ extension Definition {
 extension [Definition] {
     func toHTML(baseURL: URL? = nil, devicePixelRatio: CGFloat? = nil, baseFontSize: CGFloat? = nil) -> String {
         let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize))</li>" }.joined()
-        return "<ol class=\"glossary-list\">\(itemsHTML)</ol>"
+        return "<ol class=\"gloss-glossary-list\">\(itemsHTML)</ol>"
     }
 }
 

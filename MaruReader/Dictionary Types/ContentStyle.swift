@@ -443,7 +443,6 @@ struct ContentStyle: Codable, Sendable {
 
         // Semantic classes based on styling properties, using Yomitan-like specific classes (gloss- prefix)
         if let fontWeight {
-            classes.append("styled-font-weight")
             // Yomitan-like specific classes
             let weight = fontWeight.lowercased()
             if weight == "bold" || weight == "700" {
@@ -456,7 +455,6 @@ struct ContentStyle: Codable, Sendable {
         }
 
         if let fontStyle {
-            classes.append("styled-font-style")
             if fontStyle.lowercased() == "italic" {
                 classes.append("gloss-font-italic")
             } else if fontStyle.lowercased() == "oblique" {
@@ -465,19 +463,15 @@ struct ContentStyle: Codable, Sendable {
         }
 
         if let textDecorationLine, !textDecorationLine.isEmpty {
-            classes.append("styled-text-decoration")
             // Add specific decoration classes
             for decoration in textDecorationLine {
                 let dec = decoration.lowercased()
                 switch dec {
                 case "underline":
-                    classes.append("text-underlined")
                     classes.append("gloss-text-underline")
                 case "line-through":
-                    classes.append("text-strikethrough")
                     classes.append("gloss-text-strikethrough")
                 case "overline":
-                    classes.append("text-overlined")
                     classes.append("gloss-text-overline")
                 default:
                     classes.append("gloss-text-decoration-\(dec)")
@@ -486,40 +480,31 @@ struct ContentStyle: Codable, Sendable {
         }
 
         if backgroundColor != nil || background != nil {
-            classes.append("styled-background")
             classes.append("gloss-background")
         }
 
         if let borderStyle, let borderWidth, let borderColor {
-            classes.append("styled-border")
             classes.append("gloss-border")
         } else if borderStyle != nil || borderWidth != nil || borderColor != nil {
-            classes.append("styled-border")
             classes.append("gloss-border-partial")
         }
 
         if marginTop != nil || marginLeft != nil || marginRight != nil || marginBottom != nil || margin != nil {
-            classes.append("styled-margin")
             classes.append("gloss-margin")
         }
 
         if paddingTop != nil || paddingLeft != nil || paddingRight != nil || paddingBottom != nil || padding != nil {
-            classes.append("styled-padding")
             classes.append("gloss-padding")
         }
 
         if let textAlign {
-            classes.append("styled-text-align")
             let align = textAlign.lowercased()
             switch align {
             case "center":
-                classes.append("text-center")
                 classes.append("gloss-text-center")
             case "right":
-                classes.append("text-right")
                 classes.append("gloss-text-right")
             case "justify":
-                classes.append("text-justify")
                 classes.append("gloss-text-justify")
             case "left":
                 classes.append("gloss-text-left")
@@ -529,17 +514,14 @@ struct ContentStyle: Codable, Sendable {
         }
 
         if verticalAlign != nil {
-            classes.append("styled-vertical-align")
             classes.append("gloss-vertical-align")
         }
 
         if clipPath != nil {
-            classes.append("styled-clip-path")
             classes.append("gloss-clip-path")
         }
 
         if cursor != nil {
-            classes.append("styled-cursor")
             let cur = cursor!.lowercased()
             if cur == "pointer" {
                 classes.append("gloss-cursor-pointer")

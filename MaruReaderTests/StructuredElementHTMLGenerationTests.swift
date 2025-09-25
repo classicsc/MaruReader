@@ -32,6 +32,7 @@ struct DictionaryContentMarkupTests {
 
         let html = element.toHTML()
         #expect(html == "<p class=\"gloss-sc-p\">Hello World</p>")
+        #expect(!html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_WithStyle() throws {
@@ -60,8 +61,48 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("<span style=\"font-style: italic; font-weight: bold; font-size: 16px; color: #000000\" class=\"gloss-sc-span\">Styled Text</span>"))
+        #expect(html.contains("<span class=\"gloss-sc-span gloss-font-bold gloss-font-italic\">Styled Text</span>"))
         #expect(html.contains("Styled Text</span>"))
+        #expect(!html.contains("style="))
+    }
+
+    @Test func structuredElement_toHTML_NoStyleAddsOnlyBaseClass() throws {
+        let element = StructuredElement(
+            tag: "div",
+            content: .text("Plain Text"),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toHTML()
+        #expect(html == "<div class=\"gloss-sc-div\">Plain Text</div>")
+        #expect(!html.contains("gloss-font-"))
+        #expect(!html.contains("style="))
+    }
+
+    @Test func contentStyle_toCSSClasses_GeneratesExpectedClasses() throws {
+        let style = ContentStyle(
+            fontStyle: "italic",
+            fontWeight: "bold",
+            textDecorationLine: ["underline", "line-through"],
+            textAlign: "right",
+        )
+        let classes = style.toCSSClasses()
+        #expect(classes.contains("gloss-font-bold"))
+        #expect(classes.contains("gloss-text-underline"))
+        #expect(classes.contains("gloss-text-strikethrough"))
+        #expect(classes.contains("gloss-text-right"))
+        #expect(classes.contains("gloss-font-italic"))
     }
 
     @Test func structuredElement_toHTML_LinkWithHref() throws {
@@ -85,7 +126,11 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         #expect(html.contains("href=\"https://example.com\""))
         #expect(html.contains("title=\"Example Link\""))
-        #expect(html.contains("<a class=\"gloss-link\" href=\"https://example.com\" data-external=\"true\" title=\"Example Link\"><span class=\"gloss-link-text\">Click me</span><span class=\"gloss-link-external-icon icon\" data-icon=\"external-link\"></span></a>"))
+        #expect(html.contains("data-external=\"true\""))
+        #expect(html.contains("<a class=\"gloss-link\""))
+        #expect(html.contains("<span class=\"gloss-link-text\">Click me</span>"))
+        #expect(html.contains("<span class=\"gloss-link-external-icon icon\""))
+        #expect(!html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_ImageWithPath() throws {
@@ -109,8 +154,8 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         // New image structure should be Yomitan-compatible
         #expect(html.contains("class=\"gloss-image-link\""))
-        #expect(html.contains("class=\"gloss-image-container\""))
-        #expect(html.contains("class=\"gloss-image-sizer\""))
+        #expect(html.contains("class=\"gloss-image-container\" data-width-em"))
+        #expect(!html.contains("<span class=\"gloss-image-sizer\"></span>"))
         #expect(html.contains("class=\"gloss-image-background\""))
         #expect(html.contains("class=\"gloss-image\""))
         #expect(html.contains("class=\"gloss-image-container-overlay\""))
@@ -120,6 +165,10 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-path=\"image.png\""))
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
         #expect(html.contains("data-has-aspect-ratio=\"true\""))
+        #expect(html.contains("data-aspect-ratio="))
+        #expect(html.contains("style=\"padding-top:"))
+        #expect(html.contains("style=\"width:"))
+        #expect(!html.contains("style=\"border:"))
     }
 
     @Test func structuredElement_toHTML_ImageWithBaseURL() throws {
@@ -147,6 +196,8 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("alt=\"Local Image\""))
         #expect(html.contains("class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"images/test.png\""))
+        #expect(html.contains("data-width-em"))
+        #expect(html.contains("style=\"width:"))
     }
 
     @Test func structuredElement_toHTML_ImageWithAbsolutePath_SkipsSrc() throws {
@@ -175,6 +226,61 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("href="))
         #expect(html.contains("class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"https://example.com/image.jpg\""))
+        #expect(html.contains("data-width-em"))
+    }
+
+    @Test func structuredElement_toHTML_ImageWithBorderDataAttr() throws {
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "image.png",
+            width: 100,
+            height: 100,
+            title: nil,
+            alt: nil,
+            border: "2px solid red",
+            borderRadius: "5px",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toHTML()
+        #expect(html.contains("data-border=\"2px solid red\""))
+        #expect(html.contains("data-border-radius=\"5px\""))
+        #expect(!html.contains("style=\"border:"))
+        #expect(!html.contains("style=\"border-radius:"))
+    }
+
+    @Test func structuredElement_toHTML_ImageNoStyleNoInline() throws {
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "image.png",
+            width: 100,
+            height: 100,
+            title: nil,
+            alt: nil,
+            verticalAlign: nil,
+            border: nil,
+            borderRadius: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toHTML()
+        #expect(html.contains("style=\"width: 100%; height: 100%\"")) // Essential layout only
+        #expect(!html.contains("style=\"vertical-align:"))
+        #expect(!html.contains("style=\"image-rendering:"))
     }
 
     @Test func structuredElement_toHTML_TableCellWithSpans() throws {
@@ -198,7 +304,8 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         #expect(html.contains("colspan=\"2\""))
         #expect(html.contains("rowspan=\"3\""))
-        #expect(html.contains(">Cell Content</td>"))
+        #expect(html.contains("colspan=\"2\" rowspan=\"3\">Cell Content</td>"))
+        #expect(!html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_DetailsElement() throws {
@@ -222,6 +329,7 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         #expect(html.contains("<details class=\"gloss-sc-details\" open>Details Content</details>"))
         #expect(html.contains("Details Content</details>"))
+        #expect(!html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_WithLanguage() throws {
@@ -266,9 +374,10 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("<div class=\"gloss-sc-div\""))
+        #expect(html.contains("<div class=\"gloss-sc-div\" "))
         #expect(html.contains("data-scId=\"123\""))
         #expect(html.contains("data-scType=\"example\""))
+        #expect(!html.contains("style="))
     }
 
     @Test func structuredElement_toHTML_SelfClosingTags() throws {
@@ -310,8 +419,11 @@ struct DictionaryContentMarkupTests {
         )
 
         let hrHtml = hr.toHTML()
-        #expect(hrHtml.contains("<hr"))
+        #expect(hrHtml.contains("class=\"gloss-sc-hr gloss-border-partial\""))
+        #expect(hrHtml.contains("<hr "))
         #expect(hrHtml.contains("/>"))
+        #expect(!hrHtml.contains("data-scBorderWidth=\"1px\""))
+        #expect(!hrHtml.contains("style=\"border-width:"))
     }
 
     @Test func structuredElement_toHTML_NestedContent() throws {
@@ -406,11 +518,12 @@ struct DictionaryContentMarkupTests {
     }
 
     @Test func structuredElement_toHTML_ComplexNestedStructure() throws {
+        let linkStyle = ContentStyle(color: "#0000FF", textDecorationLine: ["underline"])
         let linkElement = StructuredElement(
             tag: "a",
             content: .text("link"),
             data: nil,
-            style: ContentStyle(color: "#0000FF", textDecorationLine: ["underline"]),
+            style: linkStyle,
             lang: nil,
             href: "https://example.com",
             path: nil,
@@ -423,6 +536,7 @@ struct DictionaryContentMarkupTests {
             open: nil
         )
 
+        let divStyle = ContentStyle(backgroundColor: "#f0f0f0", padding: "10px")
         let divElement = StructuredElement(
             tag: "div",
             content: .array([
@@ -431,7 +545,7 @@ struct DictionaryContentMarkupTests {
                 .text(" in a div."),
             ]),
             data: ["section": "main"],
-            style: ContentStyle(backgroundColor: "#f0f0f0", padding: "10px"),
+            style: divStyle,
             lang: "en",
             href: nil,
             path: nil,
@@ -445,16 +559,14 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = divElement.toHTML()
-        #expect(html.contains("<div"))
-        #expect(html.contains("style=\""))
-        #expect(html.contains("padding: 10px"))
-        #expect(html.contains("background-color: #f0f0f0"))
-        #expect(html.contains("lang=\"en\""))
+        #expect(html.contains("lang=\"en\" class=\"gloss-sc-div gloss-background gloss-padding\" data-scSection=\"main\">"))
+        #expect(!html.contains("padding: 10px"))
+        #expect(!html.contains("style=\"background-color:"))
         #expect(html.contains("data-scSection=\"main\""))
-        #expect(html.contains("<a"))
-        #expect(html.contains("href=\"https://example.com\""))
-        #expect(html.contains("color: #0000FF"))
-        #expect(html.contains("text-decoration-line: underline"))
+        #expect(html.contains("<a class=\"gloss-link gloss-text-underline\" href=\"https://example.com\" "))
+        #expect(html.contains("gloss-text-underline"))
+        #expect(!html.contains("style=\"color: #0000FF\""))
+        #expect(!html.contains("style=\"text-decoration-line: underline\""))
     }
 
     // MARK: - Enhanced Image Element Tests
@@ -628,8 +740,8 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toHTML()
-        #expect(html.contains("border: 1px solid red"))
-        #expect(html.contains("border-radius: 5px"))
+        #expect(html.contains("data-border=\"1px solid red\""))
+        #expect(html.contains("data-border-radius=\"5px\""))
     }
 
     @Test func structuredElement_toHTML_ImageWithEmSizeUnits() throws {

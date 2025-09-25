@@ -148,25 +148,23 @@ extension StructuredElement {
             widthInEm = "\(formatNumber(emWidth))em"
         }
 
-        var containerStyle: [String] = []
         var containerAttributes: [String] = []
 
         if let border {
-            containerStyle.append("border: \(border)")
+            containerAttributes.append("data-border=\"\(escapeHTMLAttribute(border))\"")
         }
         if let borderRadius {
-            containerStyle.append("border-radius: \(borderRadius)")
+            containerAttributes.append("data-border-radius=\"\(escapeHTMLAttribute(borderRadius))\"")
         }
-        containerStyle.append("width: \(widthInEm)")
+        containerAttributes.append("data-width-em=\"\(widthInEm)\"")
         if let title {
             containerAttributes.append("title=\"\(escapeHTMLAttribute(title))\"")
         }
 
-        let containerStyleString = containerStyle.joined(separator: "; ")
-        let containerAttributeString = containerAttributes.isEmpty ? "" : " " + containerAttributes.joined(separator: " ")
-
         let paddingTopValue = invAspectRatio * 100
-        let sizerStyle = "padding-top: \(formatNumber(paddingTopValue))%"
+        containerAttributes.append("data-aspect-ratio=\"\(formatNumber(paddingTopValue))\"")
+
+        let containerAttributeString = containerAttributes.isEmpty ? "" : " " + containerAttributes.joined(separator: " ")
 
         var imageHTML = ""
 
@@ -193,33 +191,19 @@ extension StructuredElement {
             imageAttributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
         }
 
-        // Add image-specific styles
-        var imageStyles: [String] = []
-        if let imageRendering, imageRendering != "auto" {
-            imageStyles.append("image-rendering: \(imageRendering)")
-        } else if pixelated == true {
-            imageStyles.append("image-rendering: pixelated")
-        }
-
         if let verticalAlign {
-            imageStyles.append("vertical-align: \(verticalAlign)")
+            imageAttributes.append("data-vertical-align=\"\(escapeHTMLAttribute(verticalAlign))\"")
         }
 
-        if !imageStyles.isEmpty {
-            let existingStyle = "width: 100%; height: 100%"
-            let combinedStyle = existingStyle + "; " + imageStyles.joined(separator: "; ")
-            // Replace the basic style with combined style
-            if let styleIndex = imageAttributes.firstIndex(where: { $0.contains("style=") }) {
-                imageAttributes[styleIndex] = "style=\"\(combinedStyle)\""
-            }
-        }
+        // Image rendering handled via data-image-rendering attr already
+        // Vertical align now in data-vertical-align attr
 
         imageHTML = "<img \(imageAttributes.joined(separator: " ")) />"
 
         return """
         <a \(attributeString)>
-            <span class="gloss-image-container" style="\(containerStyleString)"\(containerAttributeString)>
-                <span class="gloss-image-sizer" style="\(sizerStyle)"></span>
+            <span class="gloss-image-container"\(containerAttributeString) style="width: \(widthInEm)">
+                <span class="gloss-image-sizer" style="padding-top: \(formatNumber(paddingTopValue))%"></span>
                 <span class="gloss-image-background"></span>
                 \(imageHTML)
                 <span class="gloss-image-container-overlay"></span>
@@ -245,26 +229,20 @@ extension StructuredElement {
 
         var attributes: [String] = []
 
-        // Add style attribute if present
-        if let style {
-            let cssString = style.toCSSString()
-            if !cssString.isEmpty {
-                attributes.append("style=\"\(escapeHTMLAttribute(cssString))\"")
-            }
-        }
-
         // Add language attribute
         if let lang {
             attributes.append("lang=\"\(escapeHTMLAttribute(lang))\"")
         }
 
-        // Add base class
+        // Add base class with style classes
         let baseClass = if tag == "a" {
             "gloss-link"
         } else {
             "gloss-sc-\(tag)"
         }
-        attributes.append("class=\"\(baseClass)\"")
+        let extraClasses = style?.toCSSClasses().joined(separator: " ") ?? ""
+        let fullClass = [baseClass, extraClasses].filter { !$0.isEmpty }.joined(separator: " ")
+        attributes.append("class=\"\(fullClass)\"")
 
         // Specialized handling
         switch tag {
@@ -358,11 +336,25 @@ extension StructuredElement {
 
     private func formatNumber(_ value: Double) -> String {
         let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = 0
         formatter.maximumFractionDigits = 4
         formatter.minimumIntegerDigits = 1
         formatter.usesGroupingSeparator = false
-        return formatter.string(from: NSNumber(value: value)) ?? "0"
+        formatter.roundingMode = .halfEven
+        let string = formatter.string(from: NSNumber(value: value)) ?? "0"
+        // Trim trailing zeros after decimal if present
+        if let decimalIndex = string.firstIndex(where: { $0 == "." }) {
+            let integerPart = String(string[..<decimalIndex])
+            let decimalPart = String(string[string.index(after: decimalIndex)...])
+            let trimmedDecimal = decimalPart.trimmingCharacters(in: CharacterSet(charactersIn: "0"))
+            if trimmedDecimal.isEmpty {
+                return integerPart
+            } else {
+                return integerPart + "." + trimmedDecimal
+            }
+        }
+        return string
     }
 
     private func keyToCamelCase(_ key: String) -> String {
