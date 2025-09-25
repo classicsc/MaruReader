@@ -151,7 +151,7 @@ extension Definition {
 extension [Definition] {
     func toHTML(baseURL: URL? = nil, devicePixelRatio: CGFloat? = nil, baseFontSize: CGFloat? = nil) -> String {
         let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize))</li>" }.joined()
-        return "<ol class=\"gloss-glossary-list\">\(itemsHTML)</ol>"
+        return "<ul class=\"gloss-glossary-list\">\(itemsHTML)</ul>"
     }
 }
 

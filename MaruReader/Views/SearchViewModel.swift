@@ -152,56 +152,7 @@ class SearchViewModel {
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <style>
-                :root {
-                    color-scheme: light dark;
-                }
-                body {
-                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                    margin: 12px;
-                    padding: 0;
-                    line-height: 1.4;
-                    font-size: 16px;
-                    color: CanvasText;
-                    background-color: Canvas;
-                }
-                .term-group {
-                    margin-bottom: 20px;
-                }
-                .term-header {
-                    font-size: 22px;
-                    font-weight: 600;
-                    margin: 0 0 12px 0;
-                    color: CanvasText;
-                }
-                .dictionary-section {
-                    margin-bottom: 12px;
-                }
-                .dictionary-header {
-                    font-size: 17px;
-                    font-weight: 600;
-                    margin: 0 0 8px 0;
-                    color: color-mix(in srgb, CanvasText 60%, transparent);
-                }
-                .dictionary-content {
-                    margin-bottom: 8px;
-                }
-                .glossary-list {
-                    margin: 0;
-                    padding-left: 20px;
-                }
-                .glossary-list li {
-                    margin-bottom: 8px;
-                }
-                .definition-text {
-                    margin: 4px 0;
-                }
-                .deinflection {
-                    font-style: italic;
-                    opacity: 0.7;
-                    margin: 4px 0;
-                }
-            </style>
+            <link rel="stylesheet" href="marureader-resource://structured-content.css">
         </head>
         <body>
             \(termGroupsHTML)

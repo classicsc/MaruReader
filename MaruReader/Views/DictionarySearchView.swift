@@ -16,6 +16,7 @@ struct DictionarySearchView: View {
     init() {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
+        config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
         self._page = State(initialValue: WebPage(configuration: config))
     }
 
