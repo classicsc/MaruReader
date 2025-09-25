@@ -92,10 +92,11 @@ body {
 .gloss-glossary-list {
     margin: 0;
     padding-left: 1.25em;
+    list-style: circle;
 }
 
 .gloss-glossary-list li {
-    margin-bottom: 0.5em;
+    line-height: var(--line-height);
 }
 
 .gloss-definition-text {
@@ -143,6 +144,24 @@ body {
 .gloss-sc-ol,
 .gloss-sc-ul {
     padding-left: var(--list-padding2);
+}
+
+/* Glossary list items structure (matching Yomitan) */
+.gloss-item {
+    margin-bottom: 0.25em;
+    line-height: var(--line-height);
+}
+
+.gloss-separator {
+    margin-right: 0.25em;
+}
+
+.gloss-content {
+    display: inline;
+}
+
+.gloss-content.structured-content {
+    display: inline;
 }
 
 /* Compact lists for glossary */
@@ -290,11 +309,12 @@ body {
 .gloss-image-link {
     cursor: inherit;
     color: var(--accent-color);
-    display: inline;
+    display: inline-block;
     position: relative;
     line-height: 1;
     max-width: 100%;
     vertical-align: baseline;
+    text-decoration: none;
 }
 
 .gloss-image-link:hover, .gloss-link:hover {
@@ -430,6 +450,7 @@ body {
 .gloss-link {
     color: var(--accent-color);
     text-decoration: none;
+    margin-right: 0.25em;
 }
 
 .gloss-link:hover {

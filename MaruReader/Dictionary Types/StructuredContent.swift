@@ -65,5 +65,6 @@ extension StructuredContent {
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&#39;")
+            .replacingOccurrences(of: "\n", with: "<br class=\"gloss-sc-br\">")
     }
 }

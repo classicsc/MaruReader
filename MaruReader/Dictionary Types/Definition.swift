@@ -150,8 +150,34 @@ extension Definition {
 /// Render arrays of definitions as ordered lists in HTML.
 extension [Definition] {
     func toHTML(baseURL: URL? = nil, devicePixelRatio: CGFloat? = nil, baseFontSize: CGFloat? = nil) -> String {
-        let itemsHTML = self.map { "<li>\($0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize))</li>" }.joined()
-        return "<ul class=\"gloss-glossary-list\">\(itemsHTML)</ul>"
+        let itemsHTML = self.enumerated().map { index, definition in
+            let definitionHTML = definition.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, baseFontSize: baseFontSize)
+
+            // Determine if content should have structured-content class
+            let contentClass = definition.isStructuredContent ? "gloss-content structured-content" : "gloss-content"
+
+            return "<li class=\"gloss-item click-scannable\" data-index=\"\(index)\"><span class=\"gloss-separator\"> </span><span class=\"\(contentClass)\">\(definitionHTML)</span></li>"
+        }.joined()
+        return "<ul class=\"gloss-glossary-list\" data-count=\"\(self.count)\">\(itemsHTML)</ul>"
+    }
+}
+
+private extension Definition {
+    /// Check if this definition contains structured content
+    var isStructuredContent: Bool {
+        switch self {
+        case .text:
+            false
+        case let .detailed(detail):
+            switch detail {
+            case .text:
+                false
+            case .structured, .image:
+                true
+            }
+        case .deinflection:
+            false
+        }
     }
 }
 
