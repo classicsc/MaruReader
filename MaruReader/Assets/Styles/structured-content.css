@@ -1,0 +1,704 @@
+/* This file is derived from structured-content.css, part of the Yomitan project.
+* Copyright (C) 2024-2025  Yomitan Authors
+* Used under the terms of the GNU General Public License v3.0
+ */
+
+/* Root and variables for iOS system colors and sizing */
+:root {
+    color-scheme: light dark;
+
+    /* Color system */
+    --text-color: CanvasText;
+    --background-color: Canvas;
+    --accent-color: accent;
+    --link-color: var(--accent-color);
+    --text-color-light1: color-mix(in srgb, CanvasText 70% transparent);
+    --text-color-light2: color-mix(in srgb, CanvasText 50% transparent);
+    --text-color-light3: color-mix(in srgb, CanvasText 30% transparent);
+    --background-color-dark1: color-mix(in srgb, Canvas 90% CanvasText 10%);
+    --background-color-dark2: color-mix(in srgb, Canvas 80% CanvasText 20%);
+    --gloss-image-background-color: Canvas;
+
+    /* Typography scale */
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-no-units: 1;
+    --line-height: 1.4;
+    --line-height-tight: 1.25;
+    --line-height-relaxed: 1.6;
+
+    /* Spacing system */
+    --spacing-xs: 0.125em;
+    --spacing-sm: 0.25em;
+    --spacing-base: 0.5em;
+    --spacing-md: 0.75em;
+    --spacing-lg: 1em;
+    --spacing-xl: 1.25em;
+    --spacing-2xl: 2em;
+    --list-padding1: var(--spacing-xl);
+    --list-padding2: var(--spacing-2xl);
+
+    /* Component-specific */
+    --compact-list-separator: ", ";
+    --border-radius-sm: 0.25rem;
+    --border-radius-base: 0.375rem;
+    --border-radius-md: 0.5rem;
+    --border-width: 1px;
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* Body and layout from SearchViewModel */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    margin: 0.75em;
+    padding: 0;
+    line-height: var(--line-height);
+    font-size: 1em;
+    color: var(--text-color);
+    background-color: var(--background-color);
+}
+
+.term-group {
+    margin-bottom: 1.25em;
+}
+
+.term-header {
+    font-size: 1.375em;
+    font-weight: 600;
+    margin: 0 0 0.75em 0;
+    color: var(--text-color);
+}
+
+.dictionary-section {
+    margin-bottom: 0.75em;
+}
+
+.dictionary-header {
+    font-size: 1.0625em;
+    font-weight: 600;
+    margin: 0 0 0.5em 0;
+    color: color-mix(in srgb, var(--text-color) 60% transparent);
+}
+
+.dictionary-content {
+    margin-bottom: 0.5em;
+}
+
+.gloss-glossary-list {
+    margin: 0;
+    padding-left: 1.25em;
+}
+
+.gloss-glossary-list li {
+    margin-bottom: 0.5em;
+}
+
+.gloss-definition-text {
+    margin: 0.25em 0;
+    line-height: var(--line-height);
+}
+
+.gloss-deinflection {
+    font-style: italic;
+    opacity: 0.7;
+    margin: 0.25em 0;
+}
+
+/* Structured content tables */
+.gloss-sc-table-container {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.gloss-sc-table {
+    table-layout: fixed;
+    border-collapse: collapse;
+    width: 100%;
+    max-width: 100%;
+}
+
+.gloss-sc-thead,
+.gloss-sc-tfoot,
+.gloss-sc-th {
+    font-weight: bold;
+    background-color: var(--background-color-dark1);
+}
+
+.gloss-sc-th,
+.gloss-sc-td {
+    border-width: calc(1em / var(--font-size-no-units));
+    border-style: solid;
+    border-color: var(--text-color-light2);
+    padding: 0.25em;
+    vertical-align: top;
+}
+
+/* Structured content lists */
+.gloss-sc-ol,
+.gloss-sc-ul {
+    padding-left: var(--list-padding2);
+}
+
+/* Compact lists for glossary */
+.gloss-sc-ul[data-sc-content=glossary] {
+    display: inline;
+    list-style: none;
+    padding-left: 0;
+}
+
+.gloss-sc-ul[data-sc-content=glossary] .gloss-sc-li {
+    display: inline;
+}
+
+.gloss-sc-ul[data-sc-content=glossary] .gloss-sc-li:not(:first-child)::before {
+    white-space: pre-wrap;
+    content: var(--compact-list-separator);
+    display: inline;
+    color: var(--text-color-light3);
+}
+
+.gloss-sc-details {
+    padding-left: var(--list-padding1);
+}
+
+.gloss-sc-summary {
+    list-style-position: outside;
+}
+
+/* Glossary images (adapted from Yomitan, removed -moz- prefixes) */
+.gloss-image-container {
+    display: inline-block;
+    white-space: nowrap;
+    max-width: 100%;
+    max-height: 100vh;
+    position: relative;
+    vertical-align: top;
+    line-height: 0;
+    font-size: calc(1em / var(--font-size-no-units));
+    overflow: hidden;
+    width: attr(data-width-em length, 6.25em);
+    border: attr(data-border, none);
+    border-radius: attr(data-border-radius, 0);
+}
+
+.gloss-image-link[data-background=true] > .gloss-image-container {
+    background-color: var(--gloss-image-background-color);
+}
+
+.gloss-image-sizer {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    padding-top: attr(data-aspect-ratio percentage, 0%);
+    vertical-align: top;
+    font-size: 0;
+}
+
+.gloss-image-link[data-has-aspect-ratio=true] .gloss-image-sizer {
+    display: inline-block;
+    width: 0;
+    vertical-align: top;
+    font-size: 0;
+}
+
+.gloss-image {
+    display: inline-block;
+    vertical-align: top;
+    object-fit: contain;
+    border: none;
+    outline: none;
+}
+
+.gloss-image-link[data-has-aspect-ratio=true] .gloss-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.gloss-image[data-vertical-align] {
+    vertical-align: attr(data-vertical-align);
+}
+
+/* Enhanced image rendering (iOS/WebKit optimized, no -moz- prefixes) */
+.gloss-image-link[data-image-rendering=pixelated] .gloss-image,
+.gloss-image-link[data-image-rendering=pixelated] .gloss-image-background {
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+.gloss-image-link[data-image-rendering=crisp-edges] .gloss-image,
+.gloss-image-link[data-image-rendering=crisp-edges] .gloss-image-background {
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+.gloss-image-background {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--text-color);
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center center;
+    -webkit-mask-mode: alpha;
+    -webkit-mask-size: contain;
+    -webkit-mask-image: var(--image);
+    mask-repeat: no-repeat;
+    mask-position: center center;
+    mask-mode: alpha;
+    mask-size: contain;
+    mask-image: var(--image);
+    display: none;
+}
+
+.gloss-image-container-overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    font-size: calc(1em * var(--font-size-no-units));
+    line-height: var(--line-height);
+    display: table;
+    table-layout: fixed;
+    white-space: normal;
+    color: var(--text-color-light3);
+}
+
+.gloss-image-link[data-has-image=true][data-image-load-state=load-error] .gloss-image-container-overlay::after {
+    content: 'Image failed to load';
+    display: table-cell;
+    width: 100%;
+    height: 100%;
+    vertical-align: middle;
+    text-align: center;
+    padding: 0.25em;
+}
+
+.gloss-image-link {
+    cursor: inherit;
+    color: var(--accent-color);
+    display: inline-block;
+    position: relative;
+    line-height: 1;
+    max-width: 100%;
+}
+
+.gloss-image-link:hover, .gloss-link:hover {
+    color: color-mix(in srgb, var(--accent-color) 80%, var(--text-color));
+    cursor: pointer;
+}
+
+.gloss-image-link-text {
+    display: none;
+    line-height: var(--line-height);
+}
+
+.gloss-image-link-text::before {
+    content: '[';
+}
+
+.gloss-image-link-text::after {
+    content: ']';
+}
+
+.gloss-image-desc {
+    display: block;
+    white-space: pre-line;
+    margin-top: 0.25em;
+}
+
+.gloss-image-def {
+    display: inline-block;
+}
+
+.gloss-image-main {
+    display: inline;
+}
+
+.gloss-image-link[data-appearance=monochrome] .gloss-image {
+    filter: grayscale(1) opacity(0.5) drop-shadow(0 0 0.01px var(--text-color)) drop-shadow(0 0 0.01px var(--text-color)) saturate(1000%) brightness(1000%);
+}
+
+.gloss-image-link[data-size-units=em] .gloss-image-container {
+    font-size: 1em;
+}
+
+.gloss-image-link[data-vertical-align=baseline] { vertical-align: baseline; }
+.gloss-image-link[data-vertical-align=sub] { vertical-align: sub; }
+.gloss-image-link[data-vertical-align=super] { vertical-align: super; }
+.gloss-image-link[data-vertical-align=text-top] { vertical-align: top; }
+.gloss-image-link[data-vertical-align=text-bottom] { vertical-align: bottom; }
+.gloss-image-link[data-vertical-align=middle] { vertical-align: middle; }
+.gloss-image-link[data-vertical-align=top] { vertical-align: top; }
+.gloss-image-link[data-vertical-align=bottom] { vertical-align: bottom; }
+/* Collapsible image system */
+.gloss-image-link[data-collapsed=true],
+.gloss-sc-collapsible .gloss-image-link[data-collapsible=true] {
+    vertical-align: baseline;
+}
+
+.gloss-image-link[data-collapsed=true] .gloss-image-container,
+.gloss-sc-collapsible .gloss-image-link[data-collapsible=true] .gloss-image-container {
+    display: none;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    z-index: 1;
+}
+
+/* Smart positioning for last entries */
+.term-group:nth-last-of-type(1):not(:nth-of-type(1)) .gloss-image-link[data-collapsed=true] .gloss-image-container,
+.gloss-sc-collapsible .term-group:nth-last-of-type(1):not(:nth-of-type(1)) .gloss-image-link[data-collapsible=true] .gloss-image-container,
+.gloss-sc-collapsible .gloss-glossary-list li:nth-last-of-type(1) .gloss-image-link[data-collapsible=true] .gloss-image-container {
+    bottom: 100%;
+    top: auto;
+}
+
+.gloss-image-link[data-collapsed=true]:hover .gloss-image-container,
+.gloss-image-link[data-collapsed=true]:focus .gloss-image-container,
+.gloss-sc-collapsible .gloss-image-link[data-collapsible=true]:hover .gloss-image-container,
+.gloss-sc-collapsible .gloss-image-link[data-collapsible=true]:focus .gloss-image-container {
+    display: block;
+}
+
+.gloss-image-link[data-collapsed=true] .gloss-image-link-text,
+.gloss-sc-collapsible .gloss-image-link[data-collapsible=true] .gloss-image-link-text {
+    display: inline;
+}
+
+.gloss-image-link[data-collapsed=true]~.gloss-image-desc,
+.gloss-sc-collapsible .gloss-image-desc {
+    display: inline;
+}
+
+/* Links */
+.gloss-link {
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.gloss-link:hover {
+    color: color-mix(in srgb, var(--accent-color) 80%, var(--text-color));
+    cursor: pointer;
+}
+
+.gloss-link-text {
+    vertical-align: baseline;
+}
+
+.gloss-link-external-icon {
+    display: inline-block;
+    vertical-align: middle;
+    width: calc(16em / var(--font-size-no-units));
+    height: calc(16em / var(--font-size-no-units));
+    margin-left: 0.25em;
+    background-color: var(--accent-color);
+    position: relative;
+}
+
+/* ContentStyle classes */
+.gloss-font-bold {
+    font-weight: bold;
+}
+
+.gloss-font-normal {
+    font-weight: normal;
+}
+
+.gloss-font-light {
+    font-weight: 300;
+}
+
+.gloss-font-thin {
+    font-weight: 100;
+}
+
+.gloss-font-medium {
+    font-weight: 500;
+}
+
+.gloss-font-semibold {
+    font-weight: 600;
+}
+
+.gloss-font-black {
+    font-weight: 900;
+}
+
+.gloss-font-italic {
+    font-style: italic;
+}
+
+.gloss-font-oblique {
+    font-style: oblique;
+}
+
+.gloss-text-underline {
+    text-decoration-line: underline;
+}
+
+.gloss-text-overline {
+    text-decoration-line: overline;
+}
+
+.gloss-text-strikethrough {
+    text-decoration-line: line-through;
+}
+
+.text-center, .gloss-text-center {
+    text-align: center;
+}
+
+.text-right, .gloss-text-right {
+    text-align: right;
+}
+
+.text-justify, .gloss-text-justify {
+    text-align: justify;
+}
+
+.gloss-sc-li.gloss-text-left {
+    text-align: left;
+}
+
+.gloss-background {
+    background-color: var(--background-color);
+}
+
+.gloss-text-nowrap {
+    white-space: nowrap;
+}
+
+.gloss-text-pre {
+    white-space: pre;
+}
+
+.gloss-word-break-all {
+    word-break: break-all;
+}
+
+.gloss-text-uppercase {
+    text-transform: uppercase;
+}
+
+.gloss-text-lowercase {
+    text-transform: lowercase;
+}
+
+.gloss-text-capitalize {
+    text-transform: capitalize;
+}
+
+.gloss-text-small-caps {
+    font-variant: small-caps;
+}
+
+.gloss-list-disc {
+    list-style-type: disc;
+}
+
+/* Default for unhandled list types */
+.gloss-list-circle {
+    list-style-type: circle;
+}
+
+.gloss-list-square {
+    list-style-type: square;
+}
+
+.gloss-list-decimal {
+    list-style-type: decimal;
+}
+
+.gloss-list-lower-alpha {
+    list-style-type: lower-alpha;
+}
+
+.gloss-list-upper-alpha {
+    list-style-type: upper-alpha;
+}
+
+.gloss-list-lower-roman {
+    list-style-type: lower-roman;
+}
+
+.gloss-list-upper-roman {
+    list-style-type: upper-roman;
+}
+
+.gloss-list-none {
+    list-style-type: none;
+}
+
+/* iOS-specific enhancements for Japanese text */
+
+/* Ruby text (furigana) support */
+.gloss-ruby {
+    display: inline-block;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    line-height: 1;
+}
+
+.gloss-ruby-base {
+    display: block;
+    text-align: center;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.gloss-ruby-text {
+    display: block;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 0.6em;
+    line-height: 1;
+    color: var(--text-color-light2);
+}
+
+/* Text emphasis (Japanese dots) */
+.gloss-text-emphasis {
+    text-emphasis: filled dot;
+    -webkit-text-emphasis: filled dot;
+    text-emphasis-position: over right;
+    -webkit-text-emphasis-position: over right;
+}
+
+.gloss-text-emphasis-circle {
+    text-emphasis: open circle;
+    -webkit-text-emphasis: open circle;
+    text-emphasis-position: over right;
+    -webkit-text-emphasis-position: over right;
+}
+
+.gloss-text-emphasis-triangle {
+    text-emphasis: filled triangle;
+    -webkit-text-emphasis: filled triangle;
+    text-emphasis-position: over right;
+    -webkit-text-emphasis-position: over right;
+}
+
+/* CJK text handling */
+.gloss-text-vertical-rl {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+}
+
+.gloss-text-vertical-lr {
+    writing-mode: vertical-lr;
+    text-orientation: mixed;
+}
+
+.gloss-word-break-normal {
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+
+.gloss-word-break-keep-all {
+    word-break: keep-all;
+}
+
+.gloss-text-combine-upright {
+    text-combine-upright: all;
+    -webkit-text-combine: horizontal;
+}
+
+/* Details/Summary components and error handling */
+
+/* Details and summary styling */
+.gloss-sc-details {
+    padding-left: var(--list-padding1);
+    margin: var(--spacing-sm) 0;
+    border-left: 2px solid var(--text-color-light3);
+}
+
+.gloss-sc-details[open] {
+    border-left-color: var(--accent-color);
+}
+
+.gloss-sc-summary {
+    list-style-position: outside;
+    cursor: pointer;
+    user-select: none;
+    padding: var(--spacing-sm) 0;
+    font-weight: 500;
+}
+
+.gloss-sc-summary:hover {
+    color: var(--accent-color);
+}
+
+.gloss-sc-summary::marker {
+    color: var(--accent-color);
+}
+
+/* Error handling and loading states */
+.gloss-error-container {
+    background-color: color-mix(in srgb, red 10%, var(--background-color));
+    border: 1px solid color-mix(in srgb, red 30%, transparent);
+    border-radius: var(--border-radius-base);
+    padding: var(--spacing-base);
+    margin: var(--spacing-sm) 0;
+}
+
+.gloss-error-message {
+    color: color-mix(in srgb, red 70%, var(--text-color));
+    font-size: var(--font-size-sm);
+    margin: 0;
+}
+
+.gloss-loading-state {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.gloss-loading-spinner {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    border: 2px solid var(--text-color-light3);
+    border-radius: 50%;
+    border-top-color: var(--accent-color);
+    animation: gloss-spin 1s ease-in-out infinite;
+}
+
+@keyframes gloss-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Accessibility and focus states */
+.gloss-image-link:focus-visible,
+.gloss-link:focus-visible,
+.gloss-sc-summary:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+    border-radius: var(--border-radius-sm);
+}
+
+/* Print styles */
+@media print {
+    .gloss-image-link[data-collapsed=true] .gloss-image-container,
+    .gloss-sc-collapsible .gloss-image-link[data-collapsible=true] .gloss-image-container {
+        display: block;
+        position: static;
+    }
+
+    .gloss-image-link[data-collapsed=true] .gloss-image-link-text,
+    .gloss-sc-collapsible .gloss-image-link[data-collapsible=true] .gloss-image-link-text {
+        display: none;
+    }
+}
