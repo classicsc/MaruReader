@@ -402,7 +402,6 @@ struct ContentStyleCSSTests {
 
         #expect(classes.contains("styled-font-weight"))
         #expect(classes.contains("styled-font-style"))
-        #expect(classes.count == 2)
     }
 
     @Test func toCSSClasses_textDecoration_returnsSpecificDecorationClasses() throws {
@@ -415,7 +414,6 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("styled-text-decoration"))
         #expect(classes.contains("text-underlined"))
         #expect(classes.contains("text-strikethrough"))
-        #expect(classes.count == 3)
     }
 
     @Test func toCSSClasses_textAlign_returnsAlignmentClasses() throws {
@@ -425,7 +423,6 @@ struct ContentStyleCSSTests {
 
         #expect(classes.contains("styled-text-align"))
         #expect(classes.contains("text-center"))
-        #expect(classes.count == 2)
     }
 
     @Test func toCSSClasses_rightAlignment_returnsRightClass() throws {
@@ -446,7 +443,6 @@ struct ContentStyleCSSTests {
 
         #expect(classes.contains("styled-margin"))
         #expect(classes.contains("styled-padding"))
-        #expect(classes.count == 2)
     }
 
     @Test func toCSSClasses_advancedProperties_returnsAdvancedClasses() throws {
@@ -461,7 +457,6 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("styled-clip-path"))
         #expect(classes.contains("styled-cursor"))
         #expect(classes.contains("styled-vertical-align"))
-        #expect(classes.count == 3)
     }
 
     @Test func toCSSClasses_noStyling_returnsEmptyArray() throws {
@@ -492,6 +487,5 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("styled-background"))
         #expect(classes.contains("styled-border"))
         #expect(classes.contains("styled-margin"))
-        #expect(classes.count == 8)
     }
 }

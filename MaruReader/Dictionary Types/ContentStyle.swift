@@ -441,57 +441,88 @@ struct ContentStyle: Codable, Sendable {
     func toCSSClasses() -> [String] {
         var classes: [String] = []
 
-        // Add semantic classes based on styling properties
-        if fontWeight != nil {
+        // Semantic classes based on styling properties, using Yomitan-like specific classes (gloss- prefix)
+        if let fontWeight {
             classes.append("styled-font-weight")
+            // Yomitan-like specific classes
+            let weight = fontWeight.lowercased()
+            if weight == "bold" || weight == "700" {
+                classes.append("gloss-font-bold")
+            } else if weight == "normal" || weight == "400" {
+                classes.append("gloss-font-normal")
+            } else if weight.contains("light") || weight == "300" {
+                classes.append("gloss-font-light")
+            }
         }
 
-        if fontStyle != nil {
+        if let fontStyle {
             classes.append("styled-font-style")
+            if fontStyle.lowercased() == "italic" {
+                classes.append("gloss-font-italic")
+            } else if fontStyle.lowercased() == "oblique" {
+                classes.append("gloss-font-oblique")
+            }
         }
 
-        if textDecorationLine != nil && !textDecorationLine!.isEmpty {
+        if let textDecorationLine, !textDecorationLine.isEmpty {
             classes.append("styled-text-decoration")
             // Add specific decoration classes
-            for decoration in textDecorationLine! {
-                switch decoration.lowercased() {
+            for decoration in textDecorationLine {
+                let dec = decoration.lowercased()
+                switch dec {
                 case "underline":
                     classes.append("text-underlined")
+                    classes.append("gloss-text-underline")
                 case "line-through":
                     classes.append("text-strikethrough")
+                    classes.append("gloss-text-strikethrough")
                 case "overline":
                     classes.append("text-overlined")
+                    classes.append("gloss-text-overline")
                 default:
-                    break
+                    classes.append("gloss-text-decoration-\(dec)")
                 }
             }
         }
 
         if backgroundColor != nil || background != nil {
             classes.append("styled-background")
+            classes.append("gloss-background")
         }
 
-        if borderStyle != nil || borderWidth != nil || borderColor != nil {
+        if let borderStyle, let borderWidth, let borderColor {
             classes.append("styled-border")
+            classes.append("gloss-border")
+        } else if borderStyle != nil || borderWidth != nil || borderColor != nil {
+            classes.append("styled-border")
+            classes.append("gloss-border-partial")
         }
 
         if marginTop != nil || marginLeft != nil || marginRight != nil || marginBottom != nil || margin != nil {
             classes.append("styled-margin")
+            classes.append("gloss-margin")
         }
 
         if paddingTop != nil || paddingLeft != nil || paddingRight != nil || paddingBottom != nil || padding != nil {
             classes.append("styled-padding")
+            classes.append("gloss-padding")
         }
 
-        if textAlign != nil {
+        if let textAlign {
             classes.append("styled-text-align")
-            switch textAlign!.lowercased() {
+            let align = textAlign.lowercased()
+            switch align {
             case "center":
                 classes.append("text-center")
+                classes.append("gloss-text-center")
             case "right":
                 classes.append("text-right")
+                classes.append("gloss-text-right")
             case "justify":
                 classes.append("text-justify")
+                classes.append("gloss-text-justify")
+            case "left":
+                classes.append("gloss-text-left")
             default:
                 break
             }
@@ -499,16 +530,193 @@ struct ContentStyle: Codable, Sendable {
 
         if verticalAlign != nil {
             classes.append("styled-vertical-align")
+            classes.append("gloss-vertical-align")
         }
 
         if clipPath != nil {
             classes.append("styled-clip-path")
+            classes.append("gloss-clip-path")
         }
 
         if cursor != nil {
             classes.append("styled-cursor")
+            let cur = cursor!.lowercased()
+            if cur == "pointer" {
+                classes.append("gloss-cursor-pointer")
+            } else if cur == "default" {
+                classes.append("gloss-cursor-default")
+            }
+        }
+
+        // Additional Yomitan-like classes for complex properties
+        if let listStyleType {
+            classes.append("gloss-list-\(listStyleType.lowercased())")
+        }
+
+        if let whiteSpace {
+            let ws = whiteSpace.lowercased()
+            if ws == "nowrap" {
+                classes.append("gloss-text-nowrap")
+            } else if ws == "pre" {
+                classes.append("gloss-text-pre")
+            }
+        }
+
+        if let wordBreak {
+            let wb = wordBreak.lowercased()
+            if wb == "break-all" {
+                classes.append("gloss-word-break-all")
+            }
         }
 
         return classes
+    }
+
+    /// Generates a full inline style attribute string for direct HTML use, e.g., style="color: red; font-weight: bold;"
+    func toInlineStyles() -> String {
+        let css = toCSSString()
+        if css.isEmpty {
+            return ""
+        }
+        return "style=\"\(css)\""
+    }
+
+    /// Generates specific styles for image containers, incorporating relevant properties
+    /// Similar to Yomitan's gloss-image-container styles
+    func toImageContainerStyles() -> String {
+        var cssProperties: [String] = []
+
+        // Border properties for container
+        if let borderColor {
+            cssProperties.append("border-color: \(borderColor)")
+        }
+        if let borderStyle {
+            cssProperties.append("border-style: \(borderStyle)")
+        }
+        if let borderRadius {
+            cssProperties.append("border-radius: \(borderRadius)")
+        }
+        if let borderWidth {
+            cssProperties.append("border-width: \(borderWidth)")
+        }
+
+        // Background for image background
+        if let backgroundColor {
+            cssProperties.append("background-color: \(backgroundColor)")
+        }
+        if let background {
+            cssProperties.append("background: \(background)")
+        }
+
+        // Vertical alignment
+        if let verticalAlign {
+            cssProperties.append("vertical-align: \(verticalAlign)")
+        }
+
+        // Margins and padding
+        if let margin {
+            cssProperties.append("margin: \(margin)")
+        } else {
+            if let marginTop { cssProperties.append("margin-top: \(marginTop.cssString)") }
+            if let marginLeft { cssProperties.append("margin-left: \(marginLeft.cssString)") }
+            if let marginRight { cssProperties.append("margin-right: \(marginRight.cssString)") }
+            if let marginBottom { cssProperties.append("margin-bottom: \(marginBottom.cssString)") }
+        }
+
+        if let padding {
+            cssProperties.append("padding: \(padding)")
+        } else {
+            if let paddingTop { cssProperties.append("padding-top: \(paddingTop)") }
+            if let paddingLeft { cssProperties.append("padding-left: \(paddingLeft)") }
+            if let paddingRight { cssProperties.append("padding-right: \(paddingRight)") }
+            if let paddingBottom { cssProperties.append("padding-bottom: \(paddingBottom)") }
+        }
+
+        // Clip path if applicable to container
+        if let clipPath {
+            cssProperties.append("clip-path: \(clipPath)")
+        }
+
+        let css = cssProperties.joined(separator: "; ")
+        return css.isEmpty ? "" : "style=\"\(css)\""
+    }
+
+    /// Validates CSS values for common invalid or unsupported configurations
+    /// Returns true if valid, false otherwise with a description of issues
+    func validate() -> (valid: Bool, issues: [String]) {
+        var issues: [String] = []
+
+        // Validate fontWeight (common values: normal, bold, lighter, bolder, 100-900)
+        if let fontWeight {
+            let weight = fontWeight.lowercased()
+            if !["normal", "bold", "bolder", "lighter"].contains(weight), weight.range(of: "^[1-9]00$", options: .regularExpression) == nil {
+                issues.append("Invalid font-weight: \(fontWeight) should be normal/bold or 100-900")
+            }
+        }
+
+        // Validate colors (simple check for hex, rgb, or named)
+        let colorPattern = "^(#[0-9a-fA-F]{3,6}|rgb\\((\\d{1,3},\\s?){2}\\d{1,3}\\)|\\/\\/\\w+)$"
+        if let color, color.range(of: colorPattern, options: .regularExpression) == nil {
+            issues.append("Invalid color: \(color)")
+        }
+        if let backgroundColor, backgroundColor.range(of: colorPattern, options: .regularExpression) == nil {
+            issues.append("Invalid background-color: \(backgroundColor)")
+        }
+        if let borderColor, borderColor.range(of: colorPattern, options: .regularExpression) == nil {
+            issues.append("Invalid border-color: \(borderColor)")
+        }
+        if let textDecorationColor, textDecorationColor.range(of: colorPattern, options: .regularExpression) == nil {
+            issues.append("Invalid text-decoration-color: \(textDecorationColor)")
+        }
+
+        // Validate textDecorationLine (common values)
+        if let textDecorationLine {
+            let validDecorations = ["underline", "overline", "line-through", "blink", "none"]
+            for line in textDecorationLine {
+                if !validDecorations.contains(line.lowercased()) {
+                    issues.append("Invalid text-decoration-line value: \(line)")
+                }
+            }
+        }
+
+        // Validate textDecorationStyle
+        if let textDecorationStyle {
+            let validStyles = ["solid", "double", "dotted", "dashed", "wavy", "none"]
+            if !validStyles.contains(textDecorationStyle.lowercased()) {
+                issues.append("Invalid text-decoration-style: \(textDecorationStyle)")
+            }
+        }
+
+        // Validate borderStyle
+        if let borderStyle {
+            let validBorders = ["none", "hidden", "dotted", "dashed", "solid", "double", "groove", "ridge", "inset", "outset"]
+            if !validBorders.contains(borderStyle.lowercased()) {
+                issues.append("Invalid border-style: \(borderStyle)")
+            }
+        }
+
+        // Validate textAlign
+        if let textAlign {
+            let validAligns = ["left", "right", "center", "justify", "start", "end"]
+            if !validAligns.contains(textAlign.lowercased()) {
+                issues.append("Invalid text-align: \(textAlign)")
+            }
+        }
+
+        // Validate verticalAlign (common values)
+        if let verticalAlign {
+            let validVerticals = ["baseline", "sub", "super", "text-top", "text-bottom", "middle", "top", "bottom"]
+            if !validVerticals.contains(verticalAlign.lowercased()) {
+                issues.append("Invalid vertical-align: \(verticalAlign)")
+            }
+        }
+
+        // Check for conflicting properties, e.g., margin shorthand with individuals (but allow, as individuals take precedence)
+        // For clipPath, basic check if it's a valid path (simple regex for common types)
+        if let clipPath, clipPath.range(of: "^(inset\\(|circle\\(|ellipse\\(|polygon\\(|path\\(|none)$", options: .regularExpression) == nil {
+            issues.append("Potentially invalid clip-path: \(clipPath)")
+        }
+
+        return (issues.isEmpty, issues)
     }
 }
