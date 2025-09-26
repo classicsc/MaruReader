@@ -17,6 +17,8 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
     private static let allowedResources: Set<String> = [
         "structured-content.css",
         "MaterialSymbolsOutlined.woff2",
+        "domUtilities.js",
+        "textScanning.js",
     ]
 
     func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
