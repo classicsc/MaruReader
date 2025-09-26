@@ -62,19 +62,37 @@ window.MaruReader.domUtilities = {
     },
 
     /**
-     * Creates a tree walker that filters out ruby text (rt elements)
+     * Checks if a node is inside ruby annotation elements (rt or rp)
+     * @param {Node} node - Node to check
+     * @returns {boolean} True if inside rt or rp element
+     */
+    isInsideRubyAnnotation: function(node) {
+        var current = node;
+        while (current && current.parentElement) {
+            var tagName = current.parentElement.tagName?.toLowerCase();
+            if (tagName === 'rt' || tagName === 'rp') {
+                return true;
+            }
+            current = current.parentElement;
+        }
+        return false;
+    },
+
+    /**
+     * Creates a tree walker that filters out ruby text (rt and rp elements)
      * @param {Node} root - Root node to walk from
      * @returns {TreeWalker} Configured tree walker
      */
     createRubyFilteredTreeWalker: function(root) {
+        var self = this;
         return document.createTreeWalker(
             root,
             NodeFilter.SHOW_TEXT,
             {
                 acceptNode: function(node) {
-                    // Skip text nodes inside <rt> tags
-                    return node.parentElement?.tagName?.toLowerCase() === 'rt' 
-                        ? NodeFilter.FILTER_REJECT 
+                    // Skip text nodes inside <rt> or <rp> tags
+                    return self.isInsideRubyAnnotation(node)
+                        ? NodeFilter.FILTER_REJECT
                         : NodeFilter.FILTER_ACCEPT;
                 }
             }
@@ -88,7 +106,13 @@ window.MaruReader.domUtilities = {
      */
     findRubyParent: function(node) {
         var current = node;
-        // Start from the text node and walk up the DOM tree
+
+        // If it's a text node, start from its parent
+        if (current.nodeType === 3) {
+            current = current.parentNode;
+        }
+
+        // Walk up the DOM tree
         while (current) {
             if (current.tagName) {
                 var tagName = current.tagName.toLowerCase();
@@ -138,5 +162,42 @@ window.MaruReader.domUtilities = {
      */
     getRbElements: function(rubyElement) {
         return rubyElement.getElementsByTagName('rb');
+    },
+
+    /**
+     * Gets the base text content of a ruby element (excluding rt and rp)
+     * @param {Element} rubyElement - Ruby element
+     * @returns {string} Base text content
+     */
+    getRubyBaseText: function(rubyElement) {
+        var rbElements = this.getRbElements(rubyElement);
+        if (rbElements.length > 0) {
+            // If rb elements exist, use their text content
+            var text = '';
+            for (var i = 0; i < rbElements.length; i++) {
+                text += rbElements[i].textContent || '';
+            }
+            return text;
+        } else {
+            // If no rb elements, extract direct text nodes (excluding rt/rp)
+            var walker = document.createTreeWalker(
+                rubyElement,
+                NodeFilter.SHOW_TEXT,
+                {
+                    acceptNode: function(textNode) {
+                        return window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
+                            ? NodeFilter.FILTER_REJECT
+                            : NodeFilter.FILTER_ACCEPT;
+                    }
+                }
+            );
+
+            var text = '';
+            var textNode;
+            while (textNode = walker.nextNode()) {
+                text += textNode.textContent;
+            }
+            return text;
+        }
     }
 };

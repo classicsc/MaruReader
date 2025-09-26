@@ -71,6 +71,13 @@ window.MaruReader.textScanning = {
 
         var node = range.startContainer;
         var offset = range.startOffset;
+
+        // Handle case where we might be getting an empty text node or wrong offset
+        // This can happen with ruby elements
+        if (offset >= node.data.length) {
+            offset = Math.max(0, node.data.length - 1);
+        }
+
         var tappedChar = node.data.substring(offset, offset + 1);
         var surroundingText = node.data;
         
@@ -149,7 +156,7 @@ window.MaruReader.textScanning = {
     },
 
     /**
-     * Extracts ruby-aware text excluding rt elements
+     * Extracts ruby-aware text excluding rt and rp elements
      * @param {Element} container - Container element
      * @returns {string} Clean text without ruby annotations
      */
@@ -159,18 +166,14 @@ window.MaruReader.textScanning = {
             NodeFilter.SHOW_TEXT,
             {
                 acceptNode: function(textNode) {
-                    var parent = textNode.parentNode;
-                    while (parent && parent !== container) {
-                        if (parent.tagName && parent.tagName.toLowerCase() === 'rt') {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        parent = parent.parentNode;
-                    }
-                    return NodeFilter.FILTER_ACCEPT;
+                    // Use the domUtilities helper to check for ruby annotations
+                    return window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
+                        ? NodeFilter.FILTER_REJECT
+                        : NodeFilter.FILTER_ACCEPT;
                 }
             }
         );
-        
+
         var cleanTextParts = [];
         var textNode;
         while (textNode = walker.nextNode()) {
@@ -193,18 +196,45 @@ window.MaruReader.textScanning = {
         for (var i = 0; i < rubyElements.length && !found; i++) {
             var ruby = rubyElements[i];
             var rbElements = window.MaruReader.domUtilities.getRbElements(ruby);
-            
-            for (var j = 0; j < rbElements.length && !found; j++) {
-                var rbElement = rbElements[j];
-                var rbText = rbElement.textContent || '';
-                
-                // Check if this rb contains our tapped text node
-                var rbTextNode = rbElement.firstChild;
-                if (rbTextNode && rbTextNode.nodeType === 3 && rbTextNode === targetNode) {
-                    return beforeText.length + offset;
+
+            if (rbElements.length > 0) {
+                for (var j = 0; j < rbElements.length && !found; j++) {
+                    var rbElement = rbElements[j];
+                    var rbText = rbElement.textContent || '';
+
+                    // Check if this rb contains our tapped text node
+                    var rbTextNode = rbElement.firstChild;
+                    if (rbTextNode && rbTextNode.nodeType === 3 && rbTextNode === targetNode) {
+                        return beforeText.length + offset;
+                    }
+
+                    beforeText += rbText;
                 }
-                
-                beforeText += rbText;
+            } else {
+                // Handle ruby elements without rb children (direct text nodes)
+                var rubyText = window.MaruReader.domUtilities.getRubyBaseText(ruby);
+
+                // Check if this ruby contains our tapped text node
+                var walker = document.createTreeWalker(
+                    ruby,
+                    NodeFilter.SHOW_TEXT,
+                    {
+                        acceptNode: function(textNode) {
+                            return !window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
+                                ? NodeFilter.FILTER_ACCEPT
+                                : NodeFilter.FILTER_REJECT;
+                        }
+                    }
+                );
+
+                var textNode;
+                while ((textNode = walker.nextNode()) && !found) {
+                    if (textNode === targetNode) {
+                        return beforeText.length + offset;
+                    }
+                }
+
+                beforeText += rubyText;
             }
         }
         
@@ -264,21 +294,41 @@ window.MaruReader.textScanning = {
         for (var i = startingRubyIndex; i < rubyElements.length && charsCollected < maxChars; i++) {
             var ruby = rubyElements[i];
             var rbElements = window.MaruReader.domUtilities.getRbElements(ruby);
-            
-            for (var j = 0; j < rbElements.length && charsCollected < maxChars; j++) {
-                var rbText = rbElements[j].textContent || '';
-                
-                if (i === startingRubyIndex && j === 0) {
-                    // For the first rb in the starting ruby, start from the tapped character
-                    var rbStartIndex = rbText.indexOf(tappedChar);
-                    if (rbStartIndex >= 0) {
-                        rbText = rbText.substring(rbStartIndex);
+
+            if (rbElements.length > 0) {
+                // Handle ruby with rb elements
+                for (var j = 0; j < rbElements.length && charsCollected < maxChars; j++) {
+                    var rbText = rbElements[j].textContent || '';
+
+                    if (i === startingRubyIndex && j === 0) {
+                        // For the first rb in the starting ruby, start from the tapped character
+                        var rbStartIndex = rbText.indexOf(tappedChar);
+                        if (rbStartIndex >= 0) {
+                            rbText = rbText.substring(rbStartIndex);
+                        }
+                    }
+
+                    var charsToTake = Math.min(rbText.length, maxChars - charsCollected);
+                    if (charsToTake > 0) {
+                        text += rbText.substring(0, charsToTake);
+                        charsCollected += charsToTake;
                     }
                 }
-                
-                var charsToTake = Math.min(rbText.length, maxChars - charsCollected);
+            } else {
+                // Handle ruby without rb elements (direct text nodes)
+                var rubyText = window.MaruReader.domUtilities.getRubyBaseText(ruby);
+
+                if (i === startingRubyIndex) {
+                    // For the starting ruby, start from the tapped character
+                    var rubyStartIndex = rubyText.indexOf(tappedChar);
+                    if (rubyStartIndex >= 0) {
+                        rubyText = rubyText.substring(rubyStartIndex);
+                    }
+                }
+
+                var charsToTake = Math.min(rubyText.length, maxChars - charsCollected);
                 if (charsToTake > 0) {
-                    text += rbText.substring(0, charsToTake);
+                    text += rubyText.substring(0, charsToTake);
                     charsCollected += charsToTake;
                 }
             }
@@ -307,10 +357,10 @@ window.MaruReader.textScanning = {
             NodeFilter.SHOW_TEXT,
             {
                 acceptNode: function(textNode) {
-                    // Skip text nodes inside ruby or rt tags
+                    // Skip text nodes inside ruby, rt, or rp tags
                     var parent = textNode.parentNode;
                     while (parent && parent !== rubyContext) {
-                        if (parent.tagName && ['ruby', 'rt'].includes(parent.tagName.toLowerCase())) {
+                        if (parent.tagName && ['ruby', 'rt', 'rp'].includes(parent.tagName.toLowerCase())) {
                             return NodeFilter.FILTER_REJECT;
                         }
                         parent = parent.parentNode;
