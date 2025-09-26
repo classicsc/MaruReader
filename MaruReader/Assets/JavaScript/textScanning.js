@@ -64,6 +64,49 @@ window.MaruReader.textScanning = {
     extractTextAtPoint: function(x, y, maxChars) {
         var range = document.caretRangeFromPoint(x, y);
         if (!range || range.startContainer.nodeType !== 3) {
+            // No text node found, but check if we're on an image or link
+            var elementAtPoint = document.elementFromPoint(x, y);
+            if (elementAtPoint) {
+                var linkInfo = null;
+                var imageInfo = null;
+
+                // Check if the element is a link or within a link
+                var parentLink = this.findParentLink(elementAtPoint);
+                if (parentLink) {
+                    linkInfo = this.extractLinkInfo(parentLink);
+                }
+
+                // Check if the element is an image or within an image (only if not in a gloss-image-link)
+                if (!linkInfo || linkInfo.type !== 'gloss-image-link') {
+                    var parentImage = this.findParentImage(elementAtPoint);
+                    if (parentImage) {
+                        imageInfo = this.extractImageInfo(parentImage);
+                    }
+                }
+
+                // If we found link or image info, send a result with minimal text data
+                if (linkInfo || imageInfo) {
+                    var result = {
+                        tappedChar: null,
+                        forwardText: null,
+                        offset: 0,
+                        before: '',
+                        highlight: '',
+                        after: '',
+                        hasRubyText: false,
+                        htmlOffset: 0,
+                        rubyAwareText: '',
+                        originalText: '',
+                        cssPath: window.MaruReader.domUtilities.generateCSSPath(elementAtPoint),
+                        charOffset: 0,
+                        linkInfo: linkInfo,
+                        imageInfo: imageInfo
+                    };
+                    this.sendResultToSwift(result);
+                    return result;
+                }
+            }
+
             // Send null result back to Swift via URL scheme
             this.sendResultToSwift(null);
             return null;
@@ -133,20 +176,40 @@ window.MaruReader.textScanning = {
         var forwardText = this.extractForwardText(
             node, offset, maxChars, hasRubyText, rubyContext, startingRubyIndex, tappedChar
         );
-        
-        var result = { 
-            tappedChar: tappedChar, 
-            forwardText: forwardText, 
-            offset: offset, 
-            before: before, 
-            highlight: highlight, 
+
+        // Check for link or image context
+        var linkInfo = null;
+        var imageInfo = null;
+
+        // Check if the tapped node is within a link
+        var parentLink = this.findParentLink(node);
+        if (parentLink) {
+            linkInfo = this.extractLinkInfo(parentLink);
+        }
+
+        // Check if the tapped node is within an image (only if not already in a gloss-image-link)
+        if (!linkInfo || linkInfo.type !== 'gloss-image-link') {
+            var parentImage = this.findParentImage(node);
+            if (parentImage) {
+                imageInfo = this.extractImageInfo(parentImage);
+            }
+        }
+
+        var result = {
+            tappedChar: tappedChar,
+            forwardText: forwardText,
+            offset: offset,
+            before: before,
+            highlight: highlight,
             after: after,
             hasRubyText: hasRubyText,
             htmlOffset: htmlOffset,
             rubyAwareText: rubyAwareText,
             originalText: originalText,
             cssPath: cssPath,
-            charOffset: charOffset
+            charOffset: charOffset,
+            linkInfo: linkInfo,
+            imageInfo: imageInfo
         };
 
         // Send result back to Swift via URL scheme
@@ -432,6 +495,90 @@ window.MaruReader.textScanning = {
         var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(document.body);
         walker.currentNode = node;
         return walker.nextNode();
+    },
+
+    /**
+     * Finds the closest parent link element from a given node
+     * @param {Node} node - Starting node
+     * @returns {Element|null} Link element or null
+     */
+    findParentLink: function(node) {
+        var current = node;
+        while (current && current.nodeType !== 9) { // Not document node
+            if (current.nodeType === 1) { // Element node
+                var tagName = current.tagName.toLowerCase();
+                if (tagName === 'a') {
+                    return current;
+                }
+            }
+            current = current.parentNode;
+        }
+        return null;
+    },
+
+    /**
+     * Finds the closest parent image element from a given node
+     * @param {Node} node - Starting node
+     * @returns {Element|null} Image element or null
+     */
+    findParentImage: function(node) {
+        var current = node;
+        while (current && current.nodeType !== 9) { // Not document node
+            if (current.nodeType === 1) { // Element node
+                var tagName = current.tagName.toLowerCase();
+                if (tagName === 'img') {
+                    return current;
+                }
+            }
+            current = current.parentNode;
+        }
+        return null;
+    },
+
+    /**
+     * Extracts link information from a link element
+     * @param {Element} linkElement - Link element
+     * @returns {Object|null} Link information object
+     */
+    extractLinkInfo: function(linkElement) {
+        if (!linkElement || linkElement.tagName.toLowerCase() !== 'a') {
+            return null;
+        }
+
+        var href = linkElement.getAttribute('href');
+        var isGlossImageLink = linkElement.classList.contains('gloss-image-link');
+
+        if (isGlossImageLink) {
+            return {
+                type: 'gloss-image-link',
+                href: href,
+                dataCollapsible: linkElement.getAttribute('data-collapsible'),
+                dataCollapsed: linkElement.getAttribute('data-collapsed'),
+                dataImageLoadState: linkElement.getAttribute('data-image-load-state')
+            };
+        } else {
+            return {
+                type: 'link',
+                href: href,
+                dataExternal: linkElement.getAttribute('data-external')
+            };
+        }
+    },
+
+    /**
+     * Extracts image information from an image element
+     * @param {Element} imageElement - Image element
+     * @returns {Object|null} Image information object
+     */
+    extractImageInfo: function(imageElement) {
+        if (!imageElement || imageElement.tagName.toLowerCase() !== 'img') {
+            return null;
+        }
+
+        return {
+            type: 'image',
+            src: imageElement.getAttribute('src')
+        };
     }
 };
 
