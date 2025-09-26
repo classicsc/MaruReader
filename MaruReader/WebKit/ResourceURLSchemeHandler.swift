@@ -16,6 +16,7 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
     // Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [
         "structured-content.css",
+        "MaterialSymbolsOutlined.woff2",
     ]
 
     func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
@@ -92,6 +93,9 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
                 "Content-Type": mimeType,
                 "Content-Length": "\(fileData.count)",
                 "Cache-Control": "max-age=31536000", // Cache for 1 year since resources are immutable
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Content-Type",
             ]
         )!
 
