@@ -11,13 +11,14 @@ struct DictionarySearchView: View {
     @State private var searchViewModel = SearchViewModel()
     @State private var searchTask: Task<Void, Never>?
     @State private var page: WebPage
-    @State private var lastHTML: String = ""
+    @State private var isUpdatingFromNavigation = false
 
     init() {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-textscan")!] = TextScanURLSchemeHandler()
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler()
         self._page = State(initialValue: WebPage(configuration: config))
     }
 
@@ -31,38 +32,31 @@ struct DictionarySearchView: View {
                         performSearch(newValue)
                     }
 
-                Group {
-                    if query.isEmpty {
-                        ContentUnavailableView("Start typing to search", systemImage: "magnifyingglass", description: Text("Dictionary results will appear here."))
-                    } else if searchViewModel.isSearching {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Searching...")
-                                .foregroundStyle(.secondary)
+                WebView(page)
+                    .task {
+                        // Load initial empty page
+                        if let url = searchViewModel.lookupURL(for: "") {
+                            _ = page.load(URLRequest(url: url))
                         }
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding()
-                    } else if let error = searchViewModel.searchError {
-                        ContentUnavailableView("Search Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
-                    } else if searchViewModel.groupedResults.isEmpty {
-                        ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No dictionary entries found for '\(query)'"))
-                    } else {
-                        WebView(page)
-                            .task {
-                                loadHTMLIfNeeded(searchViewModel.htmlDocument)
-                                // Ensure the view is inspectable when debugging
-                                #if DEBUG
-                                    page.isInspectable = true
-                                #endif
+
+                        // Ensure the view is inspectable when debugging
+                        #if DEBUG
+                            page.isInspectable = true
+                        #endif
+
+                        // Listen for navigation events
+                        do {
+                            for try await navigation in page.navigations {
+                                if case .finished = navigation, !isUpdatingFromNavigation {
+                                    updateQueryFromURL()
+                                }
                             }
-                            .onChange(of: searchViewModel.htmlDocument) { _, newHTML in
-                                loadHTMLIfNeeded(newHTML)
-                            }
+                        } catch {
+                            // Navigation sequence ended or failed - this is expected
+                        }
                     }
-                }
-                .animation(.default, value: query)
-                .animation(.default, value: searchViewModel.isSearching)
+                    .animation(.default, value: query)
+                    .animation(.default, value: searchViewModel.isSearching)
 
                 Spacer()
             }
@@ -71,18 +65,40 @@ struct DictionarySearchView: View {
         }
     }
 
-    private func loadHTMLIfNeeded(_ html: String) {
-        guard html != lastHTML else { return }
-        lastHTML = html
-        _ = page.load(html: html)
-    }
-
     private func performSearch(_ searchQuery: String) {
+        guard !isUpdatingFromNavigation else { return }
+
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
             if Task.isCancelled { return }
+
+            // Navigate to lookup URL
+            if let url = searchViewModel.lookupURL(for: searchQuery) {
+                isUpdatingFromNavigation = true
+                _ = page.load(URLRequest(url: url))
+                isUpdatingFromNavigation = false
+            }
+
+            // Update search state for UI feedback
             await searchViewModel.search(query: searchQuery)
+        }
+    }
+
+    private func updateQueryFromURL() {
+        guard let url = page.url,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems,
+              let queryItem = queryItems.first(where: { $0.name == "query" }),
+              let newQuery = queryItem.value
+        else {
+            return
+        }
+
+        if newQuery != query {
+            isUpdatingFromNavigation = true
+            query = newQuery
+            isUpdatingFromNavigation = false
         }
     }
 }

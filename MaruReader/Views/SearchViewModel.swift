@@ -19,7 +19,6 @@ class SearchViewModel {
     var groupedResults: [GroupedSearchResults] = []
     var isSearching = false
     var searchError: Error?
-    var htmlDocument = ""
 
     private let searchService: DictionarySearchService
 
@@ -40,7 +39,6 @@ class SearchViewModel {
             let results = try await searchService.performSearch(query: query)
             searchResults = results
             groupedResults = await searchService.groupResults(results)
-            updateWebContent()
 
         } catch {
             searchError = error
@@ -51,15 +49,21 @@ class SearchViewModel {
         isSearching = false
     }
 
+    func lookupURL(for query: String) -> URL? {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return URL(string: "marureader-lookup://dictionarysearchview.html")
+        }
+
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+
+        return URL(string: "marureader-lookup://dictionarysearchview.html?query=\(encodedQuery)")
+    }
+
     private func clearResults() {
         searchResults = []
         groupedResults = []
         searchError = nil
-        htmlDocument = ""
-    }
-
-    private func updateWebContent() {
-        htmlDocument = groupedResults.generateUnifiedHTML()
-        logger.debug("Generated HTML document of size \(self.htmlDocument.count) characters")
     }
 }
