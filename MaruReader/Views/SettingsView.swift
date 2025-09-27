@@ -6,7 +6,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var enableFurigana: Bool = true
     @State private var darkMode: Bool = false
 
     var body: some View {
