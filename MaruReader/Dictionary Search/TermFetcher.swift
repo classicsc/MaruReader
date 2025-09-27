@@ -10,48 +10,15 @@ import Foundation
 import os.log
 
 /// Fetches terms from Core Data using batch queries and converts them to SearchResult structs
-class TermFetcher {
-    // MARK: - Properties
-
-    private let backgroundContext: NSManagedObjectContext
-
-    // MARK: - Initialization
-
-    /// Initialize with a background Core Data context
-    /// - Parameter backgroundContext: NSManagedObjectContext with privateQueueConcurrencyType
-    init(backgroundContext: NSManagedObjectContext) {
-        self.backgroundContext = backgroundContext
-    }
-
+enum TermFetcher {
     // MARK: - Public Methods
-
-    /// Fetch terms matching the given candidates
-    /// - Parameter candidates: Array of LookupCandidate objects to search for
-    /// - Returns: Array of SearchResult structs
-    func fetchTerms(for candidates: [LookupCandidate]) async throws -> [SearchResult] {
-        guard !candidates.isEmpty else { return [] }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            let context = backgroundContext
-            context.perform {
-                do {
-                    let results = try TermFetcher.performFetch(candidates: candidates, context: context)
-                    continuation.resume(returning: results)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
-    }
-
-    // MARK: - Private Methods
 
     /// Perform the actual Core Data fetch within the background context
     /// - Parameters:
     ///   - candidates: Array of LookupCandidate objects
     ///   - context: NSManagedObjectContext to perform the fetch in
     /// - Returns: Array of SearchResult structs
-    private static func performFetch(candidates: [LookupCandidate], context: NSManagedObjectContext) throws -> [SearchResult] {
+    static func performFetch(candidates: [LookupCandidate], context: NSManagedObjectContext) throws -> [SearchResult] {
         let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermFetcher")
         // Extract unique candidate texts for batch lookup
         let candidateTexts = Array(Set(candidates.map(\.text)))
@@ -158,7 +125,7 @@ class TermFetcher {
     /// Calculate frequency score for a term across all dictionaries
     /// - Parameter term: The term to calculate frequency for
     /// - Returns: Tuple containing frequency value and mode, or (nil, nil) if no frequency data available
-    private static func calculateFrequency(for term: Term) -> (value: Double?, mode: String?) {
+    static func calculateFrequency(for term: Term) -> (value: Double?, mode: String?) {
         guard let frequencySet = term.frequency as? Set<TermFrequencyEntry>,
               !frequencySet.isEmpty else { return (nil, nil) }
 
