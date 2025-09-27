@@ -72,21 +72,7 @@ class TextScanURLSchemeHandler: URLSchemeHandler {
             if let jsonData = decodedData.data(using: .utf8),
                let jsonObject = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
             {
-                // Check if this is a link/image-only result (no text content)
-                let hasLinkInfo = jsonObject["linkInfo"] != nil
-                let hasImageInfo = jsonObject["imageInfo"] != nil
-                let hasTextContent = jsonObject["tappedChar"] as? String != nil
-
-                if hasLinkInfo || hasImageInfo {
-                    if hasTextContent {
-                        logger.info("Received text scan data with link/image:")
-                    } else {
-                        logger.info("Received link/image scan data (no text):")
-                    }
-                } else {
-                    logger.info("Received text scan data:")
-                }
-
+                logger.info("Received text scan data:")
                 if let tappedChar = jsonObject["tappedChar"] as? String {
                     logger.info("  - Tapped character: '\(tappedChar)'")
                 }
@@ -98,44 +84,6 @@ class TextScanURLSchemeHandler: URLSchemeHandler {
                 }
                 if let cssPath = jsonObject["cssPath"] as? String {
                     logger.info("  - CSS path: \(cssPath)")
-                }
-
-                // Log link information
-                if let linkInfo = jsonObject["linkInfo"] as? [String: Any] {
-                    if let linkType = linkInfo["type"] as? String {
-                        logger.info("  - Link type: \(linkType)")
-
-                        if let href = linkInfo["href"] as? String {
-                            logger.info("  - Link href: \(href)")
-                        }
-
-                        if linkType == "gloss-image-link" {
-                            if let dataCollapsible = linkInfo["dataCollapsible"] as? String {
-                                logger.info("  - Link data-collapsible: \(dataCollapsible)")
-                            }
-                            if let dataCollapsed = linkInfo["dataCollapsed"] as? String {
-                                logger.info("  - Link data-collapsed: \(dataCollapsed)")
-                            }
-                            if let dataImageLoadState = linkInfo["dataImageLoadState"] as? String {
-                                logger.info("  - Link data-image-load-state: \(dataImageLoadState)")
-                            }
-                        } else if linkType == "link" {
-                            if let dataExternal = linkInfo["dataExternal"] as? String {
-                                logger.info("  - Link data-external: \(dataExternal)")
-                            }
-                        }
-                    }
-                }
-
-                // Log image information
-                if let imageInfo = jsonObject["imageInfo"] as? [String: Any] {
-                    if let imageType = imageInfo["type"] as? String {
-                        logger.info("  - Image type: \(imageType)")
-
-                        if let src = imageInfo["src"] as? String {
-                            logger.info("  - Image src: \(src)")
-                        }
-                    }
                 }
 
                 // TODO: In the future, integrate with SearchViewModel to perform dictionary lookup
