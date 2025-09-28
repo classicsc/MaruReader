@@ -47,13 +47,19 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
         logger.debug("Handling lookup request for URL: \(url.absoluteString)")
 
-        // Parse the URL: marureader-lookup://dictionarysearchview.html?query=まる
+        // Parse the URL: marureader-lookup://dictionarysearch/dictionarysearchview.html or marureader-lookup://dictionarysearch/results.html?query=まる
+        let page = url.lastPathComponent
         guard url.scheme == "marureader-lookup",
-              let host = url.host(),
-              host == "dictionarysearchview.html"
+              url.host() == "dictionarysearch",
+              ["dictionarysearchview.html", "results.html"].contains(page)
         else {
             logger.error("Invalid marureader-lookup URL format: \(url.absoluteString)")
             return createNotFoundResponse()
+        }
+
+        // Handle main dictionary search view (without results)
+        if page == "dictionarysearchview.html" {
+            return createHTMLResponse(html: generateMainPageHTML(), url: url)
         }
 
         // Extract query parameter
@@ -85,6 +91,37 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             let html = generateErrorHTML(query: query, error: error)
             return createHTMLResponse(html: html, url: url)
         }
+    }
+
+    private static func generateMainPageHTML() -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            <link rel="stylesheet" href="marureader-resource://popup.css">
+            <link rel="stylesheet" href="marureader-resource://dictionary-search.css">
+            <script src="marureader-resource://domUtilities.js"></script>
+            <script src="marureader-resource://popup.js"></script>
+            <script src="marureader-resource://textScanning.js"></script>
+        </head>
+        <body>
+            <div class="header">
+                <div class="title-bar">
+                    <h1 class="page-title">Dictionary</h1>
+                </div>
+                <div class="search-container">
+                    <input type="text" class="search-field" placeholder="Search dictionary" value="" id="dictionary-search">
+                </div>
+            </div>
+            <div class="results-container">
+                <iframe class="results-frame" id="results-frame" src="marureader-lookup://dictionarysearch/results.html"></iframe>
+            </div>
+        </body>
+        </html>
+        """
     }
 
     private static func generateHTML(for groupedResults: [GroupedSearchResults], query: String) -> String {
@@ -121,6 +158,9 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://popup.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <style>
+                body { padding: 12px; margin: 0; }
+            </style>
         </head>
         <body>
             \(termGroupsHTML)
@@ -141,6 +181,10 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://popup.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <style>
+                body { padding: 12px; margin: 0; }
+                .empty-state { text-align: center; color: #666; margin-top: 40px; }
+            </style>
         </head>
         <body>
             <div class="empty-state">
@@ -163,6 +207,10 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://popup.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <style>
+                body { padding: 12px; margin: 0; }
+                .no-results { text-align: center; color: #666; margin-top: 40px; }
+            </style>
         </head>
         <body>
             <div class="no-results">
@@ -185,6 +233,11 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://popup.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <style>
+                body { padding: 12px; margin: 0; }
+                .error-state { text-align: center; color: #d32f2f; margin-top: 40px; }
+                .error-detail { color: #666; font-size: 14px; }
+            </style>
         </head>
         <body>
             <div class="error-state">

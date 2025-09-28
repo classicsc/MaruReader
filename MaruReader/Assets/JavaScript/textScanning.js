@@ -11,6 +11,64 @@ window.MaruReader.textScanning = {
      */
     initialize: function() {
         document.addEventListener('click', this.handleTap.bind(this), true);
+        this.initializeSearch();
+    },
+
+    /**
+     * Initializes the search functionality
+     */
+    initializeSearch: function() {
+        var searchField = document.getElementById('dictionary-search');
+        if (searchField) {
+            var searchTimeout = null;
+            var blurTimeout = null;
+
+            searchField.addEventListener('input', function(event) {
+                var query = event.target.value;
+
+                // Clear existing timeout
+                if (searchTimeout) {
+                    clearTimeout(searchTimeout);
+                }
+
+                // Debounce search by 300ms
+                searchTimeout = setTimeout(function() {
+                    window.MaruReader.textScanning.performSearch(query);
+                }, 300);
+            });
+
+            // Prevent text scanning when search field is focused
+            searchField.addEventListener('focus', function() {
+                if (blurTimeout) {
+                    clearTimeout(blurTimeout);
+                    blurTimeout = null;
+                }
+                window.MaruReader.textScanning.searchFieldFocused = true;
+            });
+
+            searchField.addEventListener('blur', function() {
+                // Delay clearing focus state to handle timing issues with iframe taps
+                blurTimeout = setTimeout(function() {
+                    window.MaruReader.textScanning.searchFieldFocused = false;
+                }, 100);
+            });
+        }
+    },
+
+    /**
+     * Performs a dictionary search by loading results into iframe
+     * @param {string} query - Search query
+     */
+    performSearch: function(query) {
+        var resultsFrame = document.getElementById('results-frame');
+        if (resultsFrame) {
+            var encodedQuery = encodeURIComponent(query);
+            var url = 'marureader-lookup://dictionarysearch/results.html';
+            if (query.trim() !== '') {
+                url += '?query=' + encodedQuery;
+            }
+            resultsFrame.src = url;
+        }
     },
 
     /**
@@ -24,6 +82,11 @@ window.MaruReader.textScanning = {
             return;
         }
 
+        // Check if search field is focused - if so, ignore tap for text scanning
+        if (this.isSearchFieldFocused()) {
+            return;
+        }
+
         // Prevent default behavior to avoid interfering with text scanning
         event.preventDefault();
         event.stopPropagation();
@@ -33,6 +96,33 @@ window.MaruReader.textScanning = {
         var maxChars = 50; // Default max characters to extract
 
         this.extractTextAtPoint(x, y, maxChars);
+    },
+
+    /**
+     * Checks if search field is focused, accounting for iframe context
+     * @returns {boolean} True if search field is focused
+     */
+    isSearchFieldFocused: function() {
+        // Check local focus state first (for main page)
+        if (this.searchFieldFocused) {
+            return true;
+        }
+
+        // If we're in an iframe, check the parent window
+        if (window.parent && window.parent !== window) {
+            try {
+                var parentSearchField = window.parent.document.getElementById('dictionary-search');
+                if (parentSearchField) {
+                    var parentFocused = window.parent.MaruReader.textScanning.searchFieldFocused;
+                    return parentFocused;
+                }
+            } catch (e) {
+                // Cross-origin access might be blocked, but shouldn't happen with same scheme
+                console.warn('Could not access parent window search field:', e);
+            }
+        }
+
+        return false;
     },
 
     /**

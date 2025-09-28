@@ -21,6 +21,7 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
         "textScanning.js",
         "popup.js",
         "popup.css",
+        "dictionary-search.css",
     ]
 
     func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
