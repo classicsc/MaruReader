@@ -19,6 +19,8 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
         "MaterialSymbolsOutlined.woff2",
         "domUtilities.js",
         "textScanning.js",
+        "popup.js",
+        "popup.css",
     ]
 
     func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

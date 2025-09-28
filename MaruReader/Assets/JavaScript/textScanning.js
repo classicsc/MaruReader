@@ -18,6 +18,12 @@ window.MaruReader.textScanning = {
      * @param {Event} event - The tap/click event
      */
     handleTap: function(event) {
+        // Check if popup is visible - if so, this tap should be handled by popup system
+        if (window.MaruReader.popup && window.MaruReader.popup.getVisibilityStatus()) {
+            // Popup is visible, let popup system handle the event
+            return;
+        }
+
         // Prevent default behavior to avoid interfering with text scanning
         event.preventDefault();
         event.stopPropagation();
@@ -27,6 +33,23 @@ window.MaruReader.textScanning = {
         var maxChars = 50; // Default max characters to extract
 
         this.extractTextAtPoint(x, y, maxChars);
+    },
+
+    /**
+     * Handles text scanning result - shows popup or sends to Swift
+     * @param {number} x - X coordinate of tap
+     * @param {number} y - Y coordinate of tap
+     * @param {Object|null} result - Text extraction result or null
+     */
+    handleTextResult: function(x, y, result) {
+        // Check if popup system is available
+        if (window.MaruReader.popup) {
+            // Show popup with the result
+            window.MaruReader.popup.show(x, y, result);
+        } else {
+            // Fallback to sending to Swift (original behavior)
+            this.sendResultToSwift(result);
+        }
     },
 
     /**
@@ -64,8 +87,8 @@ window.MaruReader.textScanning = {
     extractTextAtPoint: function(x, y, maxChars) {
         var range = document.caretRangeFromPoint(x, y);
         if (!range || range.startContainer.nodeType !== 3) {
-            // Send null result back to Swift via URL scheme
-            this.sendResultToSwift(null);
+            // No valid text found - show popup with null result or return null
+            this.handleTextResult(x, y, null);
             return null;
         }
 
@@ -149,8 +172,8 @@ window.MaruReader.textScanning = {
             charOffset: charOffset
         };
 
-        // Send result back to Swift via URL scheme
-        this.sendResultToSwift(result);
+        // Handle the text result (show popup or send to Swift)
+        this.handleTextResult(x, y, result);
 
         return result;
     },
