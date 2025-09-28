@@ -47,11 +47,12 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
         logger.debug("Handling lookup request for URL: \(url.absoluteString)")
 
-        // Parse the URL: marureader-lookup://dictionarysearch/dictionarysearchview.html or marureader-lookup://dictionarysearch/results.html?query=まる
+        // Parse the URL: marureader-lookup://dictionarysearch/dictionarysearchview.html, marureader-lookup://dictionarysearch/results.html?query=まる, or marureader-lookup://dictionarysearch/popup.html?query=まる
         let page = url.lastPathComponent
+        let host = url.host()
         guard url.scheme == "marureader-lookup",
-              url.host() == "dictionarysearch",
-              ["dictionarysearchview.html", "results.html"].contains(page)
+              host == "dictionarysearch",
+              ["dictionarysearchview.html", "results.html", "popup.html"].contains(page)
         else {
             logger.error("Invalid marureader-lookup URL format: \(url.absoluteString)")
             return createNotFoundResponse()
@@ -70,7 +71,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
               !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else {
             // No query or empty query - return empty results page
-            let html = generateEmptyHTML()
+            let html = page == "popup.html" ? generatePopupEmptyHTML() : generateEmptyHTML()
             return createHTMLResponse(html: html, url: url)
         }
 
@@ -79,16 +80,21 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             let searchResults = try await searchService.performSearch(query: query)
             let groupedResults = await searchService.groupResults(searchResults)
 
-            // Generate HTML
-            let html = generateHTML(for: groupedResults, query: query)
-
-            logger.debug("Generated dictionary lookup HTML for query '\(query)' (\(html.count) characters)")
+            // Generate HTML based on request type
+            let html: String
+            if page == "popup.html" {
+                html = generatePopupHTML(for: groupedResults, query: query)
+                logger.debug("Generated popup dictionary HTML for query '\(query)' (\(html.count) characters)")
+            } else {
+                html = generateHTML(for: groupedResults, query: query)
+                logger.debug("Generated dictionary lookup HTML for query '\(query)' (\(html.count) characters)")
+            }
 
             return createHTMLResponse(html: html, url: url)
 
         } catch {
             logger.error("Dictionary search failed for query '\(query)': \(error.localizedDescription)")
-            let html = generateErrorHTML(query: query, error: error)
+            let html = page == "popup.html" ? generatePopupErrorHTML(query: query, error: error) : generateErrorHTML(query: query, error: error)
             return createHTMLResponse(html: html, url: url)
         }
     }
@@ -286,6 +292,124 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             .response(response),
             .data(data),
         ]
+    }
+
+    private static func generatePopupHTML(for groupedResults: [GroupedSearchResults], query: String) -> String {
+        guard !groupedResults.isEmpty else {
+            return generatePopupNoResultsHTML(query: query)
+        }
+
+        let termGroupsHTML = groupedResults.map { termGroup in
+            """
+            <div class="popup-term-group" onclick="navigateToTerm('\(escapeHTML(termGroup.expression))')">
+                <h2 class="popup-term-header">\(escapeHTML(termGroup.displayTerm))</h2>
+                \(termGroup.dictionariesResults.map { dictionaryResult in
+                    """
+                    <div class="popup-dictionary-section">
+                        <h3 class="popup-dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h3>
+                        <div class="popup-dictionary-content">
+                            \(dictionaryResult.combinedHTML)
+                        </div>
+                    </div>
+                    """
+                }.joined())
+            </div>
+            """
+        }.joined()
+
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            <link rel="stylesheet" href="marureader-resource://popup.css">
+            <script>
+                function navigateToTerm(term) {
+                    try {
+                        // Navigate up two levels: popup -> results iframe -> main window
+                        var mainWindow = window.parent.parent;
+                        if (mainWindow && mainWindow.document) {
+                            var searchField = mainWindow.document.getElementById('dictionary-search');
+                            var resultsFrame = mainWindow.document.getElementById('results-frame');
+
+                            if (searchField) {
+                                searchField.value = term;
+                            }
+
+                            if (resultsFrame) {
+                                var encodedQuery = encodeURIComponent(term);
+                                var url = 'marureader-lookup://dictionarysearch/results.html?query=' + encodedQuery;
+                                resultsFrame.src = url;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to navigate to term:', e);
+                    }
+                }
+            </script>
+        </head>
+        <body class="popup-results-body">
+            \(termGroupsHTML)
+        </body>
+        </html>
+        """
+    }
+
+    private static func generatePopupEmptyHTML() -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="marureader-resource://popup.css">
+        </head>
+        <body class="popup-results-body">
+            <div class="popup-empty-state">
+                <p>Loading...</p>
+            </div>
+        </body>
+        </html>
+        """
+    }
+
+    private static func generatePopupNoResultsHTML(query: String) -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="marureader-resource://popup.css">
+        </head>
+        <body class="popup-results-body">
+            <div class="popup-no-results">
+                <p>No results found for '\(escapeHTML(query))'</p>
+            </div>
+        </body>
+        </html>
+        """
+    }
+
+    private static func generatePopupErrorHTML(query: String, error: Error) -> String {
+        """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <link rel="stylesheet" href="marureader-resource://popup.css">
+        </head>
+        <body class="popup-results-body">
+            <div class="popup-error-state">
+                <p>Search error for '\(escapeHTML(query))'</p>
+                <p class="popup-error-detail">\(escapeHTML(error.localizedDescription))</p>
+            </div>
+        </body>
+        </html>
+        """
     }
 }
 

@@ -52,36 +52,11 @@ window.MaruReader.popup = {
                     <button class="maru-popup-close" aria-label="Close popup">×</button>
                 </div>
                 <div class="maru-popup-content">
-                    <div class="maru-popup-placeholder">
-                        <div class="maru-popup-status">Placeholder Content</div>
-                        <div class="maru-popup-debug">
-                            <div class="maru-popup-debug-line">
-                                <span class="maru-popup-debug-label">Tap Position:</span>
-                                <span class="maru-popup-debug-value" id="maru-debug-position">-</span>
-                            </div>
-                            <div class="maru-popup-debug-line">
-                                <span class="maru-popup-debug-label">Scanned Text:</span>
-                                <span class="maru-popup-debug-value" id="maru-debug-text">-</span>
-                            </div>
-                            <div class="maru-popup-debug-line">
-                                <span class="maru-popup-debug-label">Text Length:</span>
-                                <span class="maru-popup-debug-value" id="maru-debug-length">-</span>
-                            </div>
-                            <div class="maru-popup-debug-line">
-                                <span class="maru-popup-debug-label">Has Ruby:</span>
-                                <span class="maru-popup-debug-value" id="maru-debug-ruby">-</span>
-                            </div>
-                            <div class="maru-popup-debug-line">
-                                <span class="maru-popup-debug-label">CSS Path:</span>
-                                <span class="maru-popup-debug-value" id="maru-debug-path">-</span>
-                            </div>
-                        </div>
+                    <div class="maru-popup-loading" id="maru-popup-loading">
+                        <div class="maru-popup-spinner"></div>
+                        <div class="maru-popup-loading-text">Searching dictionary...</div>
                     </div>
-                </div>
-                <div class="maru-popup-footer">
-                    <div class="maru-popup-footer-placeholder">
-                        Dictionary lookup integration will be added later
-                    </div>
+                    <iframe class="maru-popup-results-frame" id="maru-popup-results-frame"></iframe>
                 </div>
             </div>
         `;
@@ -191,46 +166,97 @@ window.MaruReader.popup = {
      */
     updateContent: function(textData) {
         if (!textData) {
-            this.updateDebugInfo('No data', '-', '-', '-', '-');
+            this.showError('No text found at this location');
             return;
         }
 
-        // Update debug information
-        var position = `(${this.currentData.x}, ${this.currentData.y})`;
-        var text = textData.forwardText || textData.tappedChar || '-';
-        var length = text.length.toString();
-        var hasRuby = textData.hasRubyText ? 'Yes' : 'No';
-        var cssPath = textData.cssPath || '-';
-
-        this.updateDebugInfo(position, text, length, hasRuby, cssPath);
-    },
-
-    /**
-     * Updates debug information display
-     * @param {string} position - Tap position coordinates
-     * @param {string} text - Scanned text
-     * @param {string} length - Text length
-     * @param {string} hasRuby - Ruby text presence
-     * @param {string} cssPath - CSS path to element
-     */
-    updateDebugInfo: function(position, text, length, hasRuby, cssPath) {
-        this.setElementText('maru-debug-position', position);
-        this.setElementText('maru-debug-text', text.length > 30 ? text.substring(0, 30) + '...' : text);
-        this.setElementText('maru-debug-length', length);
-        this.setElementText('maru-debug-ruby', hasRuby);
-        this.setElementText('maru-debug-path', cssPath.length > 40 ? '...' + cssPath.substring(cssPath.length - 40) : cssPath);
-    },
-
-    /**
-     * Helper function to safely set element text content
-     * @param {string} elementId - Element ID
-     * @param {string} text - Text to set
-     */
-    setElementText: function(elementId, text) {
-        var element = document.getElementById(elementId);
-        if (element) {
-            element.textContent = text;
+        // Extract search text from the scanned data
+        var searchText = textData.forwardText || textData.tappedChar || '';
+        if (!searchText.trim()) {
+            this.showError('No text found to search');
+            return;
         }
+
+        this.performDictionaryLookup(searchText);
+    },
+
+    /**
+     * Performs dictionary lookup for the given text
+     * @param {string} searchText - Text to search for
+     */
+    performDictionaryLookup: function(searchText) {
+        // Show loading state
+        this.showLoading();
+
+        // Perform the dictionary lookup via iframe
+        var iframe = document.getElementById('maru-popup-results-frame');
+        if (iframe) {
+            var encodedQuery = encodeURIComponent(searchText);
+            var url = 'marureader-lookup://dictionarysearch/popup.html?query=' + encodedQuery;
+
+            // Set up load handler to hide loading state when content loads
+            iframe.onload = this.handleResultsLoaded.bind(this);
+            iframe.onerror = this.handleResultsError.bind(this);
+
+            iframe.src = url;
+        } else {
+            this.showError('Could not load dictionary results');
+        }
+    },
+
+    /**
+     * Shows loading state in popup
+     */
+    showLoading: function() {
+        var loading = document.getElementById('maru-popup-loading');
+        var iframe = document.getElementById('maru-popup-results-frame');
+
+        if (loading) loading.style.display = 'flex';
+        if (iframe) iframe.style.display = 'none';
+    },
+
+    /**
+     * Shows error state in popup
+     * @param {string} message - Error message to display
+     */
+    showError: function(message) {
+        var iframe = document.getElementById('maru-popup-results-frame');
+        var loading = document.getElementById('maru-popup-loading');
+
+        if (loading) loading.style.display = 'none';
+        if (iframe) {
+            iframe.style.display = 'block';
+            iframe.srcdoc = `
+                <html>
+                    <head>
+                        <link rel="stylesheet" href="marureader-resource://popup.css">
+                    </head>
+                    <body class="popup-results-body">
+                        <div class="popup-error-state">
+                            <p>${message}</p>
+                        </div>
+                    </body>
+                </html>
+            `;
+        }
+    },
+
+    /**
+     * Handles successful loading of dictionary results
+     */
+    handleResultsLoaded: function() {
+        var loading = document.getElementById('maru-popup-loading');
+        var iframe = document.getElementById('maru-popup-results-frame');
+
+        if (loading) loading.style.display = 'none';
+        if (iframe) iframe.style.display = 'block';
+    },
+
+    /**
+     * Handles error loading dictionary results
+     */
+    handleResultsError: function() {
+        this.showError('Failed to load dictionary results');
     },
 
     /**
