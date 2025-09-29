@@ -175,23 +175,16 @@ window.MaruReader.textScanning = {
      * @returns {Object|null} Text extraction result
      */
     extractTextAtPoint: function(x, y, maxChars) {
-        var range = document.caretRangeFromPoint(x, y);
-        if (!range || range.startContainer.nodeType !== 3) {
-            // No valid text found - show popup with null result or return null
+        // Try to find the most accurate character at the tap point
+        var result = this.findCharacterAtPoint(x, y);
+        if (!result) {
             this.handleTextResult(x, y, null);
             return null;
         }
 
-        var node = range.startContainer;
-        var offset = range.startOffset;
-
-        // Handle case where we might be getting an empty text node or wrong offset
-        // This can happen with ruby elements
-        if (offset >= node.data.length) {
-            offset = Math.max(0, node.data.length - 1);
-        }
-
-        var tappedChar = node.data.substring(offset, offset + 1);
+        var node = result.node;
+        var offset = result.offset;
+        var tappedChar = result.character;
         var surroundingText = node.data;
         
         var before = surroundingText.substring(0, offset);
@@ -545,6 +538,159 @@ window.MaruReader.textScanning = {
         var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(document.body);
         walker.currentNode = node;
         return walker.nextNode();
+    },
+
+    /**
+     * Finds the most accurate character at the given point using multiple methods
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {Object|null} Object with node, offset, and character, or null if not found
+     */
+    findCharacterAtPoint: function(x, y) {
+        // Method 1: Try caretRangeFromPoint first
+        var range = document.caretRangeFromPoint(x, y);
+        if (range && range.startContainer.nodeType === 3) {
+            var node = range.startContainer;
+            var offset = range.startOffset;
+
+            // Validate and adjust offset
+            if (offset >= node.data.length) {
+                offset = Math.max(0, node.data.length - 1);
+            }
+
+            // For more accurate character detection, we'll use character boundary detection
+            var accurateResult = this.findAccurateCharacterOffset(node, offset, x, y);
+            if (accurateResult) {
+                return accurateResult;
+            }
+
+            // Fallback to basic offset
+            var character = node.data.substring(offset, offset + 1);
+            if (character) {
+                return {
+                    node: node,
+                    offset: offset,
+                    character: character
+                };
+            }
+        }
+
+        // Method 2: Element-based search as fallback
+        var element = document.elementFromPoint(x, y);
+        if (element) {
+            var textResult = this.findCharacterInElement(element, x, y);
+            if (textResult) {
+                return textResult;
+            }
+        }
+
+        return null;
+    },
+
+    /**
+     * Finds accurate character offset by checking character boundaries
+     * @param {Node} node - Text node
+     * @param {number} initialOffset - Initial offset from caretRangeFromPoint
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {Object|null} Accurate character result or null
+     */
+    findAccurateCharacterOffset: function(node, initialOffset, x, y) {
+        var text = node.data;
+        if (!text || text.length === 0) {
+            return null;
+        }
+
+        // Check a range around the initial offset to find the most accurate character
+        var startCheck = Math.max(0, initialOffset - 2);
+        var endCheck = Math.min(text.length, initialOffset + 3);
+
+        var bestMatch = null;
+        var bestDistance = Infinity;
+
+        for (var i = startCheck; i < endCheck; i++) {
+            if (i >= text.length) break;
+
+            // Create a range for this character
+            var testRange = document.createRange();
+            testRange.setStart(node, i);
+            testRange.setEnd(node, i + 1);
+
+            var rect = testRange.getBoundingClientRect();
+            if (rect.width === 0 && rect.height === 0) {
+                continue; // Skip invisible characters
+            }
+
+            // Check if the tap point is within or very close to this character's bounds
+            var charCenterX = rect.left + rect.width / 2;
+            var charCenterY = rect.top + rect.height / 2;
+
+            // Calculate distance from tap point to character center
+            var distance = Math.sqrt(
+                Math.pow(x - charCenterX, 2) + Math.pow(y - charCenterY, 2)
+            );
+
+            // Also check if tap is within the character bounds
+            var withinBounds = (
+                x >= rect.left && x <= rect.right &&
+                y >= rect.top && y <= rect.bottom
+            );
+
+            if (withinBounds || distance < bestDistance) {
+                bestDistance = distance;
+                bestMatch = {
+                    node: node,
+                    offset: i,
+                    character: text.substring(i, i + 1),
+                    distance: distance,
+                    withinBounds: withinBounds
+                };
+            }
+        }
+
+        // Return the best match if it's within reasonable bounds
+        if (bestMatch && (bestMatch.withinBounds || bestMatch.distance < 20)) {
+            return bestMatch;
+        }
+
+        return null;
+    },
+
+    /**
+     * Searches for character within an element by examining text nodes
+     * @param {Element} element - Element to search within
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {Object|null} Character result or null
+     */
+    findCharacterInElement: function(element, x, y) {
+        var walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            {
+                acceptNode: function(textNode) {
+                    // Skip empty text nodes and ruby annotations
+                    if (!textNode.textContent.trim()) {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+                    return window.MaruReader.domUtilities &&
+                           window.MaruReader.domUtilities.isInsideRubyAnnotation &&
+                           window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
+                        ? NodeFilter.FILTER_REJECT
+                        : NodeFilter.FILTER_ACCEPT;
+                }
+            }
+        );
+
+        var textNode;
+        while (textNode = walker.nextNode()) {
+            var result = this.findAccurateCharacterOffset(textNode, 0, x, y);
+            if (result && result.withinBounds) {
+                return result;
+            }
+        }
+
+        return null;
     }
 };
 
