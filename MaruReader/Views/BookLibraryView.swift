@@ -196,15 +196,18 @@ struct BookLibraryView: View {
             spacing: 20
         ) {
             ForEach(books.wrappedValue, id: \.objectID) { book in
-                BookGridItem(book: book)
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            bookToDelete = book
-                            showingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                NavigationLink(destination: BookReaderView(book: book)) {
+                    BookGridItem(book: book)
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) {
+                        bookToDelete = book
+                        showingDeleteConfirmation = true
+                    } label: {
+                        Label("Delete", systemImage: "trash")
                     }
+                }
             }
         }
         .padding()

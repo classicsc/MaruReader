@@ -8,9 +8,11 @@
         <attribute name="fileName" optional="YES" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="lastOpenedPage" optional="YES" attributeType="String"/>
         <attribute name="mediaType" optional="YES" attributeType="String"/>
         <attribute name="originalFileName" optional="YES" attributeType="String"/>
         <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="bookmarks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Bookmark" inverseName="book" inverseEntity="Bookmark"/>
         <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEPUBImport" inverseName="book" inverseEntity="BookEPUBImport"/>
     </entity>
     <entity name="BookEPUBImport" representedClassName="BookEPUBImport" syncable="YES" codeGenerationType="class">
@@ -28,6 +30,11 @@
         <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="importJob" inverseEntity="Book"/>
+    </entity>
+    <entity name="Bookmark" representedClassName="Bookmark" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="location" attributeType="String"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="bookmarks" inverseEntity="Book"/>
     </entity>
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
