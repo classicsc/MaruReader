@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		DB5DFD082E76701F0085AC1F /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
+		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
+		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
+		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
+		DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED52E8B332D00E9723D /* ReadiumShared */; };
 		DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBC9FEB02E6C9B7800F1E920 /* Zip */; };
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
 /* End PBXBuildFile section */
@@ -60,6 +64,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB5DFD082E76701F0085AC1F /* JsonStream in Frameworks */,
+				DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */,
+				DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */,
+				DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */,
+				DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */,
 				DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -132,6 +140,10 @@
 			packageProductDependencies = (
 				DBC9FEB02E6C9B7800F1E920 /* Zip */,
 				DB5DFD072E76701F0085AC1F /* JsonStream */,
+				DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */,
+				DB97CED32E8B332D00E9723D /* ReadiumNavigator */,
+				DB97CED52E8B332D00E9723D /* ReadiumShared */,
+				DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */,
 			);
 			productName = MaruReader;
 			productReference = DB2B698C2E660F8B00EDA656 /* MaruReader.app */;
@@ -218,6 +230,7 @@
 			packageReferences = (
 				DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */,
 				DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */,
+				DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2B698D2E660F8B00EDA656 /* Products */;
@@ -607,6 +620,14 @@
 				version = 1.0.3;
 			};
 		};
+		DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/readium/swift-toolkit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.4.0;
+			};
+		};
 		DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/marmelroy/Zip";
@@ -622,6 +643,25 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
 			productName = JsonStream;
+		};
+		DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ReadiumStreamer;
+		};
+		DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */;
+			productName = ReadiumAdapterGCDWebServer;
+		};
+		DB97CED32E8B332D00E9723D /* ReadiumNavigator */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */;
+			productName = ReadiumNavigator;
+		};
+		DB97CED52E8B332D00E9723D /* ReadiumShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */;
+			productName = ReadiumShared;
 		};
 		DBC9FEB02E6C9B7800F1E920 /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;

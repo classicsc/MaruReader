@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Book" representedClassName="Book" syncable="YES" codeGenerationType="class">
+        <attribute name="added" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="author" optional="YES" attributeType="String"/>
+        <attribute name="coverFileName" optional="YES" attributeType="String"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+        <attribute name="fileName" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="mediaType" optional="YES" attributeType="String"/>
+        <attribute name="originalFileName" optional="YES" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
+        <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEPUBImport" inverseName="book" inverseEntity="BookEPUBImport"/>
+    </entity>
+    <entity name="BookEPUBImport" representedClassName="BookEPUBImport" syncable="YES" codeGenerationType="class">
+        <attribute name="coverExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
+        <attribute name="file" optional="YES" attributeType="URI"/>
+        <attribute name="fileCopied" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="metadataSaved" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="importJob" inverseEntity="Book"/>
+    </entity>
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
