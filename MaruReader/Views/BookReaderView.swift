@@ -55,6 +55,7 @@ struct BookReaderView: View {
     @State private var showingError = false
     @State private var loadedPublication: LoadedPublication?
     @State private var isLoading = true
+    @State private var isToolbarVisible = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,16 +70,58 @@ struct BookReaderView: View {
                     loadedPublication: loadedPublication
                 )
                 .ignoresSafeArea()
-
-                // Bottom toolbar
-                bottomToolbar
-                    .background(.ultraThinMaterial)
             } else if let error {
                 errorView(error: error)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(book.title ?? "")
+        .toolbar(.hidden, for: .tabBar)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Button {
+                    isToolbarVisible.toggle()
+                } label: {
+                    HStack {
+                        Text(book.title ?? "")
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        switch isToolbarVisible {
+                        case true:
+                            Image(systemName: "chevron.up")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        case false:
+                            Image(systemName: "chevron.down")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button {
+                    showingTableOfContents = true
+                } label: {
+                    Image(systemName: "list.bullet")
+                }
+
+                Button {
+                    bookmarkCurrentLocation()
+                } label: {
+                    Image(systemName: "bookmark")
+                }
+
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "textformat.size.ja")
+                }
+            }
+        }
+        .toolbarVisibility(isToolbarVisible ? .visible : .hidden, for: .bottomBar)
+        .navigationBarBackButtonHidden(!isToolbarVisible)
         .task {
             await loadPublication()
         }
@@ -182,42 +225,6 @@ struct BookReaderView: View {
                 isLoading = false
             }
         }
-    }
-
-    private var bottomToolbar: some View {
-        HStack(spacing: 32) {
-            Button {
-                showingTableOfContents = true
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "list.bullet")
-                    Text("Contents")
-                        .font(.caption2)
-                }
-            }
-
-            Button {
-                bookmarkCurrentLocation()
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "bookmark")
-                    Text("Bookmark")
-                        .font(.caption2)
-                }
-            }
-
-            Button {
-                showingSettings = true
-            } label: {
-                VStack(spacing: 4) {
-                    Image(systemName: "textformat.size")
-                    Text("Settings")
-                        .font(.caption2)
-                }
-            }
-        }
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
     }
 
     private func bookmarkCurrentLocation() {
