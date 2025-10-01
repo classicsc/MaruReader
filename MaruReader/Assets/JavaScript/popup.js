@@ -192,7 +192,9 @@ window.MaruReader.popup = {
         var iframe = document.getElementById('maru-popup-results-frame');
         if (iframe) {
             var encodedQuery = encodeURIComponent(searchText);
-            var url = 'marureader-lookup://dictionarysearch/popup.html?query=' + encodedQuery;
+            // Get base URL from current page (http://localhost:port)
+            var baseURL = window.location.protocol + '//' + window.location.host;
+            var url = baseURL + '/lookup/popup.html?query=' + encodedQuery;
 
             // Set up load handler to hide loading state when content loads
             iframe.onload = this.handleResultsLoaded.bind(this);
@@ -226,10 +228,12 @@ window.MaruReader.popup = {
         if (loading) loading.style.display = 'none';
         if (iframe) {
             iframe.style.display = 'block';
+            // Get base URL from current page (http://localhost:port)
+            var baseURL = window.location.protocol + '//' + window.location.host;
             iframe.srcdoc = `
                 <html>
                     <head>
-                        <link rel="stylesheet" href="marureader-resource://popup.css">
+                        <link rel="stylesheet" href="${baseURL}/resources/popup.css">
                     </head>
                     <body class="popup-results-body">
                         <div class="popup-error-state">

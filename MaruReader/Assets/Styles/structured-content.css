@@ -57,7 +57,7 @@
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 400;
-  src: url('marureader-resource://MaterialSymbolsOutlined.woff2') format('woff');
+  src: url('/resources/MaterialSymbolsOutlined.woff2') format('woff');
 }
 
 .material-symbols-outlined {
