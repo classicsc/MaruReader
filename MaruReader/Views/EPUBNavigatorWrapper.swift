@@ -18,6 +18,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     @ObservedObject var book: Book
     let viewContext: NSManagedObjectContext
     let loadedPublication: LoadedPublication
+    @Binding var dictionaryLookupQuery: DictionaryLookupRequest?
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {
@@ -79,7 +80,11 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     }
 
     func makeCoordinator() -> BookReaderCoordinator {
-        BookReaderCoordinator(parent: BookReaderView(book: book), viewContext: viewContext)
+        BookReaderCoordinator(
+            book: book,
+            viewContext: viewContext,
+            dictionaryLookupQuery: $dictionaryLookupQuery
+        )
     }
 
     private func createErrorViewController(message: String) -> UIViewController {

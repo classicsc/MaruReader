@@ -546,25 +546,36 @@ enum DictionaryHTTPHandlers {
             <script>
                 function navigateToTerm(term) {
                     try {
-                        // Navigate up two levels: popup -> results iframe -> main window
+                        // Try dictionary view navigation first (popup -> results iframe -> main window)
                         var mainWindow = window.parent.parent;
                         if (mainWindow && mainWindow.document) {
                             var searchField = mainWindow.document.getElementById('dictionary-search');
                             var resultsFrame = mainWindow.document.getElementById('results-frame');
 
-                            if (searchField) {
+                            if (searchField && resultsFrame) {
+                                // We're in the dictionary view context
                                 searchField.value = term;
-                            }
-
-                            if (resultsFrame) {
                                 var encodedQuery = encodeURIComponent(term);
                                 var baseURL = window.MARUREADER_BASE_URL;
                                 var url = baseURL + '/dictionary-lookup/results.html?query=' + encodedQuery;
                                 resultsFrame.src = url;
+                                return;
                             }
                         }
                     } catch (e) {
-                        console.error('Failed to navigate to term:', e);
+                        // Accessing parent/parent failed, likely cross-origin or reader context
+                        console.log('Dictionary view navigation not available:', e);
+                    }
+
+                    // Fall back to WebKit message handler for EPUB reader context
+                    try {
+                        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dictionaryTermSelected) {
+                            window.webkit.messageHandlers.dictionaryTermSelected.postMessage(term);
+                        } else {
+                            console.error('WebKit message handler not available');
+                        }
+                    } catch (e) {
+                        console.error('Failed to send term selection message:', e);
                     }
                 }
             </script>

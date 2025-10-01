@@ -21,6 +21,11 @@ struct LoadedPublication {
     let initialLocation: Locator?
 }
 
+struct DictionaryLookupRequest: Identifiable {
+    let id = UUID()
+    let query: String
+}
+
 enum BookReaderError: LocalizedError {
     case bookFileNotFound
     case cannotAccessAppSupport
@@ -56,6 +61,7 @@ struct BookReaderView: View {
     @State private var loadedPublication: LoadedPublication?
     @State private var isLoading = true
     @State private var isToolbarVisible = false
+    @State var dictionaryLookupQuery: DictionaryLookupRequest?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -67,7 +73,8 @@ struct BookReaderView: View {
                 EPUBNavigatorWrapper(
                     book: book,
                     viewContext: viewContext,
-                    loadedPublication: loadedPublication
+                    loadedPublication: loadedPublication,
+                    dictionaryLookupQuery: $dictionaryLookupQuery
                 )
                 .ignoresSafeArea()
             } else if let error {
@@ -130,6 +137,20 @@ struct BookReaderView: View {
         } message: {
             if let error {
                 Text(error.localizedDescription)
+            }
+        }
+        .sheet(item: $dictionaryLookupQuery) { request in
+            NavigationStack {
+                DictionarySearchView(initialQuery: request.query)
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                dictionaryLookupQuery = nil
+                            }
+                        }
+                    }
             }
         }
     }

@@ -9,7 +9,14 @@ import SwiftUI
 import WebKit
 
 struct DictionarySearchView: View {
-    @StateObject private var viewModel = DictionarySearchViewModel()
+    let initialQuery: String?
+    @StateObject private var viewModel: DictionarySearchViewModel
+
+    init(initialQuery: String? = nil) {
+        self.initialQuery = initialQuery
+        _viewModel = StateObject(wrappedValue: DictionarySearchViewModel(initialQuery: initialQuery))
+        print("DictionarySearchView initialized with query: \(initialQuery ?? "nil")")
+    }
 
     var body: some View {
         DictionaryWebViewRepresentable(viewModel: viewModel)
@@ -25,6 +32,11 @@ class DictionarySearchViewModel: ObservableObject {
     private var httpServer: GCDHTTPServer?
     @Published private(set) var baseURL: HTTPURL?
     private let searchService = DictionarySearchService()
+    let initialQuery: String?
+
+    init(initialQuery: String? = nil) {
+        self.initialQuery = initialQuery
+    }
 
     func start() {
         guard httpServer == nil else { return }
@@ -96,13 +108,30 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
 
     func updateUIView(_ webView: WKWebView, context _: Context) {
         // Load initial page when baseURL becomes available
-        guard let baseURL = viewModel.baseURL else { return }
+        guard let baseURL = viewModel.baseURL else {
+            print("DictionarySearchView: baseURL not yet available")
+            return
+        }
 
         // Only load if not already loaded
         if webView.url == nil {
-            if let url = URL(string: "\(baseURL)/dictionary-lookup/dictionarysearchview.html") {
+            let urlString: String
+            if let initialQuery = viewModel.initialQuery, !initialQuery.isEmpty {
+                // If we have an initial query, load the results page directly
+                let encodedQuery = initialQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? initialQuery
+                urlString = "\(baseURL)/dictionary-lookup/results.html?query=\(encodedQuery)"
+                print("DictionarySearchView: Loading with initial query '\(initialQuery)' -> \(urlString)")
+            } else {
+                // Otherwise load the main dictionary search view
+                urlString = "\(baseURL)/dictionary-lookup/dictionarysearchview.html"
+                print("DictionarySearchView: Loading main dictionary view (no query)")
+            }
+
+            if let url = URL(string: urlString) {
                 webView.load(URLRequest(url: url))
             }
+        } else {
+            print("DictionarySearchView: WebView already loaded, skipping")
         }
     }
 }

@@ -13,15 +13,21 @@ import SwiftUI
 import UIKit
 import WebKit
 
-class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate {
-    var parent: BookReaderView
+class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate, WKScriptMessageHandler {
+    var book: Book
     var navigator: EPUBNavigatorViewController?
     let viewContext: NSManagedObjectContext
     var httpBaseURL: HTTPURL?
+    @Binding var dictionaryLookupQuery: DictionaryLookupRequest?
 
-    init(parent: BookReaderView, viewContext: NSManagedObjectContext) {
-        self.parent = parent
+    init(
+        book: Book,
+        viewContext: NSManagedObjectContext,
+        dictionaryLookupQuery: Binding<DictionaryLookupRequest?>
+    ) {
+        self.book = book
         self.viewContext = viewContext
+        _dictionaryLookupQuery = dictionaryLookupQuery
         super.init()
     }
 
@@ -32,7 +38,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate 
         Task { @MainActor in
             do {
                 let locatorJSON = locator.jsonString
-                parent.book.lastOpenedPage = locatorJSON
+                book.lastOpenedPage = locatorJSON
                 try viewContext.save()
             } catch {
                 print("Error saving last read location: \(error)")
@@ -55,6 +61,9 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate 
             print("Warning: No HTTP base URL available for dictionary scripts")
             return
         }
+
+        // Register message handler for term selection in popups
+        userContentController.add(self, name: "dictionaryTermSelected")
 
         // Inject base URL as a global JavaScript variable
         let baseURLScript = WKUserScript(
@@ -93,12 +102,29 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate 
             let script = WKUserScript(
                 source: scriptSource,
                 injectionTime: .atDocumentEnd,
-                forMainFrameOnly: false
+                forMainFrameOnly: true
             )
             userContentController.addUserScript(script)
             print("Injected \(scriptName).js into EPUB reader")
         }
 
         print("Dictionary scripts setup complete for EPUB reader")
+    }
+
+    // MARK: - WKScriptMessageHandler
+
+    func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "dictionaryTermSelected",
+              let term = message.body as? String
+        else {
+            return
+        }
+
+        print("Dictionary term selected from popup: \(term)")
+
+        // Update view to show dictionary sheet with the selected term
+        Task { @MainActor in
+            dictionaryLookupQuery = DictionaryLookupRequest(query: term)
+        }
     }
 }
