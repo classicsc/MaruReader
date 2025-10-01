@@ -16,7 +16,7 @@ window.MaruReader.popup = {
     config: {
         offset: 10,           // Distance from tap point
         minWidth: 250,        // Minimum popup width
-        maxWidth: 400,        // Maximum popup width
+        maxWidth: 300,        // Maximum popup width
         maxHeight: 400,       // Maximum popup height
         animationDuration: 300, // Animation duration in ms
         dismissDelay: 100     // Delay before allowing new popups after dismissal

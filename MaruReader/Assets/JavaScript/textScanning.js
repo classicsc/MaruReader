@@ -88,15 +88,17 @@ window.MaruReader.textScanning = {
             return;
         }
 
-        // Prevent default behavior to avoid interfering with text scanning
-        event.preventDefault();
-        event.stopPropagation();
-
         var x = event.clientX;
         var y = event.clientY;
         var maxChars = 50; // Default max characters to extract
 
-        this.extractTextAtPoint(x, y, maxChars);
+        result = this.extractTextAtPoint(x, y, maxChars);
+        
+        // Prevent default behavior if we got a text result
+        if (result.tappedChar) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
     },
 
     /**

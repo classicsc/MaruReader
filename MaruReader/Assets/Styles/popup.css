@@ -323,7 +323,6 @@
     .maru-popup {
         max-width: calc(100vw - 20px);
         min-width: calc(100vw - 20px);
-        left: 10px !important;
     }
 
     .maru-popup-content {
