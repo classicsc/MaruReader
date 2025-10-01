@@ -43,12 +43,10 @@ actor DictionarySearchService {
 
             let dictionaryResults = dictionaryGroups.map { dictionaryUUID, dictResults in
                 let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
-                let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
                     results: dictResults,
-                    combinedHTML: combinedHTML
                 )
             }.sorted { lhs, rhs in
                 let lhsPriority = lhs.results.first?.displayPriority ?? 0

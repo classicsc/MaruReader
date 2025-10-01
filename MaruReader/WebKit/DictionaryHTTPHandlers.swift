@@ -43,8 +43,14 @@ enum DictionaryHTTPHandlers {
                 // Reconstruct file path from remaining components
                 let filePath = pathComponents.dropFirst().joined(separator: "/")
 
+                // Handle URL decoding of the file path
+                guard let decodedFilePath = filePath.removingPercentEncoding else {
+                    logger.error("Failed to decode file path: \(filePath)")
+                    return HTTPServerResponse(error: createNotFoundError(url: request.url))
+                }
+
                 do {
-                    let fileURL = try mediaFileURL(dictionaryUUID: uuid, filePath: filePath)
+                    let fileURL = try mediaFileURL(dictionaryUUID: uuid, filePath: decodedFilePath)
 
                     // Check if file exists
                     guard (try? fileURL.checkResourceIsReachable()) == true else {

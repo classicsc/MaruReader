@@ -255,7 +255,13 @@ extension StructuredElement {
     private func resolveImagePath(path: String, baseURL: URL?) -> String? {
         if let url = URL(string: path), url.scheme == nil {
             if let baseURL {
-                return baseURL.appendingPathComponent(path).absoluteString
+                // Manually construct URL to avoid double-encoding
+                // The path may contain non-ASCII characters that need to be percent-encoded once
+                let baseString = baseURL.absoluteString
+                let separator = baseString.hasSuffix("/") ? "" : "/"
+                // Use addingPercentEncoding for the path component
+                let encodedPath = path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? path
+                return baseString + separator + encodedPath
             } else {
                 return path
             }
