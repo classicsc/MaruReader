@@ -63,7 +63,8 @@ window.MaruReader.textScanning = {
         var resultsFrame = document.getElementById('results-frame');
         if (resultsFrame) {
             var encodedQuery = encodeURIComponent(query);
-            var url = 'marureader-lookup://dictionarysearch/results.html';
+            var baseURL = window.MARUREADER_BASE_URL;
+            var url = baseURL + '/dictionary-lookup/results.html';
             if (query.trim() !== '') {
                 url += '?query=' + encodedQuery;
             }

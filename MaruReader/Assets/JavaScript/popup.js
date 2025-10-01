@@ -192,7 +192,8 @@ window.MaruReader.popup = {
         var iframe = document.getElementById('maru-popup-results-frame');
         if (iframe) {
             var encodedQuery = encodeURIComponent(searchText);
-            var url = 'marureader-lookup://dictionarysearch/popup.html?query=' + encodedQuery;
+            var baseURL = window.MARUREADER_BASE_URL;
+            var url = baseURL + '/dictionary-lookup/popup.html?query=' + encodedQuery;
 
             // Set up load handler to hide loading state when content loads
             iframe.onload = this.handleResultsLoaded.bind(this);
@@ -226,10 +227,11 @@ window.MaruReader.popup = {
         if (loading) loading.style.display = 'none';
         if (iframe) {
             iframe.style.display = 'block';
+            var baseURL = window.MARUREADER_BASE_URL;
             iframe.srcdoc = `
                 <html>
                     <head>
-                        <link rel="stylesheet" href="marureader-resource://popup.css">
+                        <link rel="stylesheet" href="${baseURL}/dictionary-resources/popup.css">
                     </head>
                     <body class="popup-results-body">
                         <div class="popup-error-state">
@@ -294,9 +296,16 @@ window.MaruReader.popup = {
             popupY = y - popupHeight - this.config.offset; // Position above
         }
 
-        // Ensure popup doesn't go off left edge
-        if (popupX < scrollX) {
-            popupX = scrollX + this.config.offset;
+        // Ensure popup doesn't go off left edge (clamp to minimum)
+        var minX = scrollX + this.config.offset;
+        if (popupX < minX) {
+            popupX = minX;
+        }
+
+        // Ensure popup doesn't go off right edge (clamp to maximum)
+        var maxX = viewportWidth + scrollX - popupWidth - this.config.offset;
+        if (popupX > maxX && maxX > minX) {
+            popupX = maxX;
         }
 
         // Ensure popup doesn't go off top edge

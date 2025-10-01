@@ -11,11 +11,13 @@ import ReadiumNavigator
 import ReadiumShared
 import SwiftUI
 import UIKit
+import WebKit
 
 class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate {
     var parent: BookReaderView
     var navigator: EPUBNavigatorViewController?
     let viewContext: NSManagedObjectContext
+    var httpBaseURL: HTTPURL?
 
     init(parent: BookReaderView, viewContext: NSManagedObjectContext) {
         self.parent = parent
@@ -44,5 +46,59 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate 
 
     func navigator(_: any Navigator, didFailToLoadResourceAt href: RelativeURL, withError error: ReadError) {
         print("Failed to load resource at \(href): \(error)")
+    }
+
+    // MARK: - EPUBNavigatorDelegate
+
+    func navigator(_: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
+        guard let baseURL = httpBaseURL else {
+            print("Warning: No HTTP base URL available for dictionary scripts")
+            return
+        }
+
+        // Inject base URL as a global JavaScript variable
+        let baseURLScript = WKUserScript(
+            source: "window.MARUREADER_BASE_URL = '\(baseURL)';",
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: false
+        )
+        userContentController.addUserScript(baseURLScript)
+
+        // Inject CSS link for popup styling
+        let cssInjectionScript = WKUserScript(
+            source: """
+            (function() {
+                var link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = '\(baseURL)/dictionary-resources/popup.css';
+                document.head.appendChild(link);
+            })();
+            """,
+            injectionTime: .atDocumentEnd,
+            forMainFrameOnly: false
+        )
+        userContentController.addUserScript(cssInjectionScript)
+
+        // Load and inject JavaScript files
+        let scriptNames = ["domUtilities", "popup", "textScanning"]
+
+        for scriptName in scriptNames {
+            guard let scriptURL = Bundle.main.url(forResource: scriptName, withExtension: "js"),
+                  let scriptSource = try? String(contentsOf: scriptURL, encoding: .utf8)
+            else {
+                print("Warning: Failed to load \(scriptName).js")
+                continue
+            }
+
+            let script = WKUserScript(
+                source: scriptSource,
+                injectionTime: .atDocumentEnd,
+                forMainFrameOnly: false
+            )
+            userContentController.addUserScript(script)
+            print("Injected \(scriptName).js into EPUB reader")
+        }
+
+        print("Dictionary scripts setup complete for EPUB reader")
     }
 }

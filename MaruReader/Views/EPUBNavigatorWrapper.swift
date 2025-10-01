@@ -21,11 +21,45 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {
-            // Create the EPUB navigator with pre-loaded publication
+            // Create and configure HTTP server with dictionary handlers
+            let httpServer = GCDHTTPServer(assetRetriever: AssetRetriever(httpClient: DefaultHTTPClient()))
+
+            // Register dictionary handlers
+            let mediaURL = try httpServer.serve(
+                at: "dictionary-media",
+                handler: DictionaryHTTPHandlers.createMediaHandler()
+            )
+
+            _ = try httpServer.serve(
+                at: "dictionary-resources",
+                handler: DictionaryHTTPHandlers.createResourceHandler()
+            )
+
+            // Extract base URL from the media endpoint
+            guard let baseURLString = mediaURL.string.components(separatedBy: "/dictionary-media").first,
+                  let serverBaseURL = HTTPURL(string: baseURLString)
+            else {
+                throw NSError(domain: "EPUBNavigatorWrapper", code: 1, userInfo: [
+                    NSLocalizedDescriptionKey: "Failed to extract base URL from HTTP server",
+                ])
+            }
+
+            _ = try httpServer.serve(
+                at: "dictionary-lookup",
+                handler: DictionaryHTTPHandlers.createLookupHandler(
+                    searchService: DictionarySearchService(),
+                    baseURL: serverBaseURL
+                )
+            )
+
+            // Store base URL in coordinator for setupUserScripts
+            context.coordinator.httpBaseURL = serverBaseURL
+
+            // Create the EPUB navigator with configured HTTP server
             let navigator = try EPUBNavigatorViewController(
                 publication: loadedPublication.publication,
                 initialLocation: loadedPublication.initialLocation,
-                httpServer: GCDHTTPServer(assetRetriever: AssetRetriever(httpClient: DefaultHTTPClient()))
+                httpServer: httpServer
             )
 
             navigator.delegate = context.coordinator
