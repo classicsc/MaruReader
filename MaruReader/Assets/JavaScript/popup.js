@@ -147,6 +147,9 @@ window.MaruReader.popup = {
 
         console.log('Hiding popup');
 
+        // Clear any text highlighting
+        this.clearHighlight();
+
         this.isAnimating = true;
         this.currentElement.classList.remove('maru-popup-visible');
 
@@ -252,6 +255,163 @@ window.MaruReader.popup = {
 
         if (loading) loading.style.display = 'none';
         if (iframe) iframe.style.display = 'block';
+
+        // Highlight the matched text if available
+        this.highlightMatchedText();
+    },
+
+    /**
+     * Highlights the matched text in the page using CSS Custom Highlights API
+     */
+    highlightMatchedText: function() {
+        // Get the matched text from the iframe
+        var iframe = document.getElementById('maru-popup-results-frame');
+        if (!iframe || !iframe.contentWindow) {
+            return;
+        }
+
+        try {
+            var matchedText = iframe.contentWindow.MARUREADER_MATCHED_TEXT;
+            if (!matchedText || !this.currentData) {
+                return;
+            }
+
+            // We need to highlight in the parent page (where the text was scanned)
+            // The popup is in the parent page, but we need to highlight the actual content
+            this.applyHighlight(matchedText);
+        } catch (e) {
+            console.error('Failed to highlight matched text:', e);
+        }
+    },
+
+    /**
+     * Applies CSS Custom Highlights to the matched text
+     * @param {string} matchedText - The text to highlight
+     */
+    applyHighlight: function(matchedText) {
+        // Clear any existing highlight
+        this.clearHighlight();
+
+        if (!this.currentData || !matchedText) {
+            console.warn('applyHighlight: No current data or matched text');
+            return;
+        }
+
+        // Use the CSS Custom Highlights API
+        if (typeof CSS === 'undefined' || !CSS.highlights) {
+            console.warn('CSS Custom Highlights API not supported');
+            return;
+        }
+
+        try {
+            // Get the text data from when the popup was shown
+            var textData = this.currentData.textData;
+            if (!textData || !textData.cssPath || textData.charOffset === undefined) {
+                console.warn('Missing text scanning data for highlighting', textData);
+                return;
+            }
+
+            console.log('Attempting to highlight:', {
+                matchedText: matchedText,
+                cssPath: textData.cssPath,
+                charOffset: textData.charOffset
+            });
+
+            // Find the text node using the CSS path
+            var textNode = this.findTextNodeByCSSPath(textData.cssPath);
+            if (!textNode || textNode.nodeType !== 3) {
+                console.warn('Could not find text node for highlighting', textNode);
+                return;
+            }
+
+            // Create a range for the matched text
+            var range = document.createRange();
+            var startOffset = textData.charOffset;
+            var endOffset = startOffset + matchedText.length;
+
+            // Validate offsets
+            if (endOffset > textNode.data.length) {
+                console.warn('End offset exceeds text length, clamping', {
+                    endOffset: endOffset,
+                    textLength: textNode.data.length
+                });
+                endOffset = textNode.data.length;
+            }
+
+            console.log('Creating range:', {
+                startOffset: startOffset,
+                endOffset: endOffset,
+                textContent: textNode.data.substring(startOffset, endOffset)
+            });
+
+            range.setStart(textNode, startOffset);
+            range.setEnd(textNode, endOffset);
+
+            // Create and register the highlight
+            var highlight = new Highlight(range);
+            CSS.highlights.set('matched-text', highlight);
+
+            console.log('Successfully applied highlight to matched text:', matchedText);
+        } catch (e) {
+            console.error('Failed to apply highlight:', e);
+        }
+    },
+
+    /**
+     * Finds a text node by CSS path
+     * @param {string} cssPath - CSS selector path with optional ::text-node(N) suffix
+     * @returns {Node|null} The text node or null
+     */
+    findTextNodeByCSSPath: function(cssPath) {
+        // Parse the CSS path to extract selector and text node index
+        var textNodeMatch = cssPath.match(/(.+)::text-node\((\d+)\)$/);
+        var selector = textNodeMatch ? textNodeMatch[1] : cssPath;
+        var textNodeIndex = textNodeMatch ? parseInt(textNodeMatch[2], 10) : 0;
+
+        // Find the element
+        var element = document.querySelector(selector);
+        if (!element) {
+            return null;
+        }
+
+        // Find the Nth text node within the element
+        var walker = document.createTreeWalker(
+            element,
+            NodeFilter.SHOW_TEXT,
+            null
+        );
+
+        var currentIndex = 0;
+        var textNode;
+        while (textNode = walker.nextNode()) {
+            if (currentIndex === textNodeIndex) {
+                return textNode;
+            }
+            currentIndex++;
+        }
+
+        return null;
+    },
+
+    /**
+     * Clears any active text highlight
+     */
+    clearHighlight: function() {
+        try {
+            if (typeof CSS !== 'undefined' && CSS.highlights) {
+                var highlight = CSS.highlights.get('matched-text');
+                if (highlight) {
+                    // Clear all ranges from the highlight
+                    highlight.clear();
+                    console.log('Cleared highlight ranges');
+                }
+                // Then remove it from the registry
+                CSS.highlights.delete('matched-text');
+                console.log('Removed highlight from registry');
+            }
+        } catch (e) {
+            console.error('Failed to clear highlight:', e);
+        }
     },
 
     /**
@@ -379,6 +539,9 @@ window.MaruReader.popup = {
      * Forces popup to hide without animation (for emergency cleanup)
      */
     forceHide: function() {
+        // Clear any text highlighting
+        this.clearHighlight();
+
         if (this.currentElement) {
             this.currentElement.classList.remove('maru-popup-visible');
         }

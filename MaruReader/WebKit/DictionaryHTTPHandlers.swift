@@ -520,6 +520,9 @@ enum DictionaryHTTPHandlers {
             return generatePopupNoResultsHTML(query: query, baseURL: baseURL)
         }
 
+        // Extract the originalSubstring from the first result for highlighting
+        let matchedText = groupedResults.first?.dictionariesResults.first?.results.first?.candidate.originalSubstring ?? query
+
         let termGroupsHTML = groupedResults.map { termGroup in
             """
             <div class="popup-term-group" onclick="navigateToTerm('\(escapeHTML(termGroup.expression))')">
@@ -546,6 +549,7 @@ enum DictionaryHTTPHandlers {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <script>
                 window.MARUREADER_BASE_URL = '\(baseURL)';
+                window.MARUREADER_MATCHED_TEXT = '\(escapeHTML(matchedText))';
             </script>
             <link rel="stylesheet" href="\(baseURL)/dictionary-resources/structured-content.css">
             <link rel="stylesheet" href="\(baseURL)/dictionary-resources/popup.css">

@@ -497,3 +497,17 @@
     outline: 2px solid #007aff;
     outline-offset: 2px;
 }
+
+/* CSS Custom Highlights API - Matched text highlighting */
+::highlight(matched-text) {
+    background-color: rgba(255, 235, 59, 0.5);
+    color: inherit;
+}
+
+/* Dark mode support for highlight */
+@media (prefers-color-scheme: dark) {
+    ::highlight(matched-text) {
+        background-color: rgba(255, 193, 7, 0.4);
+        color: inherit;
+    }
+}
