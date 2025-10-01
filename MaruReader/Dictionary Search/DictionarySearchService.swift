@@ -32,7 +32,7 @@ actor DictionarySearchService {
         return results
     }
 
-    func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
+    func groupResults(_ results: [SearchResult], serverBaseURL: String) -> [GroupedSearchResults] {
         let grouped = Swift.Dictionary(grouping: results, by: { result in
             "\(result.term)|\(result.reading ?? "")"
         })
@@ -43,7 +43,7 @@ actor DictionarySearchService {
 
             let dictionaryResults = dictionaryGroups.map { dictionaryUUID, dictResults in
                 let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
-                let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
+                let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID, serverBaseURL: serverBaseURL)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
