@@ -567,7 +567,7 @@ enum DictionaryHTTPHandlers {
                         console.log('Dictionary view navigation not available:', e);
                     }
 
-                    // Fall back to WebKit message handler for EPUB reader context
+                    // Fall back to WebKit message handler (for EPUB reader context or dictionary sheet)
                     try {
                         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dictionaryTermSelected) {
                             window.webkit.messageHandlers.dictionaryTermSelected.postMessage(term);

@@ -33,9 +33,28 @@ class DictionarySearchViewModel: ObservableObject {
     @Published private(set) var baseURL: HTTPURL?
     private let searchService = DictionarySearchService()
     let initialQuery: String?
+    weak var webView: WKWebView?
 
     init(initialQuery: String? = nil) {
         self.initialQuery = initialQuery
+    }
+
+    func navigateToTerm(_ term: String) {
+        guard let baseURL,
+              let webView
+        else {
+            print("Cannot navigate: baseURL or webView not available")
+            return
+        }
+
+        let encodedQuery = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? term
+        let urlString = "\(baseURL)/dictionary-lookup/results.html?query=\(encodedQuery)"
+
+        print("Navigating to term '\(term)' -> \(urlString)")
+
+        if let url = URL(string: urlString) {
+            webView.load(URLRequest(url: url))
+        }
     }
 
     func start() {
@@ -93,9 +112,19 @@ class DictionarySearchViewModel: ObservableObject {
 struct DictionaryWebViewRepresentable: UIViewRepresentable {
     @ObservedObject var viewModel: DictionarySearchViewModel
 
-    func makeUIView(context _: Context) -> WKWebView {
+    func makeCoordinator() -> Coordinator {
+        Coordinator(viewModel: viewModel)
+    }
+
+    func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        // Register message handler for recursive term lookups
+        config.userContentController.add(context.coordinator, name: "dictionaryTermSelected")
+
         let webView = WKWebView(frame: .zero, configuration: config)
+
+        // Store webView reference in view model for navigation
+        viewModel.webView = webView
 
         #if DEBUG
             if #available(iOS 16.4, *) {
@@ -104,6 +133,28 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
         #endif
 
         return webView
+    }
+
+    class Coordinator: NSObject, WKScriptMessageHandler {
+        let viewModel: DictionarySearchViewModel
+
+        init(viewModel: DictionarySearchViewModel) {
+            self.viewModel = viewModel
+        }
+
+        func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard message.name == "dictionaryTermSelected",
+                  let term = message.body as? String
+            else {
+                return
+            }
+
+            print("Dictionary term selected from popup in DictionarySearchView: \(term)")
+
+            Task { @MainActor in
+                viewModel.navigateToTerm(term)
+            }
+        }
     }
 
     func updateUIView(_ webView: WKWebView, context _: Context) {
