@@ -155,6 +155,7 @@ struct BookReaderView: View {
                         }
                     }
             }
+            .presentationDetents([.medium, .large])
         }
     }
 
