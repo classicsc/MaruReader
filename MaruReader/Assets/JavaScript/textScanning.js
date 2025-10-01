@@ -136,34 +136,6 @@ window.MaruReader.textScanning = {
         if (window.MaruReader.popup) {
             // Show popup with the result
             window.MaruReader.popup.show(x, y, result);
-        } else {
-            // Fallback to sending to Swift (original behavior)
-            this.sendResultToSwift(result);
-        }
-    },
-
-    /**
-     * Sends text scan result to Swift via URL scheme
-     * @param {Object|null} result - Text extraction result or null
-     */
-    sendResultToSwift: function(result) {
-        try {
-            var jsonData = JSON.stringify(result);
-            var encodedData = encodeURIComponent(jsonData);
-            var url = 'marureader-textscan://scan?data=' + encodedData;
-
-            // Create a hidden iframe to trigger the URL scheme
-            var iframe = document.createElement('iframe');
-            iframe.style.display = 'none';
-            iframe.src = url;
-            document.body.appendChild(iframe);
-
-            // Clean up the iframe after a short delay
-            setTimeout(function() {
-                document.body.removeChild(iframe);
-            }, 100);
-        } catch (error) {
-            console.error('Error sending text scan result to Swift:', error);
         }
     },
 

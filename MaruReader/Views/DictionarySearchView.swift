@@ -13,7 +13,6 @@ struct DictionarySearchView: View {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
-        config.urlSchemeHandlers[URLScheme("marureader-textscan")!] = TextScanURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler()
         self._page = State(initialValue: WebPage(configuration: config))
     }
