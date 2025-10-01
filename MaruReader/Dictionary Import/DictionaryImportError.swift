@@ -5,7 +5,9 @@
 //  Created by Sam Smoker on 9/6/25.
 //
 
-enum DictionaryImportError: Error, Equatable {
+import Foundation
+
+enum DictionaryImportError: Error, Equatable, LocalizedError {
     case notADictionary
     case unsupportedFormat
     case importNotFound
@@ -18,7 +20,7 @@ enum DictionaryImportError: Error, Equatable {
     case unzipFailed(underlyingError: Error)
     case deletionFailed
 
-    var localizedDescription: String {
+    var errorDescription: String? {
         switch self {
         case .notADictionary:
             "The selected file is not a valid dictionary."

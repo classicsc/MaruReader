@@ -5,7 +5,9 @@
 //  Created by Sam Smoker on 9/30/25.
 //
 
-enum BookImportError: Error, Equatable {
+import Foundation
+
+enum BookImportError: Error, Equatable, LocalizedError {
     case notABook
     case unsupportedFormat
     case importNotFound
@@ -18,7 +20,7 @@ enum BookImportError: Error, Equatable {
     case coverExtractionFailed(underlyingError: Error)
     case metadataExtractionFailed(underlyingError: Error)
 
-    var localizedDescription: String {
+    var errorDescription: String? {
         switch self {
         case .notABook:
             "The selected file is not a valid book."
