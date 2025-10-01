@@ -3,6 +3,7 @@
 //
 //  Dictionary search view with integrated HTML rendering.
 //
+import os.log
 import ReadiumAdapterGCDWebServer
 import ReadiumShared
 import SwiftUI
@@ -12,10 +13,12 @@ struct DictionarySearchView: View {
     let initialQuery: String?
     @StateObject private var viewModel: DictionarySearchViewModel
 
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
+
     init(initialQuery: String? = nil) {
         self.initialQuery = initialQuery
         _viewModel = StateObject(wrappedValue: DictionarySearchViewModel(initialQuery: initialQuery))
-        print("DictionarySearchView initialized with query: \(initialQuery ?? "nil")")
+        logger.debug("DictionarySearchView initialized with query: \(initialQuery ?? "nil")")
     }
 
     var body: some View {
@@ -35,6 +38,8 @@ class DictionarySearchViewModel: ObservableObject {
     let initialQuery: String?
     weak var webView: WKWebView?
 
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
+
     init(initialQuery: String? = nil) {
         self.initialQuery = initialQuery
     }
@@ -43,14 +48,14 @@ class DictionarySearchViewModel: ObservableObject {
         guard let baseURL,
               let webView
         else {
-            print("Cannot navigate: baseURL or webView not available")
+            logger.debug("Cannot navigate: baseURL or webView not available")
             return
         }
 
         let encodedQuery = term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? term
         let urlString = "\(baseURL)/dictionary-lookup/results.html?query=\(encodedQuery)"
 
-        print("Navigating to term '\(term)' -> \(urlString)")
+        logger.debug("Navigating to term '\(term)' -> \(urlString)")
 
         if let url = URL(string: urlString) {
             webView.load(URLRequest(url: url))
@@ -96,9 +101,9 @@ class DictionarySearchViewModel: ObservableObject {
             self.httpServer = server
             self.baseURL = serverBaseURL
 
-            print("Dictionary HTTP server started at: \(baseURL?.string ?? "unknown")")
+            logger.debug("Dictionary HTTP server started at: \(self.baseURL?.string ?? "unknown")")
         } catch {
-            print("Failed to start dictionary HTTP server: \(error)")
+            logger.debug("Failed to start dictionary HTTP server: \(error)")
         }
     }
 
@@ -111,6 +116,8 @@ class DictionarySearchViewModel: ObservableObject {
 /// UIViewRepresentable wrapper for WKWebView displaying dictionary content.
 struct DictionaryWebViewRepresentable: UIViewRepresentable {
     @ObservedObject var viewModel: DictionarySearchViewModel
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryWebViewRepresentable")
 
     func makeCoordinator() -> Coordinator {
         Coordinator(viewModel: viewModel)
@@ -138,6 +145,8 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
     class Coordinator: NSObject, WKScriptMessageHandler {
         let viewModel: DictionarySearchViewModel
 
+        private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryWebViewCoordinator")
+
         init(viewModel: DictionarySearchViewModel) {
             self.viewModel = viewModel
         }
@@ -149,7 +158,7 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
                 return
             }
 
-            print("Dictionary term selected from popup in DictionarySearchView: \(term)")
+            logger.debug("Dictionary term selected from popup in DictionarySearchView: \(term)")
 
             Task { @MainActor in
                 viewModel.navigateToTerm(term)
@@ -160,7 +169,7 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context _: Context) {
         // Load initial page when baseURL becomes available
         guard let baseURL = viewModel.baseURL else {
-            print("DictionarySearchView: baseURL not yet available")
+            logger.debug("DictionarySearchView: baseURL not yet available")
             return
         }
 
@@ -171,18 +180,18 @@ struct DictionaryWebViewRepresentable: UIViewRepresentable {
                 // If we have an initial query, load the results page directly
                 let encodedQuery = initialQuery.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? initialQuery
                 urlString = "\(baseURL)/dictionary-lookup/results.html?query=\(encodedQuery)"
-                print("DictionarySearchView: Loading with initial query '\(initialQuery)' -> \(urlString)")
+                logger.debug("DictionarySearchView: Loading with initial query '\(initialQuery)' -> \(urlString)")
             } else {
                 // Otherwise load the main dictionary search view
                 urlString = "\(baseURL)/dictionary-lookup/dictionarysearchview.html"
-                print("DictionarySearchView: Loading main dictionary view (no query)")
+                logger.debug("DictionarySearchView: Loading main dictionary view (no query)")
             }
 
             if let url = URL(string: urlString) {
                 webView.load(URLRequest(url: url))
             }
         } else {
-            print("DictionarySearchView: WebView already loaded, skipping")
+            logger.debug("DictionarySearchView: WebView already loaded, skipping")
         }
     }
 }

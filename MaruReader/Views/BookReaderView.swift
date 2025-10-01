@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 import ReadiumAdapterGCDWebServer
 import ReadiumNavigator
 @unsafe @preconcurrency import ReadiumShared
@@ -62,6 +63,8 @@ struct BookReaderView: View {
     @State private var isLoading = true
     @State private var isToolbarVisible = false
     @State var dictionaryLookupQuery: DictionaryLookupRequest?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderView")
 
     var body: some View {
         VStack(spacing: 0) {
@@ -250,6 +253,6 @@ struct BookReaderView: View {
 
     private func bookmarkCurrentLocation() {
         // Stub: will be implemented later
-        print("Bookmark button tapped")
+        logger.debug("Bookmark button tapped")
     }
 }

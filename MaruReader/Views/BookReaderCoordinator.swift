@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 import ReadiumNavigator
 import ReadiumShared
 import SwiftUI
@@ -19,6 +20,8 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
     let viewContext: NSManagedObjectContext
     var httpBaseURL: HTTPURL?
     @Binding var dictionaryLookupQuery: DictionaryLookupRequest?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderCoordinator")
 
     init(
         book: Book,
@@ -41,24 +44,24 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 book.lastOpenedPage = locatorJSON
                 try viewContext.save()
             } catch {
-                print("Error saving last read location: \(error)")
+                logger.debug("Error saving last read location: \(error)")
             }
         }
     }
 
     func navigator(_: Navigator, presentError error: NavigatorError) {
-        print("Navigator error: \(error)")
+        logger.debug("Navigator error: \(error)")
     }
 
     func navigator(_: any Navigator, didFailToLoadResourceAt href: RelativeURL, withError error: ReadError) {
-        print("Failed to load resource at \(href): \(error)")
+        logger.debug("Failed to load resource at \(href): \(error)")
     }
 
     // MARK: - EPUBNavigatorDelegate
 
     func navigator(_: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
         guard let baseURL = httpBaseURL else {
-            print("Warning: No HTTP base URL available for dictionary scripts")
+            logger.debug("Warning: No HTTP base URL available for dictionary scripts")
             return
         }
 
@@ -95,7 +98,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
             guard let scriptURL = Bundle.main.url(forResource: scriptName, withExtension: "js"),
                   let scriptSource = try? String(contentsOf: scriptURL, encoding: .utf8)
             else {
-                print("Warning: Failed to load \(scriptName).js")
+                logger.debug("Warning: Failed to load \(scriptName).js")
                 continue
             }
 
@@ -105,10 +108,10 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 forMainFrameOnly: true
             )
             userContentController.addUserScript(script)
-            print("Injected \(scriptName).js into EPUB reader")
+            logger.debug("Injected \(scriptName).js into EPUB reader")
         }
 
-        print("Dictionary scripts setup complete for EPUB reader")
+        logger.debug("Dictionary scripts setup complete for EPUB reader")
     }
 
     // MARK: - WKScriptMessageHandler
@@ -120,7 +123,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
             return
         }
 
-        print("Dictionary term selected from popup: \(term)")
+        logger.debug("Dictionary term selected from popup: \(term)")
 
         // Update view to show dictionary sheet with the selected term
         Task { @MainActor in

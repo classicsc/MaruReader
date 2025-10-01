@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 import ReadiumAdapterGCDWebServer
 import ReadiumNavigator
 @unsafe @preconcurrency import ReadiumShared
@@ -19,6 +20,8 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     let viewContext: NSManagedObjectContext
     let loadedPublication: LoadedPublication
     @Binding var dictionaryLookupQuery: DictionaryLookupRequest?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "EPUBNavigatorWrapper")
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {
@@ -70,7 +73,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
             return navigator
         } catch {
-            print("Error creating navigator: \(error)")
+            logger.error("Error creating navigator: \(error)")
             return createErrorViewController(message: "Failed to create navigator: \(error.localizedDescription)")
         }
     }
