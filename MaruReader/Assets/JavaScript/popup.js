@@ -258,6 +258,9 @@ window.MaruReader.popup = {
 
         // Highlight the matched text if available
         this.highlightMatchedText();
+
+        // Recalculate position using smart positioning now that we have matched text
+        this.updateSmartPosition();
     },
 
     /**
@@ -422,38 +425,400 @@ window.MaruReader.popup = {
     },
 
     /**
-     * Positions the popup optimally based on tap coordinates
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
+     * Gets the source text rectangles for the matched text
+     * @param {Object} textData - Text scanning data
+     * @param {string} matchedText - The matched dictionary text
+     * @returns {Array<DOMRect>} Array of bounding rectangles in page coordinates
+     */
+    getSourceRectangles: function(textData, matchedText) {
+        var rects = [];
+
+        if (!textData || !textData.cssPath || textData.charOffset === undefined) {
+            console.warn('getSourceRectangles: Missing text data', textData);
+            return rects;
+        }
+
+        try {
+            // Find the text node using CSS path
+            var textNode = this.findTextNodeByCSSPath(textData.cssPath);
+            if (!textNode || textNode.nodeType !== 3) {
+                console.warn('getSourceRectangles: Could not find text node');
+                return rects;
+            }
+
+            // Determine the length of text to highlight
+            var textLength = matchedText ? matchedText.length : 1; // Fallback to single char
+
+            // Create a range for the matched text
+            var range = document.createRange();
+            var startOffset = textData.charOffset;
+            var endOffset = Math.min(startOffset + textLength, textNode.data.length);
+
+            range.setStart(textNode, startOffset);
+            range.setEnd(textNode, endOffset);
+
+            // Get bounding rectangles (handles multi-line text)
+            var clientRects = range.getClientRects();
+
+            // Convert to page coordinates and store as array
+            var scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+            var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+
+            for (var i = 0; i < clientRects.length; i++) {
+                var rect = clientRects[i];
+                // Convert viewport coordinates to page coordinates
+                rects.push({
+                    left: rect.left + scrollX,
+                    top: rect.top + scrollY,
+                    right: rect.right + scrollX,
+                    bottom: rect.bottom + scrollY,
+                    width: rect.width,
+                    height: rect.height
+                });
+            }
+
+            console.log('Source rectangles:', rects);
+        } catch (e) {
+            console.error('Failed to get source rectangles:', e);
+        }
+
+        return rects;
+    },
+
+    /**
+     * Detects the writing mode of an element
+     * @param {Element} element - The element to check
+     * @returns {string} Writing mode: 'horizontal-tb', 'vertical-rl', 'vertical-lr'
+     */
+    getWritingMode: function(element) {
+        if (!element) {
+            return 'horizontal-tb'; // Default
+        }
+
+        try {
+            var computedStyle = window.getComputedStyle(element);
+            var writingMode = computedStyle.writingMode || computedStyle.webkitWritingMode || 'horizontal-tb';
+
+            // Normalize the value
+            if (writingMode.includes('vertical-rl') || writingMode === 'tb-rl') {
+                return 'vertical-rl';
+            } else if (writingMode.includes('vertical-lr') || writingMode === 'tb-lr') {
+                return 'vertical-lr';
+            } else {
+                return 'horizontal-tb';
+            }
+        } catch (e) {
+            console.warn('Failed to get writing mode:', e);
+            return 'horizontal-tb';
+        }
+    },
+
+    /**
+     * Gets the actual popup dimensions
+     * @returns {Object} Object with width and height
+     */
+    getPopupDimensions: function() {
+        if (!this.currentElement) {
+            return {
+                width: this.config.maxWidth,
+                height: this.config.maxHeight
+            };
+        }
+
+        // Get actual dimensions from the element
+        var rect = this.currentElement.getBoundingClientRect();
+
+        return {
+            width: rect.width || this.config.maxWidth,
+            height: rect.height || this.config.maxHeight
+        };
+    },
+
+    /**
+     * Calculates smart popup position that avoids source text and respects reading direction
+     * @param {Array<DOMRect>} sourceRects - Source text bounding rectangles (page coords)
+     * @param {string} writingMode - Writing mode of source text
+     * @param {Object} popupDims - Popup dimensions {width, height}
+     * @returns {Object} Position with x, y (page coords) and placement direction
+     */
+    calculateSmartPosition: function(sourceRects, writingMode, popupDims) {
+        var scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+        var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+        var viewportWidth = window.innerWidth;
+        var viewportHeight = window.innerHeight;
+        var margin = this.config.offset;
+
+        // Get the bounding box of all source rectangles
+        var sourceBounds = this.getUnionBounds(sourceRects);
+
+        // Define positioning strategies based on writing mode
+        var strategies = [];
+
+        if (writingMode === 'horizontal-tb') {
+            // Horizontal text: prefer below, then above, then right, then left
+            strategies = [
+                { name: 'below', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.bottom + margin };
+                }},
+                { name: 'above', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.top - dims.height - margin };
+                }},
+                { name: 'right', getPos: function(bounds, dims) {
+                    return { x: bounds.right + margin, y: bounds.top };
+                }},
+                { name: 'left', getPos: function(bounds, dims) {
+                    return { x: bounds.left - dims.width - margin, y: bounds.top };
+                }}
+            ];
+        } else if (writingMode === 'vertical-rl') {
+            // Vertical right-to-left: prefer left, then right, then below, then above
+            strategies = [
+                { name: 'left', getPos: function(bounds, dims) {
+                    return { x: bounds.left - dims.width - margin, y: bounds.top };
+                }},
+                { name: 'right', getPos: function(bounds, dims) {
+                    return { x: bounds.right + margin, y: bounds.top };
+                }},
+                { name: 'below', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.bottom + margin };
+                }},
+                { name: 'above', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.top - dims.height - margin };
+                }}
+            ];
+        } else { // vertical-lr
+            // Vertical left-to-right: prefer right, then left, then below, then above
+            strategies = [
+                { name: 'right', getPos: function(bounds, dims) {
+                    return { x: bounds.right + margin, y: bounds.top };
+                }},
+                { name: 'left', getPos: function(bounds, dims) {
+                    return { x: bounds.left - dims.width - margin, y: bounds.top };
+                }},
+                { name: 'below', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.bottom + margin };
+                }},
+                { name: 'above', getPos: function(bounds, dims) {
+                    return { x: bounds.left, y: bounds.top - dims.height - margin };
+                }}
+            ];
+        }
+
+        // Try each strategy in order
+        for (var i = 0; i < strategies.length; i++) {
+            var strategy = strategies[i];
+            var pos = strategy.getPos(sourceBounds, popupDims);
+
+            // Check if position is valid (within viewport and doesn't overlap source)
+            if (this.isPositionValid(pos, popupDims, sourceRects, scrollX, scrollY, viewportWidth, viewportHeight, margin)) {
+                console.log('Smart position selected:', strategy.name, pos);
+                return {
+                    x: pos.x,
+                    y: pos.y,
+                    placement: strategy.name
+                };
+            }
+        }
+
+        // Fallback: position at first available space, clamped to viewport
+        var fallbackPos = {
+            x: Math.max(scrollX + margin, Math.min(sourceBounds.left, scrollX + viewportWidth - popupDims.width - margin)),
+            y: Math.max(scrollY + margin, Math.min(sourceBounds.bottom + margin, scrollY + viewportHeight - popupDims.height - margin))
+        };
+
+        console.log('Using fallback position:', fallbackPos);
+        return {
+            x: fallbackPos.x,
+            y: fallbackPos.y,
+            placement: 'fallback'
+        };
+    },
+
+    /**
+     * Gets the union bounds of multiple rectangles
+     * @param {Array<DOMRect>} rects - Array of rectangles
+     * @returns {Object} Bounding box {left, top, right, bottom, width, height}
+     */
+    getUnionBounds: function(rects) {
+        if (!rects || rects.length === 0) {
+            return { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
+        }
+
+        var left = Infinity;
+        var top = Infinity;
+        var right = -Infinity;
+        var bottom = -Infinity;
+
+        for (var i = 0; i < rects.length; i++) {
+            var rect = rects[i];
+            left = Math.min(left, rect.left);
+            top = Math.min(top, rect.top);
+            right = Math.max(right, rect.right);
+            bottom = Math.max(bottom, rect.bottom);
+        }
+
+        return {
+            left: left,
+            top: top,
+            right: right,
+            bottom: bottom,
+            width: right - left,
+            height: bottom - top
+        };
+    },
+
+    /**
+     * Checks if a popup position is valid (fits in viewport and doesn't overlap source)
+     * @param {Object} pos - Position {x, y} in page coordinates
+     * @param {Object} dims - Dimensions {width, height}
+     * @param {Array<DOMRect>} sourceRects - Source text rectangles
+     * @param {number} scrollX - Horizontal scroll offset
+     * @param {number} scrollY - Vertical scroll offset
+     * @param {number} viewportWidth - Viewport width
+     * @param {number} viewportHeight - Viewport height
+     * @param {number} margin - Minimum margin
+     * @returns {boolean} True if position is valid
+     */
+    isPositionValid: function(pos, dims, sourceRects, scrollX, scrollY, viewportWidth, viewportHeight, margin) {
+        // Check viewport bounds
+        if (pos.x < scrollX + margin) return false;
+        if (pos.y < scrollY + margin) return false;
+        if (pos.x + dims.width > scrollX + viewportWidth - margin) return false;
+        if (pos.y + dims.height > scrollY + viewportHeight - margin) return false;
+
+        // Check overlap with source rectangles
+        var popupRect = {
+            left: pos.x,
+            top: pos.y,
+            right: pos.x + dims.width,
+            bottom: pos.y + dims.height
+        };
+
+        for (var i = 0; i < sourceRects.length; i++) {
+            if (this.rectanglesOverlap(popupRect, sourceRects[i])) {
+                return false;
+            }
+        }
+
+        return true;
+    },
+
+    /**
+     * Checks if two rectangles overlap
+     * @param {Object} rect1 - Rectangle {left, top, right, bottom}
+     * @param {Object} rect2 - Rectangle {left, top, right, bottom}
+     * @returns {boolean} True if rectangles overlap
+     */
+    rectanglesOverlap: function(rect1, rect2) {
+        return !(
+            rect1.right < rect2.left ||
+            rect1.left > rect2.right ||
+            rect1.bottom < rect2.top ||
+            rect1.top > rect2.bottom
+        );
+    },
+
+    /**
+     * Updates popup position using smart positioning algorithm
+     * Should be called after dictionary results are loaded
+     */
+    updateSmartPosition: function() {
+        if (!this.currentData || !this.currentElement) {
+            return;
+        }
+
+        // Get matched text from iframe if available
+        var matchedText = null;
+        try {
+            var iframe = document.getElementById('maru-popup-results-frame');
+            if (iframe && iframe.contentWindow) {
+                matchedText = iframe.contentWindow.MARUREADER_MATCHED_TEXT;
+            }
+        } catch (e) {
+            console.warn('Could not access iframe matched text:', e);
+        }
+
+        // Fallback to tapped character if no matched text
+        if (!matchedText && this.currentData.textData) {
+            matchedText = this.currentData.textData.tappedChar;
+        }
+
+        console.log('Updating smart position with matched text:', matchedText);
+
+        // Get source rectangles for the matched text
+        var sourceRects = this.getSourceRectangles(this.currentData.textData, matchedText);
+
+        // If we couldn't get source rectangles, use simple positioning
+        if (!sourceRects || sourceRects.length === 0) {
+            console.warn('No source rectangles, using simple positioning');
+            this.positionPopup(this.currentData.x, this.currentData.y);
+            return;
+        }
+
+        // Detect writing mode from source element
+        var writingMode = 'horizontal-tb';
+        try {
+            var textNode = this.findTextNodeByCSSPath(this.currentData.textData.cssPath);
+            if (textNode && textNode.parentElement) {
+                writingMode = this.getWritingMode(textNode.parentElement);
+            }
+        } catch (e) {
+            console.warn('Could not detect writing mode:', e);
+        }
+
+        // Get actual popup dimensions
+        var popupDims = this.getPopupDimensions();
+
+        // Calculate smart position
+        var position = this.calculateSmartPosition(sourceRects, writingMode, popupDims);
+
+        // Apply the calculated position
+        this.currentElement.style.left = position.x + 'px';
+        this.currentElement.style.top = position.y + 'px';
+
+        // Store placement for CSS custom properties
+        this.currentElement.setAttribute('data-placement', position.placement);
+
+        console.log('Applied smart position:', position);
+    },
+
+    /**
+     * Positions the popup optimally based on tap coordinates (viewport coords)
+     * @param {number} x - X coordinate (viewport)
+     * @param {number} y - Y coordinate (viewport)
      */
     positionPopup: function(x, y) {
         if (!this.currentElement) {
             return;
         }
 
-        // Get viewport dimensions
+        // Get viewport dimensions and scroll offsets
         var viewportWidth = window.innerWidth;
         var viewportHeight = window.innerHeight;
         var scrollX = window.pageXOffset || document.documentElement.scrollLeft;
         var scrollY = window.pageYOffset || document.documentElement.scrollTop;
 
+        // Convert viewport coordinates to page coordinates
+        var pageX = x + scrollX;
+        var pageY = y + scrollY;
+
         // Get popup dimensions (approximate for initial positioning)
         var popupWidth = this.config.maxWidth;
         var popupHeight = this.config.maxHeight;
 
-        // Calculate initial position (below and to the right of tap)
-        var popupX = x + this.config.offset;
-        var popupY = y + this.config.offset;
+        // Calculate initial position (below and to the right of tap) - in page coords
+        var popupX = pageX + this.config.offset;
+        var popupY = pageY + this.config.offset;
 
         // Adjust for viewport boundaries
         // Check right edge
         if (popupX + popupWidth > viewportWidth + scrollX) {
-            popupX = x - popupWidth - this.config.offset; // Position to the left
+            popupX = pageX - popupWidth - this.config.offset; // Position to the left
         }
 
         // Check bottom edge
         if (popupY + popupHeight > viewportHeight + scrollY) {
-            popupY = y - popupHeight - this.config.offset; // Position above
+            popupY = pageY - popupHeight - this.config.offset; // Position above
         }
 
         // Ensure popup doesn't go off left edge (clamp to minimum)
@@ -473,11 +838,11 @@ window.MaruReader.popup = {
             popupY = scrollY + this.config.offset;
         }
 
-        // Apply positioning
+        // Apply positioning (in page coordinates)
         this.currentElement.style.left = popupX + 'px';
         this.currentElement.style.top = popupY + 'px';
 
-        console.log('Positioned popup at:', popupX, popupY, 'from tap:', x, y);
+        console.log('Positioned popup at:', popupX, popupY, 'from tap (viewport):', x, y, 'tap (page):', pageX, pageY);
     },
 
     /**
@@ -523,8 +888,12 @@ window.MaruReader.popup = {
             return;
         }
 
-        // Reposition popup based on stored coordinates
-        this.positionPopup(this.currentData.x, this.currentData.y);
+        // Use smart positioning if we have text data, otherwise fall back to simple positioning
+        if (this.currentData.textData) {
+            this.updateSmartPosition();
+        } else {
+            this.positionPopup(this.currentData.x, this.currentData.y);
+        }
     },
 
     /**
