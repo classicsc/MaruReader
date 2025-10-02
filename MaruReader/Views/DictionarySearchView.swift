@@ -7,40 +7,65 @@ import SwiftUI
 import WebKit
 
 struct DictionarySearchView: View {
-    @State private var page: WebPage
-
-    init() {
-        var config = WebPage.Configuration()
-        config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
-        config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
-        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler()
-        self._page = State(initialValue: WebPage(configuration: config))
-    }
+    @State private var query: String = ""
+    @State private var isSearching: Bool = false
+    @State private var searchService = DictionarySearchService()
+    @State private var searchTask: Task<Void, Never>?
+    @State private var searchError: Error?
+    @State private var result: TextLookupResponse?
 
     var body: some View {
-        WebView(page)
-            .task {
-                // Load initial main page
-                if let url = URL(string: "marureader-lookup://dictionarysearch/dictionarysearchview.html") {
-                    _ = page.load(URLRequest(url: url))
-                }
-
-                // Ensure the view is inspectable when debugging
-                #if DEBUG
-                    page.isInspectable = true
-                #endif
-
-                // Listen for navigation events
-                do {
-                    for try await navigation in page.navigations {
-                        if case .finished = navigation {
-                            // Navigation handling can be added here if needed
-                        }
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                TextField("Search Dictionary", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.top)
+                    .onChange(of: query) { _, newValue in
+                        performSearch(searchQuery: newValue)
                     }
-                } catch {
-                    // Navigation sequence ended or failed - this is expected
+                if query.isEmpty {
+                    ContentUnavailableView("Start typing to search", systemImage: "magnifyingglass", description: Text("Dictionary results will appear here."))
+                } else if isSearching {
+                    HStack {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Searching...")
+                            .foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                    .padding()
+                } else if let error = searchError {
+                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
+                } else if let result {
+                    DictionaryResultContentView(lookupResponse: result)
+                } else {
+                    ContentUnavailableView("No Results", systemImage: "xmark.circle", description: Text("No dictionary entries found for \"\(query)\"."))
                 }
             }
+            .padding(.horizontal)
+            .navigationTitle("Dictionary")
+        }
+    }
+
+    private func performSearch(searchQuery: String) {
+        guard !isSearching else { return }
+        searchTask?.cancel()
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // Debounce for 300ms
+            if Task.isCancelled { return }
+            isSearching = true
+            searchError = nil
+            result = nil
+            do {
+                let lookupRequest = TextLookupRequest(id: UUID(), offset: 0, context: searchQuery, rubyContext: nil)
+                try result = await searchService.performTextLookup(query: lookupRequest)
+            } catch {
+                if !Task.isCancelled {
+                    searchError = error
+                }
+            }
+            isSearching = false
+        }
     }
 }
 

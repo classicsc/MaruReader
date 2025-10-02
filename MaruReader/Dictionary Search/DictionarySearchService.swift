@@ -36,7 +36,7 @@ actor DictionarySearchService {
     }
 
     /// Perform a search and get the TextLookupResponse
-    func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse {
+    func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
         // Get the text to query using the offset within context and the max lookup length
         let startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
         let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex
@@ -44,6 +44,9 @@ actor DictionarySearchService {
 
         let results = try await performSearch(query: queryText)
         let groupedResults = DictionarySearchService.groupResults(results)
+        guard !groupedResults.isEmpty else {
+            return nil
+        }
         // Get the top ranked result
         let topResult = groupedResults.first?.dictionariesResults.first?.results.first
         let topTerm = topResult?.term ?? ""
