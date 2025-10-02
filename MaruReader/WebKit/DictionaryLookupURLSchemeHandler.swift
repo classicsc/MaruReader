@@ -9,16 +9,21 @@ import Foundation
 import os.log
 import WebKit
 
-class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
+@MainActor
+class DictionaryLookupURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryLookupURLSchemeHandler")
 
     private let searchService: DictionarySearchService
 
+    // Track active WKURLSchemeTask operations for cancellation
+    private var activeTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
+
     init(persistenceController: PersistenceController = PersistenceController.shared) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
+        super.init()
     }
 
-    func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
+    nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let searchService = self.searchService
             let task = Task { @Sendable in
@@ -410,6 +415,60 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         </body>
         </html>
         """
+    }
+
+    // MARK: - WKURLSchemeHandler conformance
+
+    func webView(_: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
+        let taskId = ObjectIdentifier(urlSchemeTask)
+        let request = urlSchemeTask.request
+        let searchService = self.searchService
+
+        let task = Task { [weak self] in
+            do {
+                let results = try await Self.handleRequest(request, searchService: searchService)
+
+                for result in results {
+                    // Check if task was cancelled
+                    if Task.isCancelled {
+                        return
+                    }
+
+                    await MainActor.run {
+                        switch result {
+                        case let .response(response):
+                            urlSchemeTask.didReceive(response)
+                        case let .data(data):
+                            urlSchemeTask.didReceive(data)
+                        @unknown default:
+                            break
+                        }
+                    }
+                }
+
+                await MainActor.run {
+                    urlSchemeTask.didFinish()
+                }
+            } catch {
+                await MainActor.run {
+                    urlSchemeTask.didFailWithError(error)
+                }
+            }
+
+            // Clean up task tracking
+            _ = await MainActor.run {
+                self?.activeTasks.removeValue(forKey: taskId)
+            }
+        }
+
+        // Store task for potential cancellation
+        activeTasks[taskId] = task
+    }
+
+    func webView(_: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
+        let taskId = ObjectIdentifier(urlSchemeTask)
+        let task = activeTasks.removeValue(forKey: taskId)
+        task?.cancel()
     }
 }
 
