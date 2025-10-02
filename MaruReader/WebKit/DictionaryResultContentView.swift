@@ -19,8 +19,11 @@ struct DictionaryResultContentView: UIViewRepresentable {
         configuration.setURLSchemeHandler(resourceSchemeHandler, forURLScheme: "marureader-resource")
         configuration.setURLSchemeHandler(mediaSchemeHandler, forURLScheme: "marureader-media")
         configuration.setURLSchemeHandler(lookupSchemeHandler, forURLScheme: "marureader-lookup")
-
-        return WKWebView(frame: .zero, configuration: configuration)
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        #if DEBUG
+            webView.isInspectable = true
+        #endif
+        return webView
     }
 
     func updateUIView(_ webView: WKWebView, context _: Context) {

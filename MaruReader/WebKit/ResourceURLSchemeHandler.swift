@@ -23,9 +23,7 @@ class ResourceURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
         "MaterialSymbolsOutlined.woff2",
         "domUtilities.js",
         "textScanning.js",
-        "popup.js",
         "popup.css",
-        "dictionary-search.css",
     ]
 
     nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
