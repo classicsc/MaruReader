@@ -139,10 +139,10 @@ extension StructuredElement {
         ]
 
         if let resolvedPath {
-            attributes.append("href=\"\(escapeHTMLAttribute(resolvedPath))\"")
+            attributes.append("href=\"\(escapeHTML(resolvedPath))\"")
         }
 
-        attributes.append("data-path=\"\(escapeHTMLAttribute(path))\"")
+        attributes.append("data-path=\"\(escapeHTML(path))\"")
         let loadState = "not-loaded"
         attributes.append("data-image-load-state=\"\(loadState)\"")
         attributes.append("data-has-aspect-ratio=\"true\"")
@@ -163,11 +163,11 @@ extension StructuredElement {
         attributes.append("data-collapsible=\"\(collapsibleValue)\"")
 
         if let verticalAlign {
-            attributes.append("data-vertical-align=\"\(escapeHTMLAttribute(verticalAlign))\"")
+            attributes.append("data-vertical-align=\"\(escapeHTML(verticalAlign))\"")
         }
 
         if let sizeUnits, hasPreferredWidth || hasPreferredHeight {
-            attributes.append("data-size-units=\"\(escapeHTMLAttribute(sizeUnits))\"")
+            attributes.append("data-size-units=\"\(escapeHTML(sizeUnits))\"")
         }
 
         let attributeString = attributes.joined(separator: " ")
@@ -188,14 +188,14 @@ extension StructuredElement {
         var containerAttributes: [String] = []
 
         if let border {
-            containerAttributes.append("data-border=\"\(escapeHTMLAttribute(border))\"")
+            containerAttributes.append("data-border=\"\(escapeHTML(border))\"")
         }
         if let borderRadius {
-            containerAttributes.append("data-border-radius=\"\(escapeHTMLAttribute(borderRadius))\"")
+            containerAttributes.append("data-border-radius=\"\(escapeHTML(borderRadius))\"")
         }
         containerAttributes.append("data-width-em=\"\(widthInEm)\"")
         if let title {
-            containerAttributes.append("title=\"\(escapeHTMLAttribute(title))\"")
+            containerAttributes.append("title=\"\(escapeHTML(title))\"")
         }
 
         let paddingTopValue = invAspectRatio * 100
@@ -208,7 +208,7 @@ extension StructuredElement {
         var imageAttributes = ["class=\"gloss-image\""]
 
         if let resolvedPath {
-            imageAttributes.append("src=\"\(escapeHTMLAttribute(resolvedPath))\"")
+            imageAttributes.append("src=\"\(escapeHTML(resolvedPath))\"")
         }
 
         imageAttributes.append("style=\"width: 100%; height: 100%\"")
@@ -227,11 +227,11 @@ extension StructuredElement {
         }
 
         if let alt {
-            imageAttributes.append("alt=\"\(escapeHTMLAttribute(alt))\"")
+            imageAttributes.append("alt=\"\(escapeHTML(alt))\"")
         }
 
         if let verticalAlign {
-            imageAttributes.append("data-vertical-align=\"\(escapeHTMLAttribute(verticalAlign))\"")
+            imageAttributes.append("data-vertical-align=\"\(escapeHTML(verticalAlign))\"")
         }
 
         // Image rendering handled via data-image-rendering attr already
@@ -270,7 +270,7 @@ extension StructuredElement {
 
         // Add language attribute
         if let lang {
-            attributes.append("lang=\"\(escapeHTMLAttribute(lang))\"")
+            attributes.append("lang=\"\(escapeHTML(lang))\"")
         }
 
         // Add base class with style classes
@@ -285,7 +285,7 @@ extension StructuredElement {
 
         // Add inline styles if present
         if let style, !style.toCSSString().isEmpty {
-            attributes.append("style=\"\(escapeHTMLAttribute(style.toCSSString()))\"")
+            attributes.append("style=\"\(escapeHTML(style.toCSSString()))\"")
         }
 
         // Specialized handling
@@ -306,7 +306,7 @@ extension StructuredElement {
         case "a":
             if let href {
                 let isInternal = href.hasPrefix("?")
-                attributes.append("href=\"\(escapeHTMLAttribute(href))\"")
+                attributes.append("href=\"\(escapeHTML(href))\"")
                 attributes.append("data-external=\"\(isInternal ? "false" : "true")\"")
             }
         case "img":
@@ -322,7 +322,7 @@ extension StructuredElement {
 
         // Add title
         if let title {
-            attributes.append("title=\"\(escapeHTMLAttribute(title))\"")
+            attributes.append("title=\"\(escapeHTML(title))\"")
         }
 
         // Add data attrs
@@ -367,15 +367,6 @@ extension StructuredElement {
     private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
         guard let content else { return "" }
         return content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
-    }
-
-    private func escapeHTMLAttribute(_ string: String) -> String {
-        string
-            .replacingOccurrences(of: "&", with: "&amp;")
-            .replacingOccurrences(of: "\"", with: "&quot;")
-            .replacingOccurrences(of: "<", with: "&lt;")
-            .replacingOccurrences(of: ">", with: "&gt;")
-            .replacingOccurrences(of: "'", with: "&#39;")
     }
 
     private func formatNumber(_ value: Double) -> String {
@@ -426,7 +417,7 @@ extension StructuredElement {
             let camel = keyToCamelCase(key)
             if !camel.isEmpty {
                 let scKey = "sc\(camel)"
-                let attr = "data-\(scKey)=\"\(escapeHTMLAttribute(value))\""
+                let attr = "data-\(scKey)=\"\(escapeHTML(value))\""
                 attrs.append(attr)
             }
         }

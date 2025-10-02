@@ -83,7 +83,7 @@ class DictionaryLookupURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeH
         do {
             // Perform dictionary search
             let searchResults = try await searchService.performSearch(query: query)
-            let groupedResults = await searchService.groupResults(searchResults)
+            let groupedResults = DictionarySearchService.groupResults(searchResults)
 
             // Generate HTML based on request type
             let html: String
@@ -470,13 +470,4 @@ class DictionaryLookupURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeH
         let task = activeTasks.removeValue(forKey: taskId)
         task?.cancel()
     }
-}
-
-private func escapeHTML(_ string: String) -> String {
-    string
-        .replacingOccurrences(of: "&", with: "&amp;")
-        .replacingOccurrences(of: "<", with: "&lt;")
-        .replacingOccurrences(of: ">", with: "&gt;")
-        .replacingOccurrences(of: "\"", with: "&quot;")
-        .replacingOccurrences(of: "'", with: "&#39;")
 }

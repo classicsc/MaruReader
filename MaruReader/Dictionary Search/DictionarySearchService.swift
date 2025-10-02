@@ -10,6 +10,9 @@ import Foundation
 import os.log
 
 actor DictionarySearchService {
+    /// The maximum forward lookup length for the TextLookupRequest API
+    static let maxForwardLookupLength = 10
+
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchService")
 
     private let persistenceController: PersistenceController
@@ -32,7 +35,32 @@ actor DictionarySearchService {
         return results
     }
 
-    func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
+    /// Perform a search and get the TextLookupResponse
+    func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse {
+        // Get the text to query using the offset within context and the max lookup length
+        let startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
+        let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex
+        let queryText = String(query.context[startIndex ..< endIndex])
+
+        let results = try await performSearch(query: queryText)
+        let groupedResults = DictionarySearchService.groupResults(results)
+        // Get the top ranked result
+        let topResult = groupedResults.first?.dictionariesResults.first?.results.first
+        let topTerm = topResult?.term ?? ""
+        let topOriginalSubstring = topResult?.candidate.originalSubstring ?? ""
+
+        // The range in context that was matched
+        let matchedRange = startIndex ..< query.context.index(startIndex, offsetBy: topOriginalSubstring.count)
+
+        return TextLookupResponse(
+            requestID: query.id,
+            results: groupedResults,
+            primaryResult: topTerm,
+            primaryResultSourceRange: matchedRange
+        )
+    }
+
+    static func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
         let grouped = Swift.Dictionary(grouping: results, by: { result in
             "\(result.term)|\(result.reading ?? "")"
         })
