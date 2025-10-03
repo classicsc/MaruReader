@@ -15,7 +15,12 @@ class ResourceURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ResourceURLSchemeHandler")
 
     // Track active WKURLSchemeTask operations for cancellation
-    private var activeTasks: [ObjectIdentifier: Task<Void, Never>] = [:]
+    private struct TaskInfo {
+        let task: Task<Void, Never>
+        var isStopped: Bool = false
+    }
+
+    private var activeTasks: [ObjectIdentifier: TaskInfo] = [:]
 
     // Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [
@@ -210,6 +215,14 @@ class ResourceURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
                         return
                     }
 
+                    // Check if task was stopped before calling WKURLSchemeTask methods
+                    let isStopped = await MainActor.run {
+                        self?.activeTasks[taskId]?.isStopped ?? true
+                    }
+                    if isStopped {
+                        return
+                    }
+
                     await MainActor.run {
                         switch result {
                         case let .response(response):
@@ -222,12 +235,24 @@ class ResourceURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
                     }
                 }
 
-                await MainActor.run {
-                    urlSchemeTask.didFinish()
+                // Check if task was stopped before calling didFinish
+                let isStopped = await MainActor.run {
+                    self?.activeTasks[taskId]?.isStopped ?? true
+                }
+                if !isStopped {
+                    await MainActor.run {
+                        urlSchemeTask.didFinish()
+                    }
                 }
             } catch {
-                await MainActor.run {
-                    urlSchemeTask.didFailWithError(error)
+                // Check if task was stopped before reporting error
+                let isStopped = await MainActor.run {
+                    self?.activeTasks[taskId]?.isStopped ?? true
+                }
+                if !isStopped {
+                    await MainActor.run {
+                        urlSchemeTask.didFailWithError(error)
+                    }
                 }
             }
 
@@ -237,13 +262,22 @@ class ResourceURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
             }
         }
 
-        // Store task for potential cancellation
-        activeTasks[taskId] = task
+        // Store task for potential cancellation BEFORE starting async work
+        activeTasks[taskId] = TaskInfo(task: task, isStopped: false)
     }
 
     func webView(_: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
         let taskId = ObjectIdentifier(urlSchemeTask)
-        let task = activeTasks.removeValue(forKey: taskId)
-        task?.cancel()
+
+        // Mark task as stopped BEFORE cancelling to prevent any pending operations
+        // from calling methods on the urlSchemeTask
+        if var taskInfo = activeTasks[taskId] {
+            taskInfo.isStopped = true
+            activeTasks[taskId] = taskInfo
+            taskInfo.task.cancel()
+        }
+
+        // Remove from tracking
+        activeTasks.removeValue(forKey: taskId)
     }
 }
