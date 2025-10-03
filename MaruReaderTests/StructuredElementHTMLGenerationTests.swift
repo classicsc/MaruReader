@@ -95,7 +95,7 @@ struct DictionaryContentMarkupTests {
             fontStyle: "italic",
             fontWeight: "bold",
             textDecorationLine: ["underline", "line-through"],
-            textAlign: "right",
+            textAlign: "right"
         )
         let classes = style.toCSSClasses()
         #expect(classes.contains("gloss-font-bold"))
