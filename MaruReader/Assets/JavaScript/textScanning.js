@@ -15,99 +15,328 @@ window.MaruReader.textScanning = {
     },
 
     /**
-     * Extracts text at a specific point with forward scanning
+     * Extracts text at a specific point with context-based extraction
      * @param {number} x - X coordinate
      * @param {number} y - Y coordinate
-     * @param {number} maxChars - Maximum characters to extract
-     * @returns {Object|null} Text extraction result
+     * @param {number} contextLevel - Context level (0=sentence, 1=sentence+neighbors, etc.)
+     * @param {number} maxContextChars - Maximum total context characters
+     * @returns {Object|null} Text extraction result matching TextLookupRequest structure
      */
-    extractTextAtPoint: function(x, y, maxChars) {
+    extractTextAtPoint: function(x, y, contextLevel, maxContextChars) {
         // Try to find the most accurate character at the tap point
-        var result = this.findCharacterAtPoint(x, y);
-        if (!result) {
-            this.handleTextResult(x, y, null);
+        var charResult = this.findCharacterAtPoint(x, y);
+        if (!charResult) {
             return null;
         }
 
-        var node = result.node;
-        var offset = result.offset;
-        var tappedChar = result.character;
-        var surroundingText = node.data;
-        
-        var before = surroundingText.substring(0, offset);
-        var after = surroundingText.substring(offset + 1);
-        var highlight = tappedChar;
-        
-        // Generate CSS path and character offset for the text node
+        var node = charResult.node;
+        var offset = charResult.offset;
+
+        // Check for ruby context
+        var rubyContext = null;
+        var rubyParent = window.MaruReader.domUtilities.findRubyParent(node);
+
+        if (rubyParent) {
+            rubyContext = window.MaruReader.domUtilities.findRubyContainer(rubyParent);
+        }
+
+        // Extract context based on contextLevel
+        var contextResult = this.extractContext(
+            node, offset, contextLevel, maxContextChars, rubyContext
+        );
+
+        // Generate CSS path for the text node
         var cssPath = window.MaruReader.domUtilities.generateCSSPath(node);
         var textNodeIndex = window.MaruReader.domUtilities.getTextNodeIndex(node);
         if (textNodeIndex > 0) {
             cssPath += '::text-node(' + textNodeIndex + ')';
         }
-        var charOffset = offset;
-        
-        // Initialize variables
-        var hasRubyText = false;
-        var htmlOffset = offset;
-        var rubyAwareText = surroundingText;
-        var originalText = surroundingText;
-        
-        // Check for ruby context
-        var rubyContext = null;
-        var startingRubyIndex = -1;
-        var rubyParent = window.MaruReader.domUtilities.findRubyParent(node);
-        
-        if (rubyParent) {
-            hasRubyText = true;
-            rubyContext = window.MaruReader.domUtilities.findRubyContainer(rubyParent);
-            
-            if (rubyContext) {
-                // Get original text from the entire container
-                originalText = rubyContext.textContent || '';
-                
-                // Get ruby-aware text (excluding rt elements)
-                rubyAwareText = this.extractRubyAwareText(rubyContext);
-                
-                // Find starting ruby index
-                var rubyElements = window.MaruReader.domUtilities.getRubyElements(rubyContext);
-                for (var i = 0; i < rubyElements.length; i++) {
-                    if (rubyElements[i] === rubyParent) {
-                        startingRubyIndex = i;
-                        break;
-                    }
+
+        // Build result matching TextLookupRequest structure
+        var result = {
+            offset: contextResult.offset, // Offset of tapped character within context
+            context: contextResult.context, // Surrounding text
+            rubyContext: contextResult.rubyContext, // RubyText if available
+            cssSelector: cssPath // CSS selector
+        };
+        return result;
+    },
+
+    /**
+     * Extracts context around a character with configurable sentence context
+     * @param {Node} node - Text node containing the tapped character
+     * @param {number} offset - Offset within the text node
+     * @param {number} contextLevel - Number of surrounding sentences (0=current only)
+     * @param {number} maxContextChars - Maximum total context characters
+     * @param {Element} rubyContainer - Ruby container element if applicable
+     * @returns {Object} Context extraction result
+     */
+    extractContext: function(node, offset, contextLevel, maxContextChars, rubyContainer) {
+        var context = '';
+        var contextOffset = 0;
+        var rubyContextObj = null;
+
+        if (rubyContainer) {
+            // Extract ruby-aware context
+            var rubyResult = this.extractRubyContext(
+                node, offset, contextLevel, maxContextChars, rubyContainer
+            );
+            context = rubyResult.context;
+            contextOffset = rubyResult.offset;
+            rubyContextObj = rubyResult.rubyContext;
+        } else {
+            // Extract plain text context
+            var plainResult = this.extractPlainContext(
+                node, offset, contextLevel, maxContextChars
+            );
+            context = plainResult.context;
+            contextOffset = plainResult.offset;
+        }
+
+        return {
+            context: context,
+            offset: contextOffset,
+            rubyContext: rubyContextObj
+        };
+    },
+
+    /**
+     * Extracts plain text context with sentence boundaries
+     * @param {Node} node - Text node
+     * @param {number} offset - Character offset
+     * @param {number} contextLevel - Context level
+     * @param {number} maxContextChars - Maximum characters
+     * @returns {Object} Context and offset
+     */
+    extractPlainContext: function(node, offset, contextLevel, maxContextChars) {
+        // Get all text from the paragraph or container
+        var container = this.findTextContainer(node);
+        var fullText = this.extractFullText(container);
+
+        // Find the offset of the tapped character in the full text
+        var fullTextOffset = this.findOffsetInFullText(container, node, offset);
+
+        // Find sentence boundaries
+        var sentences = this.findSentences(fullText);
+        var currentSentenceIndex = this.findSentenceAtOffset(sentences, fullTextOffset);
+
+        if (currentSentenceIndex === -1) {
+            // Fallback: return surrounding text up to maxContextChars
+            var start = Math.max(0, fullTextOffset - Math.floor(maxContextChars / 2));
+            var end = Math.min(fullText.length, start + maxContextChars);
+            var context = fullText.substring(start, end);
+            return {
+                context: context,
+                offset: fullTextOffset - start
+            };
+        }
+
+        // Extract sentences based on contextLevel
+        var startSentence = Math.max(0, currentSentenceIndex - contextLevel);
+        var endSentence = Math.min(sentences.length - 1, currentSentenceIndex + contextLevel);
+
+        var contextStart = sentences[startSentence].start;
+        var contextEnd = sentences[endSentence].end;
+        var context = fullText.substring(contextStart, contextEnd);
+
+        // Truncate if exceeds maxContextChars
+        if (context.length > maxContextChars) {
+            var charOffset = fullTextOffset - contextStart;
+            var halfMax = Math.floor(maxContextChars / 2);
+
+            var newStart = Math.max(0, charOffset - halfMax);
+            var newEnd = Math.min(context.length, newStart + maxContextChars);
+
+            context = context.substring(newStart, newEnd);
+            charOffset = charOffset - newStart;
+
+            return {
+                context: context,
+                offset: charOffset
+            };
+        }
+
+        return {
+            context: context,
+            offset: fullTextOffset - contextStart
+        };
+    },
+
+    /**
+     * Extracts ruby-aware context with sentence boundaries
+     * @param {Node} node - Text node
+     * @param {number} offset - Character offset
+     * @param {number} contextLevel - Context level
+     * @param {number} maxContextChars - Maximum characters
+     * @param {Element} rubyContainer - Ruby container element
+     * @returns {Object} Context, offset, and ruby context
+     */
+    extractRubyContext: function(node, offset, contextLevel, maxContextChars, rubyContainer) {
+        // Get ruby-aware text (base text without annotations)
+        var rubyAwareText = this.extractRubyAwareText(rubyContainer);
+
+        // Get original text with ruby annotations
+        var originalText = rubyContainer.textContent || '';
+
+        // Find the offset in ruby-aware text
+        var rubyElements = window.MaruReader.domUtilities.getRubyElements(rubyContainer);
+        var rubyAwareOffset = this.calculateRubyOffset(rubyElements, node, offset);
+
+        // Find sentence boundaries in ruby-aware text
+        var sentences = this.findSentences(rubyAwareText);
+        var currentSentenceIndex = this.findSentenceAtOffset(sentences, rubyAwareOffset);
+
+        if (currentSentenceIndex === -1) {
+            // Fallback: return surrounding text
+            var start = Math.max(0, rubyAwareOffset - Math.floor(maxContextChars / 2));
+            var end = Math.min(rubyAwareText.length, start + maxContextChars);
+            return {
+                context: rubyAwareText.substring(start, end),
+                offset: rubyAwareOffset - start,
+                rubyContext: {
+                    baseText: rubyAwareText.substring(start, end),
+                    originalText: originalText
                 }
-                
-                // Calculate offset within the ruby-aware text
-                htmlOffset = this.calculateRubyOffset(rubyElements, node, offset);
+            };
+        }
+
+        // Extract sentences based on contextLevel
+        var startSentence = Math.max(0, currentSentenceIndex - contextLevel);
+        var endSentence = Math.min(sentences.length - 1, currentSentenceIndex + contextLevel);
+
+        var contextStart = sentences[startSentence].start;
+        var contextEnd = sentences[endSentence].end;
+        var context = rubyAwareText.substring(contextStart, contextEnd);
+        var contextOffset = rubyAwareOffset - contextStart;
+
+        // Truncate if exceeds maxContextChars
+        if (context.length > maxContextChars) {
+            var halfMax = Math.floor(maxContextChars / 2);
+            var newStart = Math.max(0, contextOffset - halfMax);
+            var newEnd = Math.min(context.length, newStart + maxContextChars);
+
+            context = context.substring(newStart, newEnd);
+            contextOffset = contextOffset - newStart;
+        }
+
+        return {
+            context: context,
+            offset: contextOffset,
+            rubyContext: {
+                baseText: context,
+                originalText: originalText
+            }
+        };
+    },
+
+    /**
+     * Finds the text container (paragraph or similar) for a node
+     * @param {Node} node - Text node
+     * @returns {Element} Container element
+     */
+    findTextContainer: function(node) {
+        var current = node.parentElement;
+        while (current) {
+            var tagName = current.tagName.toLowerCase();
+            if (['p', 'div', 'article', 'section', 'body'].includes(tagName)) {
+                return current;
+            }
+            current = current.parentElement;
+        }
+        return document.body;
+    },
+
+    /**
+     * Extracts full text from a container
+     * @param {Element} container - Container element
+     * @returns {string} Full text content
+     */
+    extractFullText: function(container) {
+        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(container);
+        var textParts = [];
+        var textNode;
+        while (textNode = walker.nextNode()) {
+            textParts.push(textNode.textContent);
+        }
+        return textParts.join('');
+    },
+
+    /**
+     * Finds the offset of a character within the full text of a container
+     * @param {Element} container - Container element
+     * @param {Node} targetNode - Target text node
+     * @param {number} targetOffset - Offset within target node
+     * @returns {number} Offset in full text
+     */
+    findOffsetInFullText: function(container, targetNode, targetOffset) {
+        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(container);
+        var offset = 0;
+        var textNode;
+
+        while (textNode = walker.nextNode()) {
+            if (textNode === targetNode) {
+                return offset + targetOffset;
+            }
+            offset += textNode.textContent.length;
+        }
+
+        return 0; // Fallback
+    },
+
+    /**
+     * Finds sentence boundaries in text
+     * Japanese sentence delimiters: 。！？
+     * Also handles Western punctuation: . ! ?
+     * @param {string} text - Text to analyze
+     * @returns {Array} Array of {start, end} sentence positions
+     */
+    findSentences: function(text) {
+        var sentences = [];
+        var sentenceDelimiters = /[。！？.!?]/g;
+        var match;
+        var lastEnd = 0;
+
+        while ((match = sentenceDelimiters.exec(text)) !== null) {
+            var end = match.index + 1;
+            sentences.push({
+                start: lastEnd,
+                end: end
+            });
+            lastEnd = end;
+        }
+
+        // Add final sentence if text doesn't end with delimiter
+        if (lastEnd < text.length) {
+            sentences.push({
+                start: lastEnd,
+                end: text.length
+            });
+        }
+
+        // If no sentences found, treat entire text as one sentence
+        if (sentences.length === 0) {
+            sentences.push({
+                start: 0,
+                end: text.length
+            });
+        }
+
+        return sentences;
+    },
+
+    /**
+     * Finds which sentence contains a given offset
+     * @param {Array} sentences - Array of sentence objects
+     * @param {number} offset - Character offset
+     * @returns {number} Sentence index, or -1 if not found
+     */
+    findSentenceAtOffset: function(sentences, offset) {
+        for (var i = 0; i < sentences.length; i++) {
+            if (offset >= sentences[i].start && offset < sentences[i].end) {
+                return i;
             }
         }
-        
-        // Extract forward text
-        var forwardText = this.extractForwardText(
-            node, offset, maxChars, hasRubyText, rubyContext, startingRubyIndex, tappedChar
-        );
-        
-        var result = { 
-            tappedChar: tappedChar, 
-            forwardText: forwardText, 
-            offset: offset, 
-            before: before, 
-            highlight: highlight, 
-            after: after,
-            hasRubyText: hasRubyText,
-            htmlOffset: htmlOffset,
-            rubyAwareText: rubyAwareText,
-            originalText: originalText,
-            cssPath: cssPath,
-            charOffset: charOffset
-        };
-
-        // Send result back to Swift if message handler is available
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.textScanning) {
-            window.webkit.messageHandlers.textScanning.postMessage(result);
-        }
-
-        return result;
+        return -1;
     },
 
     /**
@@ -196,198 +425,6 @@ window.MaruReader.textScanning = {
         return offset; // fallback
     },
 
-    /**
-     * Extracts forward text from the current position
-     * @param {Node} node - Starting text node
-     * @param {number} offset - Starting offset
-     * @param {number} maxChars - Maximum characters to extract
-     * @param {boolean} hasRubyText - Whether text has ruby annotations
-     * @param {Element} rubyContext - Ruby container element
-     * @param {number} startingRubyIndex - Index of starting ruby element
-     * @param {string} tappedChar - The tapped character
-     * @returns {string} Extracted text
-     */
-    extractForwardText: function(node, offset, maxChars, hasRubyText, rubyContext, startingRubyIndex, tappedChar) {
-        var text = '';
-        var charsCollected = 0;
-        
-        if (hasRubyText && rubyContext && startingRubyIndex >= 0) {
-            text = this.extractRubyForwardText(rubyContext, startingRubyIndex, maxChars, tappedChar);
-        } else {
-            text = this.extractNormalForwardText(node, offset, maxChars);
-        }
-        
-        // Trim to maxChars and stop at punctuation
-        text = text.substring(0, maxChars);
-        var punctuationMatch = text.match(/[。、！？.,!?]/);
-        if (punctuationMatch) {
-            text = text.substring(0, punctuationMatch.index + 1);
-        }
-        
-        var forwardText = text;
-        if (!hasRubyText) {
-            forwardText = tappedChar + text; // Include tappedChar for non-ruby text
-        }
-        
-        return forwardText;
-    },
-
-    /**
-     * Extracts forward text from ruby elements
-     * @param {Element} rubyContext - Ruby container
-     * @param {number} startingRubyIndex - Starting ruby index
-     * @param {number} maxChars - Maximum characters
-     * @param {string} tappedChar - Tapped character
-     * @returns {string} Extracted text
-     */
-    extractRubyForwardText: function(rubyContext, startingRubyIndex, maxChars, tappedChar) {
-        var text = '';
-        var charsCollected = 0;
-        var rubyElements = window.MaruReader.domUtilities.getRubyElements(rubyContext);
-        
-        // Start from the current ruby element
-        for (var i = startingRubyIndex; i < rubyElements.length && charsCollected < maxChars; i++) {
-            var ruby = rubyElements[i];
-            var rbElements = window.MaruReader.domUtilities.getRbElements(ruby);
-
-            if (rbElements.length > 0) {
-                // Handle ruby with rb elements
-                for (var j = 0; j < rbElements.length && charsCollected < maxChars; j++) {
-                    var rbText = rbElements[j].textContent || '';
-
-                    if (i === startingRubyIndex && j === 0) {
-                        // For the first rb in the starting ruby, start from the tapped character
-                        var rbStartIndex = rbText.indexOf(tappedChar);
-                        if (rbStartIndex >= 0) {
-                            rbText = rbText.substring(rbStartIndex);
-                        }
-                    }
-
-                    var charsToTake = Math.min(rbText.length, maxChars - charsCollected);
-                    if (charsToTake > 0) {
-                        text += rbText.substring(0, charsToTake);
-                        charsCollected += charsToTake;
-                    }
-                }
-            } else {
-                // Handle ruby without rb elements (direct text nodes)
-                var rubyText = window.MaruReader.domUtilities.getRubyBaseText(ruby);
-
-                if (i === startingRubyIndex) {
-                    // For the starting ruby, start from the tapped character
-                    var rubyStartIndex = rubyText.indexOf(tappedChar);
-                    if (rubyStartIndex >= 0) {
-                        rubyText = rubyText.substring(rubyStartIndex);
-                    }
-                }
-
-                var charsToTake = Math.min(rubyText.length, maxChars - charsCollected);
-                if (charsToTake > 0) {
-                    text += rubyText.substring(0, charsToTake);
-                    charsCollected += charsToTake;
-                }
-            }
-        }
-        
-        // Continue with non-ruby text if needed
-        if (charsCollected < maxChars && startingRubyIndex < rubyElements.length) {
-            text += this.extractPostRubyText(rubyContext, rubyElements, maxChars - charsCollected);
-        }
-        
-        return text;
-    },
-
-    /**
-     * Extracts text after ruby elements
-     * @param {Element} rubyContext - Ruby container
-     * @param {HTMLCollection} rubyElements - Ruby elements
-     * @param {number} remainingChars - Remaining character count
-     * @returns {string} Extracted text
-     */
-    extractPostRubyText: function(rubyContext, rubyElements, remainingChars) {
-        var text = '';
-        var lastRuby = rubyElements[rubyElements.length - 1];
-        var walker = document.createTreeWalker(
-            rubyContext,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode: function(textNode) {
-                    // Skip text nodes inside ruby, rt, or rp tags
-                    var parent = textNode.parentNode;
-                    while (parent && parent !== rubyContext) {
-                        if (parent.tagName && ['ruby', 'rt', 'rp'].includes(parent.tagName.toLowerCase())) {
-                            return NodeFilter.FILTER_REJECT;
-                        }
-                        parent = parent.parentNode;
-                    }
-                    return NodeFilter.FILTER_ACCEPT;
-                }
-            }
-        );
-        
-        // Position walker after the last ruby element
-        walker.currentNode = lastRuby;
-        var textNode;
-        var charsCollected = 0;
-        while ((textNode = walker.nextNode()) && charsCollected < remainingChars) {
-            var remainingText = textNode.textContent || '';
-            var charsToTake = Math.min(remainingText.length, remainingChars - charsCollected);
-            if (charsToTake > 0) {
-                text += remainingText.substring(0, charsToTake);
-                charsCollected += charsToTake;
-            }
-        }
-        
-        return text;
-    },
-
-    /**
-     * Extracts forward text without ruby elements
-     * @param {Node} node - Starting text node
-     * @param {number} offset - Starting offset
-     * @param {number} maxChars - Maximum characters
-     * @returns {string} Extracted text
-     */
-    extractNormalForwardText: function(node, offset, maxChars) {
-        var text = '';
-        var charsCollected = 0;
-        
-        var currentNode = node;
-        var currentOffset = offset + 1; // Start after tapped char
-        
-        while (charsCollected < maxChars) {
-            if (currentNode && currentNode.nodeType === 3) {
-                // Get remaining text from current node
-                var remainingText = currentNode.textContent.substring(currentOffset);
-                if (remainingText.length > 0) {
-                    var charsToTake = Math.min(remainingText.length, maxChars - charsCollected);
-                    text += remainingText.substring(0, charsToTake);
-                    charsCollected += charsToTake;
-                    
-                    if (charsCollected >= maxChars) break;
-                }
-            }
-            
-            // Move to next text node
-            currentNode = this.getNextTextNode(currentNode);
-            currentOffset = 0; // Reset offset for new nodes
-            
-            if (!currentNode) break;
-        }
-        
-        return text;
-    },
-
-    /**
-     * Gets the next text node in document order
-     * @param {Node} node - Current node
-     * @returns {Node|null} Next text node
-     */
-    getNextTextNode: function(node) {
-        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(document.body);
-        walker.currentNode = node;
-        return walker.nextNode();
-    },
 
     /**
      * Finds the most accurate character at the given point using multiple methods

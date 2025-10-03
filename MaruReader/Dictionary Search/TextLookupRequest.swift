@@ -11,5 +11,6 @@ struct TextLookupRequest: Identifiable {
     let id: UUID
     let offset: Int // Offset of tapped character within context
     let context: String // Surrounding text
-    let rubyContext: RubyText? // Ruby-aware representation
+    let rubyContext: RubyText? // Context including ruby annotations if available
+    let cssSelector: String? // CSS selector if applicable
 }

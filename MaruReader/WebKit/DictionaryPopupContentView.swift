@@ -20,9 +20,7 @@ struct DictionaryPopupContentView: UIViewRepresentable {
         configuration.setURLSchemeHandler(mediaSchemeHandler, forURLScheme: "marureader-media")
         configuration.setURLSchemeHandler(lookupSchemeHandler, forURLScheme: "marureader-lookup")
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        #if DEBUG
-            webView.isInspectable = true
-        #endif
+        webView.isInspectable = true
         return webView
     }
 

@@ -5,14 +5,24 @@
 //  Created by Sam Smoker on 10/2/25.
 //
 
+import os.log
 import SwiftUI
 import WebKit
 
 struct DictionaryResultContentView: UIViewRepresentable {
     let lookupResponse: TextLookupResponse
 
-    func makeUIView(context _: Context) -> WKWebView {
+    @Binding var webViewRef: WKWebView?
+
+    func makeCoordinator() -> DictionaryResultCoordinator {
+        DictionaryResultCoordinator(parent: self)
+    }
+
+    func makeUIView(context: Context) -> WKWebView {
+        let contentController = WKUserContentController()
+        contentController.add(context.coordinator, name: "textSelection")
         let configuration = WKWebViewConfiguration()
+        configuration.userContentController = contentController
         let resourceSchemeHandler = ResourceURLSchemeHandler()
         let mediaSchemeHandler = MediaURLSchemeHandler()
         let lookupSchemeHandler = DictionaryLookupURLSchemeHandler()
@@ -20,13 +30,56 @@ struct DictionaryResultContentView: UIViewRepresentable {
         configuration.setURLSchemeHandler(mediaSchemeHandler, forURLScheme: "marureader-media")
         configuration.setURLSchemeHandler(lookupSchemeHandler, forURLScheme: "marureader-lookup")
         let webView = WKWebView(frame: .zero, configuration: configuration)
-        #if DEBUG
-            webView.isInspectable = true
-        #endif
+        webView.isInspectable = true
+
+        let tapGesture = UITapGestureRecognizer(target: context.coordinator, action: #selector(context.coordinator.handleTap(_:)))
+        tapGesture.delegate = context.coordinator
+        webView.addGestureRecognizer(tapGesture)
+
+        DispatchQueue.main.async {
+            self.webViewRef = webView
+        }
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context _: Context) {
         webView.loadHTMLString(lookupResponse.toResultsHTML(), baseURL: nil)
+    }
+}
+
+class DictionaryResultCoordinator: NSObject, WKScriptMessageHandler, UIGestureRecognizerDelegate {
+    var parent: DictionaryResultContentView
+
+    private let lookupContextLevel = 0
+    private let maxLookupContext = 250
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryResultCoordinator")
+
+    init(parent: DictionaryResultContentView) {
+        self.parent = parent
+    }
+
+    func userContentController(_: WKUserContentController, didReceive _: WKScriptMessage) {
+        // Implement message handling logic here
+    }
+
+    @objc func handleTap(_ gesture: UITapGestureRecognizer) {
+        guard let webView = gesture.view as? WKWebView else { return }
+
+        let point = gesture.location(in: webView)
+        let script = "window.MaruReader.textScanning.extractTextAtPoint(\(point.x), \(point.y), \(lookupContextLevel), \(maxLookupContext));"
+
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            if let error {
+                self?.logger.error("JavaScript error: \(error.localizedDescription)")
+            } else if let result {
+                self?.logger.info("Text extraction result: \(String(describing: result))")
+            }
+        }
+    }
+
+    // Allow simultaneous gesture recognition with WKWebView's internal gestures
+    func gestureRecognizer(_: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer) -> Bool {
+        true
     }
 }

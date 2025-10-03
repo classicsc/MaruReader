@@ -3,6 +3,7 @@
 //
 //  Dictionary search view with integrated HTML rendering.
 //
+import os.log
 import SwiftUI
 import WebKit
 
@@ -13,6 +14,9 @@ struct DictionarySearchView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var searchError: Error?
     @State private var result: TextLookupResponse?
+    @State private var webView: WKWebView?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
     var body: some View {
         NavigationStack {
@@ -37,7 +41,7 @@ struct DictionarySearchView: View {
                 } else if let error = searchError {
                     ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
                 } else if let result {
-                    DictionaryResultContentView(lookupResponse: result)
+                    DictionaryResultContentView(lookupResponse: result, webViewRef: $webView)
                 } else {
                     ContentUnavailableView("No Results", systemImage: "xmark.circle", description: Text("No dictionary entries found for \"\(query)\"."))
                 }
@@ -57,7 +61,7 @@ struct DictionarySearchView: View {
             searchError = nil
             result = nil
             do {
-                let lookupRequest = TextLookupRequest(id: UUID(), offset: 0, context: searchQuery, rubyContext: nil)
+                let lookupRequest = TextLookupRequest(id: UUID(), offset: 0, context: searchQuery, rubyContext: nil, cssSelector: nil)
                 try result = await searchService.performTextLookup(query: lookupRequest)
             } catch {
                 if !Task.isCancelled {
