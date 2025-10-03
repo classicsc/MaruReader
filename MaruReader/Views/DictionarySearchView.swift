@@ -15,6 +15,8 @@ struct DictionarySearchView: View {
     @State private var searchError: Error?
     @State private var result: TextLookupResponse?
     @State private var webView: WKWebView?
+    @State private var popupLookupResponse: TextLookupResponse?
+    @State private var popupFrame: CGRect = .zero
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
@@ -41,13 +43,50 @@ struct DictionarySearchView: View {
                 } else if let error = searchError {
                     ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
                 } else if let result {
-                    DictionaryResultContentView(lookupResponse: result, webViewRef: $webView)
+                    DictionaryResultContentView(
+                        lookupResponse: result,
+                        searchService: searchService,
+                        onPopupRequest: { lookupResponse, frame in
+                            popupLookupResponse = lookupResponse
+                            popupFrame = frame
+                        },
+                        onTermSelected: { term in
+                            query = term
+                            popupLookupResponse = nil
+                        },
+                        webViewRef: $webView
+                    )
                 } else {
                     ContentUnavailableView("No Results", systemImage: "xmark.circle", description: Text("No dictionary entries found for \"\(query)\"."))
                 }
             }
             .padding(.horizontal)
             .navigationTitle("Dictionary")
+            .overlay {
+                if let popupLookupResponse {
+                    GeometryReader { _ in
+                        Color.clear
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                self.popupLookupResponse = nil
+                            }
+                            .overlay(alignment: .topLeading) {
+                                DictionaryPopupContentView(
+                                    lookupResponse: popupLookupResponse,
+                                    onTermSelected: { term in
+                                        query = term
+                                        self.popupLookupResponse = nil
+                                    }
+                                )
+                                .frame(width: 300, height: 400)
+                                .background(Color(UIColor.systemBackground))
+                                .cornerRadius(12)
+                                .shadow(radius: 8)
+                                .offset(x: popupFrame.origin.x, y: popupFrame.origin.y)
+                            }
+                    }
+                }
+            }
         }
     }
 
