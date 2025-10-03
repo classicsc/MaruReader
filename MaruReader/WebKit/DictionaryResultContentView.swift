@@ -71,6 +71,15 @@ class DictionaryResultCoordinator: NSObject, WKScriptMessageHandler, UIGestureRe
             if let error {
                 self?.logger.error("JavaScript error: \(error.localizedDescription)")
             } else if let result {
+                if let resultObject = result as? [String: Any],
+                   let offset = resultObject["offset"] as? Int,
+                   let context = resultObject["context"] as? String,
+                   let cssSelector = resultObject["cssSelector"] as? String
+                {
+                    self?.logger.info("Extracted text at offset \(offset) with context length \(context.count) and CSS selector \(cssSelector)")
+                    self?.logger.info("Character at offset: \(context[context.index(context.startIndex, offsetBy: offset)])")
+                }
+            } else {
                 self?.logger.info("Text extraction result: \(String(describing: result))")
             }
         }
