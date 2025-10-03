@@ -10,17 +10,8 @@ import os.log
 import UniformTypeIdentifiers
 import WebKit
 
-@MainActor
-class MediaURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
+class MediaURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaURLSchemeHandler")
-
-    // Track active WKURLSchemeTask operations for cancellation
-    private struct TaskInfo {
-        let task: Task<Void, Never>
-        var isStopped: Bool = false
-    }
-
-    private var activeTasks: [ObjectIdentifier: TaskInfo] = [:]
 
     nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
@@ -184,87 +175,5 @@ class MediaURLSchemeHandler: NSObject, URLSchemeHandler, WKURLSchemeHandler {
             .response(response),
             .data(data),
         ]
-    }
-
-    // MARK: - WKURLSchemeHandler conformance
-
-    func webView(_: WKWebView, start urlSchemeTask: WKURLSchemeTask) {
-        let taskId = ObjectIdentifier(urlSchemeTask)
-        let request = urlSchemeTask.request
-
-        let task = Task { [weak self] in
-            do {
-                let results = try await Self.handleRequest(request)
-
-                for result in results {
-                    // Check if task was cancelled
-                    if Task.isCancelled {
-                        return
-                    }
-
-                    // Check if task was stopped before calling WKURLSchemeTask methods
-                    let isStopped = await MainActor.run {
-                        self?.activeTasks[taskId]?.isStopped ?? true
-                    }
-                    if isStopped {
-                        return
-                    }
-
-                    await MainActor.run {
-                        switch result {
-                        case let .response(response):
-                            urlSchemeTask.didReceive(response)
-                        case let .data(data):
-                            urlSchemeTask.didReceive(data)
-                        @unknown default:
-                            break
-                        }
-                    }
-                }
-
-                // Check if task was stopped before calling didFinish
-                let isStopped = await MainActor.run {
-                    self?.activeTasks[taskId]?.isStopped ?? true
-                }
-                if !isStopped {
-                    await MainActor.run {
-                        urlSchemeTask.didFinish()
-                    }
-                }
-            } catch {
-                // Check if task was stopped before reporting error
-                let isStopped = await MainActor.run {
-                    self?.activeTasks[taskId]?.isStopped ?? true
-                }
-                if !isStopped {
-                    await MainActor.run {
-                        urlSchemeTask.didFailWithError(error)
-                    }
-                }
-            }
-
-            // Clean up task tracking
-            _ = await MainActor.run {
-                self?.activeTasks.removeValue(forKey: taskId)
-            }
-        }
-
-        // Store task for potential cancellation BEFORE starting async work
-        activeTasks[taskId] = TaskInfo(task: task, isStopped: false)
-    }
-
-    func webView(_: WKWebView, stop urlSchemeTask: WKURLSchemeTask) {
-        let taskId = ObjectIdentifier(urlSchemeTask)
-
-        // Mark task as stopped BEFORE cancelling to prevent any pending operations
-        // from calling methods on the urlSchemeTask
-        if var taskInfo = activeTasks[taskId] {
-            taskInfo.isStopped = true
-            activeTasks[taskId] = taskInfo
-            taskInfo.task.cancel()
-        }
-
-        // Remove from tracking
-        activeTasks.removeValue(forKey: taskId)
     }
 }

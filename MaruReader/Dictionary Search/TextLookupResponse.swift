@@ -79,9 +79,7 @@ struct TextLookupResponse {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <link rel="stylesheet" href="marureader-resource://popup.css">
             <script src="marureader-resource://domUtilities.js"></script>
-            <script src="marureader-resource://popup.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
             <style>
                 body { padding: 12px; margin: 0; }

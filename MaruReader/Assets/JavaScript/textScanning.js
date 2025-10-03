@@ -11,7 +11,23 @@ window.MaruReader.textScanning = {
      */
     initialize: function() {
         document.addEventListener('click', this.handleTap.bind(this), true);
-        this.initializeSearch();
+    },
+    
+    /**
+     * Handles tap events and triggers text scanning
+     * @param {Event} event - The tap/click event
+     */
+    handleTap: function(event) {
+        // Prevent default behavior to avoid interfering with text scanning
+        event.preventDefault();
+        event.stopPropagation();
+
+        var x = event.clientX;
+        var y = event.clientY;
+        var maxChars = 50; // Default max characters to extract
+        var contextLevel = 0; // Default context level (0=current sentence)
+
+        this.extractTextAtPoint(x, y, contextLevel, maxChars);
     },
 
     /**
@@ -59,6 +75,13 @@ window.MaruReader.textScanning = {
             rubyContext: contextResult.rubyContext, // RubyText if available
             cssSelector: cssPath // CSS selector
         };
+        
+        // Send the result to Swift by XHR
+        var resultRequest = new XMLHttpRequest();
+        resultRequest.open("POST", "marureader-lookup://lookup/scan", true);
+        resultRequest.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        resultRequest.send(JSON.stringify(result));
+        
         return result;
     },
 

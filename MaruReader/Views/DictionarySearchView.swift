@@ -9,105 +9,111 @@ import WebKit
 
 struct DictionarySearchView: View {
     @State private var query: String = ""
-    @State private var isSearching: Bool = false
-    @State private var searchService = DictionarySearchService()
     @State private var searchTask: Task<Void, Never>?
-    @State private var searchError: Error?
-    @State private var result: TextLookupResponse?
-    @State private var webView: WKWebView?
-    @State private var popupLookupResponse: TextLookupResponse?
-    @State private var popupFrame: CGRect = .zero
+    @State private var page: WebPage
+    @State private var isUpdatingFromNavigation = false
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
+
+    init() {
+        var config = WebPage.Configuration()
+        config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
+        config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler()
+        self._page = State(initialValue: WebPage(configuration: config))
+    }
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                TextField("Search Dictionary", text: $query)
+                TextField("Search dictionary", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .padding(.top)
                     .onChange(of: query) { _, newValue in
-                        performSearch(searchQuery: newValue)
+                        performSearch(newValue)
                     }
-                if query.isEmpty {
-                    ContentUnavailableView("Start typing to search", systemImage: "magnifyingglass", description: Text("Dictionary results will appear here."))
-                } else if isSearching {
-                    HStack {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Searching...")
-                            .foregroundStyle(.secondary)
+                    .onSubmit {
+                        performSearch(query)
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
-                    .padding()
-                } else if let error = searchError {
-                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
-                } else if let result {
-                    DictionaryResultContentView(
-                        lookupResponse: result,
-                        searchService: searchService,
-                        onPopupRequest: { lookupResponse, frame in
-                            popupLookupResponse = lookupResponse
-                            popupFrame = frame
-                        },
-                        onTermSelected: { term in
-                            query = term
-                            popupLookupResponse = nil
-                        },
-                        webViewRef: $webView
-                    )
-                } else {
-                    ContentUnavailableView("No Results", systemImage: "xmark.circle", description: Text("No dictionary entries found for \"\(query)\"."))
-                }
+
+                WebView(page)
+                    .task {
+                        // Load initial empty page
+                        if let url = lookupURL(for: "") {
+                            _ = page.load(URLRequest(url: url))
+                        }
+
+                        // Ensure the view is inspectable when debugging
+                        #if DEBUG
+                            page.isInspectable = true
+                        #endif
+
+                        // Listen for navigation events
+                        do {
+                            for try await navigation in page.navigations {
+                                if case .finished = navigation, !isUpdatingFromNavigation {
+                                    updateQueryFromURL()
+                                }
+                            }
+                        } catch {
+                            // Navigation sequence ended or failed - this is expected
+                        }
+                    }
+                    .animation(.default, value: query)
+                    .animation(.default, value: isUpdatingFromNavigation)
             }
             .padding(.horizontal)
             .navigationTitle("Dictionary")
-            .overlay {
-                if let popupLookupResponse {
-                    GeometryReader { _ in
-                        Color.clear
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                self.popupLookupResponse = nil
-                            }
-                            .overlay(alignment: .topLeading) {
-                                DictionaryPopupContentView(
-                                    lookupResponse: popupLookupResponse,
-                                    onTermSelected: { term in
-                                        query = term
-                                        self.popupLookupResponse = nil
-                                    }
-                                )
-                                .frame(width: 300, height: 400)
-                                .background(Color(UIColor.systemBackground))
-                                .cornerRadius(12)
-                                .shadow(radius: 8)
-                                .offset(x: popupFrame.origin.x, y: popupFrame.origin.y)
-                            }
-                    }
-                }
+        }
+    }
+
+    private func performSearch(_ searchQuery: String) {
+        guard !isUpdatingFromNavigation else { return }
+
+        searchTask?.cancel()
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
+            if Task.isCancelled { return }
+
+            // Navigate to lookup URL
+            if let url = lookupURL(for: searchQuery) {
+                isUpdatingFromNavigation = true
+                _ = page.load(URLRequest(url: url))
+                isUpdatingFromNavigation = false
             }
         }
     }
 
-    private func performSearch(searchQuery: String) {
-        guard !isSearching else { return }
-        searchTask?.cancel()
-        searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // Debounce for 300ms
-            if Task.isCancelled { return }
-            isSearching = true
-            searchError = nil
-            result = nil
-            do {
-                let lookupRequest = TextLookupRequest(id: UUID(), offset: 0, context: searchQuery, rubyContext: nil, cssSelector: nil)
-                try result = await searchService.performTextLookup(query: lookupRequest)
-            } catch {
-                if !Task.isCancelled {
-                    searchError = error
-                }
-            }
-            isSearching = false
+    private func lookupURL(for query: String) -> URL? {
+        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return URL(string: "marureader-lookup://lookup/dictionarysearchview.html")
+        }
+
+        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+
+        return URL(string: "marureader-lookup://lookup/dictionarysearchview.html?query=\(encodedQuery)&noUpdateQuery=true")
+    }
+
+    private func updateQueryFromURL() {
+        guard let url = page.url,
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              let queryItems = components.queryItems,
+              let queryItem = queryItems.first(where: { $0.name == "query" }),
+              let newQuery = queryItem.value
+        else {
+            return
+        }
+
+        guard components.queryItems?.first(where: { $0.name == "noUpdateQuery" }) == nil else {
+            return
+        }
+
+        if newQuery != query {
+            isUpdatingFromNavigation = true
+            query = newQuery
+            isUpdatingFromNavigation = false
         }
     }
 }
