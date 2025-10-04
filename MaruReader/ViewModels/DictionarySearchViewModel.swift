@@ -22,7 +22,6 @@ class DictionarySearchViewModel: ObservableObject {
     @Published var focusState: Bool = false
     @Published var page: WebPage = .init()
     @Published var popupPage: WebPage = .init()
-    @Published var isUpdatingFromNavigation = false
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
 
@@ -65,19 +64,6 @@ class DictionarySearchViewModel: ObservableObject {
         page.isInspectable = true
         if let url = lookupURL(for: "") {
             _ = page.load(URLRequest(url: url))
-        }
-
-        // Observe URL changes to update query
-        Task { @MainActor in
-            do {
-                for try await navigation in page.navigations {
-                    if case .finished = navigation, !isUpdatingFromNavigation {
-                        updateQueryFromURL()
-                    }
-                }
-            } catch {
-                // Navigation sequence ended or failed - this is expected
-            }
         }
     }
 
@@ -141,15 +127,11 @@ class DictionarySearchViewModel: ObservableObject {
         }
 
         if newQuery != query {
-            isUpdatingFromNavigation = true
             query = newQuery
-            isUpdatingFromNavigation = false
         }
     }
 
     func performSearch(_ searchQuery: String) {
-        guard !isUpdatingFromNavigation else { return }
-
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
@@ -157,9 +139,7 @@ class DictionarySearchViewModel: ObservableObject {
 
             // Navigate to lookup URL
             if let url = lookupURL(for: searchQuery) {
-                isUpdatingFromNavigation = true
                 _ = page.load(URLRequest(url: url))
-                isUpdatingFromNavigation = false
             }
         }
     }
@@ -254,28 +234,5 @@ class DictionarySearchViewModel: ObservableObject {
             "'\(key)': '\(value)'"
         }
         return "{\(stylePairs.joined(separator: ", "))}"
-    }
-}
-
-enum HighlightError: Error {
-    case invalidResponse
-}
-
-extension WebPage {
-    func clearHighlights() async throws {
-        let script = "window.MaruReader.textHighlighting.clearAllHighlights();"
-        try await self.callJavaScript(script)
-    }
-
-    func highlightText(_ text: String, elementSelector: String, styles: String) async throws -> [[String: Double]] {
-        let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
-        let result = try await self.callJavaScript(script)
-        guard let dataDict = result as? [String: Any],
-              let _ = dataDict["highlightID"] as? String,
-              let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
-        else {
-            throw HighlightError.invalidResponse
-        }
-        return boundingRects
     }
 }
