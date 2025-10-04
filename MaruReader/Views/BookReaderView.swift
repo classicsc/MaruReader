@@ -140,13 +140,9 @@ struct BookReaderView: View {
                 }
             }
             if showingPopup {
-                DictionaryPopupView(query: $popupQuery, context: $popupContext, onNavigate: { term in
-                    Task { @MainActor in
-                        self.sheetQuery = term
-                    }
-                })
-                .frame(width: 300, height: 400)
-                .padding()
+                // DictionaryPopupView(viewModel: viewModel)
+                // .frame(width: 300, height: 400)
+                // .padding()
             }
         }
     }

@@ -15,15 +15,18 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
     private let searchService: DictionarySearchService
     private let onNavigate: @Sendable (String) -> Void
     private let onScan: @Sendable (Int, String, String) -> Void
+    private let onPopup: @Sendable (String?) -> Void
 
     init(
         persistenceController: PersistenceController = PersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
-        onScan: @escaping @Sendable (Int, String, String) -> Void = { _, _, _ in }
+        onScan: @escaping @Sendable (Int, String, String) -> Void = { _, _, _ in },
+        onPopup: @escaping @Sendable (String?) -> Void = { _ in }
     ) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
         self.onNavigate = onNavigate
         self.onScan = onScan
+        self.onPopup = onPopup
     }
 
     nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
@@ -31,13 +34,15 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             let searchService = self.searchService
             let onNavigate = self.onNavigate
             let onScan = self.onScan
+            let onPopup = self.onPopup
             let task = Task { @Sendable in
                 do {
                     let results = try await Self.handleRequest(
                         request,
                         searchService: searchService,
                         onNavigate: onNavigate,
-                        onScan: onScan
+                        onScan: onScan,
+                        onPopup: onPopup
                     )
                     for result in results {
                         continuation.yield(result)
@@ -58,7 +63,8 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         _ request: URLRequest,
         searchService: DictionarySearchService,
         onNavigate: @escaping @Sendable (String) -> Void,
-        onScan: @escaping @Sendable (Int, String, String) -> Void
+        onScan: @escaping @Sendable (Int, String, String) -> Void,
+        onPopup: @escaping @Sendable (String?) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
             logger.error("Invalid URL in request")
@@ -78,7 +84,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         let path = url.path(percentEncoded: false)
 
         if path == "/dictionarysearchview.html" || path == "/popup.html" {
-            return try await handleSearchViewRequest(url: url, searchService: searchService)
+            return try await handleSearchViewRequest(url: url, searchService: searchService, onPopup: onPopup)
         } else if path == "/scan", request.httpMethod == "POST" {
             return try await handleScanRequest(request: request, onScan: onScan)
         } else if path == "/navigate", request.httpMethod == "POST" {
@@ -89,7 +95,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         }
     }
 
-    private static func handleSearchViewRequest(url: URL, searchService: DictionarySearchService) async throws -> [URLSchemeTaskResult] {
+    private static func handleSearchViewRequest(url: URL, searchService: DictionarySearchService, onPopup: @escaping @Sendable (String?) -> Void) async throws -> [URLSchemeTaskResult] {
         // Extract query parameter
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems,
@@ -111,7 +117,8 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
             if page == "/popup.html" {
                 // Generate popup HTML
-                let html = generatePopupHTML(for: groupedResults, query: query)
+                let (html, topResult) = generatePopupHTML(for: groupedResults, query: query)
+                onPopup(topResult)
                 return createHTMLResponse(html: html, url: url)
             } else {
                 // Generate HTML
@@ -166,10 +173,12 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         """
     }
 
-    private static func generatePopupHTML(for groupedResults: [GroupedSearchResults], query: String) -> String {
+    private static func generatePopupHTML(for groupedResults: [GroupedSearchResults], query: String) -> (html: String, topResult: String?) {
         guard !groupedResults.isEmpty else {
-            return generateNoResultsHTML(query: query)
+            return (generateNoResultsHTML(query: query), nil)
         }
+
+        let topResult = groupedResults[0].termKey
 
         let termGroupsHTML = groupedResults.map { termGroup in
             """
@@ -189,7 +198,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             """
         }.joined()
 
-        return """
+        return ("""
         <!DOCTYPE html>
         <html>
         <head>
@@ -209,7 +218,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             \(termGroupsHTML)
         </body>
         </html>
-        """
+        """, topResult)
     }
 
     private static func generateEmptyHTML() -> String {
