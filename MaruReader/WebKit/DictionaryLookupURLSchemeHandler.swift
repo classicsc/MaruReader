@@ -345,20 +345,6 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         // Parse and log the text scan result
         do {
             if let jsonObject = try JSONSerialization.jsonObject(with: postData) as? [String: Any] {
-                logger.info("Received text scan data:")
-                if let offset = jsonObject["offset"] as? Int {
-                    logger.info("  - Offset: '\(offset)'")
-                }
-                if let context = jsonObject["context"] as? String {
-                    logger.info("  - Context text: '\(context)'")
-                }
-                if let rubyContext = jsonObject["rubyContext"] as? Bool {
-                    logger.info("  - Has ruby text: \(rubyContext)")
-                }
-                if let cssPath = jsonObject["cssSelector"] as? String {
-                    logger.info("  - CSS path: \(cssPath)")
-                }
-
                 // Call the onScan closure with offset and context
                 if let offset = jsonObject["offset"] as? Int,
                    let context = jsonObject["context"] as? String
@@ -366,7 +352,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
                     onScan(offset, context)
                 }
             } else {
-                logger.warning("Received malformed JSON data: \(postData)")
+                logger.error("Received malformed JSON data: \(postData)")
             }
         } catch {
             logger.error("Failed to parse JSON data: \(error.localizedDescription)")

@@ -56,80 +56,96 @@ struct BookReaderView: View {
     @State private var loadedPublication: LoadedPublication?
     @State private var isLoading = true
     @State private var isToolbarVisible = false
+    @State var showingPopup = false
+    @State var popupQuery: String?
+    @State var popupContext: String?
+    @State var sheetQuery: String?
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Navigation content area
-            if isLoading {
-                ProgressView("Loading book...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let loadedPublication {
-                EPUBNavigatorWrapper(
-                    book: book,
-                    viewContext: viewContext,
-                    loadedPublication: loadedPublication
-                )
-                .ignoresSafeArea()
-            } else if let error {
-                errorView(error: error)
+        ZStack(alignment: .topLeading) {
+            VStack(spacing: 0) {
+                // Navigation content area
+                if isLoading {
+                    ProgressView("Loading book...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if let loadedPublication {
+                    EPUBNavigatorWrapper(
+                        book: book,
+                        viewContext: viewContext,
+                        loadedPublication: loadedPublication,
+                        parent: self
+                    )
+                    .ignoresSafeArea()
+                } else if let error {
+                    errorView(error: error)
+                }
             }
-        }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Button {
-                    isToolbarVisible.toggle()
-                } label: {
-                    HStack {
-                        Text(book.title ?? "")
-                            .font(.headline)
-                            .foregroundStyle(.primary)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Button {
+                        isToolbarVisible.toggle()
+                    } label: {
+                        HStack {
+                            Text(book.title ?? "")
+                                .font(.headline)
+                                .foregroundStyle(.primary)
 
-                        switch isToolbarVisible {
-                        case true:
-                            Image(systemName: "chevron.up")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
-                        case false:
-                            Image(systemName: "chevron.down")
-                                .font(.headline)
-                                .foregroundStyle(.secondary)
+                            switch isToolbarVisible {
+                            case true:
+                                Image(systemName: "chevron.up")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                            case false:
+                                Image(systemName: "chevron.down")
+                                    .font(.headline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
+
+                ToolbarItemGroup(placement: .bottomBar) {
+                    Button {
+                        showingTableOfContents = true
+                    } label: {
+                        Image(systemName: "list.bullet")
+                    }
+
+                    Button {
+                        bookmarkCurrentLocation()
+                    } label: {
+                        Image(systemName: "bookmark")
+                    }
+
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "textformat.size.ja")
+                    }
+                }
             }
-
-            ToolbarItemGroup(placement: .bottomBar) {
-                Button {
-                    showingTableOfContents = true
-                } label: {
-                    Image(systemName: "list.bullet")
-                }
-
-                Button {
-                    bookmarkCurrentLocation()
-                } label: {
-                    Image(systemName: "bookmark")
-                }
-
-                Button {
-                    showingSettings = true
-                } label: {
-                    Image(systemName: "textformat.size.ja")
+            .toolbarVisibility(isToolbarVisible ? .visible : .hidden, for: .bottomBar)
+            .navigationBarBackButtonHidden(!isToolbarVisible)
+            .task {
+                await loadPublication()
+            }
+            .alert("Error", isPresented: $showingError) {
+                Button("OK") { showingError = false }
+            } message: {
+                if let error {
+                    Text(error.localizedDescription)
                 }
             }
-        }
-        .toolbarVisibility(isToolbarVisible ? .visible : .hidden, for: .bottomBar)
-        .navigationBarBackButtonHidden(!isToolbarVisible)
-        .task {
-            await loadPublication()
-        }
-        .alert("Error", isPresented: $showingError) {
-            Button("OK") { showingError = false }
-        } message: {
-            if let error {
-                Text(error.localizedDescription)
+            if showingPopup {
+                DictionaryPopupView(query: $popupQuery, context: $popupContext, onNavigate: { term in
+                    Task { @MainActor in
+                        self.sheetQuery = term
+                    }
+                })
+                .frame(width: 300, height: 400)
+                .padding()
             }
         }
     }
