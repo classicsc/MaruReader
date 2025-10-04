@@ -14,13 +14,6 @@ struct DictionaryPopupView: View {
     var body: some View {
         ZStack {
             WebView(viewModel.popupPage)
-                .onAppear {
-                    viewModel.initializePopupPage()
-                }
-                .task(id: viewModel.popupQuery) {
-                    // Load initial page or update when query changes
-                    viewModel.searchInPopup(viewModel.popupQuery)
-                }
             if viewModel.popupPage.isLoading {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle())

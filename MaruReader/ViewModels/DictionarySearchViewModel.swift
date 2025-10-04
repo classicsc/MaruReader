@@ -37,7 +37,12 @@ class DictionarySearchViewModel: ObservableObject {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
 
-    func initializeWebPage() {
+    init() {
+        initializeWebPage()
+        initializePopupPage()
+    }
+
+    private func initializeWebPage() {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
@@ -76,7 +81,7 @@ class DictionarySearchViewModel: ObservableObject {
         }
     }
 
-    func initializePopupPage() {
+    private func initializePopupPage() {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
@@ -196,6 +201,7 @@ class DictionarySearchViewModel: ObservableObject {
         self.popupQuery = scanText
         self.popupContext = context
         self.popupCssSelector = cssSelector
+        self.searchInPopup(popupQuery)
         self.showPopup = scanText.count > 0
         Task { @MainActor in
             do {

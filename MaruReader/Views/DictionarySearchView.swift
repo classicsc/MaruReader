@@ -7,20 +7,8 @@ import os.log
 import SwiftUI
 import WebKit
 
-struct HighlightRect: Codable {
-    let x: Int
-    let y: Int
-    let width: Int
-    let height: Int
-    let left: Int
-    let top: Int
-    let right: Int
-    let bottom: Int
-}
-
 struct DictionarySearchView: View {
     @StateObject private var viewModel = DictionarySearchViewModel()
-    @State private var highlightRects: [HighlightRect] = []
     @FocusState private var isTextFieldFocused: Bool
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
@@ -48,12 +36,6 @@ struct DictionarySearchView: View {
 
                 ZStack(alignment: .topLeading) {
                     WebView(viewModel.page)
-                        .task {
-                            viewModel.initializeWebPage()
-                        }
-                        .animation(.default, value: viewModel.query)
-                        .animation(.default, value: viewModel.isUpdatingFromNavigation)
-
                     // Popup overlay
                     if viewModel.showPopup {
                         DictionaryPopupView(viewModel: viewModel)
