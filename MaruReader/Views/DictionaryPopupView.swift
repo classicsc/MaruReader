@@ -10,20 +10,24 @@ import SwiftUI
 import WebKit
 
 struct DictionaryPopupView: View {
+    @State private var page: WebPage
     @Binding var query: String?
     @Binding var context: String?
-    @State private var page: WebPage
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryPopupView")
 
-    init(query: Binding<String?>, context: Binding<String?>) {
+    init(query: Binding<String?>, context: Binding<String?>, onNavigate: @escaping @Sendable (String) -> Void) {
+        self._query = query
+        self._context = context
+
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
-        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler()
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler(
+            onNavigate: onNavigate,
+            onScan: { _, _ in }
+        )
         self._page = State(initialValue: WebPage(configuration: config))
-        self._query = query
-        self._context = context
     }
 
     var body: some View {
@@ -35,8 +39,9 @@ struct DictionaryPopupView: View {
             )
             .cornerRadius(12)
             .shadow(radius: 10)
-            .onChange(of: query) { _, newQuery in
-                performSearch(newQuery)
+            .task(id: query) {
+                // Load initial page or update when query changes
+                performSearch(query)
             }
     }
 

@@ -13,17 +13,32 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryLookupURLSchemeHandler")
 
     private let searchService: DictionarySearchService
+    private let onNavigate: @Sendable (String) -> Void
+    private let onScan: @Sendable (Int, String) -> Void
 
-    init(persistenceController: PersistenceController = PersistenceController.shared) {
+    init(
+        persistenceController: PersistenceController = PersistenceController.shared,
+        onNavigate: @escaping @Sendable (String) -> Void = { _ in },
+        onScan: @escaping @Sendable (Int, String) -> Void = { _, _ in }
+    ) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
+        self.onNavigate = onNavigate
+        self.onScan = onScan
     }
 
     nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let searchService = self.searchService
+            let onNavigate = self.onNavigate
+            let onScan = self.onScan
             let task = Task { @Sendable in
                 do {
-                    let results = try await Self.handleRequest(request, searchService: searchService)
+                    let results = try await Self.handleRequest(
+                        request,
+                        searchService: searchService,
+                        onNavigate: onNavigate,
+                        onScan: onScan
+                    )
                     for result in results {
                         continuation.yield(result)
                     }
@@ -39,7 +54,12 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         }
     }
 
-    private static func handleRequest(_ request: URLRequest, searchService: DictionarySearchService) async throws -> [URLSchemeTaskResult] {
+    private static func handleRequest(
+        _ request: URLRequest,
+        searchService: DictionarySearchService,
+        onNavigate: @escaping @Sendable (String) -> Void,
+        onScan: @escaping @Sendable (Int, String) -> Void
+    ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
             logger.error("Invalid URL in request")
             return createNotFoundResponse()
@@ -47,7 +67,6 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
         logger.debug("Handling lookup request for URL: \(url.absoluteString)")
 
-        // Parse the URL: marureader-lookup://lookup/dictionarysearchview.html?query=まる
         guard url.scheme == "marureader-lookup",
               let host = url.host(),
               host == "lookup"
@@ -61,7 +80,9 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         if path == "/dictionarysearchview.html" || path == "/popup.html" {
             return try await handleSearchViewRequest(url: url, searchService: searchService)
         } else if path == "/scan", request.httpMethod == "POST" {
-            return try await handleScanRequest(request: request)
+            return try await handleScanRequest(request: request, onScan: onScan)
+        } else if path == "/navigate", request.httpMethod == "POST" {
+            return try await handleNavigateRequest(request: request, onNavigate: onNavigate)
         } else {
             logger.error("Unknown path in marureader-lookup URL: \(path)")
             return createNotFoundResponse()
@@ -88,7 +109,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
             let page = url.path(percentEncoded: false)
 
-            if page == "popup.html" {
+            if page == "/popup.html" {
                 // Generate popup HTML
                 let html = generatePopupHTML(for: groupedResults, query: query)
                 return createHTMLResponse(html: html, url: url)
@@ -285,7 +306,36 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         ]
     }
 
-    private static func handleScanRequest(request: URLRequest) async throws -> [URLSchemeTaskResult] {
+    private static func handleNavigateRequest(
+        request: URLRequest,
+        onNavigate: @escaping @Sendable (String) -> Void
+    ) async throws -> [URLSchemeTaskResult] {
+        guard let postData = request.httpBody else {
+            logger.error("Missing POST data in navigate request")
+            return createScanErrorResponse("Missing data parameter")
+        }
+
+        do {
+            if let jsonObject = try JSONSerialization.jsonObject(with: postData) as? [String: Any],
+               let term = jsonObject["term"] as? String
+            {
+                logger.info("Navigate request for term: '\(term)'")
+                onNavigate(term)
+            } else {
+                logger.warning("Received malformed navigate JSON data")
+            }
+        } catch {
+            logger.error("Failed to parse navigate JSON data: \(error.localizedDescription)")
+            return createScanErrorResponse("Invalid JSON data")
+        }
+
+        return createScanSuccessResponse()
+    }
+
+    private static func handleScanRequest(
+        request: URLRequest,
+        onScan: @escaping @Sendable (Int, String) -> Void
+    ) async throws -> [URLSchemeTaskResult] {
         // Extract the data parameter from the query string
         guard let postData = request.httpBody else {
             logger.error("Missing or invalid data parameter in text scan URL")
@@ -309,7 +359,12 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
                     logger.info("  - CSS path: \(cssPath)")
                 }
 
-                // TODO: In the future, integrate with views to perform dictionary lookup
+                // Call the onScan closure with offset and context
+                if let offset = jsonObject["offset"] as? Int,
+                   let context = jsonObject["context"] as? String
+                {
+                    onScan(offset, context)
+                }
             } else {
                 logger.warning("Received malformed JSON data: \(postData)")
             }
