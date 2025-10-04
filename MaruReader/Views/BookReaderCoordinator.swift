@@ -53,7 +53,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
     }
 
     func navigator(_: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
-        let scriptNames = ["domUtilities", "textScanning"]
+        let scriptNames = ["domUtilities", "textScanning", "textHighlighting"]
         for name in scriptNames {
             guard let scriptURL = Bundle.main.url(forResource: name, withExtension: "js"),
                   let scriptContent = try? String(contentsOf: scriptURL, encoding: .utf8)
@@ -74,7 +74,8 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
             logger.debug("Received textScanning message: \(String(describing: message.body))")
             guard let messageObject = message.body as? [String: Any],
                   let offset = messageObject["offset"] as? Int,
-                  let context = messageObject["context"] as? String
+                  let context = messageObject["context"] as? String,
+                  let cssSelector = messageObject["cssSelector"] as? String
             else {
                 logger.error("Invalid message body for textScanning")
                 return
@@ -90,6 +91,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 } else {
                     parent.popupQuery = scanText
                     parent.popupContext = context
+                    parent.popupCssSelector = cssSelector
                     parent.showingPopup = true
                 }
             }

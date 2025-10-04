@@ -14,12 +14,12 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private let searchService: DictionarySearchService
     private let onNavigate: @Sendable (String) -> Void
-    private let onScan: @Sendable (Int, String) -> Void
+    private let onScan: @Sendable (Int, String, String) -> Void
 
     init(
         persistenceController: PersistenceController = PersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
-        onScan: @escaping @Sendable (Int, String) -> Void = { _, _ in }
+        onScan: @escaping @Sendable (Int, String, String) -> Void = { _, _, _ in }
     ) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
         self.onNavigate = onNavigate
@@ -58,7 +58,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         _ request: URLRequest,
         searchService: DictionarySearchService,
         onNavigate: @escaping @Sendable (String) -> Void,
-        onScan: @escaping @Sendable (Int, String) -> Void
+        onScan: @escaping @Sendable (Int, String, String) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
             logger.error("Invalid URL in request")
@@ -157,6 +157,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <script src="marureader-resource://textHighlighting.js"></script>
         </head>
         <body>
             \(termGroupsHTML)
@@ -195,7 +196,6 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <link rel="stylesheet" href="marureader-resource://popup.css">
             <script>
                 function navigateToTerm(term) {
                     var message = new XMLHttpRequest();
@@ -220,6 +220,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            <script src="marureader-resource://textHighlighting.js"></script>
         </head>
         <body>
             <div class="empty-state">
@@ -238,6 +239,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            <script src="marureader-resource://textHighlighting.js"></script>
         </head>
         <body>
             <div class="no-results">
@@ -256,6 +258,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            <script src="marureader-resource://textHighlighting.js"></script>
         </head>
         <body>
             <div class="error-state">
@@ -334,7 +337,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private static func handleScanRequest(
         request: URLRequest,
-        onScan: @escaping @Sendable (Int, String) -> Void
+        onScan: @escaping @Sendable (Int, String, String) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         // Extract the data parameter from the query string
         guard let postData = request.httpBody else {
@@ -347,9 +350,10 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             if let jsonObject = try JSONSerialization.jsonObject(with: postData) as? [String: Any] {
                 // Call the onScan closure with offset and context
                 if let offset = jsonObject["offset"] as? Int,
-                   let context = jsonObject["context"] as? String
+                   let context = jsonObject["context"] as? String,
+                   let cssSelector = jsonObject["cssSelector"] as? String
                 {
-                    onScan(offset, context)
+                    onScan(offset, context, cssSelector)
                 }
             } else {
                 logger.error("Received malformed JSON data: \(postData)")

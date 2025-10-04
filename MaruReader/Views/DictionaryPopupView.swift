@@ -25,7 +25,7 @@ struct DictionaryPopupView: View {
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = DictionaryLookupURLSchemeHandler(
             onNavigate: onNavigate,
-            onScan: { _, _ in }
+            onScan: { _, _, _ in }
         )
         self._page = State(initialValue: WebPage(configuration: config))
     }

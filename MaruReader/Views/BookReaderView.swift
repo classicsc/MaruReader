@@ -59,6 +59,7 @@ struct BookReaderView: View {
     @State var showingPopup = false
     @State var popupQuery: String?
     @State var popupContext: String?
+    @State var popupCssSelector: String?
     @State var sheetQuery: String?
 
     var body: some View {

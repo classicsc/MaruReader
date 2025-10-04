@@ -19,7 +19,7 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
         "MaterialSymbolsOutlined.woff2",
         "domUtilities.js",
         "textScanning.js",
-        "popup.css",
+        "textHighlighting.js",
     ]
 
     nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

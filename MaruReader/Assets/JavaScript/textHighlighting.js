@@ -1,0 +1,312 @@
+/**
+ * Text Highlighting Functions for MaruReader
+ * Handles text highlighting using CSS Custom Highlights API with ruby text support
+ */
+
+window.MaruReader = window.MaruReader || {};
+window.MaruReader.textHighlighting = {
+
+    // Counter for generating unique highlight IDs
+    highlightCounter: 0,
+
+    /**
+     * Highlights text at the specified CSS selector location
+     * @param {string} textToHighlight - The text substring to highlight
+     * @param {string} cssSelector - CSS selector path (may include ::text-node(N))
+     * @param {Object} styles - Styles object with properties like backgroundColor, color, etc.
+     * @returns {Object} Object with highlightId and boundingRects array
+     */
+    highlightText: function(textToHighlight, cssSelector, styles) {
+        console.log('highlightText called with:', textToHighlight, cssSelector, styles);
+        if (!textToHighlight || !cssSelector) {
+            console.error('highlightText: missing required parameters');
+            return null;
+        }
+
+        // Parse the CSS selector to extract element selector and text node index
+        var selectorInfo = this.parseCSSSelector(cssSelector);
+        if (!selectorInfo) {
+            console.error('highlightText: failed to parse CSS selector:', cssSelector);
+            return null;
+        }
+
+        // Find the target element
+        var element = this.findElementBySelector(selectorInfo.selector);
+        if (!element) {
+            console.error('highlightText: element not found for selector:', selectorInfo.selector);
+            return null;
+        }
+
+        // Find the text ranges to highlight (ruby-aware)
+        var ranges = this.findTextInElement(element, textToHighlight, selectorInfo.textNodeIndex);
+        if (!ranges || ranges.length === 0) {
+            console.warn('highlightText: text not found:', textToHighlight);
+            return null;
+        }
+
+        // Create a unique highlight ID
+        var highlightId = 'marureader-highlight-' + (++this.highlightCounter);
+
+        // Create the highlight using CSS Custom Highlights API
+        var highlight = this.createHighlight(ranges, styles, highlightId);
+        if (!highlight) {
+            console.error('highlightText: failed to create highlight');
+            return null;
+        }
+
+        // Register the highlight
+        CSS.highlights.set(highlightId, highlight);
+
+        // Get bounding rectangles for all ranges
+        var boundingRects = this.getRangeBoundingRects(ranges);
+
+        return {
+            highlightId: highlightId,
+            boundingRects: boundingRects
+        };
+    },
+
+    /**
+     * Clears all highlights from the registry
+     */
+    clearAllHighlights: function() {
+        // Get all highlight keys from the registry
+        var highlightKeys = Array.from(CSS.highlights.keys());
+
+        // Delete each highlight
+        for (var i = 0; i < highlightKeys.length; i++) {
+            var key = highlightKeys[i];
+            var highlight = CSS.highlights.get(key);
+            if (highlight) {
+                highlight.clear();
+            }
+            CSS.highlights.delete(key);
+        }
+
+        // Reset counter
+        this.highlightCounter = 0;
+
+        console.log('Cleared all highlights');
+    },
+
+    /**
+     * Clears a specific highlight by ID
+     * @param {string} highlightId - The highlight ID to clear
+     */
+    clearHighlight: function(highlightId) {
+        var highlight = CSS.highlights.get(highlightId);
+        if (highlight) {
+            highlight.clear();
+            CSS.highlights.delete(highlightId);
+            console.log('Cleared highlight:', highlightId);
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Parses CSS selector to extract element selector and text node index
+     * @param {string} cssSelector - CSS selector (may include ::text-node(N))
+     * @returns {Object|null} Object with selector and textNodeIndex, or null
+     */
+    parseCSSSelector: function(cssSelector) {
+        if (!cssSelector) return null;
+
+        // Check for custom ::text-node(N) pseudo-element
+        var textNodeMatch = cssSelector.match(/::text-node\((\d+)\)$/);
+        var textNodeIndex = 0;
+        var elementSelector = cssSelector;
+
+        if (textNodeMatch) {
+            textNodeIndex = parseInt(textNodeMatch[1], 10);
+            elementSelector = cssSelector.substring(0, textNodeMatch.index);
+        }
+
+        return {
+            selector: elementSelector,
+            textNodeIndex: textNodeIndex
+        };
+    },
+
+    /**
+     * Finds an element by CSS selector
+     * @param {string} selector - CSS selector
+     * @returns {Element|null} Found element or null
+     */
+    findElementBySelector: function(selector) {
+        try {
+            return document.querySelector(selector);
+        } catch (e) {
+            console.error('findElementBySelector: invalid selector:', selector, e);
+            return null;
+        }
+    },
+
+    /**
+     * Finds text within an element, handling ruby annotations
+     * @param {Element} element - Element to search within
+     * @param {string} textToFind - Text to find
+     * @param {number} textNodeIndex - Text node index (0 if not specified)
+     * @returns {Array<Range>} Array of Range objects
+     */
+    findTextInElement: function(element, textToFind, textNodeIndex) {
+        if (!element || !textToFind) return [];
+
+        // Get all text nodes, filtering out ruby annotations
+        var textNodes = [];
+        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(element);
+        var node;
+
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+
+        if (textNodes.length === 0) {
+            return [];
+        }
+
+        // If a specific text node index is provided, start from that node
+        var startNodeIndex = Math.min(textNodeIndex, textNodes.length - 1);
+
+        // Build the continuous text from text nodes
+        var fullText = '';
+        var nodeOffsets = []; // Track where each node starts in fullText
+
+        for (var i = 0; i < textNodes.length; i++) {
+            nodeOffsets.push(fullText.length);
+            fullText += textNodes[i].textContent;
+        }
+
+        // Find the text to highlight in the full text
+        var searchStart = nodeOffsets[startNodeIndex] || 0;
+        var textIndex = fullText.indexOf(textToFind, searchStart);
+
+        if (textIndex === -1) {
+            // Try searching from the beginning if not found from startNodeIndex
+            textIndex = fullText.indexOf(textToFind, 0);
+            if (textIndex === -1) {
+                return [];
+            }
+        }
+
+        var textEnd = textIndex + textToFind.length;
+
+        // Create ranges for the matching text
+        // Text might span multiple text nodes, so we need to handle that
+        var ranges = [];
+        var currentOffset = textIndex;
+        var remainingLength = textToFind.length;
+
+        for (var i = 0; i < textNodes.length && remainingLength > 0; i++) {
+            var nodeStart = nodeOffsets[i];
+            var nodeEnd = (i + 1 < nodeOffsets.length) ? nodeOffsets[i + 1] : fullText.length;
+            var nodeLength = nodeEnd - nodeStart;
+
+            // Check if this node contains part of the text to highlight
+            if (nodeEnd > currentOffset && nodeStart < textEnd) {
+                var rangeStart = Math.max(0, currentOffset - nodeStart);
+                var rangeEnd = Math.min(nodeLength, rangeStart + remainingLength);
+
+                var range = document.createRange();
+                range.setStart(textNodes[i], rangeStart);
+                range.setEnd(textNodes[i], rangeEnd);
+                ranges.push(range);
+
+                remainingLength -= (rangeEnd - rangeStart);
+                currentOffset = nodeEnd;
+            }
+        }
+
+        return ranges;
+    },
+
+    /**
+     * Creates a CSS Highlight from ranges and applies styles
+     * @param {Array<Range>} ranges - Array of Range objects
+     * @param {Object} styles - Styles object
+     * @param {string} highlightId - Unique highlight ID
+     * @returns {Highlight|null} Highlight object or null
+     */
+    createHighlight: function(ranges, styles, highlightId) {
+        if (!ranges || ranges.length === 0) return null;
+
+        try {
+            // Create a Highlight object with the ranges
+            var highlight = new Highlight(...ranges);
+
+            // Apply styles via CSS custom properties
+            // Note: CSS Custom Highlights styles are applied via CSS, not inline
+            // We'll inject a style tag with the highlight styles
+            this.injectHighlightStyles(highlightId, styles);
+
+            return highlight;
+        } catch (e) {
+            console.error('createHighlight: failed to create Highlight:', e);
+            return null;
+        }
+    },
+
+    /**
+     * Injects CSS styles for a highlight
+     * @param {string} highlightId - Highlight ID
+     * @param {Object} styles - Styles object with camelCase properties
+     */
+    injectHighlightStyles: function(highlightId, styles) {
+        if (!styles) return;
+
+        // Convert camelCase to kebab-case for CSS
+        var cssProperties = [];
+        for (var key in styles) {
+            if (styles.hasOwnProperty(key)) {
+                var cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                cssProperties.push(cssKey + ': ' + styles[key]);
+            }
+        }
+
+        var cssRule = '::highlight(' + highlightId + ') { ' + cssProperties.join('; ') + '; }';
+
+        // Find or create a style element for highlights
+        var styleId = 'marureader-highlight-styles';
+        var styleElement = document.getElementById(styleId);
+
+        if (!styleElement) {
+            styleElement = document.createElement('style');
+            styleElement.id = styleId;
+            document.head.appendChild(styleElement);
+        }
+
+        // Append the new rule
+        styleElement.textContent += '\n' + cssRule;
+    },
+
+    /**
+     * Gets bounding rectangles for all ranges
+     * @param {Array<Range>} ranges - Array of Range objects
+     * @returns {Array<Object>} Array of bounding rect objects {x, y, width, height}
+     */
+    getRangeBoundingRects: function(ranges) {
+        var rects = [];
+
+        for (var i = 0; i < ranges.length; i++) {
+            var range = ranges[i];
+            var clientRects = range.getClientRects();
+
+            // A single range might produce multiple client rects (e.g., line wrapping)
+            for (var j = 0; j < clientRects.length; j++) {
+                var rect = clientRects[j];
+                rects.push({
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height,
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom
+                });
+            }
+        }
+
+        return rects;
+    }
+};

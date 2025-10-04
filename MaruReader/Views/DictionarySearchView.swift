@@ -13,12 +13,17 @@ class DictionarySearchViewState: ObservableObject {
     @Published var query: String = ""
     @Published var showPopup = false
     @Published var popupQuery: String?
+    @Published var popupContext: String?
+    @Published var popupCssSelector: String?
     @Published var focusState: Bool = false
     var focusDebounceTask: Task<Void, Never>?
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewState")
 
     let forwardTextScanChars = 15
+    let highlightStyles = [
+        "background-color": "yellow",
+    ]
 
     func setNewQuery(_ newQuery: String) {
         logger.debug("Setting new query: \(newQuery)")
@@ -28,11 +33,6 @@ class DictionarySearchViewState: ObservableObject {
 
     func hidePopup() {
         self.showPopup = false
-    }
-
-    func setPopupQuery(_ newQuery: String?) {
-        self.popupQuery = newQuery
-        self.showPopup = newQuery != nil
     }
 
     func textFieldFocused() {
@@ -49,6 +49,24 @@ class DictionarySearchViewState: ObservableObject {
             }
         }
     }
+
+    func highlightStylesAsJSObject() -> String {
+        let stylePairs = highlightStyles.map { key, value in
+            "'\(key)': '\(value)'"
+        }
+        return "{\(stylePairs.joined(separator: ", "))}"
+    }
+}
+
+struct HighlightRect: Codable {
+    let x: Int
+    let y: Int
+    let width: Int
+    let height: Int
+    let left: Int
+    let top: Int
+    let right: Int
+    let bottom: Int
 }
 
 struct DictionarySearchView: View {
@@ -56,6 +74,7 @@ struct DictionarySearchView: View {
     @State private var searchTask: Task<Void, Never>?
     @State private var page: WebPage
     @State private var isUpdatingFromNavigation = false
+    @State private var highlightRects: [HighlightRect] = []
     @FocusState private var isTextFieldFocused: Bool
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
@@ -78,7 +97,7 @@ struct DictionarySearchView: View {
                     state.setNewQuery(term)
                 }
             },
-            onScan: { offset, context in
+            onScan: { offset, context, cssSelector in
                 Task { @MainActor in
                     let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryLookupURLSchemeHandler")
                     // Check if within debounce window
@@ -99,7 +118,10 @@ struct DictionarySearchView: View {
                     let endIndex = context.index(startIndex, offsetBy: state.forwardTextScanChars, limitedBy: context.endIndex) ?? context.endIndex
                     let scanText = String(context[startIndex ..< endIndex])
 
-                    state.setPopupQuery(scanText)
+                    state.popupQuery = scanText
+                    state.popupContext = context
+                    state.popupCssSelector = cssSelector
+                    state.showPopup = scanText.count > 0
                     logger.debug("Showing popup for query: \(scanText)")
                 }
             }
@@ -138,10 +160,7 @@ struct DictionarySearchView: View {
                                 _ = page.load(URLRequest(url: url))
                             }
 
-                            // Ensure the view is inspectable when debugging
-                            #if DEBUG
-                                page.isInspectable = true
-                            #endif
+                            page.isInspectable = true
 
                             // Listen for navigation events
                             do {
@@ -166,6 +185,31 @@ struct DictionarySearchView: View {
                                 viewState.setNewQuery(term)
                             }
                         })
+                        .task {
+                            logger.debug("Applying highlight for query: \(viewState.popupQuery ?? "") with CSS selector: \(viewState.popupCssSelector ?? "")")
+                            _ = try? await page.callJavaScript("window.MaruReader.textHighlighting.clearAllHighlights();")
+                            let highlightCallString = "window.MaruReader.textHighlighting.highlightText('\(viewState.popupQuery ?? "")', '\(viewState.popupCssSelector ?? "")', \(viewState.highlightStylesAsJSObject()));"
+                            logger.debug("Highlight call string: \(highlightCallString)")
+                            let highlightResult = try? await page.callJavaScript(highlightCallString)
+                            guard let highlightData = highlightResult as? [String: Any],
+                                  let highlightID = highlightData["highlightId"] as? String,
+                                  let boundingRects = highlightData["boundingRects"] as? [[String: Int]]
+                            else { return }
+                            let rects = boundingRects.compactMap { dict -> HighlightRect? in
+                                guard let x = dict["x"],
+                                      let y = dict["y"],
+                                      let width = dict["width"],
+                                      let height = dict["height"],
+                                      let left = dict["left"],
+                                      let top = dict["top"],
+                                      let right = dict["right"],
+                                      let bottom = dict["bottom"]
+                                else { return nil }
+                                return HighlightRect(x: x, y: y, width: width, height: height, left: left, top: top, right: right, bottom: bottom)
+                            }
+                            self.highlightRects = rects
+                            logger.debug("Applied highlight with ID \(highlightID) and rects: \(rects)")
+                        }
                         .frame(width: 300, height: 400)
                         .padding()
                     }
