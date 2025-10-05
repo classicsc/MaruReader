@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Book" representedClassName="Book" syncable="YES" codeGenerationType="class">
         <attribute name="added" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="author" optional="YES" attributeType="String"/>
@@ -177,13 +177,9 @@
         <relationship name="richTags" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DictionaryTagMeta" inverseName="kanjiTags" inverseEntity="DictionaryTagMeta"/>
     </entity>
     <entity name="KanjiFrequencyEntry" representedClassName="KanjiFrequencyEntry" syncable="YES" codeGenerationType="class">
-        <attribute name="dictionaryTitle" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.title"/>
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
-        <attribute name="displayPriority" optional="YES" attributeType="Integer 64" derived="YES" derivationExpression="dictionary.kanjiFrequencyDisplayPriority" usesScalarValueType="YES"/>
-        <attribute name="enabled" optional="YES" attributeType="Boolean" derived="YES" derivationExpression="dictionary.kanjiFrequencyEnabled" usesScalarValueType="YES"/>
         <attribute name="frequencyValue" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="mode" optional="YES" attributeType="String" derived="YES" derivationExpression="dictionary.frequencyMode"/>
         <relationship name="dictionary" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Dictionary" inverseName="kanjiFrequency" inverseEntity="Dictionary"/>
         <relationship name="kanji" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Kanji" inverseName="frequency" inverseEntity="Kanji"/>
     </entity>
