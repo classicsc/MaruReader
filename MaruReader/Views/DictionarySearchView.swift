@@ -10,17 +10,18 @@ import WebKit
 struct DictionarySearchView: View {
     @StateObject private var viewModel = DictionarySearchViewModel()
     @FocusState private var isTextFieldFocused: Bool
+    @State private var query: String = ""
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                TextField("Search dictionary", text: $viewModel.query)
+                TextField("Search dictionary", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .padding(.top)
                     .focused($isTextFieldFocused)
-                    .onChange(of: viewModel.query) { _, newValue in
+                    .onChange(of: query) { _, newValue in
                         viewModel.performSearch(newValue)
                     }
                     .onChange(of: isTextFieldFocused) { _, isFocused in
@@ -31,19 +32,26 @@ struct DictionarySearchView: View {
                         }
                     }
                     .onSubmit {
-                        viewModel.performSearch(viewModel.query)
+                        viewModel.performSearch(query)
                     }
 
                 ZStack(alignment: .topLeading) {
-                    WebView(viewModel.page)
-                    // Popup overlay
-                    if viewModel.showPopup {
-                        DictionaryPopupView(viewModel: viewModel)
-                            .frame(width: 300, height: 400)
-                            .padding()
-                    }
-
-                    if viewModel.page.isLoading {
+                    switch viewModel.resultState {
+                    case .ready:
+                        WebView(viewModel.page)
+                        // Popup overlay
+                        if viewModel.showPopup {
+                            DictionaryPopupView(viewModel: viewModel)
+                                .frame(width: 300, height: 400)
+                                .padding()
+                        }
+                    case .noResults:
+                        ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
+                    case .startPage:
+                        ContentUnavailableView("Start a Search", systemImage: "book", description: Text("Enter a term above to search the dictionary."))
+                    case let .error(error):
+                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
+                    case .searching:
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .frame(maxWidth: .infinity, maxHeight: .infinity)

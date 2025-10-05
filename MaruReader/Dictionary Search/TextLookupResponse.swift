@@ -81,6 +81,7 @@ struct TextLookupResponse {
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
+            <script src="marureader-resource://textHighlighting.js"></script>
             <style>
                 body { padding: 12px; margin: 0; }
             </style>

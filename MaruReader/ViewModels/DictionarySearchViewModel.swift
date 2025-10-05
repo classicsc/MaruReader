@@ -10,20 +10,29 @@ import os.log
 import SwiftUI
 import WebKit
 
+enum ResultDisplayState {
+    case startPage
+    case noResults
+    case searching
+    case ready
+    case error(Error)
+}
+
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
 class DictionarySearchViewModel: ObservableObject {
-    @Published var query: String = ""
+    @Published var resultState: ResultDisplayState = .startPage
     @Published var showPopup = false
     @Published var popupQuery: String?
     @Published var popupContext: String?
     @Published var popupCssSelector: String?
-    @Published var popupTopResult: String?
     @Published var focusState: Bool = false
     @Published var page: WebPage = .init()
     @Published var popupPage: WebPage = .init()
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
+
+    private let searchService = DictionarySearchService()
 
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
@@ -50,7 +59,7 @@ class DictionarySearchViewModel: ObservableObject {
         let lookupHandler = DictionaryLookupURLSchemeHandler(
             onNavigate: { term in
                 Task { @MainActor in
-                    self.setNewQuery(term)
+                    self.performSearch(term)
                 }
             },
             onScan: { offset, context, cssSelector in
@@ -62,9 +71,6 @@ class DictionarySearchViewModel: ObservableObject {
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = lookupHandler
         page = WebPage(configuration: config)
         page.isInspectable = true
-        if let url = lookupURL(for: "") {
-            _ = page.load(URLRequest(url: url))
-        }
     }
 
     private func initializePopupPage() {
@@ -75,7 +81,7 @@ class DictionarySearchViewModel: ObservableObject {
         let lookupHandler = DictionaryLookupURLSchemeHandler(
             onNavigate: { term in
                 Task { @MainActor in
-                    self.setNewQuery(term)
+                    self.performSearch(term)
                 }
             }
         )
@@ -112,34 +118,45 @@ class DictionarySearchViewModel: ObservableObject {
         return URL(string: "marureader-lookup://lookup/popup.html?query=\(encodedQuery)")
     }
 
-    private func updateQueryFromURL() {
-        guard let url = page.url,
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let queryItems = components.queryItems,
-              let queryItem = queryItems.first(where: { $0.name == "query" }),
-              let newQuery = queryItem.value
-        else {
-            return
-        }
-
-        guard components.queryItems?.first(where: { $0.name == "noUpdateQuery" }) == nil else {
-            return
-        }
-
-        if newQuery != query {
-            query = newQuery
-        }
-    }
-
     func performSearch(_ searchQuery: String) {
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
             if Task.isCancelled { return }
 
-            // Navigate to lookup URL
-            if let url = lookupURL(for: searchQuery) {
-                _ = page.load(URLRequest(url: url))
+            guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                await MainActor.run {
+                    self.resultState = .startPage
+                }
+                return
+            }
+
+            let updateTask = Task { @MainActor in
+                self.resultState = .searching
+            }
+            let lookupRequest = TextLookupRequest(context: searchQuery)
+            do {
+                guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+                    await MainActor.run {
+                        self.resultState = .noResults
+                    }
+                    return
+                }
+                await updateTask.value
+                let loadSequence = page.load(html: searchResults.toResultsHTML())
+                for try await value in loadSequence {
+                    if Task.isCancelled { return }
+                    if value == WebPage.NavigationEvent.finished {
+                        self.resultState = .ready
+                        return
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.resultState = .error(error)
+                }
+                self.logger.error("Search error: \(error.localizedDescription)")
+                return
             }
         }
     }
@@ -195,12 +212,6 @@ class DictionarySearchViewModel: ObservableObject {
         }
 
         logger.debug("Showing popup for query: \(scanText)")
-    }
-
-    func setNewQuery(_ newQuery: String) {
-        logger.debug("Setting new query: \(newQuery)")
-        self.query = newQuery
-        self.showPopup = false
     }
 
     func hidePopup() {

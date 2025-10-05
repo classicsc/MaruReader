@@ -13,4 +13,12 @@ struct TextLookupRequest: Identifiable {
     let context: String // Surrounding text
     let rubyContext: RubyText? // Context including ruby annotations if available
     let cssSelector: String? // CSS selector if applicable
+
+    init(context: String, offset: Int = 0, rubyContext: RubyText? = nil, cssSelector: String? = nil) {
+        self.id = UUID()
+        self.offset = offset
+        self.context = context
+        self.rubyContext = rubyContext
+        self.cssSelector = cssSelector
+    }
 }
