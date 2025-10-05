@@ -34,10 +34,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
             navigator.delegate = context.coordinator
 
-            // Store navigator reference in coordinator
-            context.coordinator.navigator = navigator
-
-            viewModel.readerState = .reading
+            viewModel.navigator = navigator
 
             return navigator
         } catch {

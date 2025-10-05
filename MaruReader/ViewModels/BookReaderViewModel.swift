@@ -9,6 +9,7 @@ import CoreData
 import Foundation
 import Observation
 import os.log
+import ReadiumNavigator
 import ReadiumShared
 import ReadiumStreamer
 import SwiftUI
@@ -58,6 +59,7 @@ class BookReaderViewModel {
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
+    var navigator: EPUBNavigatorViewController?
 
     private var popupSearchTask: Task<Void, Error>?
 
@@ -218,13 +220,21 @@ class BookReaderViewModel {
     }
 
     func clearHighlights() async throws {
-        // Stub: will be implemented later
         logger.debug("Clearing highlights")
+        guard let navigator else {
+            logger.warning("Navigator is not initialized, skipping clear highlights")
+            return
+        }
+        try await navigator.clearMaruHighlights()
     }
 
     func highlightText(_ text: String, elementSelector: String, styles: String) async throws {
-        // Stub: will be implemented later
         logger.debug("Highlighting text: \(text) in element: \(elementSelector) with styles: \(styles)")
+        guard let navigator else {
+            logger.warning("Navigator is not initialized, skipping highlight")
+            return
+        }
+        _ = try await navigator.maruHighlightText(text, elementSelector: elementSelector, styles: styles)
     }
 
     func highlightStylesAsJSObject() -> String {
@@ -239,6 +249,35 @@ class BookReaderViewModel {
             overlayState = .showingToolbars
         } else {
             overlayState = .none
+        }
+    }
+}
+
+extension EPUBNavigatorViewController {
+    func clearMaruHighlights() async throws {
+        let result = await self.evaluateJavaScript("window.MaruReader.textHighlighting.clearAllHighlights();")
+        switch result {
+        case .success:
+            return
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func maruHighlightText(_ text: String, elementSelector: String, styles: String) async throws -> [[String: Double]] {
+        let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
+        let result = await self.evaluateJavaScript(script)
+        switch result {
+        case let .success(value):
+            guard let dataDict = value as? [String: Any],
+                  let _ = dataDict["highlightID"] as? String,
+                  let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
+            else {
+                throw HighlightError.invalidResponse
+            }
+            return boundingRects
+        case let .failure(error):
+            throw error
         }
     }
 }

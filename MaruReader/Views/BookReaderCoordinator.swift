@@ -17,10 +17,7 @@ import WebKit
 @MainActor
 class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate, WKScriptMessageHandler {
     let viewModel: BookReaderViewModel
-    var navigator: EPUBNavigatorViewController?
     let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext
-
-    private let forwardTextScanChars = 15
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderCoordinator")
 
