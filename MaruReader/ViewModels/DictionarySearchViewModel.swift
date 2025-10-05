@@ -89,21 +89,6 @@ class DictionarySearchViewModel: ObservableObject {
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = lookupHandler
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
-        if let url = popupURL(for: "") {
-            _ = popupPage.load(URLRequest(url: url))
-        }
-    }
-
-    private func popupURL(for query: String) -> URL? {
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return URL(string: "marureader-lookup://lookup/popup.html")
-        }
-
-        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            return nil
-        }
-
-        return URL(string: "marureader-lookup://lookup/popup.html?query=\(encodedQuery)")
     }
 
     func performSearch(_ searchQuery: String) {
@@ -111,7 +96,9 @@ class DictionarySearchViewModel: ObservableObject {
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
             if Task.isCancelled { return }
-
+            Task { @MainActor in
+                self.hidePopup()
+            }
             guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 await MainActor.run {
                     self.resultState = .startPage

@@ -61,10 +61,10 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private static func handleRequest(
         _ request: URLRequest,
-        searchService: DictionarySearchService,
+        searchService _: DictionarySearchService,
         onNavigate: @escaping @Sendable (String) -> Void,
         onScan: @escaping @Sendable (Int, String, String) -> Void,
-        onPopup: @escaping @Sendable (String?) -> Void
+        onPopup _: @escaping @Sendable (String?) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
             logger.error("Invalid URL in request")
@@ -83,9 +83,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
         let path = url.path(percentEncoded: false)
 
-        if path == "/dictionarysearchview.html" || path == "/popup.html" {
-            return try await handleSearchViewRequest(url: url, searchService: searchService, onPopup: onPopup)
-        } else if path == "/scan", request.httpMethod == "POST" {
+        if path == "/scan", request.httpMethod == "POST" {
             return try await handleScanRequest(request: request, onScan: onScan)
         } else if path == "/navigate", request.httpMethod == "POST" {
             return try await handleNavigateRequest(request: request, onNavigate: onNavigate)
@@ -93,213 +91,6 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             logger.error("Unknown path in marureader-lookup URL: \(path)")
             return createNotFoundResponse()
         }
-    }
-
-    private static func handleSearchViewRequest(url: URL, searchService: DictionarySearchService, onPopup: @escaping @Sendable (String?) -> Void) async throws -> [URLSchemeTaskResult] {
-        // Extract query parameter
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-              let queryItems = components.queryItems,
-              let queryItem = queryItems.first(where: { $0.name == "query" }),
-              let query = queryItem.value,
-              !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        else {
-            // No query or empty query - return empty results page
-            let html = generateEmptyHTML()
-            return createHTMLResponse(html: html, url: url)
-        }
-
-        do {
-            // Perform dictionary search
-            let searchResults = try await searchService.performSearch(query: query)
-            let groupedResults = DictionarySearchService.groupResults(searchResults)
-
-            let page = url.path(percentEncoded: false)
-
-            if page == "/popup.html" {
-                // Generate popup HTML
-                let (html, topResult) = generatePopupHTML(for: groupedResults, query: query)
-                onPopup(topResult)
-                return createHTMLResponse(html: html, url: url)
-            } else {
-                // Generate HTML
-                let html = generateHTML(for: groupedResults, query: query)
-                return createHTMLResponse(html: html, url: url)
-            }
-        } catch {
-            logger.error("Dictionary search failed for query '\(query)': \(error.localizedDescription)")
-            let html = generateErrorHTML(query: query, error: error)
-            return createHTMLResponse(html: html, url: url)
-        }
-    }
-
-    private static func generateHTML(for groupedResults: [GroupedSearchResults], query: String) -> String {
-        guard !groupedResults.isEmpty else {
-            return generateNoResultsHTML(query: query)
-        }
-
-        let termGroupsHTML = groupedResults.map { termGroup in
-            """
-            <div class="term-group">
-                <h1 class="term-header">\(escapeHTML(termGroup.displayTerm))</h1>
-                \(termGroup.dictionariesResults.map { dictionaryResult in
-                    """
-                    <div class="dictionary-section">
-                        <h2 class="dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h2>
-                        <div class="dictionary-content">
-                            \(dictionaryResult.combinedHTML)
-                        </div>
-                    </div>
-                    """
-                }.joined())
-            </div>
-            """
-        }.joined()
-
-        return """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <script src="marureader-resource://domUtilities.js"></script>
-            <script src="marureader-resource://textScanning.js"></script>
-            <script src="marureader-resource://textHighlighting.js"></script>
-        </head>
-        <body>
-            \(termGroupsHTML)
-        </body>
-        </html>
-        """
-    }
-
-    private static func generatePopupHTML(for groupedResults: [GroupedSearchResults], query: String) -> (html: String, topResult: String?) {
-        guard !groupedResults.isEmpty else {
-            return (generateNoResultsHTML(query: query), nil)
-        }
-
-        let topResult = groupedResults[0].termKey
-
-        let termGroupsHTML = groupedResults.map { termGroup in
-            """
-            <div class="popup-term-group" onclick="navigateToTerm('\(escapeHTML(termGroup.expression))')">
-                <h2 class="popup-term-header">\(escapeHTML(termGroup.displayTerm))</h2>
-                \(termGroup.dictionariesResults.map { dictionaryResult in
-                    """
-                    <div class="popup-dictionary-section">
-                        <h3 class="popup-dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h3>
-                        <div class="popup-dictionary-content">
-                            \(dictionaryResult.combinedHTML)
-                        </div>
-                    </div>
-                    """
-                }.joined())
-            </div>
-            """
-        }.joined()
-
-        return ("""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <script>
-                function navigateToTerm(term) {
-                    var message = new XMLHttpRequest();
-                    message.open("POST", "marureader-lookup://lookup/navigate", true);
-                    message.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                    message.send(JSON.stringify({ term: term }));
-                }
-            </script>
-        </head>
-        <body class="popup-results-body">
-            \(termGroupsHTML)
-        </body>
-        </html>
-        """, topResult)
-    }
-
-    private static func generateEmptyHTML() -> String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <script src="marureader-resource://textHighlighting.js"></script>
-        </head>
-        <body>
-            <div class="empty-state">
-                <p>Start typing to search the dictionary</p>
-            </div>
-        </body>
-        </html>
-        """
-    }
-
-    private static func generateNoResultsHTML(query: String) -> String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <script src="marureader-resource://textHighlighting.js"></script>
-        </head>
-        <body>
-            <div class="no-results">
-                <p>No dictionary entries found for '\(escapeHTML(query))'</p>
-            </div>
-        </body>
-        </html>
-        """
-    }
-
-    private static func generateErrorHTML(query: String, error: Error) -> String {
-        """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <link rel="stylesheet" href="marureader-resource://structured-content.css">
-            <script src="marureader-resource://textHighlighting.js"></script>
-        </head>
-        <body>
-            <div class="error-state">
-                <h2>Search Error</h2>
-                <p>Failed to search for '\(escapeHTML(query))'</p>
-                <p class="error-detail">\(escapeHTML(error.localizedDescription))</p>
-            </div>
-        </body>
-        </html>
-        """
-    }
-
-    private static func createHTMLResponse(html: String, url: URL) -> [URLSchemeTaskResult] {
-        let data = html.data(using: .utf8)!
-
-        let response = HTTPURLResponse(
-            url: url,
-            statusCode: 200,
-            httpVersion: "HTTP/1.1",
-            headerFields: [
-                "Content-Type": "text/html; charset=utf-8",
-                "Content-Length": "\(data.count)",
-                "Cache-Control": "no-cache, no-store, must-revalidate",
-                "Pragma": "no-cache",
-                "Expires": "0",
-            ]
-        )!
-
-        return [
-            .response(response),
-            .data(data),
-        ]
     }
 
     private static func createNotFoundResponse() -> [URLSchemeTaskResult] {
