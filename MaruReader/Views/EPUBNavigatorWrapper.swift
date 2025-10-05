@@ -25,10 +25,20 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             guard let publication = viewModel.publication else {
                 return createErrorViewController(message: "Publication not ready")
             }
+
+            // Constant value for content insets. We manage our own margins by modifying the size of the view in BookReaderView. Modifying these can cause mismatched coordinates and incorrect popup positioning.
+            let insets: [UIUserInterfaceSizeClass: EPUBContentInsets] = [
+                .compact: (top: 0, bottom: 0),
+                .regular: (top: 0, bottom: 0),
+            ]
+
+            let config = EPUBNavigatorViewController.Configuration(preferences: EPUBPreferences(), defaults: EPUBDefaults(), contentInset: insets)
+
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(
                 publication: publication,
                 initialLocation: viewModel.initialLocation,
+                config: config,
                 httpServer: GCDHTTPServer(assetRetriever: AssetRetriever(httpClient: DefaultHTTPClient()))
             )
 

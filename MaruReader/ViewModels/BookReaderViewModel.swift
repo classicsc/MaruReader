@@ -49,17 +49,50 @@ enum BookReaderOverlayState {
     }
 }
 
+enum Placement {
+    case belowLeftAligned
+    case belowRightAligned
+    case aboveLeftAligned
+    case aboveRightAligned
+    case rightTopAligned
+    case rightBottomAligned
+    case leftTopAligned
+    case leftBottomAligned
+
+    var description: String {
+        switch self {
+        case .belowLeftAligned:
+            "Below Left Aligned"
+        case .belowRightAligned:
+            "Below Right Aligned"
+        case .aboveLeftAligned:
+            "Above Left Aligned"
+        case .aboveRightAligned:
+            "Above Right Aligned"
+        case .rightTopAligned:
+            "Right Top Aligned"
+        case .rightBottomAligned:
+            "Right Bottom Aligned"
+        case .leftTopAligned:
+            "Left Top Aligned"
+        case .leftBottomAligned:
+            "Left Bottom Aligned"
+        }
+    }
+}
+
 @MainActor
 @Observable
 class BookReaderViewModel {
     var readerState: BookReaderState = .loading
-    var overlayState: BookReaderOverlayState = .none
+    var overlayState: BookReaderOverlayState = .showingToolbars
     var showPopup = false
     var popupPage: WebPage = .init()
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
     var navigator: EPUBNavigatorViewController?
+    var highlightBoundingRects: [[String: Double]]?
 
     private var popupSearchTask: Task<Void, Error>?
 
@@ -69,7 +102,6 @@ class BookReaderViewModel {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var lookupSchemeHandler: DictionaryLookupURLSchemeHandler?
 
-    let forwardTextScanChars = 15
     let highlightStyles = [
         "background-color": "yellow",
     ]
@@ -196,13 +228,13 @@ class BookReaderViewModel {
             for try await value in loadSequence {
                 try Task.checkCancellation()
                 if value == WebPage.NavigationEvent.finished {
-                    self.showPopup = true
-
                     // The range to highlight within the context is given in the results object
                     let highlightText = context[searchResults.primaryResultSourceRange]
                     await self.clearHighlights()
-                    await self.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    let boundingRects = await self.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    self.highlightBoundingRects = boundingRects
                     logger.debug("Highlighted text: \(highlightText)")
+                    self.showPopup = true
                 }
             }
         }
@@ -210,6 +242,7 @@ class BookReaderViewModel {
 
     func hidePopup() {
         self.showPopup = false
+        self.highlightBoundingRects = nil
         Task { @MainActor in
             await self.clearHighlights()
         }
@@ -228,17 +261,19 @@ class BookReaderViewModel {
         }
     }
 
-    func highlightText(_ text: String, elementSelector: String, styles: String) async {
+    func highlightText(_ text: String, elementSelector: String, styles: String) async -> [[String: Double]] {
         logger.debug("Highlighting text: \(text) in element: \(elementSelector) with styles: \(styles)")
         guard let navigator else {
             logger.warning("Navigator is not initialized, skipping highlight")
-            return
+            return []
         }
         do {
             let result = try await navigator.maruHighlightText(text, elementSelector: elementSelector, styles: styles)
             logger.debug("Highlight result bounding rects: \(result)")
+            return result
         } catch {
             logger.error("Highlighting threw error: \(error.localizedDescription)")
+            return []
         }
     }
 
@@ -255,6 +290,16 @@ class BookReaderViewModel {
         } else {
             overlayState = .none
         }
+    }
+
+    func isVerticalWriting() -> Bool {
+        guard let navigator else { return false }
+        return navigator.settings.verticalText
+    }
+
+    func readingProgression() -> ReadiumNavigator.ReadingProgression {
+        guard let navigator else { return .ltr }
+        return navigator.settings.readingProgression
     }
 }
 

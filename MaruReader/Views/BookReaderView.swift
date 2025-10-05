@@ -8,26 +8,6 @@
 import Foundation
 import SwiftUI
 
-enum BookReaderError: LocalizedError {
-    case bookFileNotFound
-    case cannotAccessAppSupport
-    case invalidBookPath
-    case unknownError
-
-    var errorDescription: String? {
-        switch self {
-        case .bookFileNotFound:
-            "Book file not found"
-        case .cannotAccessAppSupport:
-            "Cannot access application support directory"
-        case .invalidBookPath:
-            "Invalid book file path"
-        case .unknownError:
-            "An unknown error occurred"
-        }
-    }
-}
-
 // MARK: - BookReaderView
 
 struct BookReaderView: View {
@@ -50,63 +30,67 @@ struct BookReaderView: View {
     }
 
     private var readerView: some View {
-        ZStack(alignment: .topLeading) {
-            EPUBNavigatorWrapper(
-                viewModel: viewModel
-            )
-            .ignoresSafeArea()
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .tabBar)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Button {
-                        viewModel.toggleOverlay()
-                    } label: {
-                        HStack {
-                            Text(viewModel.book.title ?? "")
-                                .font(.headline)
-                                .foregroundStyle(.primary)
+        GeometryReader { geometry in
+            ZStack(alignment: .topLeading) {
+                EPUBNavigatorWrapper(
+                    viewModel: viewModel
+                )
+                .ignoresSafeArea()
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar(.hidden, for: .tabBar)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Button {
+                            viewModel.toggleOverlay()
+                        } label: {
+                            HStack {
+                                Text(viewModel.book.title ?? "")
+                                    .font(.headline)
+                                    .foregroundStyle(.primary)
 
-                            switch viewModel.overlayState.shouldShowToolbars {
-                            case true:
-                                Image(systemName: "chevron.up")
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
-                            case false:
-                                Image(systemName: "chevron.down")
-                                    .font(.headline)
-                                    .foregroundStyle(.secondary)
+                                switch viewModel.overlayState.shouldShowToolbars {
+                                case true:
+                                    Image(systemName: "chevron.up")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                case false:
+                                    Image(systemName: "chevron.down")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
+
+                    ToolbarItemGroup(placement: .bottomBar) {
+                        Button {
+                            viewModel.overlayState = .showingTableOfContents
+                        } label: {
+                            Image(systemName: "list.bullet")
+                        }
+
+                        Button {
+                            viewModel.bookmarkCurrentLocation()
+                        } label: {
+                            Image(systemName: "bookmark")
+                        }
+
+                        Button {
+                            viewModel.overlayState = .showingQuickSettings
+                        } label: {
+                            Image(systemName: "textformat.size.ja")
+                        }
+                    }
                 }
-
-                ToolbarItemGroup(placement: .bottomBar) {
-                    Button {
-                        viewModel.overlayState = .showingTableOfContents
-                    } label: {
-                        Image(systemName: "list.bullet")
-                    }
-
-                    Button {
-                        viewModel.bookmarkCurrentLocation()
-                    } label: {
-                        Image(systemName: "bookmark")
-                    }
-
-                    Button {
-                        viewModel.overlayState = .showingQuickSettings
-                    } label: {
-                        Image(systemName: "textformat.size.ja")
+                .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
+                .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
+                if viewModel.showPopup {
+                    if let center = DictionaryPopupView.computePopupCenter(screenSize: geometry.size, highlightBoundingRects: viewModel.highlightBoundingRects, readingProgression: viewModel.readingProgression(), isVerticalWriting: viewModel.isVerticalWriting()) {
+                        DictionaryPopupView(page: viewModel.popupPage)
+                            .frame(width: 300, height: 400)
+                            .position(x: center.x, y: center.y)
                     }
                 }
-            }
-            .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
-            .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
-            if viewModel.showPopup {
-                DictionaryPopupView(page: viewModel.popupPage)
-                    .frame(width: 300, height: 400)
-                    .padding()
             }
         }
     }
