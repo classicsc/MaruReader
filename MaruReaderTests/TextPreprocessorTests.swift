@@ -2065,32 +2065,3 @@ struct TextPreprocessorTests {
         }
     }
 }
-
-// MARK: - Mock Rules for Testing
-
-/// Mock rule that always transforms input by appending a suffix
-/// Used for testing preprocessor logic without relying on complex rules
-private class MockTransformRule: TextPreprocessorRule {
-    let name = "mockTransform"
-    let description = "Adds suffix for testing"
-    private let suffix: String
-
-    init(suffix: String = "_transformed") {
-        self.suffix = suffix
-    }
-
-    func process(_ text: String) -> String {
-        text + suffix
-    }
-}
-
-/// Mock rule that never changes input
-/// Used for testing no-change scenarios
-private class MockNoChangeRule: TextPreprocessorRule {
-    let name = "mockNoChange"
-    let description = "Never changes input"
-
-    func process(_ text: String) -> String {
-        text
-    }
-}
