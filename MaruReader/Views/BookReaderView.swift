@@ -26,6 +26,22 @@ struct BookReaderView: View {
             errorView(error: error)
         case .reading:
             readerView
+                .sheet(isPresented: $viewModel.showingDictionarySheet) {
+                    NavigationStack {
+                        DictionarySearchView(initialQuery: viewModel.sheetQueryTerm)
+                            .navigationTitle("Dictionary")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarBackButtonHidden(true)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Done") {
+                                        viewModel.showingDictionarySheet = false
+                                    }
+                                }
+                            }
+                    }
+                    .presentationDetents([.medium, .large])
+                }
         }
     }
 

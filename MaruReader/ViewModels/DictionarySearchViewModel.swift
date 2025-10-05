@@ -38,7 +38,6 @@ class DictionarySearchViewModel {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var lookupSchemeHandler: DictionaryLookupURLSchemeHandler?
 
-    let forwardTextScanChars = 15
     let highlightStyles = [
         "background-color": "yellow",
     ]

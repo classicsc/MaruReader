@@ -14,6 +14,13 @@ struct DictionarySearchView: View {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
+    init(initialQuery: String = "") {
+        _query = State(initialValue: initialQuery)
+        if !initialQuery.isEmpty {
+            viewModel.performSearch(initialQuery)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {

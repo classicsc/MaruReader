@@ -28,11 +28,12 @@ enum BookReaderOverlayState {
     case showingSettingsEditorSheet
     case showingToolbars
     case showingSearch
+    case showingDictionarySheet
     case showingBookmarks
 
     var shouldShowNavigationBackButton: Bool {
         switch self {
-        case .showingSettingsEditorSheet, .showingSearch, .showingBookmarks, .none:
+        case .showingSettingsEditorSheet, .showingSearch, .showingBookmarks, .showingDictionarySheet, .none:
             false
         default:
             true
@@ -88,6 +89,7 @@ class BookReaderViewModel {
     var overlayState: BookReaderOverlayState = .showingToolbars
     var showPopup = false
     var popupPage: WebPage = .init()
+    var sheetQueryTerm: String = ""
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
@@ -114,6 +116,17 @@ class BookReaderViewModel {
         Task {
             await loadPublication()
             initializePopupPage()
+        }
+    }
+
+    var showingDictionarySheet: Bool {
+        get { overlayState == .showingDictionarySheet }
+        set {
+            if newValue {
+                overlayState = .showingDictionarySheet
+            } else if overlayState == .showingDictionarySheet {
+                overlayState = .none
+            }
         }
     }
 
@@ -201,8 +214,9 @@ class BookReaderViewModel {
     }
 
     func searchInDictionarySheet(_ term: String) {
-        // Stub: will be implemented later
         logger.debug("Searching in dictionary sheet for term: \(term)")
+        sheetQueryTerm = term
+        showingDictionarySheet = true
     }
 
     func bookmarkCurrentLocation() {
