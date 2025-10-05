@@ -79,6 +79,11 @@ struct DictionaryManagementView: View {
         .navigationTitle("Dictionaries")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
+            ToolbarItem(placement: .secondaryAction) {
+                NavigationLink(destination: DictionaryPriorityView()) {
+                    Label("Priorities", systemImage: "arrow.up.arrow.down")
+                }
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button(action: { showingFilePicker = true }) {
                     Image(systemName: "plus")

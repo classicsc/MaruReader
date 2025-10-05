@@ -289,23 +289,15 @@ struct KanjiFrequencyEntryDTO: Sendable, Identifiable {
     let id: UUID
     let frequencyValue: Double
     let displayFrequency: String?
-    let displayPriority: Int64?
-    let enabled: Bool?
-    let mode: String?
     let kanjiID: UUID?
     let dictionaryID: UUID?
-    let dictionaryTitle: String?
 
     init(from frequency: KanjiFrequencyEntry) {
         self.id = frequency.id ?? UUID()
         self.frequencyValue = frequency.frequencyValue
         self.displayFrequency = frequency.displayFrequency
-        self.displayPriority = frequency.displayPriority
-        self.enabled = frequency.enabled
-        self.mode = frequency.mode
         self.kanjiID = frequency.kanji?.id
         self.dictionaryID = frequency.dictionary?.id
-        self.dictionaryTitle = frequency.dictionaryTitle
     }
 }
 

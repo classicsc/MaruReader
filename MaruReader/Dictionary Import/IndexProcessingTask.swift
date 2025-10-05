@@ -20,6 +20,24 @@ actor IndexProcessingTask {
         self.persistentContainer = container
     }
 
+    /// Get the next available priority value for a given priority field
+    /// - Parameters:
+    ///   - field: The priority field name (e.g., "termDisplayPriority")
+    ///   - context: The managed object context
+    /// - Returns: The next priority value (max + 1, or 0 if no dictionaries exist)
+    private static func getNextPriority(for field: String, in context: NSManagedObjectContext) throws -> Int64 {
+        let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: field, ascending: false)]
+        fetchRequest.fetchLimit = 1
+
+        let results = try context.fetch(fetchRequest)
+        if let maxDict = results.first {
+            let maxValue = maxDict.value(forKey: field) as? Int64 ?? 0
+            return maxValue + 1
+        }
+        return 0
+    }
+
     func start() {
         let container = self.persistentContainer
         let jobID = self.jobID
@@ -94,6 +112,15 @@ actor IndexProcessingTask {
                 dictionary.targetLanguage = index.targetLanguage
                 dictionary.revision = index.revision
                 dictionary.format = Int64(format)
+
+                // Assign default priorities - new dictionaries appear last in each category
+                // Higher priority value = lower display priority (appears later)
+                dictionary.termDisplayPriority = try Self.getNextPriority(for: "termDisplayPriority", in: context)
+                dictionary.kanjiDisplayPriority = try Self.getNextPriority(for: "kanjiDisplayPriority", in: context)
+                dictionary.ipaDisplayPriority = try Self.getNextPriority(for: "ipaDisplayPriority", in: context)
+                dictionary.pitchDisplayPriority = try Self.getNextPriority(for: "pitchDisplayPriority", in: context)
+                dictionary.termFrequencyDisplayPriority = try Self.getNextPriority(for: "termFrequencyDisplayPriority", in: context)
+                dictionary.kanjiFrequencyDisplayPriority = try Self.getNextPriority(for: "kanjiFrequencyDisplayPriority", in: context)
 
                 context.insert(dictionary)
 
