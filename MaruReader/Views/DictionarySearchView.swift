@@ -41,7 +41,7 @@ struct DictionarySearchView: View {
                         WebView(viewModel.page)
                         // Popup overlay
                         if viewModel.showPopup {
-                            DictionaryPopupView(viewModel: viewModel)
+                            DictionaryPopupView(page: viewModel.popupPage)
                                 .frame(width: 300, height: 400)
                                 .padding()
                         }

@@ -9,12 +9,12 @@ import SwiftUI
 import WebKit
 
 struct DictionaryPopupView: View {
-    @State var viewModel: DictionarySearchViewModel
+    @State var page: WebPage
 
     var body: some View {
         ZStack {
-            WebView(viewModel.popupPage)
-            if viewModel.popupPage.isLoading {
+            WebView(page)
+            if page.isLoading {
                 ProgressView()
                     .progressViewStyle(CircularProgressViewStyle())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)

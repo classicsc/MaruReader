@@ -80,11 +80,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 return
             }
 
-            if viewModel.showPopup {
-                viewModel.showPopup = false
-            } else {
-                viewModel.searchInPopup(offset: offset, context: context, cssSelector: cssSelector)
-            }
+            viewModel.searchInPopup(offset: offset, context: context, cssSelector: cssSelector)
         }
     }
 }
