@@ -5,21 +5,8 @@
 //  Ebook reading view with Readium Navigator integration.
 //
 
-import CoreData
 import Foundation
-import ReadiumAdapterGCDWebServer
-import ReadiumNavigator
-@unsafe @preconcurrency import ReadiumShared
-import ReadiumStreamer
 import SwiftUI
-import UIKit
-
-// MARK: - Supporting Types
-
-struct LoadedPublication {
-    let publication: Publication
-    let initialLocation: Locator?
-}
 
 enum BookReaderError: LocalizedError {
     case bookFileNotFound
