@@ -38,8 +38,9 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
             return navigator
         } catch {
-            print("Error creating navigator: \(error)")
-            return createErrorViewController(message: "Failed to create navigator: \(error.localizedDescription)")
+            logger.error("Error creating navigator: \(error)")
+            viewModel.readerState = .error(error)
+            return createErrorViewController(message: "Failed to load book: \(error.localizedDescription)")
         }
     }
 
