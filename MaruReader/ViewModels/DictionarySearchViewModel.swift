@@ -28,6 +28,7 @@ class DictionarySearchViewModel {
     var focusState: Bool = false
     var page: WebPage = .init()
     var popupPage: WebPage = .init()
+    var highlightBoundingRects: [[String: Double]]?
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
@@ -163,9 +164,14 @@ class DictionarySearchViewModel {
 
                     // The range to highlight within the context is given in the results object
                     let highlightText = context[searchResults.primaryResultSourceRange]
-                    try await page.clearHighlights()
-                    _ = try await page.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    do {
+                        try await page.clearHighlights()
+                        highlightBoundingRects = try await page.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    } catch {
+                        logger.error("Failed to highlight text: \(error.localizedDescription)")
+                    }
                     logger.debug("Highlighted text: \(highlightText)")
+                    logger.debug("Highlight bounding rects: \(String(describing: self.highlightBoundingRects))")
                 }
             }
         }

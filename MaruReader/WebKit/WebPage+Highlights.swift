@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 10/4/25.
 //
 
+import os.log
 import WebKit
 
 enum HighlightError: Error {
@@ -18,7 +19,7 @@ extension WebPage {
     }
 
     func highlightText(_ text: String, elementSelector: String, styles: String) async throws -> [[String: Double]] {
-        let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
+        let script = "return window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
         let result = try await self.callJavaScript(script)
         guard let dataDict = result as? [String: Any],
               let _ = dataDict["highlightId"] as? String,
