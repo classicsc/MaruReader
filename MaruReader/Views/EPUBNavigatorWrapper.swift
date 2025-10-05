@@ -7,25 +7,28 @@
 
 import CoreData
 import Foundation
+import os.log
 import ReadiumAdapterGCDWebServer
 import ReadiumNavigator
-@unsafe @preconcurrency import ReadiumShared
+import ReadiumShared
 import ReadiumStreamer
 import SwiftUI
 import UIKit
 
 struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
-    @ObservedObject var book: Book
-    let viewContext: NSManagedObjectContext
-    let loadedPublication: LoadedPublication
-    let parent: BookReaderView
+    @State var viewModel: BookReaderViewModel
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "EPUBNavigatorWrapper")
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {
+            guard let publication = viewModel.publication else {
+                return createErrorViewController(message: "Publication not ready")
+            }
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(
-                publication: loadedPublication.publication,
-                initialLocation: loadedPublication.initialLocation,
+                publication: publication,
+                initialLocation: viewModel.initialLocation,
                 httpServer: GCDHTTPServer(assetRetriever: AssetRetriever(httpClient: DefaultHTTPClient()))
             )
 
@@ -33,6 +36,8 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
             // Store navigator reference in coordinator
             context.coordinator.navigator = navigator
+
+            viewModel.readerState = .reading
 
             return navigator
         } catch {
@@ -46,7 +51,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     }
 
     func makeCoordinator() -> BookReaderCoordinator {
-        BookReaderCoordinator(parent: parent, viewContext: viewContext)
+        BookReaderCoordinator(viewModel: viewModel)
     }
 
     private func createErrorViewController(message: String) -> UIViewController {

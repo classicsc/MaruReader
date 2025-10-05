@@ -8,7 +8,7 @@ import SwiftUI
 import WebKit
 
 struct DictionarySearchView: View {
-    @StateObject private var viewModel = DictionarySearchViewModel()
+    @State private var viewModel = DictionarySearchViewModel()
     @FocusState private var isTextFieldFocused: Bool
     @State private var query: String = ""
 

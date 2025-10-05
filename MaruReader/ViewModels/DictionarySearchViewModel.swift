@@ -22,7 +22,7 @@ enum ResultDisplayState {
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
 @Observable
-class DictionarySearchViewModel: ObservableObject {
+class DictionarySearchViewModel {
     var resultState: ResultDisplayState = .startPage
     var showPopup = false
     var focusState: Bool = false

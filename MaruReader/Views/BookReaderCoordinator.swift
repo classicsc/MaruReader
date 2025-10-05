@@ -14,19 +14,18 @@ import SwiftUI
 import UIKit
 import WebKit
 
+@MainActor
 class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate, WKScriptMessageHandler {
-    var parent: BookReaderView
+    let viewModel: BookReaderViewModel
     var navigator: EPUBNavigatorViewController?
-    let viewContext: NSManagedObjectContext
+    let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext
 
     private let forwardTextScanChars = 15
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderCoordinator")
 
-    init(parent: BookReaderView, viewContext: NSManagedObjectContext) {
-        self.parent = parent
-        self.viewContext = viewContext
-        super.init()
+    init(viewModel: BookReaderViewModel) {
+        self.viewModel = viewModel
     }
 
     // MARK: - NavigatorDelegate
@@ -36,7 +35,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
         Task { @MainActor in
             do {
                 let locatorJSON = locator.jsonString
-                parent.book.lastOpenedPage = locatorJSON
+                viewModel.book.lastOpenedPage = locatorJSON
                 try viewContext.save()
             } catch {
                 logger.error("Error saving last read location: \(error)")
@@ -80,20 +79,11 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 logger.error("Invalid message body for textScanning")
                 return
             }
-            // Extract substring from offset to offset + forwardTextScanChars
-            let startIndex = context.index(context.startIndex, offsetBy: offset, limitedBy: context.endIndex) ?? context.startIndex
-            let endIndex = context.index(startIndex, offsetBy: forwardTextScanChars, limitedBy: context.endIndex) ?? context.endIndex
-            let scanText = String(context[startIndex ..< endIndex])
 
-            Task { @MainActor in
-                if parent.showingPopup {
-                    parent.showingPopup = false
-                } else {
-                    parent.popupQuery = scanText
-                    parent.popupContext = context
-                    parent.popupCssSelector = cssSelector
-                    parent.showingPopup = true
-                }
+            if viewModel.showPopup {
+                viewModel.showPopup = false
+            } else {
+                viewModel.searchInPopup(offset: offset, context: context, cssSelector: cssSelector)
             }
         }
     }
