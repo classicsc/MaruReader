@@ -42,7 +42,12 @@ struct TextLookupResponse {
             <link rel="stylesheet" href="marureader-resource://popup.css">
             <script>
                 function navigateToTerm(term) {
-                    window.webkit.messageHandlers.dictionaryTermSelected.postMessage(term);
+                    // If the message handlers are available, post, if not, set a URL fragment
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.dictionaryTermSelected) {
+                        window.webkit.messageHandlers.dictionaryTermSelected.postMessage(term);
+                    } else {    
+                        window.location.href = '#term=' + encodeURIComponent(term);
+                    }
                 }
             </script>
         </head>

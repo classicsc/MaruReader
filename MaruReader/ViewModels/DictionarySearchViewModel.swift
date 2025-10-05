@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Observation
 import os.log
 import SwiftUI
 import WebKit
@@ -20,17 +21,16 @@ enum ResultDisplayState {
 
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
+@Observable
 class DictionarySearchViewModel: ObservableObject {
-    @Published var resultState: ResultDisplayState = .startPage
-    @Published var showPopup = false
-    @Published var popupQuery: String?
-    @Published var popupContext: String?
-    @Published var popupCssSelector: String?
-    @Published var focusState: Bool = false
-    @Published var page: WebPage = .init()
-    @Published var popupPage: WebPage = .init()
+    var resultState: ResultDisplayState = .startPage
+    var showPopup = false
+    var focusState: Bool = false
+    var page: WebPage = .init()
+    var popupPage: WebPage = .init()
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
+    private var popupSearchTask: Task<Void, Error>?
 
     private let searchService = DictionarySearchService()
 
@@ -94,18 +94,6 @@ class DictionarySearchViewModel: ObservableObject {
         }
     }
 
-    private func lookupURL(for query: String) -> URL? {
-        guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return URL(string: "marureader-lookup://lookup/dictionarysearchview.html")
-        }
-
-        guard let encodedQuery = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
-            return nil
-        }
-
-        return URL(string: "marureader-lookup://lookup/dictionarysearchview.html?query=\(encodedQuery)&noUpdateQuery=true")
-    }
-
     private func popupURL(for query: String) -> URL? {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return URL(string: "marureader-lookup://lookup/popup.html")
@@ -161,21 +149,6 @@ class DictionarySearchViewModel: ObservableObject {
         }
     }
 
-    func searchInPopup(_ query: String?) {
-        guard let query else {
-            if let url = popupURL(for: "") {
-                page.load(URLRequest(url: url))
-            }
-            return
-        }
-
-        if let url = popupURL(for: query) {
-            popupPage.load(URLRequest(url: url))
-        } else {
-            logger.error("Failed to create popup URL for query: \(query)")
-        }
-    }
-
     func handleTextScan(_ offset: Int, context: String, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
@@ -190,28 +163,26 @@ class DictionarySearchViewModel: ObservableObject {
             return
         }
 
-        // Extract substring from offset to offset + forwardTextScanChars
-        let startIndex = context.index(context.startIndex, offsetBy: offset, limitedBy: context.endIndex) ?? context.startIndex
-        let endIndex = context.index(startIndex, offsetBy: self.forwardTextScanChars, limitedBy: context.endIndex) ?? context.endIndex
-        let scanText = String(context[startIndex ..< endIndex])
+        let lookupRequest = TextLookupRequest(context: context, offset: offset, cssSelector: cssSelector)
+        popupSearchTask?.cancel()
+        popupSearchTask = Task {
+            guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+                return
+            }
+            let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
+            for try await value in loadSequence {
+                try Task.checkCancellation()
+                if value == WebPage.NavigationEvent.finished {
+                    self.showPopup = true
 
-        self.popupQuery = scanText
-        self.popupContext = context
-        self.popupCssSelector = cssSelector
-        self.searchInPopup(popupQuery)
-        self.showPopup = scanText.count > 0
-        Task { @MainActor in
-            do {
-                try await page.clearHighlights()
-                if self.showPopup, let cssSelector = self.popupCssSelector, !cssSelector.isEmpty {
-                    _ = try await page.highlightText(scanText, elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    // The range to highlight within the context is given in the results object
+                    let highlightText = context[searchResults.primaryResultSourceRange]
+                    try await page.clearHighlights()
+                    _ = try await page.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    logger.debug("Highlighted text: \(highlightText)")
                 }
-            } catch {
-                logger.error("Failed to highlight text: \(error.localizedDescription)")
             }
         }
-
-        logger.debug("Showing popup for query: \(scanText)")
     }
 
     func hidePopup() {

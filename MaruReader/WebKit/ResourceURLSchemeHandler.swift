@@ -16,6 +16,7 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
     // Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [
         "structured-content.css",
+        "popup.css",
         "MaterialSymbolsOutlined.woff2",
         "domUtilities.js",
         "textScanning.js",

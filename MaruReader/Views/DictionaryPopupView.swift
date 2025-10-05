@@ -9,7 +9,7 @@ import SwiftUI
 import WebKit
 
 struct DictionaryPopupView: View {
-    @ObservedObject var viewModel: DictionarySearchViewModel
+    @StateObject var viewModel: DictionarySearchViewModel
 
     var body: some View {
         ZStack {
