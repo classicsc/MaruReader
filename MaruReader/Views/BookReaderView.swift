@@ -102,7 +102,7 @@ struct BookReaderView: View {
                 }
             }
             .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
-            .navigationBarBackButtonHidden(viewModel.overlayState.shouldShowNavigationBackButton)
+            .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
             if viewModel.showPopup {
                 DictionaryPopupView(page: viewModel.popupPage)
                     .frame(width: 300, height: 400)

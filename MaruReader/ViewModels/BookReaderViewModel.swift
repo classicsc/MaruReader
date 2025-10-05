@@ -32,7 +32,7 @@ enum BookReaderOverlayState {
 
     var shouldShowNavigationBackButton: Bool {
         switch self {
-        case .showingSettingsEditorSheet, .showingSearch, .showingBookmarks:
+        case .showingSettingsEditorSheet, .showingSearch, .showingBookmarks, .none:
             false
         default:
             true
