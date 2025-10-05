@@ -21,7 +21,7 @@ extension WebPage {
         let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
         let result = try await self.callJavaScript(script)
         guard let dataDict = result as? [String: Any],
-              let _ = dataDict["highlightID"] as? String,
+              let _ = dataDict["highlightId"] as? String,
               let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
         else {
             throw HighlightError.invalidResponse

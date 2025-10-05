@@ -200,8 +200,8 @@ class BookReaderViewModel {
 
                     // The range to highlight within the context is given in the results object
                     let highlightText = context[searchResults.primaryResultSourceRange]
-                    try await self.clearHighlights()
-                    try await self.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    await self.clearHighlights()
+                    await self.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
                     logger.debug("Highlighted text: \(highlightText)")
                 }
             }
@@ -211,30 +211,35 @@ class BookReaderViewModel {
     func hidePopup() {
         self.showPopup = false
         Task { @MainActor in
-            do {
-                try await self.clearHighlights()
-            } catch {
-                logger.error("Failed to clear highlights: \(error.localizedDescription)")
-            }
+            await self.clearHighlights()
         }
     }
 
-    func clearHighlights() async throws {
+    func clearHighlights() async {
         logger.debug("Clearing highlights")
         guard let navigator else {
             logger.warning("Navigator is not initialized, skipping clear highlights")
             return
         }
-        try await navigator.clearMaruHighlights()
+        do {
+            try await navigator.clearMaruHighlights()
+        } catch {
+            logger.error("Clearing highlights threw error: \(error.localizedDescription)")
+        }
     }
 
-    func highlightText(_ text: String, elementSelector: String, styles: String) async throws {
+    func highlightText(_ text: String, elementSelector: String, styles: String) async {
         logger.debug("Highlighting text: \(text) in element: \(elementSelector) with styles: \(styles)")
         guard let navigator else {
             logger.warning("Navigator is not initialized, skipping highlight")
             return
         }
-        _ = try await navigator.maruHighlightText(text, elementSelector: elementSelector, styles: styles)
+        do {
+            let result = try await navigator.maruHighlightText(text, elementSelector: elementSelector, styles: styles)
+            logger.debug("Highlight result bounding rects: \(result)")
+        } catch {
+            logger.error("Highlighting threw error: \(error.localizedDescription)")
+        }
     }
 
     func highlightStylesAsJSObject() -> String {
@@ -270,7 +275,7 @@ extension EPUBNavigatorViewController {
         switch result {
         case let .success(value):
             guard let dataDict = value as? [String: Any],
-                  let _ = dataDict["highlightID"] as? String,
+                  let _ = dataDict["highlightId"] as? String,
                   let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
             else {
                 throw HighlightError.invalidResponse
