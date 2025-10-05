@@ -31,7 +31,7 @@ struct DictionaryPopupView: View {
         .shadow(radius: 10)
     }
 
-    static func computePopupCenter(screenSize: CGSize, popupSize: CGSize = CGSize(width: 300, height: 400), highlightBoundingRects: [[String: Double]]?, readingProgression: ReadingProgression, isVerticalWriting: Bool) -> CGPoint? {
+    static func computePopupCenter(screenSize: CGSize, popupSize: CGSize = CGSize(width: 100, height: 200), highlightBoundingRects: [[String: Double]]?, readingProgression: ReadingProgression, isVerticalWriting: Bool) -> CGPoint? {
         let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryPopupView")
         guard let rects = highlightBoundingRects, !rects.isEmpty else { return nil }
 

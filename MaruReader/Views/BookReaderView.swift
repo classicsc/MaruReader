@@ -85,9 +85,15 @@ struct BookReaderView: View {
                 .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
                 if viewModel.showPopup {
-                    if let center = DictionaryPopupView.computePopupCenter(screenSize: geometry.size, highlightBoundingRects: viewModel.highlightBoundingRects, readingProgression: viewModel.readingProgression(), isVerticalWriting: viewModel.isVerticalWriting()) {
+                    if let center = DictionaryPopupView.computePopupCenter(
+                        screenSize: geometry.size,
+                        popupSize: CGSize(width: 200, height: 200),
+                        highlightBoundingRects: viewModel.highlightBoundingRects,
+                        readingProgression: viewModel.readingProgression(),
+                        isVerticalWriting: viewModel.isVerticalWriting()
+                    ) {
                         DictionaryPopupView(page: viewModel.popupPage)
-                            .frame(width: 300, height: 400)
+                            .frame(width: 200, height: 200)
                             .position(x: center.x, y: center.y)
                     }
                 }
