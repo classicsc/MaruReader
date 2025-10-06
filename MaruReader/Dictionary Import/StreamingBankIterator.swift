@@ -7,6 +7,7 @@
 
 import Foundation
 import JsonStream
+import os.log
 
 /// A generic streaming iterator for dictionary bank JSON files.
 /// Uses JsonStream to parse JSON without loading entire files into memory.
@@ -37,6 +38,8 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
         private var objectDepth = 0
         private var tokenBuffer: [JsonToken] = []
         private var isCollectingElement = false
+
+        private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "StreamingBankAsyncIterator")
 
         init(bankURLs: [URL], dataFormat: Int) {
             self.bankURLs = bankURLs
@@ -103,10 +106,20 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                             isCollectingElement = false
 
                             // Convert tokens back to JSON and decode
-                            let jsonData = try tokensToJSON(tokenBuffer)
-                            let entry = try decoder.decode(Entry.self, from: jsonData)
-                            tokenBuffer.removeAll()
-                            return entry
+                            do {
+                                let jsonData = try tokensToJSON(tokenBuffer)
+                                let entry = try decoder.decode(Entry.self, from: jsonData)
+                                tokenBuffer.removeAll()
+                                return entry
+                            } catch {
+                                let currentArrayDepth = arrayDepth
+                                let currentObjectDepth = objectDepth
+                                let bufferCount = tokenBuffer.count
+                                let fileName = bankURLs[currentFileIndex].lastPathComponent
+                                logger.error("Decoding failed for entry in file \(fileName): \(error.localizedDescription)")
+                                logger.debug("Current arrayDepth: \(currentArrayDepth), objectDepth: \(currentObjectDepth), tokenBuffer count: \(bufferCount)")
+                                throw DictionaryImportError.invalidData
+                            }
                         }
                     } else if arrayDepth == 1 {
                         // End of root array
@@ -149,7 +162,7 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                 case let .startObject(key):
                     // Add key if we're in an object
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     json.append("{")
                     containerStack.append(.object)
@@ -166,7 +179,7 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                 case let .startArray(key):
                     // Add key if we're in an object
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     json.append("[")
                     containerStack.append(.array)
@@ -183,13 +196,13 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                 case let .string(key, value):
                     // Only add key if we're in an object, not an array
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     json.append("\"\(escapeString(value))\",")
                 case let .number(key, value):
                     // Only add key if we're in an object, not an array
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     switch value {
                     case let .int(n):
@@ -202,13 +215,13 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
                 case let .bool(key, value):
                     // Only add key if we're in an object, not an array
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     json.append("\(value),")
                 case let .null(key):
                     // Only add key if we're in an object, not an array
                     if case .object = containerStack.last, let key {
-                        json.append("\"\(keyDescription(key))\":")
+                        json.append("\"\(escapeString(keyDescription(key)))\":")
                     }
                     json.append("null,")
                 }
@@ -236,12 +249,25 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
         }
 
         private func escapeString(_ str: String) -> String {
-            str
-                .replacingOccurrences(of: "\\", with: "\\\\")
-                .replacingOccurrences(of: "\"", with: "\\\"")
-                .replacingOccurrences(of: "\n", with: "\\n")
-                .replacingOccurrences(of: "\r", with: "\\r")
-                .replacingOccurrences(of: "\t", with: "\\t")
+            var result = ""
+            for scalar in str.unicodeScalars {
+                switch scalar {
+                case "\\": result += "\\\\"
+                case "\"": result += "\\\""
+                case "\n": result += "\\n"
+                case "\r": result += "\\r"
+                case "\t": result += "\\t"
+                case "\u{08}": result += "\\b" // backspace
+                case "\u{0C}": result += "\\f" // form feed
+                case "\u{00}" ... "\u{1F}":
+                    // Other control characters - use unicode escape
+                    let hex = String(scalar.value, radix: 16)
+                    result += "\\u" + hex.padding(toLength: 4, withPad: "0", startingAt: 0)
+                default:
+                    result.append(Character(scalar))
+                }
+            }
+            return result
         }
     }
 }
