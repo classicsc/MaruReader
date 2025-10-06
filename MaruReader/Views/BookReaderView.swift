@@ -42,6 +42,12 @@ struct BookReaderView: View {
                     }
                     .presentationDetents([.medium, .large])
                 }
+                .sheet(isPresented: Binding(
+                    get: { viewModel.overlayState == .showingSettingsEditorSheet },
+                    set: { if !$0 { viewModel.overlayState = .none } }
+                )) {
+                    ReaderSettingsEditorView(preferences: viewModel.readerPreferences)
+                }
         }
     }
 
@@ -91,10 +97,8 @@ struct BookReaderView: View {
                             Image(systemName: "bookmark")
                         }
 
-                        Button {
-                            viewModel.overlayState = .showingQuickSettings
-                        } label: {
-                            Image(systemName: "textformat.size.ja")
+                        QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
+                            viewModel.overlayState = .showingSettingsEditorSheet
                         }
                     }
                 }

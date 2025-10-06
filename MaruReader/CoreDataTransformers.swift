@@ -9,6 +9,7 @@
 
 import CoreData
 import Foundation
+import ReadiumNavigator
 
 // MARK: - Transformer Names
 
@@ -20,6 +21,9 @@ extension NSValueTransformerName {
     static let urlArrayTransformer = NSValueTransformerName("URLArrayTransformer")
     static let pitchAccentArrayTransformer = NSValueTransformerName("PitchAccentArrayTransformer")
     static let intArrayTransformer = NSValueTransformerName("IntArrayTransformer")
+    static let readiumColorTransformer = NSValueTransformerName("ReadiumColorTransformer")
+    static let readingProgressionTransformer = NSValueTransformerName("ReadingProgressionTransformer")
+    static let imageFilterTransformer = NSValueTransformerName("ImageFilterTransformer")
 }
 
 // MARK: - Registration Helper
@@ -34,6 +38,9 @@ enum CoreDataTransformers {
         ValueTransformer.setValueTransformer(URLArrayTransformer(), forName: .urlArrayTransformer)
         ValueTransformer.setValueTransformer(PitchAccentArrayTransformer(), forName: .pitchAccentArrayTransformer)
         ValueTransformer.setValueTransformer(IntArrayTransformer(), forName: .intArrayTransformer)
+        ValueTransformer.setValueTransformer(ReadiumColorTransformer(), forName: .readiumColorTransformer)
+        ValueTransformer.setValueTransformer(ReadingProgressionTransformer(), forName: .readingProgressionTransformer)
+        ValueTransformer.setValueTransformer(ImageFilterTransformer(), forName: .imageFilterTransformer)
     }
 }
 
@@ -89,5 +96,19 @@ final class PitchAccentArrayTransformer: JSONValueTransformer<[PitchAccent]> {
 }
 
 final class IntArrayTransformer: JSONValueTransformer<[Int]> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+// MARK: - Readium Type Transformers
+
+final class ReadiumColorTransformer: JSONValueTransformer<ReadiumNavigator.Color> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class ReadingProgressionTransformer: JSONValueTransformer<ReadiumNavigator.ReadingProgression> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class ImageFilterTransformer: JSONValueTransformer<ReadiumNavigator.ImageFilter> {
     // Nothing extra needed; subclass exists to provide unique name
 }

@@ -93,6 +93,7 @@ class BookReaderViewModel {
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
+    var readerPreferences: ReaderPreferences
     var navigator: EPUBNavigatorViewController?
     var highlightBoundingRects: [[String: Double]]?
 
@@ -112,6 +113,7 @@ class BookReaderViewModel {
 
     init(book: Book) {
         self.book = book
+        self.readerPreferences = ReaderPreferences(book: book)
 
         Task {
             await loadPublication()

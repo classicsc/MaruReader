@@ -15,6 +15,11 @@ struct MaruReaderApp: App {
         WindowGroup {
             ContentView()
                 .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                .onAppear {
+                    // Ensure system themes exist at app launch
+                    let themeManager = SystemThemeManager(context: persistenceController.container.viewContext)
+                    themeManager.ensureSystemThemesExist()
+                }
         }
     }
 }
