@@ -172,7 +172,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Verify job is properly cancelled using sendable DTO
-    private func verifyJobCancelled(_ jobDTO: MaruReader.DictionaryZIPFileImportDTO?) {
+    private func verifyJobCancelled(_ jobDTO: DictionaryZIPFileImportDTO?) {
         #expect(jobDTO != nil)
         #expect(jobDTO?.isCancelled == true)
         #expect(jobDTO?.isFailed == false)
@@ -181,7 +181,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Verify job is properly marked as failed using sendable DTO
-    private func verifyJobFailed(_ jobDTO: MaruReader.DictionaryZIPFileImportDTO?) {
+    private func verifyJobFailed(_ jobDTO: DictionaryZIPFileImportDTO?) {
         #expect(jobDTO != nil)
         #expect(jobDTO?.isFailed == true)
         #expect(jobDTO?.isCancelled == false)
@@ -191,17 +191,17 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Get job DTO from context safely
-    private func getJobDTO(from context: NSManagedObjectContext, importID: NSManagedObjectID) async -> MaruReader.DictionaryZIPFileImportDTO? {
+    private func getJobDTO(from context: NSManagedObjectContext, importID: NSManagedObjectID) async -> DictionaryZIPFileImportDTO? {
         await context.perform {
             guard let job = try? context.existingObject(with: importID) as? MaruReader.DictionaryZIPFileImport else {
                 return nil
             }
-            return MaruReader.DictionaryZIPFileImportDTO(from: job)
+            return DictionaryZIPFileImportDTO(from: job)
         }
     }
 
     // Helper: Fetch dictionaries as DTOs safely
-    private func fetchDictionaryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.DictionaryDTO] {
+    private func fetchDictionaryDTOs(from context: NSManagedObjectContext) async -> [DictionaryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -210,7 +210,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch dictionary tag metas as DTOs safely
-    private func fetchDictionaryTagMetaDTOs(from context: NSManagedObjectContext) async -> [MaruReader.DictionaryTagMetaDTO] {
+    private func fetchDictionaryTagMetaDTOs(from context: NSManagedObjectContext) async -> [DictionaryTagMetaDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -219,7 +219,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch terms as DTOs safely
-    private func fetchTermDTOs(from context: NSManagedObjectContext) async -> [MaruReader.TermDTO] {
+    private func fetchTermDTOs(from context: NSManagedObjectContext) async -> [TermDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -228,7 +228,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch term entries as DTOs safely
-    private func fetchTermEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.TermEntryDTO] {
+    private func fetchTermEntryDTOs(from context: NSManagedObjectContext) async -> [TermEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -237,7 +237,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch kanji as DTOs safely
-    private func fetchKanjiDTOs(from context: NSManagedObjectContext) async -> [MaruReader.KanjiDTO] {
+    private func fetchKanjiDTOs(from context: NSManagedObjectContext) async -> [KanjiDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.Kanji> = MaruReader.Kanji.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -246,7 +246,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch kanji entries as DTOs safely
-    private func fetchKanjiEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.KanjiEntryDTO] {
+    private func fetchKanjiEntryDTOs(from context: NSManagedObjectContext) async -> [KanjiEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.KanjiEntry> = MaruReader.KanjiEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -255,7 +255,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch kanji frequency entries as DTOs safely
-    private func fetchKanjiFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.KanjiFrequencyEntryDTO] {
+    private func fetchKanjiFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [KanjiFrequencyEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.KanjiFrequencyEntry> = MaruReader.KanjiFrequencyEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -264,7 +264,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch term frequency entries as DTOs safely
-    private func fetchTermFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.TermFrequencyEntryDTO] {
+    private func fetchTermFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [TermFrequencyEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -273,7 +273,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch pitch accent entries as DTOs safely
-    private func fetchPitchAccentEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.PitchAccentEntryDTO] {
+    private func fetchPitchAccentEntryDTOs(from context: NSManagedObjectContext) async -> [PitchAccentEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.PitchAccentEntry> = MaruReader.PitchAccentEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []
@@ -282,7 +282,7 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Fetch IPA entries as DTOs safely
-    private func fetchIPAEntryDTOs(from context: NSManagedObjectContext) async -> [MaruReader.IPAEntryDTO] {
+    private func fetchIPAEntryDTOs(from context: NSManagedObjectContext) async -> [IPAEntryDTO] {
         await context.perform {
             let request: NSFetchRequest<MaruReader.IPAEntry> = MaruReader.IPAEntry.fetchRequest()
             let results = (try? context.fetch(request)) ?? []

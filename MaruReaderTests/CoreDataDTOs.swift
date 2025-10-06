@@ -8,6 +8,8 @@
 //  across actor boundaries while maintaining Swift 6 concurrency safety.
 
 import Foundation
+@testable import MaruReader
+import Testing
 
 // MARK: - Dictionary DTO
 
