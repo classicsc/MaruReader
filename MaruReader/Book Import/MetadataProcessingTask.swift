@@ -101,6 +101,7 @@ actor MetadataProcessingTask {
             let title = metadata.title
             let author = metadata.authors.first?.name
             let mediaType = publication.manifest.metadata.type
+            let language = metadata.language?.code.removingRegion().bcp47
 
             // Close the publication to release resources
             publication.close()
@@ -120,6 +121,7 @@ actor MetadataProcessingTask {
                 book.author = author
                 book.mediaType = mediaType
                 book.added = Date()
+                book.language = language
                 book.originalFileName = fileURL.lastPathComponent
 
                 context.insert(book)

@@ -122,7 +122,7 @@ class ReaderPreferences {
         if book.readerProfile == nil {
             let themeManager = SystemThemeManager()
             themeManager.ensureSystemThemesExist()
-            book.readerProfile = themeManager.createDefaultProfile(for: book)
+            book.readerProfile = themeManager.getProfile(for: book)
         }
     }
 

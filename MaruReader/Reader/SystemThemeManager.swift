@@ -124,13 +124,26 @@ class SystemThemeManager {
         theme.setValue(ReadiumNavigator.Color(hex: "#FFE4B5"), forKey: "highlightColor")
     }
 
-    /// Creates a default reader profile for a book using system defaults
-    func createDefaultProfile(for _: Book) -> ReaderProfile {
+    /// Fetches the default profile for the book's language, or creates one if none exists
+    func getProfile(for book: Book) -> ReaderProfile {
+        let language = book.language ?? "und" // "und" = undefined
+        let request = ReaderProfile.fetchRequest()
+        request.predicate = NSPredicate(format: "language == %@", language)
+        request.fetchLimit = 1
+        if let profile = try? context.fetch(request).first {
+            return profile
+        } else {
+            return createDefaultProfile(for: language)
+        }
+    }
+
+    private func createDefaultProfile(for language: String) -> ReaderProfile {
         let profile = ReaderProfile(context: context)
         profile.id = UUID()
         profile.name = "Default"
         profile.isDefault = true
         profile.displayPriority = 0
+        profile.language = language
 
         // Most attributes not set to allow fallback to publication defaults
 
