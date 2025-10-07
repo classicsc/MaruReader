@@ -100,7 +100,6 @@ class BookReaderViewModel {
     private var popupSearchTask: Task<Void, Error>?
 
     private let searchService = DictionarySearchService()
-
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var lookupSchemeHandler: DictionaryLookupURLSchemeHandler?

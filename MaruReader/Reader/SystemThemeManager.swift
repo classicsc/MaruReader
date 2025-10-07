@@ -2,7 +2,7 @@
 //  SystemThemeManager.swift
 //  MaruReader
 //
-//  Manages system-defined reader themes and ensures they exist at app launch.
+//  Manages system-defined reader themes and ensures they exist when a book is loaded.
 //
 
 import CoreData
@@ -12,11 +12,12 @@ import SwiftUI
 
 @MainActor
 class SystemThemeManager {
-    private let context: NSManagedObjectContext
+    private let context: NSManagedObjectContext = PersistenceController.shared.container.viewContext
 
-    init(context: NSManagedObjectContext) {
-        self.context = context
-    }
+    // Stable IDs for system themes
+    private let lightThemeID = UUID(uuidString: "E4D81462-B651-43E3-A670-79A13C0B9A65")!
+    private let darkThemeID = UUID(uuidString: "AE912579-49EF-49E7-BFB4-7C228A932E14")!
+    private let sepiaThemeID = UUID(uuidString: "31A30AB8-0382-4C50-B982-9E2D8BA61A39")!
 
     /// Creates default system themes if they don't exist
     func ensureSystemThemesExist() {
@@ -25,20 +26,20 @@ class SystemThemeManager {
 
         guard let existingThemes = try? context.fetch(request) else { return }
 
-        let existingThemeNames = Set(existingThemes.compactMap(\.name))
+        let existingThemeIDs = Set(existingThemes.compactMap(\.id))
 
         // Create Light theme if missing
-        if !existingThemeNames.contains("Light") {
+        if !existingThemeIDs.contains(lightThemeID) {
             createLightTheme()
         }
 
         // Create Dark theme if missing
-        if !existingThemeNames.contains("Dark") {
+        if !existingThemeIDs.contains(sepiaThemeID) {
             createDarkTheme()
         }
 
         // Create Sepia theme if missing
-        if !existingThemeNames.contains("Sepia") {
+        if !existingThemeIDs.contains(darkThemeID) {
             createSepiaTheme()
         }
 
@@ -50,7 +51,7 @@ class SystemThemeManager {
 
     private func createLightTheme() {
         let theme = ReaderTheme(context: context)
-        theme.id = UUID()
+        theme.id = lightThemeID
         theme.name = "Light"
         theme.isSystemTheme = true
         theme.displayPriority = 0
@@ -74,7 +75,7 @@ class SystemThemeManager {
 
     private func createDarkTheme() {
         let theme = ReaderTheme(context: context)
-        theme.id = UUID()
+        theme.id = darkThemeID
         theme.name = "Dark"
         theme.isSystemTheme = true
         theme.displayPriority = 1
@@ -101,7 +102,7 @@ class SystemThemeManager {
 
     private func createSepiaTheme() {
         let theme = ReaderTheme(context: context)
-        theme.id = UUID()
+        theme.id = sepiaThemeID
         theme.name = "Sepia"
         theme.isSystemTheme = true
         theme.displayPriority = 2
@@ -131,19 +132,18 @@ class SystemThemeManager {
         profile.isDefault = true
         profile.displayPriority = 0
 
-        // Set Readium default font settings (will be nil = use publication defaults)
-        profile.fontFamily = nil
-        profile.fontSize = 100.0 // 100% is the Readium default
-        profile.fontWeight = 0.0 // 0.0 means use default
-        profile.horizontalMargin = 1.0 // Readium default
-        profile.verticalMargin = 1.0 // Readium default
+        // Most attributes not set to allow fallback to publication defaults
 
         // Default icon
         profile.iconCharacter = "A"
 
-        // Link to light theme by default
-        if let lightTheme = fetchSystemTheme(named: "Light") {
+        // Link to light and dark themes
+        if let lightTheme = fetchSystemTheme(with: lightThemeID) {
             profile.theme = lightTheme
+        }
+
+        if let darkTheme = fetchSystemTheme(with: darkThemeID) {
+            profile.darkTheme = darkTheme
         }
 
         // Save the profile
@@ -152,9 +152,9 @@ class SystemThemeManager {
         return profile
     }
 
-    private func fetchSystemTheme(named name: String) -> ReaderTheme? {
+    private func fetchSystemTheme(with id: UUID) -> ReaderTheme? {
         let request = ReaderTheme.fetchRequest()
-        request.predicate = NSPredicate(format: "isSystemTheme == YES AND name == %@", name)
+        request.predicate = NSPredicate(format: "id == %@ AND isSystemTheme == YES", id as CVarArg)
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
