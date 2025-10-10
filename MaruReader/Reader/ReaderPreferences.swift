@@ -21,9 +21,18 @@ class ReaderPreferences {
 
     weak var navigator: EPUBNavigatorViewController?
 
+    // Update trigger to force SwiftUI to re-render when Core Data values change
+    private var updateTrigger = 0
+
     // Current profile for this book
     var profile: ReaderProfile? {
         book.readerProfile
+    }
+
+    // Check if the publication is fixed-layout (for conditional UI)
+    var isFixedLayout: Bool {
+        guard let navigator else { return false }
+        return navigator.publication.metadata.layout == .fixed
     }
 
     // Book-specific preferences
@@ -65,50 +74,70 @@ class ReaderPreferences {
 
     // Profile-based preferences
     var fontSize: Double {
-        get { profile?.fontSize ?? 100.0 }
+        get {
+            _ = updateTrigger
+            return profile?.fontSize ?? 100.0
+        }
         set {
             guard let profile else { return }
             profile.fontSize = newValue
+            updateTrigger += 1
             saveContext()
             submitToNavigator()
         }
     }
 
     var fontFamily: String? {
-        get { profile?.fontFamily }
+        get {
+            _ = updateTrigger
+            return profile?.fontFamily
+        }
         set {
             guard let profile else { return }
             profile.fontFamily = newValue
+            updateTrigger += 1
             saveContext()
             submitToNavigator()
         }
     }
 
     var fontWeight: Double {
-        get { profile?.fontWeight ?? 0.0 }
+        get {
+            _ = updateTrigger
+            return profile?.fontWeight ?? 0.0
+        }
         set {
             guard let profile else { return }
             profile.fontWeight = newValue
+            updateTrigger += 1
             saveContext()
             submitToNavigator()
         }
     }
 
     var horizontalMargin: Double {
-        get { profile?.horizontalMargin ?? 1.0 }
+        get {
+            _ = updateTrigger
+            return profile?.horizontalMargin ?? 1.0
+        }
         set {
             guard let profile else { return }
             profile.horizontalMargin = newValue
+            updateTrigger += 1
             saveContext()
             submitToNavigator()
         }
     }
 
     var verticalMargin: Double {
-        get { profile?.verticalMargin ?? 1.0 }
+        get {
+            _ = updateTrigger
+            return profile?.verticalMargin ?? 1.0
+        }
         set {
             guard let profile else { return }
             profile.verticalMargin = newValue
+            updateTrigger += 1
             saveContext()
             submitToNavigator()
         }
@@ -116,6 +145,7 @@ class ReaderPreferences {
 
     // Current theme (respects system dark mode if profile has both themes)
     var currentTheme: ReaderTheme? {
+        _ = updateTrigger
         guard let profile else { return nil }
 
         // If profile has both light and dark themes, use appropriate one
@@ -141,6 +171,7 @@ class ReaderPreferences {
 
     func setProfile(_ profile: ReaderProfile) {
         book.readerProfile = profile
+        updateTrigger += 1
         saveContext()
         submitToNavigator()
     }

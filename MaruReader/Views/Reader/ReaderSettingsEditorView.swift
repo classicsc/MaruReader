@@ -60,10 +60,13 @@ struct ReadingSettingsTab: View {
                     set: { preferences.scroll = $0 }
                 ))
 
-                Toggle("2-Page Spread", isOn: Binding(
-                    get: { preferences.spread },
-                    set: { preferences.spread = $0 }
-                ))
+                // Only show spread option for fixed-layout EPUBs
+                if preferences.isFixedLayout {
+                    Toggle("2-Page Spread", isOn: Binding(
+                        get: { preferences.spread },
+                        set: { preferences.spread = $0 }
+                    ))
+                }
 
                 Toggle("Vertical Text", isOn: Binding(
                     get: { preferences.verticalText },

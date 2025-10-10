@@ -12,6 +12,7 @@ import SwiftUI
 
 struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
+    @Environment(\.colorScheme) var colorScheme
 
     init(book: Book) {
         _viewModel = State(wrappedValue: BookReaderViewModel(book: book))
