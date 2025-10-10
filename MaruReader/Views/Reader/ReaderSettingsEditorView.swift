@@ -55,34 +55,63 @@ struct ReadingSettingsTab: View {
     var body: some View {
         Form {
             Section("Display Mode") {
-                Toggle("Scrolling", isOn: Binding(
-                    get: { preferences.scroll },
-                    set: { preferences.scroll = $0 }
-                ))
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Scrolling", isOn: Binding(
+                        get: { preferences.effectiveScroll },
+                        set: { preferences.scroll = $0 }
+                    ))
+                    if preferences.isScrollInferred {
+                        Text("Automatically determined from publication")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
 
                 // Only show spread option for fixed-layout EPUBs
                 if preferences.isFixedLayout {
-                    Toggle("2-Page Spread", isOn: Binding(
-                        get: { preferences.spread },
-                        set: { preferences.spread = $0 }
-                    ))
+                    VStack(alignment: .leading, spacing: 4) {
+                        Toggle("2-Page Spread", isOn: Binding(
+                            get: { preferences.effectiveSpread == .always },
+                            set: { preferences.spread = $0 }
+                        ))
+                        if preferences.isSpreadInferred {
+                            Text("Automatically determined from publication")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
                 }
 
-                Toggle("Vertical Text", isOn: Binding(
-                    get: { preferences.verticalText },
-                    set: { preferences.verticalText = $0 }
-                ))
+                VStack(alignment: .leading, spacing: 4) {
+                    Toggle("Vertical Text", isOn: Binding(
+                        get: { preferences.effectiveVerticalText },
+                        set: { preferences.verticalText = $0 }
+                    ))
+                    if preferences.isVerticalTextInferred {
+                        Text("Automatically determined from publication")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
 
             Section("Text Direction") {
-                Picker("Direction", selection: Binding(
-                    get: { preferences.textDirection ?? .ltr },
-                    set: { preferences.textDirection = $0 }
-                )) {
-                    Text("Left to Right").tag(ReadiumNavigator.ReadingProgression.ltr)
-                    Text("Right to Left").tag(ReadiumNavigator.ReadingProgression.rtl)
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("Direction", selection: Binding(
+                        get: { preferences.effectiveReadingProgression },
+                        set: { preferences.textDirection = $0 }
+                    )) {
+                        Text("Left to Right").tag(ReadiumNavigator.ReadingProgression.ltr)
+                        Text("Right to Left").tag(ReadiumNavigator.ReadingProgression.rtl)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if preferences.isReadingProgressionInferred {
+                        Text("Automatically determined from publication language")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
                 }
-                .pickerStyle(.segmented)
             }
 
             Section("Font") {
@@ -90,12 +119,17 @@ struct ReadingSettingsTab: View {
                     HStack {
                         Text("Size")
                         Spacer()
-                        Text("\(Int(preferences.fontSize))%")
-                            .foregroundStyle(.secondary)
+                        if preferences.isUsingDefaultFontSize {
+                            Text("100% (Default)")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(Int(preferences.fontSize))%")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Slider(
                         value: Binding(
-                            get: { preferences.fontSize },
+                            get: { preferences.effectiveFontSize },
                             set: { preferences.fontSize = $0 }
                         ),
                         in: 50 ... 200,
@@ -116,12 +150,17 @@ struct ReadingSettingsTab: View {
                     HStack {
                         Text("Horizontal")
                         Spacer()
-                        Text("\(preferences.horizontalMargin, specifier: "%.2f")")
-                            .foregroundStyle(.secondary)
+                        if preferences.isUsingDefaultHorizontalMargin {
+                            Text("1.0 (Default)")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(preferences.horizontalMargin, specifier: "%.2f")")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Slider(
                         value: Binding(
-                            get: { preferences.horizontalMargin },
+                            get: { preferences.effectiveHorizontalMargin },
                             set: { preferences.horizontalMargin = $0 }
                         ),
                         in: 0.5 ... 3.0,
@@ -133,12 +172,17 @@ struct ReadingSettingsTab: View {
                     HStack {
                         Text("Vertical")
                         Spacer()
-                        Text("\(preferences.verticalMargin, specifier: "%.2f")")
-                            .foregroundStyle(.secondary)
+                        if preferences.isUsingDefaultVerticalMargin {
+                            Text("1.0 (Default)")
+                                .foregroundStyle(.secondary)
+                        } else {
+                            Text("\(preferences.verticalMargin, specifier: "%.2f")")
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     Slider(
                         value: Binding(
-                            get: { preferences.verticalMargin },
+                            get: { preferences.effectiveVerticalMargin },
                             set: { preferences.verticalMargin = $0 }
                         ),
                         in: 0.5 ... 3.0,

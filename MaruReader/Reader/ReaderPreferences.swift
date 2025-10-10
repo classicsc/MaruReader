@@ -37,18 +37,24 @@ class ReaderPreferences {
 
     // Book-specific preferences
     var scroll: Bool {
-        get { book.scroll }
+        get {
+            // Return actual value if set, otherwise return false (will be inferred by navigator)
+            book.value(forKey: "scroll") as? Bool ?? false
+        }
         set {
-            book.scroll = newValue
+            book.setValue(newValue, forKey: "scroll")
             saveContext()
             submitToNavigator()
         }
     }
 
     var spread: Bool {
-        get { book.spread }
+        get {
+            // Return actual value if set, otherwise return false (will be inferred by navigator)
+            book.value(forKey: "spread") as? Bool ?? false
+        }
         set {
-            book.spread = newValue
+            book.setValue(newValue, forKey: "spread")
             saveContext()
             submitToNavigator()
         }
@@ -64,9 +70,12 @@ class ReaderPreferences {
     }
 
     var verticalText: Bool {
-        get { book.verticalText }
+        get {
+            // Return actual value if set, otherwise return false (will be inferred by navigator)
+            book.value(forKey: "verticalText") as? Bool ?? false
+        }
         set {
-            book.verticalText = newValue
+            book.setValue(newValue, forKey: "verticalText")
             saveContext()
             submitToNavigator()
         }
@@ -143,6 +152,97 @@ class ReaderPreferences {
         }
     }
 
+    // MARK: - Effective Values (showing what navigator actually uses)
+
+    /// Returns the effective font size that the navigator will use
+    /// If profile fontSize is 0, returns the navigator's default of 100%
+    var effectiveFontSize: Double {
+        let rawValue = profile?.fontSize ?? 0.0
+        return rawValue != 0.0 ? rawValue : 100.0
+    }
+
+    /// Returns whether the current fontSize is using the navigator's default
+    var isUsingDefaultFontSize: Bool {
+        (profile?.fontSize ?? 0.0) == 0.0
+    }
+
+    /// Returns the effective horizontal margin that the navigator will use
+    /// If profile horizontalMargin is 0, returns the navigator's default of 1.0
+    var effectiveHorizontalMargin: Double {
+        let rawValue = profile?.horizontalMargin ?? 0.0
+        return rawValue != 0.0 ? rawValue : 1.0
+    }
+
+    /// Returns whether the current horizontal margin is using the navigator's default
+    var isUsingDefaultHorizontalMargin: Bool {
+        (profile?.horizontalMargin ?? 0.0) == 0.0
+    }
+
+    /// Returns the effective vertical margin that the navigator will use
+    /// If profile verticalMargin is 0, returns the navigator's default of 1.0
+    var effectiveVerticalMargin: Double {
+        let rawValue = profile?.verticalMargin ?? 0.0
+        return rawValue != 0.0 ? rawValue : 1.0
+    }
+
+    /// Returns whether the current vertical margin is using the navigator's default
+    var isUsingDefaultVerticalMargin: Bool {
+        (profile?.verticalMargin ?? 0.0) == 0.0
+    }
+
+    // MARK: - Effective Book Settings (navigator-inferred values)
+
+    /// Returns the effective scroll mode from navigator settings if available
+    /// Otherwise returns the stored value or false
+    var effectiveScroll: Bool {
+        navigator?.settings.scroll ?? scroll
+    }
+
+    /// Returns whether scroll is inferred by the navigator (not explicitly set by user)
+    var isScrollInferred: Bool {
+        book.value(forKey: "scroll") == nil
+    }
+
+    /// Returns the effective vertical text mode from navigator settings if available
+    /// Otherwise returns the stored value or false
+    var effectiveVerticalText: Bool {
+        navigator?.settings.verticalText ?? verticalText
+    }
+
+    /// Returns whether vertical text is inferred by the navigator
+    var isVerticalTextInferred: Bool {
+        book.value(forKey: "verticalText") == nil
+    }
+
+    /// Returns the effective reading progression from navigator settings if available
+    /// Otherwise returns the stored value or .ltr
+    var effectiveReadingProgression: ReadiumNavigator.ReadingProgression {
+        navigator?.settings.readingProgression ?? (textDirection ?? .ltr)
+    }
+
+    /// Returns whether reading progression is inferred by the navigator
+    var isReadingProgressionInferred: Bool {
+        book.value(forKey: "textDirection") == nil
+    }
+
+    /// Returns the effective spread mode from navigator settings if available
+    /// Otherwise returns .auto (for fixed-layout) or based on stored value
+    var effectiveSpread: Spread {
+        if let navigatorSpread = navigator?.settings.spread {
+            return navigatorSpread
+        }
+        // Fallback to stored value
+        if let spreadValue = book.value(forKey: "spread") as? Bool {
+            return spreadValue ? .always : .never
+        }
+        return .auto
+    }
+
+    /// Returns whether spread is inferred by the navigator
+    var isSpreadInferred: Bool {
+        book.value(forKey: "spread") == nil
+    }
+
     // Current theme (respects system dark mode if profile has both themes)
     var currentTheme: ReaderTheme? {
         _ = updateTrigger
@@ -182,15 +282,20 @@ class ReaderPreferences {
     func buildEPUBPreferences() -> EPUBPreferences {
         var preferences = EPUBPreferences()
 
-        // Book-specific settings
-        preferences.scroll = book.scroll
-        preferences.verticalText = book.verticalText
+        // Book-specific settings - only set if explicitly configured by user
+        // If nil, let the navigator infer from publication metadata
 
-        // Map spread: Bool -> Spread enum (.always/.never)
-        if book.spread {
-            preferences.spread = .always
-        } else {
-            preferences.spread = .never
+        if let scrollValue = book.value(forKey: "scroll") as? Bool {
+            preferences.scroll = scrollValue
+        }
+
+        if let verticalTextValue = book.value(forKey: "verticalText") as? Bool {
+            preferences.verticalText = verticalTextValue
+        }
+
+        if let spreadValue = book.value(forKey: "spread") as? Bool {
+            // Map spread: Bool -> Spread enum (.always/.never)
+            preferences.spread = spreadValue ? .always : .never
         }
 
         // Map textDirection -> readingProgression
@@ -198,19 +303,29 @@ class ReaderPreferences {
             preferences.readingProgression = textDirection
         }
 
-        // Profile-based settings
+        // Profile-based settings - only set non-zero values to allow navigator defaults
         if let profile {
             // Convert fontSize from percentage (100.0 = 100%) to decimal (1.0 = 100%)
-            preferences.fontSize = profile.fontSize / 100.0
+            // Only set if non-zero to allow navigator to use its default (1.0)
+            if profile.fontSize != 0.0 {
+                preferences.fontSize = profile.fontSize / 100.0
+            }
 
             // Font settings
             if let fontFamily = profile.fontFamily {
                 preferences.fontFamily = FontFamily(rawValue: fontFamily)
             }
-            preferences.fontWeight = profile.fontWeight
+
+            // Only set fontWeight if non-zero
+            if profile.fontWeight != 0.0 {
+                preferences.fontWeight = profile.fontWeight
+            }
 
             // Margins (use horizontalMargin as pageMargins since EPUBPreferences has a single value)
-            preferences.pageMargins = profile.horizontalMargin
+            // Only set if non-zero to allow navigator to use its default (1.0)
+            if profile.horizontalMargin != 0.0 {
+                preferences.pageMargins = profile.horizontalMargin
+            }
 
             // Theme-based settings
             if let theme = currentTheme {

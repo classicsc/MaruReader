@@ -17,13 +17,17 @@ struct QuickReaderSettingsMenu: View {
             Menu {
                 Stepper(
                     value: Binding(
-                        get: { preferences.fontSize },
+                        get: { preferences.effectiveFontSize },
                         set: { preferences.fontSize = $0 }
                     ),
                     in: 50 ... 200,
                     step: 10
                 ) {
-                    Text("Font Size: \(Int(preferences.fontSize))%")
+                    if preferences.isUsingDefaultFontSize {
+                        Text("Font Size: 100% (Default)")
+                    } else {
+                        Text("Font Size: \(Int(preferences.fontSize))%")
+                    }
                 }
             } label: {
                 Label("Font Size", systemImage: "textformat.size")
@@ -33,13 +37,17 @@ struct QuickReaderSettingsMenu: View {
             Menu {
                 Stepper(
                     value: Binding(
-                        get: { preferences.horizontalMargin },
+                        get: { preferences.effectiveHorizontalMargin },
                         set: { preferences.horizontalMargin = $0 }
                     ),
                     in: 0.5 ... 3.0,
                     step: 0.25
                 ) {
-                    Text("Horizontal: \(preferences.horizontalMargin, specifier: "%.2f")")
+                    if preferences.isUsingDefaultHorizontalMargin {
+                        Text("Horizontal: 1.0 (Default)")
+                    } else {
+                        Text("Horizontal: \(preferences.horizontalMargin, specifier: "%.2f")")
+                    }
                 }
             } label: {
                 Label("Horizontal Margin", systemImage: "arrow.left.and.right")
@@ -49,13 +57,17 @@ struct QuickReaderSettingsMenu: View {
             Menu {
                 Stepper(
                     value: Binding(
-                        get: { preferences.verticalMargin },
+                        get: { preferences.effectiveVerticalMargin },
                         set: { preferences.verticalMargin = $0 }
                     ),
                     in: 0.5 ... 3.0,
                     step: 0.25
                 ) {
-                    Text("Vertical: \(preferences.verticalMargin, specifier: "%.2f")")
+                    if preferences.isUsingDefaultVerticalMargin {
+                        Text("Vertical: 1.0 (Default)")
+                    } else {
+                        Text("Vertical: \(preferences.verticalMargin, specifier: "%.2f")")
+                    }
                 }
             } label: {
                 Label("Vertical Margin", systemImage: "arrow.up.and.down")
