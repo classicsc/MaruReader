@@ -8,6 +8,7 @@
 import CoreData
 import Foundation
 import Observation
+import os.log
 import ReadiumNavigator
 import SwiftUI
 
@@ -16,6 +17,9 @@ import SwiftUI
 class ReaderPreferences {
     private(set) var book: Book
     private let context: NSManagedObjectContext
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ReaderPreferences")
+
+    weak var navigator: EPUBNavigatorViewController?
 
     // Current profile for this book
     var profile: ReaderProfile? {
@@ -28,6 +32,7 @@ class ReaderPreferences {
         set {
             book.scroll = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -36,6 +41,7 @@ class ReaderPreferences {
         set {
             book.spread = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -44,6 +50,7 @@ class ReaderPreferences {
         set {
             book.setValue(newValue, forKey: "textDirection")
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -52,6 +59,7 @@ class ReaderPreferences {
         set {
             book.verticalText = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -62,6 +70,7 @@ class ReaderPreferences {
             guard let profile else { return }
             profile.fontSize = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -71,6 +80,7 @@ class ReaderPreferences {
             guard let profile else { return }
             profile.fontFamily = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -80,6 +90,7 @@ class ReaderPreferences {
             guard let profile else { return }
             profile.fontWeight = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -89,6 +100,7 @@ class ReaderPreferences {
             guard let profile else { return }
             profile.horizontalMargin = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -98,6 +110,7 @@ class ReaderPreferences {
             guard let profile else { return }
             profile.verticalMargin = newValue
             saveContext()
+            submitToNavigator()
         }
     }
 
@@ -129,6 +142,72 @@ class ReaderPreferences {
     func setProfile(_ profile: ReaderProfile) {
         book.readerProfile = profile
         saveContext()
+        submitToNavigator()
+    }
+
+    // MARK: - Navigator Integration
+
+    /// Builds EPUBPreferences from current Core Data values
+    func buildEPUBPreferences() -> EPUBPreferences {
+        var preferences = EPUBPreferences()
+
+        // Book-specific settings
+        preferences.scroll = book.scroll
+        preferences.verticalText = book.verticalText
+
+        // Map spread: Bool -> Spread enum (.always/.never)
+        if book.spread {
+            preferences.spread = .always
+        } else {
+            preferences.spread = .never
+        }
+
+        // Map textDirection -> readingProgression
+        if let textDirection = book.value(forKey: "textDirection") as? ReadiumNavigator.ReadingProgression {
+            preferences.readingProgression = textDirection
+        }
+
+        // Profile-based settings
+        if let profile {
+            // Convert fontSize from percentage (100.0 = 100%) to decimal (1.0 = 100%)
+            preferences.fontSize = profile.fontSize / 100.0
+
+            // Font settings
+            if let fontFamily = profile.fontFamily {
+                preferences.fontFamily = FontFamily(rawValue: fontFamily)
+            }
+            preferences.fontWeight = profile.fontWeight
+
+            // Margins (use horizontalMargin as pageMargins since EPUBPreferences has a single value)
+            preferences.pageMargins = profile.horizontalMargin
+
+            // Theme-based settings
+            if let theme = currentTheme {
+                if let bgColor = theme.value(forKey: "backgroundColor") as? ReadiumNavigator.Color {
+                    preferences.backgroundColor = bgColor
+                }
+                if let textColor = theme.value(forKey: "textColor") as? ReadiumNavigator.Color {
+                    preferences.textColor = textColor
+                }
+                if let imageFilter = theme.value(forKey: "imageFilter") as? ImageFilter {
+                    preferences.imageFilter = imageFilter
+                }
+            }
+        }
+
+        return preferences
+    }
+
+    /// Submits current preferences to the navigator
+    func submitToNavigator() {
+        guard let navigator else {
+            logger.debug("Navigator not available, skipping preference submission")
+            return
+        }
+
+        let preferences = buildEPUBPreferences()
+        navigator.submitPreferences(preferences)
+        logger.debug("Submitted preferences to navigator")
     }
 
     private func saveContext() {
@@ -136,7 +215,7 @@ class ReaderPreferences {
         do {
             try context.save()
         } catch {
-            print("Failed to save reader preferences: \(error)")
+            logger.error("Failed to save reader preferences: \(error)")
         }
     }
 

@@ -32,7 +32,9 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
                 .regular: (top: 0, bottom: 0),
             ]
 
-            let config = EPUBNavigatorViewController.Configuration(preferences: EPUBPreferences(), defaults: EPUBDefaults(), contentInset: insets)
+            // Build initial preferences from stored settings
+            let initialPreferences = viewModel.readerPreferences.buildEPUBPreferences()
+            let config = EPUBNavigatorViewController.Configuration(preferences: initialPreferences, defaults: EPUBDefaults(), contentInset: insets)
 
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(
@@ -45,6 +47,9 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             navigator.delegate = context.coordinator
 
             viewModel.navigator = navigator
+
+            // Set navigator reference on readerPreferences for future updates
+            viewModel.readerPreferences.navigator = navigator
 
             return navigator
         } catch {
