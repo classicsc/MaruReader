@@ -271,12 +271,12 @@ struct DictionaryRow: View {
                                 .foregroundStyle(.red)
                         } else {
                             let types: [(label: String, systemImage: String, isPresent: Bool)] = [
-                                ("Terms", "textformat", dictionary.termCount > 0),
-                                ("Kanji", "character.zh", dictionary.kanjiCount > 0),
-                                ("Frequency", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
-                                ("Kanji Frequency", "chart.bar", dictionary.kanjiFrequencyCount > 0),
-                                ("Pitch", "waveform", dictionary.pitchesCount > 0),
-                                ("IPA", "speaker.wave.2", dictionary.ipaCount > 0),
+                                ("Terms: \(dictionary.termCount)", "textformat", dictionary.termCount > 0),
+                                ("Kanji: \(dictionary.kanjiCount)", "character.zh", dictionary.kanjiCount > 0),
+                                ("Frequency: \(dictionary.termFrequencyCount)", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
+                                ("Kanji Frequency: \(dictionary.kanjiFrequencyCount)", "chart.bar", dictionary.kanjiFrequencyCount > 0),
+                                ("Pitch: \(dictionary.pitchesCount)", "waveform", dictionary.pitchesCount > 0),
+                                ("IPA: \(dictionary.ipaCount)", "speaker.wave.2", dictionary.ipaCount > 0),
                             ]
                             ForEach(types.filter(\.isPresent), id: \.label) { type in
                                 Label(type.label, systemImage: type.systemImage)
