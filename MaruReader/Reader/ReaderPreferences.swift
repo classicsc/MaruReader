@@ -18,6 +18,7 @@ class ReaderPreferences {
     private(set) var book: Book
     private let context: NSManagedObjectContext
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ReaderPreferences")
+    private var saveContextDebounceTask: Task<Void, Never>?
 
     weak var navigator: EPUBNavigatorViewController?
 
@@ -357,11 +358,20 @@ class ReaderPreferences {
     }
 
     private func saveContext() {
-        guard context.hasChanges else { return }
-        do {
-            try context.save()
-        } catch {
-            logger.error("Failed to save reader preferences: \(error)")
+        saveContextDebounceTask?.cancel()
+        saveContextDebounceTask = Task { [weak self] in
+            do {
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            } catch {
+                return // Task was cancelled
+            }
+            guard let self else { return }
+            guard self.context.hasChanges else { return }
+            do {
+                try context.save()
+            } catch {
+                logger.error("Failed to save reader preferences: \(error)")
+            }
         }
     }
 
