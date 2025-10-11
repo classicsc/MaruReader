@@ -22,17 +22,11 @@ struct ReaderSettingsEditorView: View {
                     }
                     .tag(0)
 
-                ProfilesTab(preferences: preferences)
-                    .tabItem {
-                        Label("Profiles", systemImage: "person.crop.circle")
-                    }
-                    .tag(1)
-
                 ThemesTab(preferences: preferences)
                     .tabItem {
                         Label("Themes", systemImage: "paintpalette")
                     }
-                    .tag(2)
+                    .tag(1)
             }
             .navigationTitle("Reader Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -190,71 +184,6 @@ struct ReadingSettingsTab: View {
                     )
                 }
             }
-        }
-    }
-}
-
-// MARK: - Profiles Tab
-
-struct ProfilesTab: View {
-    let preferences: ReaderPreferences
-    @State private var profiles: [ReaderProfile] = []
-
-    var body: some View {
-        Form {
-            Section("Current Profile") {
-                if let profile = preferences.profile {
-                    HStack {
-                        ProfileIconView(profile: profile, size: 32)
-                        VStack(alignment: .leading) {
-                            Text(profile.name ?? "Unnamed")
-                                .font(.headline)
-                            if profile.isDefault {
-                                Text("Default Profile")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Section("Available Profiles") {
-                ForEach(profiles, id: \.id) { profile in
-                    Button {
-                        preferences.setProfile(profile)
-                    } label: {
-                        HStack {
-                            ProfileIconView(profile: profile, size: 32)
-                            VStack(alignment: .leading) {
-                                Text(profile.name ?? "Unnamed")
-                                    .foregroundStyle(.primary)
-                                if profile.isDefault {
-                                    Text("Default")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
-                            Spacer()
-                            if profile == preferences.profile {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.blue)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Section {
-                Button {
-                    // TODO: Create new profile
-                } label: {
-                    Label("Create New Profile", systemImage: "plus")
-                }
-            }
-        }
-        .onAppear {
-            profiles = preferences.fetchAllProfiles()
         }
     }
 }
