@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
+import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
@@ -78,14 +79,33 @@ actor TermBankProcessingTask {
     }
 
     private func processTermBankV3(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        let termIterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: termBankURLs,
-            dataFormat: 3
-        )
+        let termChannel = AsyncThrowingChannel<TermBankV3Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in termBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<TermBankV3Entry>(
+                            bankURLs: [url],
+                            dataFormat: 3
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await termChannel.send(entry)
+                            }
+                        } catch {
+                            termChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            termChannel.finish()
+        }
 
         var termBatch: [TermBankV3Entry] = []
 
-        for try await entry in termIterator {
+        for try await entry in termChannel {
             try Task.checkCancellation()
 
             termBatch.append(entry)

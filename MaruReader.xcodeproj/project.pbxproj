@@ -14,6 +14,7 @@
 		DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED52E8B332D00E9723D /* ReadiumShared */; };
 		DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBC9FEB02E6C9B7800F1E920 /* Zip */; };
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
+		DBD906A02E9AF52D00A4F03E /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +70,7 @@
 				DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */,
 				DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */,
 				DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */,
+				DBD906A02E9AF52D00A4F03E /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -144,6 +146,7 @@
 				DB97CED32E8B332D00E9723D /* ReadiumNavigator */,
 				DB97CED52E8B332D00E9723D /* ReadiumShared */,
 				DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */,
+				DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */,
 			);
 			productName = MaruReader;
 			productReference = DB2B698C2E660F8B00EDA656 /* MaruReader.app */;
@@ -231,6 +234,7 @@
 				DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */,
 				DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */,
 				DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */,
+				DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2B698D2E660F8B00EDA656 /* Products */;
@@ -636,6 +640,14 @@
 				minimumVersion = 2.1.2;
 			};
 		};
+		DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -667,6 +679,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
 			productName = Zip;
+		};
+		DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
