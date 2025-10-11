@@ -72,7 +72,9 @@ struct BookReaderView: View {
                             HStack {
                                 Text(viewModel.book.title ?? "")
                                     .font(.headline)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(viewModel.overlayState.shouldShowToolbars ? .primary : .secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
 
                                 switch viewModel.overlayState.shouldShowToolbars {
                                 case true:
@@ -82,9 +84,10 @@ struct BookReaderView: View {
                                 case false:
                                     Image(systemName: "chevron.down")
                                         .font(.headline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
+                            .frame(maxWidth: geometry.size.width * 0.7)
                         }
                     }
 
