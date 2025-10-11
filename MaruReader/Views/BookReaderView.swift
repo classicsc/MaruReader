@@ -49,6 +49,9 @@ struct BookReaderView: View {
                 )) {
                     ReaderSettingsEditorView(preferences: viewModel.readerPreferences)
                 }
+                .onChange(of: colorScheme) {
+                    viewModel.readerPreferences.submitToNavigator()
+                }
         }
     }
 
