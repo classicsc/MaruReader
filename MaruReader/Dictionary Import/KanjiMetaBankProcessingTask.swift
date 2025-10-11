@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
+import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
@@ -61,37 +62,7 @@ actor KanjiMetaBankProcessingTask {
                     try context.save()
                 }
 
-                let kanjiMetaIterator = StreamingBankIterator<KanjiMetaBankV3Entry>(
-                    bankURLs: kanjiMetaBankURLs,
-                    dataFormat: Int(format)
-                )
-
-                var kanjiMetaBatch: [KanjiMetaBankV3Entry] = []
-                var processedCount = 0
-
-                for try await entry in kanjiMetaIterator {
-                    try Task.checkCancellation()
-
-                    kanjiMetaBatch.append(entry)
-                    processedCount += 1
-
-                    if kanjiMetaBatch.count >= Self.batchSize {
-                        let currentBatch = kanjiMetaBatch
-                        kanjiMetaBatch.removeAll(keepingCapacity: true)
-
-                        try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
-                        try Task.checkCancellation()
-                    }
-                }
-
-                // Process any remaining kanji meta entries in the batch
-                if !kanjiMetaBatch.isEmpty {
-                    let currentBatch = kanjiMetaBatch
-                    kanjiMetaBatch.removeAll()
-
-                    try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
-                    try Task.checkCancellation()
-                }
+                try await processKanjiMetaBankV3(kanjiMetaBankURLs, jobID: jobID, context: context)
             }
 
             // Mark kanji meta banks as processed
@@ -104,6 +75,57 @@ actor KanjiMetaBankProcessingTask {
                 try context.save()
             }
 
+            try Task.checkCancellation()
+        }
+    }
+
+    private func processKanjiMetaBankV3(_ kanjiMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let kanjiMetaChannel = AsyncThrowingChannel<KanjiMetaBankV3Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in kanjiMetaBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(
+                            bankURLs: [url],
+                            dataFormat: 3
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await kanjiMetaChannel.send(entry)
+                            }
+                        } catch {
+                            kanjiMetaChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            kanjiMetaChannel.finish()
+        }
+
+        var kanjiMetaBatch: [KanjiMetaBankV3Entry] = []
+
+        for try await entry in kanjiMetaChannel {
+            try Task.checkCancellation()
+
+            kanjiMetaBatch.append(entry)
+
+            if kanjiMetaBatch.count >= Self.batchSize {
+                let currentBatch = kanjiMetaBatch
+                kanjiMetaBatch.removeAll(keepingCapacity: true)
+
+                try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
+                try Task.checkCancellation()
+            }
+        }
+
+        // Process any remaining kanji meta entries in the batch
+        if !kanjiMetaBatch.isEmpty {
+            let currentBatch = kanjiMetaBatch
+            kanjiMetaBatch.removeAll()
+
+            try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }

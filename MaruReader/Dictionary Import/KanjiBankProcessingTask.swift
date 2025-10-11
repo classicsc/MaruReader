@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
+import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
@@ -78,14 +79,33 @@ actor KanjiBankProcessingTask {
     }
 
     private func processKanjiBankV3(_ kanjiBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        let kanjiIterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: kanjiBankURLs,
-            dataFormat: 3
-        )
+        let kanjiChannel = AsyncThrowingChannel<KanjiBankV3Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in kanjiBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<KanjiBankV3Entry>(
+                            bankURLs: [url],
+                            dataFormat: 3
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await kanjiChannel.send(entry)
+                            }
+                        } catch {
+                            kanjiChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            kanjiChannel.finish()
+        }
 
         var kanjiBatch: [KanjiBankV3Entry] = []
 
-        for try await entry in kanjiIterator {
+        for try await entry in kanjiChannel {
             try Task.checkCancellation()
 
             kanjiBatch.append(entry)
@@ -110,14 +130,33 @@ actor KanjiBankProcessingTask {
     }
 
     private func processKanjiBankV1(_ kanjiBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        let kanjiIterator = StreamingBankIterator<KanjiBankV1Entry>(
-            bankURLs: kanjiBankURLs,
-            dataFormat: 1
-        )
+        let kanjiChannel = AsyncThrowingChannel<KanjiBankV1Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in kanjiBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<KanjiBankV1Entry>(
+                            bankURLs: [url],
+                            dataFormat: 1
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await kanjiChannel.send(entry)
+                            }
+                        } catch {
+                            kanjiChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            kanjiChannel.finish()
+        }
 
         var kanjiBatch: [KanjiBankV1Entry] = []
 
-        for try await entry in kanjiIterator {
+        for try await entry in kanjiChannel {
             try Task.checkCancellation()
 
             kanjiBatch.append(entry)

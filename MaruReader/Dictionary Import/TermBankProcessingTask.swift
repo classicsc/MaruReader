@@ -130,14 +130,33 @@ actor TermBankProcessingTask {
     }
 
     private func processTermBankV1(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        let termIterator = StreamingBankIterator<TermBankV1Entry>(
-            bankURLs: termBankURLs,
-            dataFormat: 1
-        )
+        let termChannel = AsyncThrowingChannel<TermBankV1Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in termBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<TermBankV1Entry>(
+                            bankURLs: [url],
+                            dataFormat: 1
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await termChannel.send(entry)
+                            }
+                        } catch {
+                            termChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            termChannel.finish()
+        }
 
         var termBatch: [TermBankV1Entry] = []
 
-        for try await entry in termIterator {
+        for try await entry in termChannel {
             try Task.checkCancellation()
 
             termBatch.append(entry)

@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
+import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
@@ -61,35 +62,7 @@ actor TermMetaBankProcessingTask {
                     try context.save()
                 }
 
-                let termMetaIterator = StreamingBankIterator<TermMetaBankV3Entry>(
-                    bankURLs: termMetaBankURLs,
-                    dataFormat: Int(format)
-                )
-
-                var entryBatch: [TermMetaBankV3Entry] = []
-
-                for try await entry in termMetaIterator {
-                    try Task.checkCancellation()
-
-                    entryBatch.append(entry)
-
-                    if entryBatch.count >= Self.batchSize {
-                        let currentBatch = entryBatch
-                        entryBatch.removeAll(keepingCapacity: true)
-
-                        try await processBatch(currentBatch, jobID: jobID, context: context)
-                        try Task.checkCancellation()
-                    }
-                }
-
-                // Process any remaining entries in the batch
-                if !entryBatch.isEmpty {
-                    let currentBatch = entryBatch
-                    entryBatch.removeAll()
-
-                    try await processBatch(currentBatch, jobID: jobID, context: context)
-                    try Task.checkCancellation()
-                }
+                try await processTermMetaBankV3(termMetaBankURLs, jobID: jobID, context: context)
             }
 
             // Mark term meta banks as processed
@@ -102,6 +75,57 @@ actor TermMetaBankProcessingTask {
                 try context.save()
             }
 
+            try Task.checkCancellation()
+        }
+    }
+
+    private func processTermMetaBankV3(_ termMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let termMetaChannel = AsyncThrowingChannel<TermMetaBankV3Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in termMetaBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(
+                            bankURLs: [url],
+                            dataFormat: 3
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await termMetaChannel.send(entry)
+                            }
+                        } catch {
+                            termMetaChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            termMetaChannel.finish()
+        }
+
+        var entryBatch: [TermMetaBankV3Entry] = []
+
+        for try await entry in termMetaChannel {
+            try Task.checkCancellation()
+
+            entryBatch.append(entry)
+
+            if entryBatch.count >= Self.batchSize {
+                let currentBatch = entryBatch
+                entryBatch.removeAll(keepingCapacity: true)
+
+                try await processBatch(currentBatch, jobID: jobID, context: context)
+                try Task.checkCancellation()
+            }
+        }
+
+        // Process any remaining entries in the batch
+        if !entryBatch.isEmpty {
+            let currentBatch = entryBatch
+            entryBatch.removeAll()
+
+            try await processBatch(currentBatch, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }

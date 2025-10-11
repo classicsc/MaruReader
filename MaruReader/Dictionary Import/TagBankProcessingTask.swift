@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
+import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
@@ -50,76 +51,7 @@ actor TagBankProcessingTask {
                     throw DictionaryImportError.invalidData
                 }
 
-                let tagIterator = StreamingBankIterator<TagBankV3Entry>(
-                    bankURLs: tagBankURLs,
-                    dataFormat: Int(format)
-                )
-
-                var tagBatch: [TagBankV3Entry] = []
-                var processedCount = 0
-                do {
-                    for try await entry in tagIterator {
-                        try Task.checkCancellation()
-
-                        tagBatch.append(entry)
-                        processedCount += 1
-
-                        if tagBatch.count >= Self.batchSize {
-                            let currentBatch = tagBatch
-                            tagBatch.removeAll(keepingCapacity: true)
-                            try await context.perform {
-                                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                                      let dictionary = job.dictionary
-                                else {
-                                    throw DictionaryImportError.databaseError
-                                }
-                                for tagEntry in currentBatch {
-                                    let tag = DictionaryTagMeta(context: context)
-                                    tag.id = UUID()
-                                    tag.name = tagEntry.name
-                                    tag.category = tagEntry.category
-                                    tag.order = Double(tagEntry.order)
-                                    tag.notes = tagEntry.notes
-                                    tag.score = Double(tagEntry.score)
-
-                                    context.insert(tag)
-                                    tag.dictionary = dictionary
-                                }
-                                try context.save()
-                                context.reset()
-                            }
-                            try Task.checkCancellation()
-                        }
-                    }
-                } catch {
-                    throw error
-                }
-                // Process any remaining tags in the batch
-                if !tagBatch.isEmpty {
-                    let currentBatch = tagBatch
-                    tagBatch.removeAll()
-                    try await context.perform {
-                        guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
-                              let dictionary = job.dictionary
-                        else {
-                            throw DictionaryImportError.databaseError
-                        }
-                        for tagEntry in currentBatch {
-                            let tag = DictionaryTagMeta(context: context)
-                            tag.id = UUID()
-                            tag.name = tagEntry.name
-                            tag.category = tagEntry.category
-                            tag.order = Double(tagEntry.order)
-                            tag.notes = tagEntry.notes
-                            tag.score = Double(tagEntry.score)
-
-                            context.insert(tag)
-                            tag.dictionary = dictionary
-                        }
-                        try context.save()
-                    }
-                    try Task.checkCancellation()
-                }
+                try await processTagBankV3(tagBankURLs, jobID: jobID, context: context)
             }
 
             // Mark tag banks as processed
@@ -130,6 +62,83 @@ actor TagBankProcessingTask {
                 job.setValue(tagBankURLs, forKey: "processedTagBanks")
                 try context.save()
             }
+        }
+    }
+
+    private func processTagBankV3(_ tagBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let tagChannel = AsyncThrowingChannel<TagBankV3Entry, Error>()
+
+        Task {
+            await withTaskGroup(of: Void.self) { group in
+                for url in tagBankURLs {
+                    group.addTask {
+                        let iterator = StreamingBankIterator<TagBankV3Entry>(
+                            bankURLs: [url],
+                            dataFormat: 3
+                        )
+
+                        do {
+                            for try await entry in iterator {
+                                await tagChannel.send(entry)
+                            }
+                        } catch {
+                            tagChannel.fail(error)
+                        }
+                    }
+                }
+            }
+            tagChannel.finish()
+        }
+
+        var tagBatch: [TagBankV3Entry] = []
+
+        for try await entry in tagChannel {
+            try Task.checkCancellation()
+
+            tagBatch.append(entry)
+
+            if tagBatch.count >= Self.batchSize {
+                let currentBatch = tagBatch
+                tagBatch.removeAll(keepingCapacity: true)
+
+                try await processBatch(currentBatch, jobID: jobID, context: context)
+                try Task.checkCancellation()
+            }
+        }
+
+        // Process any remaining tags in the batch
+        if !tagBatch.isEmpty {
+            let currentBatch = tagBatch
+            tagBatch.removeAll()
+
+            try await processBatch(currentBatch, jobID: jobID, context: context)
+            try Task.checkCancellation()
+        }
+    }
+
+    private func processBatch(_ batch: [TagBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            for tagEntry in batch {
+                let tag = DictionaryTagMeta(context: context)
+                tag.id = UUID()
+                tag.name = tagEntry.name
+                tag.category = tagEntry.category
+                tag.order = Double(tagEntry.order)
+                tag.notes = tagEntry.notes
+                tag.score = Double(tagEntry.score)
+
+                context.insert(tag)
+                tag.dictionary = dictionary
+            }
+
+            try context.save()
+            context.reset()
         }
     }
 }
