@@ -59,7 +59,7 @@ struct DictionaryManagementView: View {
             }
 
             // Dictionaries Section
-            Section("Dictionaries") {
+            Section(importJobs.isEmpty ? "" : "Dictionaries") {
                 if completeDictionaries.isEmpty {
                     ContentUnavailableView(
                         "No Dictionaries",
