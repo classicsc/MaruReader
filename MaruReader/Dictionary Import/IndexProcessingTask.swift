@@ -11,7 +11,6 @@ import os.log
 
 actor IndexProcessingTask {
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
 
@@ -38,121 +37,119 @@ actor IndexProcessingTask {
         return 0
     }
 
-    func start() {
+    func start() async throws {
         let container = self.persistentContainer
         let jobID = self.jobID
-        task = Task {
-            // Load index.json
-            // Create Dictionary entity
-            // Populate job.termBanks, job.kanjiBanks, etc.
-            // Index can contain tag metadata that needs to be processed
+        // Load index.json
+        // Create Dictionary entity
+        // Populate job.termBanks, job.kanjiBanks, etc.
+        // Index can contain tag metadata that needs to be processed
 
-            let context = container.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            context.undoManager = nil
-            context.shouldDeleteInaccessibleFaults = true
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
 
-            let (indexURL, workingDir) = try await context.perform {
-                guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.importNotFound
-                }
-                guard let workingDir = job.workingDirectory else {
-                    throw DictionaryImportError.noWorkingDirectory
-                }
-                let indexURL = workingDir.appendingPathComponent("index.json")
-                guard FileManager.default.fileExists(atPath: indexURL.path) else {
-                    throw DictionaryImportError.notADictionary
-                }
-                return (indexURL, workingDir)
+        let (indexURL, workingDir) = try await context.perform {
+            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.importNotFound
             }
-
-            // Decode index.json to type DictionaryIndex
-            let data = try Data(contentsOf: indexURL)
-            let decoder = JSONDecoder()
-            let index = try decoder.decode(DictionaryIndex.self, from: data)
-
-            // Ensure format is supported
-            guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
-                throw DictionaryImportError.unsupportedFormat
+            guard let workingDir = job.workingDirectory else {
+                throw DictionaryImportError.noWorkingDirectory
             }
-
-            // Find the bank files in working directory
-            let contents = try FileManager.default.contentsOfDirectory(at: workingDir, includingPropertiesForKeys: nil)
-            let termBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_bank_") && $0.pathExtension == "json" }
-            let kanjiBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_bank_") && $0.pathExtension == "json" }
-            let termMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_meta_bank_") && $0.pathExtension == "json" }
-            let kanjiMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_meta_bank_") && $0.pathExtension == "json" }
-            let tagBanks = contents.filter { $0.lastPathComponent.hasPrefix("tag_bank_") && $0.pathExtension == "json" }
-
-            // Dictionary must have at least one of termBanks, kanjiBanks, termMetaBanks, kanjiMetaBanks
-            if termBanks.isEmpty, kanjiBanks.isEmpty, termMetaBanks.isEmpty, kanjiMetaBanks.isEmpty {
+            let indexURL = workingDir.appendingPathComponent("index.json")
+            guard FileManager.default.fileExists(atPath: indexURL.path) else {
                 throw DictionaryImportError.notADictionary
             }
+            return (indexURL, workingDir)
+        }
 
-            try Task.checkCancellation()
+        // Decode index.json to type DictionaryIndex
+        let data = try Data(contentsOf: indexURL)
+        let decoder = JSONDecoder()
+        let index = try decoder.decode(DictionaryIndex.self, from: data)
 
-            try await context.perform {
-                guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.importNotFound
-                }
-                // Create the Dictionary entity and link to job
-                let dictionary = Dictionary(context: context)
-                dictionary.id = UUID()
-                dictionary.title = index.title
-                dictionary.attribution = index.attribution
-                dictionary.downloadURL = index.downloadUrl
-                dictionary.displayDescription = index.description
-                dictionary.frequencyMode = index.frequencyMode?.rawValue
-                dictionary.sequenced = index.sequenced ?? false
-                dictionary.author = index.author
-                dictionary.indexURL = index.indexUrl
-                dictionary.isUpdatable = index.isUpdatable ?? false
-                dictionary.minimumYomitanVersion = index.minimumYomitanVersion
-                dictionary.sourceLanguage = index.sourceLanguage
-                dictionary.targetLanguage = index.targetLanguage
-                dictionary.revision = index.revision
-                dictionary.format = Int64(format)
+        // Ensure format is supported
+        guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
+            throw DictionaryImportError.unsupportedFormat
+        }
 
-                // Assign default priorities - new dictionaries appear last in each category
-                // Higher priority value = lower display priority (appears later)
-                dictionary.termDisplayPriority = try Self.getNextPriority(for: "termDisplayPriority", in: context)
-                dictionary.kanjiDisplayPriority = try Self.getNextPriority(for: "kanjiDisplayPriority", in: context)
-                dictionary.ipaDisplayPriority = try Self.getNextPriority(for: "ipaDisplayPriority", in: context)
-                dictionary.pitchDisplayPriority = try Self.getNextPriority(for: "pitchDisplayPriority", in: context)
-                dictionary.termFrequencyDisplayPriority = try Self.getNextPriority(for: "termFrequencyDisplayPriority", in: context)
-                dictionary.kanjiFrequencyDisplayPriority = try Self.getNextPriority(for: "kanjiFrequencyDisplayPriority", in: context)
+        // Find the bank files in working directory
+        let contents = try FileManager.default.contentsOfDirectory(at: workingDir, includingPropertiesForKeys: nil)
+        let termBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_bank_") && $0.pathExtension == "json" }
+        let kanjiBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_bank_") && $0.pathExtension == "json" }
+        let termMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_meta_bank_") && $0.pathExtension == "json" }
+        let kanjiMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_meta_bank_") && $0.pathExtension == "json" }
+        let tagBanks = contents.filter { $0.lastPathComponent.hasPrefix("tag_bank_") && $0.pathExtension == "json" }
 
-                context.insert(dictionary)
+        // Dictionary must have at least one of termBanks, kanjiBanks, termMetaBanks, kanjiMetaBanks
+        if termBanks.isEmpty, kanjiBanks.isEmpty, termMetaBanks.isEmpty, kanjiMetaBanks.isEmpty {
+            throw DictionaryImportError.notADictionary
+        }
 
-                // If the index has embedded tags, create DictionaryTagMeta entities
-                if let embeddedTags = index.tagMeta {
-                    for (name, entry) in embeddedTags {
-                        let tag = DictionaryTagMeta(context: context)
-                        tag.id = UUID()
-                        tag.name = name
-                        tag.category = entry.category
-                        tag.order = Double(entry.order ?? 0)
-                        tag.notes = entry.notes
-                        tag.score = Double(entry.score ?? 0)
+        try Task.checkCancellation()
 
-                        context.insert(tag)
-
-                        tag.dictionary = dictionary
-                    }
-                }
-
-                job.dictionary = dictionary
-                job.setValue(termBanks, forKey: "termBanks")
-                job.setValue(kanjiBanks, forKey: "kanjiBanks")
-                job.setValue(termMetaBanks, forKey: "termMetaBanks")
-                job.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
-                job.setValue(tagBanks, forKey: "tagBanks")
-
-                job.indexProcessed = true
-                job.displayProgressMessage = "Processed dictionary index."
-
-                try context.save()
+        try await context.perform {
+            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.importNotFound
             }
+            // Create the Dictionary entity and link to job
+            let dictionary = Dictionary(context: context)
+            dictionary.id = UUID()
+            dictionary.title = index.title
+            dictionary.attribution = index.attribution
+            dictionary.downloadURL = index.downloadUrl
+            dictionary.displayDescription = index.description
+            dictionary.frequencyMode = index.frequencyMode?.rawValue
+            dictionary.sequenced = index.sequenced ?? false
+            dictionary.author = index.author
+            dictionary.indexURL = index.indexUrl
+            dictionary.isUpdatable = index.isUpdatable ?? false
+            dictionary.minimumYomitanVersion = index.minimumYomitanVersion
+            dictionary.sourceLanguage = index.sourceLanguage
+            dictionary.targetLanguage = index.targetLanguage
+            dictionary.revision = index.revision
+            dictionary.format = Int64(format)
+
+            // Assign default priorities - new dictionaries appear last in each category
+            // Higher priority value = lower display priority (appears later)
+            dictionary.termDisplayPriority = try Self.getNextPriority(for: "termDisplayPriority", in: context)
+            dictionary.kanjiDisplayPriority = try Self.getNextPriority(for: "kanjiDisplayPriority", in: context)
+            dictionary.ipaDisplayPriority = try Self.getNextPriority(for: "ipaDisplayPriority", in: context)
+            dictionary.pitchDisplayPriority = try Self.getNextPriority(for: "pitchDisplayPriority", in: context)
+            dictionary.termFrequencyDisplayPriority = try Self.getNextPriority(for: "termFrequencyDisplayPriority", in: context)
+            dictionary.kanjiFrequencyDisplayPriority = try Self.getNextPriority(for: "kanjiFrequencyDisplayPriority", in: context)
+
+            context.insert(dictionary)
+
+            // If the index has embedded tags, create DictionaryTagMeta entities
+            if let embeddedTags = index.tagMeta {
+                for (name, entry) in embeddedTags {
+                    let tag = DictionaryTagMeta(context: context)
+                    tag.id = UUID()
+                    tag.name = name
+                    tag.category = entry.category
+                    tag.order = Double(entry.order ?? 0)
+                    tag.notes = entry.notes
+                    tag.score = Double(entry.score ?? 0)
+
+                    context.insert(tag)
+
+                    tag.dictionary = dictionary
+                }
+            }
+
+            job.dictionary = dictionary
+            job.setValue(termBanks, forKey: "termBanks")
+            job.setValue(kanjiBanks, forKey: "kanjiBanks")
+            job.setValue(termMetaBanks, forKey: "termMetaBanks")
+            job.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
+            job.setValue(tagBanks, forKey: "tagBanks")
+
+            job.indexProcessed = true
+            job.displayProgressMessage = "Processed dictionary index."
+
+            try context.save()
         }
     }
 }

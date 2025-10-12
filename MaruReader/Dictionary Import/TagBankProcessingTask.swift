@@ -16,7 +16,6 @@ actor TagBankProcessingTask {
     static let batchSize = 500
 
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TagBankProcessingTask")
 
@@ -25,43 +24,41 @@ actor TagBankProcessingTask {
         self.persistentContainer = container
     }
 
-    func start() {
+    func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
-        task = Task {
-            let context = container.newBackgroundContext()
-            // Fetch format and tag bank URLs on the context queue and return a typed tuple
-            let (format, tagBankURLs): (Int64, [URL]) = try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                guard let dictionary = job.dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
-                let format = dictionary.format
-                guard let tagBankURLs = job.tagBanks as? [URL] else {
-                    throw DictionaryImportError.databaseError
-                }
-                return (format, tagBankURLs)
+        let context = container.newBackgroundContext()
+        // Fetch format and tag bank URLs on the context queue and return a typed tuple
+        let (format, tagBankURLs): (Int64, [URL]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
+            }
+            let format = dictionary.format
+            guard let tagBankURLs = job.tagBanks as? [URL] else {
+                throw DictionaryImportError.databaseError
+            }
+            return (format, tagBankURLs)
+        }
+
+        if !tagBankURLs.isEmpty {
+            // Tag banks should only be processed for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
             }
 
-            if !tagBankURLs.isEmpty {
-                // Tag banks should only be processed for format 3
-                guard format == 3 else {
-                    throw DictionaryImportError.invalidData
-                }
+            try await processTagBankV3(tagBankURLs, jobID: jobID, context: context)
+        }
 
-                try await processTagBankV3(tagBankURLs, jobID: jobID, context: context)
+        // Mark tag banks as processed
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
             }
-
-            // Mark tag banks as processed
-            try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                job.setValue(tagBankURLs, forKey: "processedTagBanks")
-                try context.save()
-            }
+            job.setValue(tagBankURLs, forKey: "processedTagBanks")
+            try context.save()
         }
     }
 

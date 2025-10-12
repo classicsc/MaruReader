@@ -139,49 +139,42 @@ actor DictionaryImportManager {
             try await testCancellationHook?()
 
             let indexProcessingTask = IndexProcessingTask(jobID: jobID, container: container)
-            await indexProcessingTask.start()
-            try await indexProcessingTask.task?.value
+            try await indexProcessingTask.start()
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let tagBankProcessingTask = TagBankProcessingTask(jobID: jobID, container: container)
-            await tagBankProcessingTask.start()
-            try await tagBankProcessingTask.task?.value
+            try await tagBankProcessingTask.start()
             logger.debug("Import job \(jobID) tag banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let termBankProcessingTask = TermBankProcessingTask(jobID: jobID, container: container)
-            await termBankProcessingTask.start()
-            try await termBankProcessingTask.task?.value
+            try await termBankProcessingTask.start()
             logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let termMetaBankProcessingTask = TermMetaBankProcessingTask(jobID: jobID, container: container)
-            await termMetaBankProcessingTask.start()
-            try await termMetaBankProcessingTask.task?.value
+            try await termMetaBankProcessingTask.start()
             logger.debug("Import job \(jobID) term meta banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let kanjiBankProcessingTask = KanjiBankProcessingTask(jobID: jobID, container: container)
-            await kanjiBankProcessingTask.start()
-            try await kanjiBankProcessingTask.task?.value
+            try await kanjiBankProcessingTask.start()
             logger.debug("Import job \(jobID) kanji banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let kanjiMetaBankProcessingTask = KanjiMetaBankProcessingTask(jobID: jobID, container: container)
-            await kanjiMetaBankProcessingTask.start()
-            try await kanjiMetaBankProcessingTask.task?.value
+            try await kanjiMetaBankProcessingTask.start()
             logger.debug("Import job \(jobID) kanji meta banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
             let mediaCopyTask = MediaCopyProcessingTask(jobID: jobID, container: container)
-            await mediaCopyTask.start()
-            try await mediaCopyTask.task?.value
+            try await mediaCopyTask.start()
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
             try await testCancellationHook?()

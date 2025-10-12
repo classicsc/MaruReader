@@ -14,7 +14,6 @@ actor KanjiMetaBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "KanjiMetaBankProcessingTask")
 
@@ -23,60 +22,58 @@ actor KanjiMetaBankProcessingTask {
         self.persistentContainer = container
     }
 
-    func start() {
+    func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
 
-        task = Task {
-            let context = container.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            context.undoManager = nil
-            context.shouldDeleteInaccessibleFaults = true
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
 
-            // Fetch format and kanji meta bank URLs on the context queue
-            let (format, kanjiMetaBankURLs): (Int64, [URL]) = try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                guard let dictionary = job.dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
-                let format = dictionary.format
-                guard let kanjiMetaBankURLs = job.kanjiMetaBanks as? [URL] else {
-                    throw DictionaryImportError.databaseError
-                }
-                return (format, kanjiMetaBankURLs)
+        // Fetch format and kanji meta bank URLs on the context queue
+        let (format, kanjiMetaBankURLs): (Int64, [URL]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
+            }
+            let format = dictionary.format
+            guard let kanjiMetaBankURLs = job.kanjiMetaBanks as? [URL] else {
+                throw DictionaryImportError.databaseError
+            }
+            return (format, kanjiMetaBankURLs)
+        }
+
+        if !kanjiMetaBankURLs.isEmpty {
+            // Process kanji meta banks only for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
             }
 
-            if !kanjiMetaBankURLs.isEmpty {
-                // Process kanji meta banks only for format 3
-                guard format == 3 else {
-                    throw DictionaryImportError.invalidData
-                }
-
-                try await context.perform {
-                    guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    job.displayProgressMessage = "Processing kanji metadata..."
-                    try context.save()
-                }
-
-                try await processKanjiMetaBankV3(kanjiMetaBankURLs, jobID: jobID, context: context)
-            }
-
-            // Mark kanji meta banks as processed
             try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                     throw DictionaryImportError.databaseError
                 }
-                job.setValue(kanjiMetaBankURLs, forKey: "processedKanjiMetaBanks")
-                job.displayProgressMessage = "Processed kanji metadata."
+                job.displayProgressMessage = "Processing kanji metadata..."
                 try context.save()
             }
 
-            try Task.checkCancellation()
+            try await processKanjiMetaBankV3(kanjiMetaBankURLs, jobID: jobID, context: context)
         }
+
+        // Mark kanji meta banks as processed
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            job.setValue(kanjiMetaBankURLs, forKey: "processedKanjiMetaBanks")
+            job.displayProgressMessage = "Processed kanji metadata."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
     }
 
     private func processKanjiMetaBankV3(_ kanjiMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {

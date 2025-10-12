@@ -14,7 +14,6 @@ actor TermMetaBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermMetaBankProcessingTask")
 
@@ -23,60 +22,58 @@ actor TermMetaBankProcessingTask {
         self.persistentContainer = container
     }
 
-    func start() {
+    func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
 
-        task = Task {
-            let context = container.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            context.undoManager = nil
-            context.shouldDeleteInaccessibleFaults = true
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
 
-            // Fetch format and term meta bank URLs on the context queue
-            let (format, termMetaBankURLs): (Int64, [URL]) = try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                guard let dictionary = job.dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
-                let format = dictionary.format
-                guard let termMetaBankURLs = job.termMetaBanks as? [URL] else {
-                    throw DictionaryImportError.databaseError
-                }
-                return (format, termMetaBankURLs)
+        // Fetch format and term meta bank URLs on the context queue
+        let (format, termMetaBankURLs): (Int64, [URL]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
+            }
+            let format = dictionary.format
+            guard let termMetaBankURLs = job.termMetaBanks as? [URL] else {
+                throw DictionaryImportError.databaseError
+            }
+            return (format, termMetaBankURLs)
+        }
+
+        if !termMetaBankURLs.isEmpty {
+            // Process term meta banks only for format 3
+            guard format == 3 else {
+                throw DictionaryImportError.invalidData
             }
 
-            if !termMetaBankURLs.isEmpty {
-                // Process term meta banks only for format 3
-                guard format == 3 else {
-                    throw DictionaryImportError.invalidData
-                }
-
-                try await context.perform {
-                    guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    job.displayProgressMessage = "Processing term metadata..."
-                    try context.save()
-                }
-
-                try await processTermMetaBankV3(termMetaBankURLs, jobID: jobID, context: context)
-            }
-
-            // Mark term meta banks as processed
             try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                     throw DictionaryImportError.databaseError
                 }
-                job.setValue(termMetaBankURLs, forKey: "processedTermMetaBanks")
-                job.displayProgressMessage = "Processed term metadata."
+                job.displayProgressMessage = "Processing term metadata..."
                 try context.save()
             }
 
-            try Task.checkCancellation()
+            try await processTermMetaBankV3(termMetaBankURLs, jobID: jobID, context: context)
         }
+
+        // Mark term meta banks as processed
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            job.setValue(termMetaBankURLs, forKey: "processedTermMetaBanks")
+            job.displayProgressMessage = "Processed term metadata."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
     }
 
     private func processTermMetaBankV3(_ termMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {

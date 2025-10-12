@@ -14,7 +14,6 @@ actor TermBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermBankProcessingTask")
 
@@ -23,59 +22,57 @@ actor TermBankProcessingTask {
         self.persistentContainer = container
     }
 
-    func start() {
+    func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
 
-        task = Task {
-            let context = container.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            context.undoManager = nil
-            context.shouldDeleteInaccessibleFaults = true
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
 
-            // Fetch format and term bank URLs on the context queue
-            let (format, termBankURLs): (Int64, [URL]) = try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                guard let dictionary = job.dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
-                let format = dictionary.format
-                guard let termBankURLs = job.termBanks as? [URL] else {
-                    throw DictionaryImportError.databaseError
-                }
-                return (format, termBankURLs)
+        // Fetch format and term bank URLs on the context queue
+        let (format, termBankURLs): (Int64, [URL]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
             }
-
-            if !termBankURLs.isEmpty {
-                try await context.perform {
-                    guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    job.displayProgressMessage = "Processing terms..."
-                    try context.save()
-                }
-
-                if format == 3 {
-                    try await processTermBankV3(termBankURLs, jobID: jobID, context: context)
-                } else if format == 1 {
-                    try await processTermBankV1(termBankURLs, jobID: jobID, context: context)
-                }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
             }
+            let format = dictionary.format
+            guard let termBankURLs = job.termBanks as? [URL] else {
+                throw DictionaryImportError.databaseError
+            }
+            return (format, termBankURLs)
+        }
 
-            // Mark term banks as processed
+        if !termBankURLs.isEmpty {
             try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                     throw DictionaryImportError.databaseError
                 }
-                job.setValue(termBankURLs, forKey: "processedTermBanks")
-                job.displayProgressMessage = "Processed terms."
+                job.displayProgressMessage = "Processing terms..."
                 try context.save()
             }
 
-            try Task.checkCancellation()
+            if format == 3 {
+                try await processTermBankV3(termBankURLs, jobID: jobID, context: context)
+            } else if format == 1 {
+                try await processTermBankV1(termBankURLs, jobID: jobID, context: context)
+            }
         }
+
+        // Mark term banks as processed
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            job.setValue(termBankURLs, forKey: "processedTermBanks")
+            job.displayProgressMessage = "Processed terms."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
     }
 
     private func processTermBankV3(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {

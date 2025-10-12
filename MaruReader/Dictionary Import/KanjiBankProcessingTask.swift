@@ -14,7 +14,6 @@ actor KanjiBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID
-    var task: Task<Void, Error>?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "KanjiBankProcessingTask")
 
@@ -23,59 +22,57 @@ actor KanjiBankProcessingTask {
         self.persistentContainer = container
     }
 
-    func start() {
+    func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
 
-        task = Task {
-            let context = container.newBackgroundContext()
-            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            context.undoManager = nil
-            context.shouldDeleteInaccessibleFaults = true
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
 
-            // Fetch format and kanji bank URLs on the context queue
-            let (format, kanjiBankURLs): (Int64, [URL]) = try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                    throw DictionaryImportError.databaseError
-                }
-                guard let dictionary = job.dictionary else {
-                    throw DictionaryImportError.databaseError
-                }
-                let format = dictionary.format
-                guard let kanjiBankURLs = job.kanjiBanks as? [URL] else {
-                    throw DictionaryImportError.databaseError
-                }
-                return (format, kanjiBankURLs)
+        // Fetch format and kanji bank URLs on the context queue
+        let (format, kanjiBankURLs): (Int64, [URL]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
             }
-
-            if !kanjiBankURLs.isEmpty {
-                try await context.perform {
-                    guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    job.displayProgressMessage = "Processing kanji..."
-                    try context.save()
-                }
-
-                if format == 3 {
-                    try await processKanjiBankV3(kanjiBankURLs, jobID: jobID, context: context)
-                } else if format == 1 {
-                    try await processKanjiBankV1(kanjiBankURLs, jobID: jobID, context: context)
-                }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
             }
+            let format = dictionary.format
+            guard let kanjiBankURLs = job.kanjiBanks as? [URL] else {
+                throw DictionaryImportError.databaseError
+            }
+            return (format, kanjiBankURLs)
+        }
 
-            // Mark kanji banks as processed
+        if !kanjiBankURLs.isEmpty {
             try await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                     throw DictionaryImportError.databaseError
                 }
-                job.setValue(kanjiBankURLs, forKey: "processedKanjiBanks")
-                job.displayProgressMessage = "Processed kanji."
+                job.displayProgressMessage = "Processing kanji..."
                 try context.save()
             }
 
-            try Task.checkCancellation()
+            if format == 3 {
+                try await processKanjiBankV3(kanjiBankURLs, jobID: jobID, context: context)
+            } else if format == 1 {
+                try await processKanjiBankV1(kanjiBankURLs, jobID: jobID, context: context)
+            }
         }
+
+        // Mark kanji banks as processed
+        try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            job.setValue(kanjiBankURLs, forKey: "processedKanjiBanks")
+            job.displayProgressMessage = "Processed kanji."
+            try context.save()
+        }
+
+        try Task.checkCancellation()
     }
 
     private func processKanjiBankV3(_ kanjiBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
