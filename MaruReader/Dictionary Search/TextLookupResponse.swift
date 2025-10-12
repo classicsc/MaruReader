@@ -15,9 +15,23 @@ struct TextLookupResponse {
 
     func toPopupHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
+            // Generate tags HTML
+            let tagsHTML = termGroup.termTags.isEmpty ? "" : """
+            <div class="popup-term-tags">\(termGroup.termTags.toHTML(type: .term))</div>
             """
+
+            // Generate deinflection info HTML
+            let deinflectionHTML = termGroup.deinflectionInfo.map { info in
+                """
+                <div class="popup-deinflection-info">\(escapeHTML(info))</div>
+                """
+            } ?? ""
+
+            return """
             <div class="popup-term-group" onclick="navigateToTerm('\(escapeHTML(termGroup.expression))')">
                 <h2 class="popup-term-header">\(escapeHTML(termGroup.displayTerm))</h2>
+                \(tagsHTML)
+                \(deinflectionHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
                     """
                     <div class="popup-dictionary-section">
@@ -58,9 +72,23 @@ struct TextLookupResponse {
 
     func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
+            // Generate tags HTML
+            let tagsHTML = termGroup.termTags.isEmpty ? "" : """
+            <div class="term-tags">\(termGroup.termTags.toHTML(type: .term))</div>
             """
+
+            // Generate deinflection info HTML
+            let deinflectionHTML = termGroup.deinflectionInfo.map { info in
+                """
+                <div class="deinflection-info">\(escapeHTML(info))</div>
+                """
+            } ?? ""
+
+            return """
             <div class="term-group">
                 <h1 class="term-header">\(escapeHTML(termGroup.displayTerm))</h1>
+                \(tagsHTML)
+                \(deinflectionHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
                     """
                     <div class="dictionary-section">

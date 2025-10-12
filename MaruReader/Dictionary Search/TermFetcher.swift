@@ -87,6 +87,22 @@ enum TermFetcher {
                     // Calculate frequency for ranking
                     let frequency = calculateFrequency(for: term)
 
+                    // Extract term tags
+                    let termTags: [Tag] = {
+                        guard let richTermTagsSet = entry.richTermTags as? Set<DictionaryTagMeta> else {
+                            return []
+                        }
+                        return richTermTagsSet.map { Tag(from: $0) }
+                    }()
+
+                    // Extract definition tags
+                    let definitionTags: [Tag] = {
+                        guard let richDefTagsSet = entry.richDefinitionTags as? Set<DictionaryTagMeta> else {
+                            return []
+                        }
+                        return richDefTagsSet.map { Tag(from: $0) }
+                    }()
+
                     // Create ranking criteria
                     let rankingCriteria = RankingCriteria(
                         candidate: candidate,
@@ -98,7 +114,7 @@ enum TermFetcher {
                         dictionaryPriority: Int(dictionary.termDisplayPriority)
                     )
 
-                    logger.debug("Created SearchResult: term='\(term.expression ?? "", privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count)")
+                    logger.debug("Created SearchResult: term='\(term.expression ?? "", privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count)")
 
                     // Create SearchResult
                     let searchResult = SearchResult(
@@ -110,7 +126,10 @@ enum TermFetcher {
                         dictionaryTitle: dictionary.title ?? "",
                         dictionaryUUID: dictionary.id ?? UUID(),
                         displayPriority: Int(dictionary.termDisplayPriority),
-                        rankingCriteria: rankingCriteria
+                        rankingCriteria: rankingCriteria,
+                        termTags: termTags,
+                        definitionTags: definitionTags,
+                        deinflectionRules: candidate.deinflectionInputRules
                     )
 
                     searchResults.append(searchResult)

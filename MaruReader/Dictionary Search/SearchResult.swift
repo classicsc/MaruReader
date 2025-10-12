@@ -17,6 +17,9 @@ struct SearchResult: Identifiable, Comparable {
     let dictionaryUUID: UUID
     let displayPriority: Int
     let rankingCriteria: RankingCriteria
+    let termTags: [Tag]
+    let definitionTags: [Tag]
+    let deinflectionRules: [[String]]
 
     var html: String {
         definitions.toHTML()

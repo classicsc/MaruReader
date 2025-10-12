@@ -10,6 +10,8 @@ struct GroupedSearchResults: Identifiable {
     let expression: String
     let reading: String?
     let dictionariesResults: [DictionaryResults]
+    let termTags: [Tag]
+    let deinflectionInfo: String?
 
     var id: String { termKey }
 
