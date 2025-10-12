@@ -11,7 +11,7 @@ import Foundation
 import os.log
 
 actor TermBankProcessingTask {
-    static let batchSize = 500
+    static let batchSize = 5000
 
     let jobID: NSManagedObjectID
     var task: Task<Void, Error>?
@@ -79,6 +79,22 @@ actor TermBankProcessingTask {
     }
 
     private func processTermBankV3(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        // Build initial caches once before processing batches
+        let (termCache, tagCache): ([String: NSManagedObjectID], [String: NSManagedObjectID]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            let termCache = try DictionaryImportUtilities.prefetchAllExistingTerms(context: context)
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
+            return (termCache, tagCache)
+        }
+
+        var termCacheMutable = termCache
+
         let termChannel = AsyncThrowingChannel<TermBankV3Entry, Error>()
 
         Task {
@@ -114,7 +130,7 @@ actor TermBankProcessingTask {
                 let currentBatch = termBatch
                 termBatch.removeAll(keepingCapacity: true)
 
-                try await processV3Batch(currentBatch, jobID: jobID, context: context)
+                try await processV3Batch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
                 try Task.checkCancellation()
             }
         }
@@ -124,12 +140,28 @@ actor TermBankProcessingTask {
             let currentBatch = termBatch
             termBatch.removeAll()
 
-            try await processV3Batch(currentBatch, jobID: jobID, context: context)
+            try await processV3Batch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }
 
     private func processTermBankV1(_ termBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        // Build initial caches once before processing batches
+        let (termCache, tagCache): ([String: NSManagedObjectID], [String: NSManagedObjectID]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            let termCache = try DictionaryImportUtilities.prefetchAllExistingTerms(context: context)
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
+            return (termCache, tagCache)
+        }
+
+        var termCacheMutable = termCache
+
         let termChannel = AsyncThrowingChannel<TermBankV1Entry, Error>()
 
         Task {
@@ -165,7 +197,7 @@ actor TermBankProcessingTask {
                 let currentBatch = termBatch
                 termBatch.removeAll(keepingCapacity: true)
 
-                try await processV1Batch(currentBatch, jobID: jobID, context: context)
+                try await processV1Batch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
                 try Task.checkCancellation()
             }
         }
@@ -175,32 +207,27 @@ actor TermBankProcessingTask {
             let currentBatch = termBatch
             termBatch.removeAll()
 
-            try await processV1Batch(currentBatch, jobID: jobID, context: context)
+            try await processV1Batch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }
 
-    private func processV3Batch(_ batch: [TermBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        try await context.perform {
+    private func processV3Batch(_ batch: [TermBankV3Entry], termCache: inout [String: NSManagedObjectID], tagCache: [String: NSManagedObjectID], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let cacheSnapshot = termCache
+        let updatedCache = try await context.perform {
+            var cache = cacheSnapshot
             guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
                   let dictionary = job.dictionary
             else {
                 throw DictionaryImportError.databaseError
             }
 
-            // Prefetch existing terms for this batch
-            let termKeys = batch.map { (expression: $0.expression, reading: $0.reading) }
-            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
-
-            // Prefetch dictionary tags
-            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
-
             for entry in batch {
                 // Find or create Term entity using cache
                 let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
                     expression: entry.expression,
                     reading: entry.reading,
-                    cache: &termCache,
+                    cache: &cache,
                     context: context
                 )
 
@@ -225,36 +252,38 @@ actor TermBankProcessingTask {
                     termEntry,
                     termTags: entry.termTags,
                     definitionTags: entry.definitionTags,
-                    tagCache: tagCache
+                    tagCache: tagCache,
+                    context: context
                 )
             }
 
             try context.save()
+
+            // Update cache with newly created terms before reset
+            DictionaryImportUtilities.updateTermCacheWithNewObjects(cache: &cache, context: context)
+
             context.reset()
+            return cache
         }
+        termCache = updatedCache
     }
 
-    private func processV1Batch(_ batch: [TermBankV1Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        try await context.perform {
+    private func processV1Batch(_ batch: [TermBankV1Entry], termCache: inout [String: NSManagedObjectID], tagCache: [String: NSManagedObjectID], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let cacheSnapshot = termCache
+        let updatedCache = try await context.perform {
+            var cache = cacheSnapshot
             guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
                   let dictionary = job.dictionary
             else {
                 throw DictionaryImportError.databaseError
             }
 
-            // Prefetch existing terms for this batch
-            let termKeys = batch.map { (expression: $0.expression, reading: $0.reading) }
-            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
-
-            // Prefetch dictionary tags
-            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
-
             for entry in batch {
                 // Find or create Term entity using cache
                 let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
                     expression: entry.expression,
                     reading: entry.reading,
-                    cache: &termCache,
+                    cache: &cache,
                     context: context
                 )
 
@@ -279,12 +308,19 @@ actor TermBankProcessingTask {
                     termEntry,
                     termTags: [],
                     definitionTags: entry.definitionTags,
-                    tagCache: tagCache
+                    tagCache: tagCache,
+                    context: context
                 )
             }
 
             try context.save()
+
+            // Update cache with newly created terms before reset
+            DictionaryImportUtilities.updateTermCacheWithNewObjects(cache: &cache, context: context)
+
             context.reset()
+            return cache
         }
+        termCache = updatedCache
     }
 }

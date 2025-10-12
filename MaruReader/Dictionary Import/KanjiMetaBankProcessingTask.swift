@@ -11,7 +11,7 @@ import Foundation
 import os.log
 
 actor KanjiMetaBankProcessingTask {
-    static let batchSize = 500
+    static let batchSize = 5000
 
     let jobID: NSManagedObjectID
     var task: Task<Void, Error>?
@@ -80,6 +80,17 @@ actor KanjiMetaBankProcessingTask {
     }
 
     private func processKanjiMetaBankV3(_ kanjiMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        // Build initial kanji cache once before processing batches
+        let kanjiCache: [String: NSManagedObjectID] = try await context.perform {
+            guard let _ = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+
+            return try DictionaryImportUtilities.prefetchAllExistingKanji(context: context)
+        }
+
+        var kanjiCacheMutable = kanjiCache
+
         let kanjiMetaChannel = AsyncThrowingChannel<KanjiMetaBankV3Entry, Error>()
 
         Task {
@@ -115,7 +126,7 @@ actor KanjiMetaBankProcessingTask {
                 let currentBatch = kanjiMetaBatch
                 kanjiMetaBatch.removeAll(keepingCapacity: true)
 
-                try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
+                try await processKanjiMetaBatch(currentBatch, kanjiCache: &kanjiCacheMutable, jobID: jobID, context: context)
                 try Task.checkCancellation()
             }
         }
@@ -125,28 +136,26 @@ actor KanjiMetaBankProcessingTask {
             let currentBatch = kanjiMetaBatch
             kanjiMetaBatch.removeAll()
 
-            try await processKanjiMetaBatch(currentBatch, jobID: jobID, context: context)
+            try await processKanjiMetaBatch(currentBatch, kanjiCache: &kanjiCacheMutable, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }
 
-    private func processKanjiMetaBatch(_ batch: [KanjiMetaBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        try await context.perform {
+    private func processKanjiMetaBatch(_ batch: [KanjiMetaBankV3Entry], kanjiCache: inout [String: NSManagedObjectID], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let cacheSnapshot = kanjiCache
+        let updatedCache = try await context.perform {
+            var cache = cacheSnapshot
             guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
                   let dictionary = job.dictionary
             else {
                 throw DictionaryImportError.databaseError
             }
 
-            // Prefetch existing kanji for this batch
-            let characters = batch.map(\.kanji)
-            var kanjiCache = try DictionaryImportUtilities.prefetchExistingKanji(characters: characters, context: context)
-
             for entry in batch {
                 // Find or create Kanji entity using cache
                 let kanji = try DictionaryImportUtilities.findOrCreateKanjiWithCache(
                     character: entry.kanji,
-                    cache: &kanjiCache,
+                    cache: &cache,
                     context: context
                 )
 
@@ -176,7 +185,13 @@ actor KanjiMetaBankProcessingTask {
             }
 
             try context.save()
+
+            // Update cache with newly created kanji before reset
+            DictionaryImportUtilities.updateKanjiCacheWithNewObjects(cache: &cache, context: context)
+
             context.reset()
+            return cache
         }
+        kanjiCache = updatedCache
     }
 }

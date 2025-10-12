@@ -11,7 +11,7 @@ import Foundation
 import os.log
 
 actor TermMetaBankProcessingTask {
-    static let batchSize = 500
+    static let batchSize = 5000
 
     let jobID: NSManagedObjectID
     var task: Task<Void, Error>?
@@ -80,6 +80,22 @@ actor TermMetaBankProcessingTask {
     }
 
     private func processTermMetaBankV3(_ termMetaBankURLs: [URL], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        // Build initial caches once before processing batches
+        let (termCache, tagCache): ([String: NSManagedObjectID], [String: NSManagedObjectID]) = try await context.perform {
+            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
+                  let dictionary = job.dictionary
+            else {
+                throw DictionaryImportError.databaseError
+            }
+
+            let termCache = try DictionaryImportUtilities.prefetchAllExistingTerms(context: context)
+            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
+
+            return (termCache, tagCache)
+        }
+
+        var termCacheMutable = termCache
+
         let termMetaChannel = AsyncThrowingChannel<TermMetaBankV3Entry, Error>()
 
         Task {
@@ -115,7 +131,7 @@ actor TermMetaBankProcessingTask {
                 let currentBatch = entryBatch
                 entryBatch.removeAll(keepingCapacity: true)
 
-                try await processBatch(currentBatch, jobID: jobID, context: context)
+                try await processBatch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
                 try Task.checkCancellation()
             }
         }
@@ -125,39 +141,20 @@ actor TermMetaBankProcessingTask {
             let currentBatch = entryBatch
             entryBatch.removeAll()
 
-            try await processBatch(currentBatch, jobID: jobID, context: context)
+            try await processBatch(currentBatch, termCache: &termCacheMutable, tagCache: tagCache, jobID: jobID, context: context)
             try Task.checkCancellation()
         }
     }
 
-    private func processBatch(_ batch: [TermMetaBankV3Entry], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
-        try await context.perform {
+    private func processBatch(_ batch: [TermMetaBankV3Entry], termCache: inout [String: NSManagedObjectID], tagCache: [String: NSManagedObjectID], jobID: NSManagedObjectID, context: NSManagedObjectContext) async throws {
+        let cacheSnapshot = termCache
+        let updatedCache = try await context.perform {
+            var cache = cacheSnapshot
             guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport,
                   let dictionary = job.dictionary
             else {
                 throw DictionaryImportError.databaseError
             }
-
-            // Collect all term keys from the batch for prefetching
-            var termKeys: [(expression: String, reading: String)] = []
-            for entry in batch {
-                switch entry.data {
-                case .frequency:
-                    termKeys.append((expression: entry.term, reading: ""))
-                case let .frequencyWithReading(freqReading):
-                    termKeys.append((expression: entry.term, reading: freqReading.reading))
-                case let .pitch(pitchData):
-                    termKeys.append((expression: entry.term, reading: pitchData.reading))
-                case let .ipa(ipaData):
-                    termKeys.append((expression: entry.term, reading: ipaData.reading))
-                }
-            }
-
-            // Prefetch existing terms for this batch
-            var termCache = try DictionaryImportUtilities.prefetchExistingTerms(batch: termKeys, context: context)
-
-            // Prefetch dictionary tags
-            let tagCache = try DictionaryImportUtilities.prefetchDictionaryTags(dictionary: dictionary, context: context)
 
             for entry in batch {
                 switch entry.data {
@@ -166,7 +163,7 @@ actor TermMetaBankProcessingTask {
                     let term = try DictionaryImportUtilities.findOrCreateTermWithCache(
                         expression: entry.term,
                         reading: "",
-                        cache: &termCache,
+                        cache: &cache,
                         context: context
                     )
 
@@ -187,7 +184,7 @@ actor TermMetaBankProcessingTask {
                     let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
                         expression: entry.term,
                         reading: freqReading.reading,
-                        cache: &termCache,
+                        cache: &cache,
                         context: context
                     )
                     let frequencyEntry = TermFrequencyEntry(context: context)
@@ -206,7 +203,7 @@ actor TermMetaBankProcessingTask {
                     let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
                         expression: entry.term,
                         reading: pitchData.reading,
-                        cache: &termCache,
+                        cache: &cache,
                         context: context
                     )
 
@@ -241,7 +238,8 @@ actor TermMetaBankProcessingTask {
                             DictionaryImportUtilities.linkTagsToPitchEntryWithCache(
                                 pitchEntry,
                                 tags: tags,
-                                tagCache: tagCache
+                                tagCache: tagCache,
+                                context: context
                             )
                         }
                     }
@@ -251,7 +249,7 @@ actor TermMetaBankProcessingTask {
                     let termWithReading = try DictionaryImportUtilities.findOrCreateTermWithCache(
                         expression: entry.term,
                         reading: ipaData.reading,
-                        cache: &termCache,
+                        cache: &cache,
                         context: context
                     )
 
@@ -273,7 +271,8 @@ actor TermMetaBankProcessingTask {
                             DictionaryImportUtilities.linkTagsToIPAEntryWithCache(
                                 ipaEntry,
                                 tags: tags,
-                                tagCache: tagCache
+                                tagCache: tagCache,
+                                context: context
                             )
                         }
                     }
@@ -281,7 +280,13 @@ actor TermMetaBankProcessingTask {
             }
 
             try context.save()
+
+            // Update cache with newly created terms before reset
+            DictionaryImportUtilities.updateTermCacheWithNewObjects(cache: &cache, context: context)
+
             context.reset()
+            return cache
         }
+        termCache = updatedCache
     }
 }
