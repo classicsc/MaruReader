@@ -109,6 +109,20 @@ body {
     color: color-mix(in srgb, var(--text-color) 60% transparent);
 }
 
+.dictionary-header .tag-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.1875em;
+    align-items: center;
+    margin-right: 0.25em;
+}
+
+.dictionary-header .tag {
+    font-size: 0.625em;
+    padding: 0.1em 0.3em;
+    vertical-align: middle;
+}
+
 .dictionary-content {
     margin-bottom: 0.5em;
 }

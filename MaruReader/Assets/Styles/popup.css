@@ -80,6 +80,20 @@
     letter-spacing: 0.5px;
 }
 
+.popup-dictionary-header .tag-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    align-items: center;
+    margin-right: 4px;
+}
+
+.popup-dictionary-header .tag {
+    font-size: 9px;
+    padding: 1px 4px;
+    vertical-align: middle;
+}
+
 .popup-dictionary-content {
     font-size: 13px;
     line-height: 1.4;

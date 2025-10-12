@@ -33,9 +33,14 @@ struct TextLookupResponse {
                 \(tagsHTML)
                 \(deinflectionHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
-                    """
+                    // Aggregate definition tags from all results in this dictionary
+                    let allDefTags = dictionaryResult.results.map(\.definitionTags)
+                    let mergedDefTags = [Tag].merge(allDefTags)
+                    let defTagsHTML = mergedDefTags.isEmpty ? "" : mergedDefTags.toHTML(type: .definition) + " "
+
+                    return """
                     <div class="popup-dictionary-section">
-                        <h3 class="popup-dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h3>
+                        <h3 class="popup-dictionary-header">\(defTagsHTML)\(escapeHTML(dictionaryResult.dictionaryTitle))</h3>
                         <div class="popup-dictionary-content">
                             \(dictionaryResult.combinedHTML)
                         </div>
@@ -90,9 +95,14 @@ struct TextLookupResponse {
                 \(tagsHTML)
                 \(deinflectionHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
-                    """
+                    // Aggregate definition tags from all results in this dictionary
+                    let allDefTags = dictionaryResult.results.map(\.definitionTags)
+                    let mergedDefTags = [Tag].merge(allDefTags)
+                    let defTagsHTML = mergedDefTags.isEmpty ? "" : mergedDefTags.toHTML(type: .definition) + " "
+
+                    return """
                     <div class="dictionary-section">
-                        <h2 class="dictionary-header">\(escapeHTML(dictionaryResult.dictionaryTitle))</h2>
+                        <h2 class="dictionary-header">\(defTagsHTML)\(escapeHTML(dictionaryResult.dictionaryTitle))</h2>
                         <div class="dictionary-content">
                             \(dictionaryResult.combinedHTML)
                         </div>
