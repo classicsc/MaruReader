@@ -122,15 +122,54 @@
     display: inline-block;
     padding: 2px 6px;
     font-size: 11px;
-    background: #e3f2fd;
     border-radius: 4px;
-    color: #1976d2;
     font-weight: 500;
+    color: white;
 }
 
-.popup-term-tags .tag.definition-tag, .term-tags .tag.definition-tag {
-    background: #fff3e0;
-    color: #e65100;
+/* Category-based tag colors */
+.tag.tag-category-name {
+    background: #b6327a;
+}
+
+.tag.tag-category-expression {
+    background: #f0ad4e;
+}
+
+.tag.tag-category-popular {
+    background: #0275d8;
+}
+
+.tag.tag-category-frequent {
+    background: #5bc0de;
+}
+
+.tag.tag-category-archaism {
+    background: #d9534f;
+}
+
+.tag.tag-category-dictionary {
+    background: #aa66cc;
+}
+
+.tag.tag-category-frequency {
+    background: #5cb85c;
+}
+
+.tag.tag-category-partOfSpeech {
+    background: #565656;
+}
+
+.tag.tag-category-search {
+    background: #8a8a91;
+}
+
+.tag.tag-category-pronunciation-dictionary {
+    background: #6640be;
+}
+
+.tag.tag-category-unknown {
+    background: #8a8a91;
 }
 
 /* Deinflection info display */

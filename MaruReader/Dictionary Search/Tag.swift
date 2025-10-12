@@ -41,9 +41,10 @@ struct Tag: Codable, Sendable, Identifiable, Hashable {
     /// Generate HTML representation of this tag
     func toHTML(type: TagType = .term) -> String {
         let typeClass = type == .term ? "term-tag" : "definition-tag"
+        let categoryClass = "tag-category-\(normalizedCategory.cssClassName)"
         let escapedName = escapeHTML(name)
         let escapedNotes = notes.isEmpty ? "" : " title=\"\(escapeHTML(notes))\""
-        return "<span class=\"tag \(typeClass)\"\(escapedNotes)>\(escapedName)</span>"
+        return "<span class=\"tag \(typeClass) \(categoryClass)\"\(escapedNotes)>\(escapedName)</span>"
     }
 }
 
@@ -51,6 +52,43 @@ extension Tag {
     enum TagType {
         case term
         case definition
+    }
+
+    /// Known tag categories with corresponding CSS class names
+    enum TagCategory: String {
+        case name
+        case expression
+        case popular
+        case frequent
+        case archaism
+        case dictionary
+        case frequency
+        case partOfSpeech
+        case search
+        case pronunciationDictionary = "pronunciation-dictionary"
+        case unknown
+
+        /// CSS class name for this category
+        var cssClassName: String {
+            switch self {
+            case .pronunciationDictionary:
+                "pronunciation-dictionary"
+            case .unknown:
+                "unknown"
+            default:
+                rawValue
+            }
+        }
+
+        /// Initialize from a category string, defaulting to unknown
+        init(from categoryString: String) {
+            self = TagCategory(rawValue: categoryString) ?? .unknown
+        }
+    }
+
+    /// Get the normalized category for CSS class generation
+    var normalizedCategory: TagCategory {
+        TagCategory(from: category)
     }
 }
 

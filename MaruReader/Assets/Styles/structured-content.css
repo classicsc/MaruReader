@@ -812,6 +812,84 @@ body {
     border-radius: var(--border-radius-sm);
 }
 
+/* Term tags and deinflection info */
+.term-tags {
+    margin: 0.25em 0 0.375em 0;
+    line-height: 1.6;
+}
+
+.term-tags .tag-list {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.25em;
+}
+
+.term-tags .tag {
+    display: inline-block;
+    padding: 0.125em 0.375em;
+    font-size: 0.6875em;
+    border-radius: 0.25em;
+    font-weight: 500;
+    color: white;
+}
+
+/* Category-based tag colors */
+.tag.tag-category-name {
+    background: #b6327a;
+}
+
+.tag.tag-category-expression {
+    background: #f0ad4e;
+}
+
+.tag.tag-category-popular {
+    background: #0275d8;
+}
+
+.tag.tag-category-frequent {
+    background: #5bc0de;
+}
+
+.tag.tag-category-archaism {
+    background: #d9534f;
+}
+
+.tag.tag-category-dictionary {
+    background: #aa66cc;
+}
+
+.tag.tag-category-frequency {
+    background: #5cb85c;
+}
+
+.tag.tag-category-partOfSpeech {
+    background: #565656;
+}
+
+.tag.tag-category-search {
+    background: #8a8a91;
+}
+
+.tag.tag-category-pronunciation-dictionary {
+    background: #6640be;
+}
+
+.tag.tag-category-unknown {
+    background: #8a8a91;
+}
+
+/* Deinflection info display */
+.deinflection-info {
+    margin: 0.25em 0 0.375em 0;
+    font-size: 0.6875em;
+    color: var(--text-color-light1);
+    font-style: italic;
+    padding: 0.1875em 0.375em;
+    background: var(--background-color-dark1);
+    border-radius: 0.1875em;
+    display: inline-block;
+}
+
 /* Print styles */
 @media print {
     .gloss-image-link[data-collapsed=true] .gloss-image-container,
