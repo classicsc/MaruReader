@@ -114,7 +114,7 @@ enum TermFetcher {
                         dictionaryPriority: Int(dictionary.termDisplayPriority)
                     )
 
-                    logger.debug("Created SearchResult: term='\(term.expression ?? "", privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count)")
+                    logger.debug("Created SearchResult: term='\(term.expression ?? "", privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), sequence=\(entry.sequence)")
 
                     // Create SearchResult
                     let searchResult = SearchResult(
@@ -129,7 +129,8 @@ enum TermFetcher {
                         rankingCriteria: rankingCriteria,
                         termTags: termTags,
                         definitionTags: definitionTags,
-                        deinflectionRules: candidate.deinflectionInputRules
+                        deinflectionRules: candidate.deinflectionInputRules,
+                        sequence: entry.sequence
                     )
 
                     searchResults.append(searchResult)

@@ -70,21 +70,28 @@ actor DictionarySearchService {
 
         return grouped.map { termKey, termResults in
             let firstResult = termResults.first!
-            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { $0.dictionaryUUID })
+            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { "\($0.dictionaryUUID)|\($0.sequence)" })
 
-            let dictionaryResults = dictionaryGroups.map { dictionaryUUID, dictResults in
+            let dictionaryResults = dictionaryGroups.map { _, dictResults in
                 let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
+                let dictionaryUUID = dictResults.first?.dictionaryUUID ?? UUID()
+                let sequence = dictResults.first?.sequence ?? 0
                 let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
+                    sequence: sequence,
                     results: dictResults,
                     combinedHTML: combinedHTML
                 )
             }.sorted { (lhs: DictionaryResults, rhs: DictionaryResults) in
                 let lhsPriority = lhs.results.first?.displayPriority ?? 0
                 let rhsPriority = rhs.results.first?.displayPriority ?? 0
-                return lhsPriority < rhsPriority
+                if lhsPriority != rhsPriority {
+                    return lhsPriority < rhsPriority
+                }
+                // Sort by sequence (ascending: 0 before -1 before -2, etc.)
+                return lhs.sequence < rhs.sequence
             }
 
             // Aggregate term tags from all results for this term

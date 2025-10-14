@@ -20,6 +20,7 @@ struct SearchResult: Identifiable, Comparable {
     let termTags: [Tag]
     let definitionTags: [Tag]
     let deinflectionRules: [[String]]
+    let sequence: Int64
 
     var html: String {
         definitions.toHTML()
@@ -27,7 +28,7 @@ struct SearchResult: Identifiable, Comparable {
 
     // Unique identifier combining multiple properties
     var id: String {
-        "\(term)|\(reading ?? "")|\(dictionaryTitle)|\(candidate.text)|\(candidate.originalSubstring)"
+        "\(term)|\(reading ?? "")|\(dictionaryTitle)|\(candidate.text)|\(candidate.originalSubstring)|\(sequence)"
     }
 
     // MARK: - Comparable Implementation

@@ -10,8 +10,9 @@ import Foundation
 struct DictionaryResults: Identifiable {
     let dictionaryTitle: String
     let dictionaryUUID: UUID
+    let sequence: Int64
     let results: [SearchResult]
     let combinedHTML: String
 
-    var id: UUID { dictionaryUUID }
+    var id: String { "\(dictionaryUUID)|\(sequence)" }
 }
