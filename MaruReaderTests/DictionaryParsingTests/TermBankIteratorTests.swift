@@ -26,7 +26,7 @@ struct TermBankIteratorTests {
                     ]},
                     {"tag":"a","href":"https://example.com","content":"More info"}
                 ]}
-            ], 4, "info"],
+            ], 0, "info"],
             ["画像", "がぞう", "n", "", 70, [
                 {"type":"structured-content","content":{
                     "tag":"figure","content":[
@@ -34,7 +34,7 @@ struct TermBankIteratorTests {
                         {"tag":"figcaption","content":"A picture"}
                     ]
                 }}
-            ], 5, "media"]
+            ], -1, "media"]
         ]
         """
 
@@ -87,6 +87,9 @@ struct TermBankIteratorTests {
         // Check fourth term with complex structured-content array
         #expect(terms[3].expression == "説明")
         #expect(terms[3].reading == "せつめい")
+        #expect(terms[3].rules == "")
+        #expect(terms[3].score == 80)
+        #expect(terms[3].sequence == 0)
         let glossary3 = DefinitionArrayTransformer().reverseTransformedValue(terms[3].glossary) as? [Definition]
         #expect(glossary3?.count == 1)
         if let def = glossary3?.first, case let .detailed(.structured(structDef)) = def {
@@ -126,6 +129,9 @@ struct TermBankIteratorTests {
         // Check fifth term with figure/image structured-content
         #expect(terms[4].expression == "画像")
         #expect(terms[4].reading == "がぞう")
+        #expect(terms[4].rules == "")
+        #expect(terms[4].score == 70)
+        #expect(terms[4].sequence == -1)
         let glossary4 = DefinitionArrayTransformer().reverseTransformedValue(terms[4].glossary) as? [Definition]
         #expect(glossary4?.count == 1)
         if let def = glossary4?.first, case let .detailed(.structured(structDef)) = def {
