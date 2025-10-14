@@ -47,52 +47,44 @@ struct TermBankIteratorTests {
             dataFormat: 3
         )
 
-        var terms: [ParsedTerm] = []
-        for try await entry in iterator {
-            let term = ParsedTerm(from: entry)
-            terms.append(term)
-        }
+        let terms = try await Array(iterator)
 
         #expect(terms.count == 5)
 
         // Check first term
         #expect(terms[0].expression == "食べる")
         #expect(terms[0].reading == "たべる")
-        let definitionTags0 = StringArrayTransformer().reverseTransformedValue(terms[0].definitionTags) as? [String]
-        #expect(definitionTags0 == ["v1"])
-        #expect(terms[0].rules == "A")
+        #expect(terms[0].definitionTags == ["v1"])
+        #expect(terms[0].rules == ["A"])
         #expect(terms[0].score == 100)
         #expect(terms[0].sequence == 1)
-        let termTags0 = StringArrayTransformer().reverseTransformedValue(terms[0].termTags) as? [String]
-        #expect(termTags0 == ["common"])
+        #expect(terms[0].termTags == ["common"])
 
         // Check second term
         #expect(terms[1].expression == "飲む")
         #expect(terms[1].reading == "のむ")
-        let definitionTags1 = StringArrayTransformer().reverseTransformedValue(terms[1].definitionTags) as? [String]
-        #expect(definitionTags1 == ["v5m"])
-        #expect(terms[1].rules == "B")
+        #expect(terms[1].definitionTags == ["v5m"])
+        #expect(terms[1].rules == ["B"])
         #expect(terms[1].score == 95)
         #expect(terms[1].sequence == 2)
 
         // Check third term
         #expect(terms[2].expression == "走る")
         #expect(terms[2].reading == "はしる")
-        let definitionTags2 = StringArrayTransformer().reverseTransformedValue(terms[2].definitionTags) as? [String]
-        #expect(definitionTags2 == ["v5r"])
-        #expect(terms[2].rules == "C")
+        #expect(terms[2].definitionTags == ["v5r"])
+        #expect(terms[2].rules == ["C"])
         #expect(terms[2].score == 90)
         #expect(terms[2].sequence == 3)
 
         // Check fourth term with complex structured-content array
         #expect(terms[3].expression == "説明")
         #expect(terms[3].reading == "せつめい")
-        #expect(terms[3].rules == "")
+        #expect(terms[3].rules == [])
         #expect(terms[3].score == 80)
         #expect(terms[3].sequence == 0)
-        let glossary3 = DefinitionArrayTransformer().reverseTransformedValue(terms[3].glossary) as? [Definition]
-        #expect(glossary3?.count == 1)
-        if let def = glossary3?.first, case let .detailed(.structured(structDef)) = def {
+        let glossary3 = terms[3].glossary
+        #expect(glossary3.count == 1)
+        if let def = glossary3.first, case let .detailed(.structured(structDef)) = def {
             // Root structured content should be an array
             if case let .array(rootArray) = structDef.content {
                 #expect(rootArray.count == 3)
@@ -129,12 +121,12 @@ struct TermBankIteratorTests {
         // Check fifth term with figure/image structured-content
         #expect(terms[4].expression == "画像")
         #expect(terms[4].reading == "がぞう")
-        #expect(terms[4].rules == "")
+        #expect(terms[4].rules == [])
         #expect(terms[4].score == 70)
         #expect(terms[4].sequence == -1)
-        let glossary4 = DefinitionArrayTransformer().reverseTransformedValue(terms[4].glossary) as? [Definition]
-        #expect(glossary4?.count == 1)
-        if let def = glossary4?.first, case let .detailed(.structured(structDef)) = def {
+        let glossary4 = terms[4].glossary
+        #expect(glossary4.count == 1)
+        if let def = glossary4.first, case let .detailed(.structured(structDef)) = def {
             if case let .element(figureElem) = structDef.content {
                 #expect(figureElem.tag == "figure")
                 if case let .array(figureChildren) = figureElem.content {
@@ -178,35 +170,25 @@ struct TermBankIteratorTests {
             dataFormat: 1
         )
 
-        var terms: [ParsedTerm] = []
-        for try await entry in iterator {
-            let term = ParsedTerm(from: entry)
-            terms.append(term)
-        }
+        let terms = try await Array(iterator)
 
         #expect(terms.count == 3)
 
         // Check first term
         #expect(terms[0].expression == "食べる")
         #expect(terms[0].reading == "たべる")
-        let definitionTags = StringArrayTransformer().reverseTransformedValue(terms[0].definitionTags) as? [String]
-        #expect(definitionTags == ["v1"])
-        #expect(terms[0].rules == "A")
+        #expect(terms[0].definitionTags == ["v1"])
+        #expect(terms[0].rules == ["A"])
         #expect(terms[0].score == 100)
-        #expect(terms[0].sequence == nil)
-        #expect(terms[0].termTags == nil)
-        let glossary0 = DefinitionArrayTransformer().reverseTransformedValue(terms[0].glossary) as? [Definition]
-        #expect(glossary0?.count == 2)
+        #expect(terms[0].glossary.count == 2)
 
         // Check second term (single definition)
         #expect(terms[1].expression == "飲む")
-        let glossary1 = DefinitionArrayTransformer().reverseTransformedValue(terms[1].glossary) as? [Definition]
-        #expect(glossary1?.count == 1)
+        #expect(terms[1].glossary.count == 1)
 
         // Check third term (multiple definitions)
         #expect(terms[2].expression == "走る")
-        let glossary2 = DefinitionArrayTransformer().reverseTransformedValue(terms[2].glossary) as? [Definition]
-        #expect(glossary2?.count == 2)
+        #expect(terms[2].glossary.count == 2)
     }
 
     @Test func termBankIterator_MultipleFiles_StreamsAllTerms() async throws {
@@ -239,11 +221,7 @@ struct TermBankIteratorTests {
             dataFormat: 3
         )
 
-        var terms: [ParsedTerm] = []
-        for try await entry in iterator {
-            let term = ParsedTerm(from: entry)
-            terms.append(term)
-        }
+        let terms = try await Array(iterator)
 
         #expect(terms.count == 4)
         #expect(terms[0].expression == "食べる")
@@ -265,25 +243,21 @@ struct TermBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = StreamingBankIterator<TermBankV3Entry>(
+        var iterator = StreamingBankIterator<TermBankV3Entry>(
             bankURLs: [tempURL],
             dataFormat: 3
-        )
+        ).makeAsyncIterator()
 
-        var terms: [ParsedTerm] = []
+        let term1 = try await iterator.next()
         var errorOccurred = false
-
         do {
-            for try await entry in iterator {
-                let term = ParsedTerm(from: entry)
-                terms.append(term)
-            }
+            _ = try await iterator.next()
         } catch {
             errorOccurred = true
         }
 
         #expect(errorOccurred)
-        #expect(terms.count == 1) // Only the first valid entry should be parsed
+        #expect(term1?.expression == "食べる") // Only the first valid entry should be parsed
     }
 
     @Test func termBankIterator_EmptyFiles_ReturnsNoTerms() async throws {
@@ -299,11 +273,7 @@ struct TermBankIteratorTests {
             dataFormat: 3
         )
 
-        var terms: [ParsedTerm] = []
-        for try await entry in iterator {
-            let term = ParsedTerm(from: entry)
-            terms.append(term)
-        }
+        let terms = try await Array(iterator)
 
         #expect(terms.count == 0)
     }
@@ -314,11 +284,7 @@ struct TermBankIteratorTests {
             dataFormat: 3
         )
 
-        var terms: [ParsedTerm] = []
-        for try await entry in iterator {
-            let term = ParsedTerm(from: entry)
-            terms.append(term)
-        }
+        let terms = try await Array(iterator)
 
         #expect(terms.count == 0)
     }
