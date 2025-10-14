@@ -400,10 +400,3 @@ struct BookGridItem: View {
         }
     }
 }
-
-#Preview {
-    NavigationStack {
-        BookLibraryView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-    }
-}

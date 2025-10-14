@@ -136,7 +136,7 @@ struct TagMetaEntry: Codable {
 /// 2: space-separated kunyomi readings (String, may be empty)
 /// 3: space-separated tags (String, may be empty)
 /// 4+: meanings (String, optional, zero or more)
-struct KanjiBankV1Entry: Codable {
+struct KanjiBankV1Entry: DictionaryDataBankEntry {
     let character: String
     let onyomi: [String]
     let kunyomi: [String]
@@ -186,13 +186,29 @@ struct KanjiBankV1Entry: Codable {
         }
     }
 
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        let stringArrayTransformer = StringArrayTransformer()
+        let stringDictionaryTransformer = StringDictionaryTransformer()
+
+        return (.kanjiEntry, [
+            "character": character,
+            "onyomi": stringArrayTransformer.transformedValue(onyomi) as? Data,
+            "kunyomi": stringArrayTransformer.transformedValue(kunyomi) as? Data,
+            "tags": stringArrayTransformer.transformedValue(tags) as? Data,
+            "meanings": stringArrayTransformer.transformedValue(meanings) as? Data,
+            "dictionaryID": dictionaryID,
+            "id": UUID(),
+            "stats": stringDictionaryTransformer.transformedValue([:]) as? Data,
+        ])
+    }
+
     private static func splitSpaceSeparated(_ s: String) -> [String] {
         s.split { $0 == " " || $0 == "\t" || $0 == "\n" }
             .map { String($0) }
     }
 }
 
-struct TermBankV1Entry: Codable {
+struct TermBankV1Entry: DictionaryDataBankEntry {
     let expression: String
     let reading: String
     let definitionTags: [String]
@@ -221,6 +237,24 @@ struct TermBankV1Entry: Codable {
         self.definitionTags = TermBankV1Entry.splitSpaceSeparated(definitionTagsRaw)
         self.rules = TermBankV1Entry.splitSpaceSeparated(rulesRaw)
         self.glossary = glossary
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        let stringArrayTransformer = StringArrayTransformer()
+        let definitionArrayTransformer = DefinitionArrayTransformer()
+
+        return (.termEntry, [
+            "expression": expression,
+            "reading": reading,
+            "definitionTags": stringArrayTransformer.transformedValue(definitionTags) as? Data ?? Data(),
+            "dictionaryID": dictionaryID,
+            "glossary": definitionArrayTransformer.transformedValue(glossary) as? Data ?? Data(),
+            "id": UUID(),
+            "rules": stringArrayTransformer.transformedValue(rules) as? Data ?? Data(),
+            "score": score,
+            "sequence": 0,
+            "termTags": Data(),
+        ])
     }
 
     private static func splitSpaceSeparated(_ s: String) -> [String] {

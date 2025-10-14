@@ -348,10 +348,3 @@ struct DictionaryRow: View {
         .disabled(dictionary.pendingDeletion)
     }
 }
-
-#Preview {
-    NavigationStack {
-        DictionaryManagementView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-    }
-}

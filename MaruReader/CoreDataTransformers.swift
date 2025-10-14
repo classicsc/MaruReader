@@ -20,6 +20,7 @@ extension NSValueTransformerName {
     static let termMetaEntryDataTransformer = NSValueTransformerName("TermMetaEntryDataTransformer")
     static let urlArrayTransformer = NSValueTransformerName("URLArrayTransformer")
     static let pitchAccentArrayTransformer = NSValueTransformerName("PitchAccentArrayTransformer")
+    static let ipaTranscriptionArrayTransformer = NSValueTransformerName("IPATranscriptionArrayTransformer")
     static let intArrayTransformer = NSValueTransformerName("IntArrayTransformer")
     static let readiumColorTransformer = NSValueTransformerName("ReadiumColorTransformer")
     static let readingProgressionTransformer = NSValueTransformerName("ReadingProgressionTransformer")
@@ -37,6 +38,7 @@ enum CoreDataTransformers {
         ValueTransformer.setValueTransformer(TermMetaEntryDataTransformer(), forName: .termMetaEntryDataTransformer)
         ValueTransformer.setValueTransformer(URLArrayTransformer(), forName: .urlArrayTransformer)
         ValueTransformer.setValueTransformer(PitchAccentArrayTransformer(), forName: .pitchAccentArrayTransformer)
+        ValueTransformer.setValueTransformer(IPATranscriptionArrayTransformer(), forName: .ipaTranscriptionArrayTransformer)
         ValueTransformer.setValueTransformer(IntArrayTransformer(), forName: .intArrayTransformer)
         ValueTransformer.setValueTransformer(ReadiumColorTransformer(), forName: .readiumColorTransformer)
         ValueTransformer.setValueTransformer(ReadingProgressionTransformer(), forName: .readingProgressionTransformer)
@@ -92,6 +94,10 @@ final class URLArrayTransformer: JSONValueTransformer<[URL]> {
 }
 
 final class PitchAccentArrayTransformer: JSONValueTransformer<[PitchAccent]> {
+    // Nothing extra needed; subclass exists to provide unique name
+}
+
+final class IPATranscriptionArrayTransformer: JSONValueTransformer<[IPATranscription]> {
     // Nothing extra needed; subclass exists to provide unique name
 }
 

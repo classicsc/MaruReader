@@ -18,8 +18,7 @@ struct TagBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var tags: [TagBankV3Entry] = []
@@ -76,8 +75,7 @@ struct TagBankIteratorTests {
         }
 
         let iterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: [tempURL1, tempURL2],
-            dataFormat: 3
+            bankURLs: [tempURL1, tempURL2]
         )
 
         var tags: [TagBankV3Entry] = []
@@ -102,8 +100,7 @@ struct TagBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var tags: [TagBankV3Entry] = []
@@ -128,8 +125,7 @@ struct TagBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var tags: [TagBankV3Entry] = []
@@ -142,8 +138,7 @@ struct TagBankIteratorTests {
 
     @Test func tagBankIterator_NoFiles_ReturnsNoTags() async throws {
         let iterator = StreamingBankIterator<TagBankV3Entry>(
-            bankURLs: [],
-            dataFormat: 3
+            bankURLs: []
         )
 
         var tags: [TagBankV3Entry] = []

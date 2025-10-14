@@ -17,7 +17,7 @@ struct KanjiMetaBankIteratorTests {
         try jsonString.write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url], dataFormat: 3)
+        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url])
         var entries: [KanjiMetaBankV3Entry] = []
         for try await e in iterator {
             entries.append(e)
@@ -75,7 +75,7 @@ struct KanjiMetaBankIteratorTests {
         try jsonString2.write(to: url2, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url1); try? FileManager.default.removeItem(at: url2) }
 
-        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url1, url2], dataFormat: 3)
+        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url1, url2])
         var kanji: [String] = []
         for try await e in iterator {
             kanji.append(e.kanji)
@@ -94,7 +94,7 @@ struct KanjiMetaBankIteratorTests {
         try jsonString.write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url], dataFormat: 3)
+        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url])
         var collected: [KanjiMetaBankV3Entry] = []
         var errorOccurred = false
         do {
@@ -115,7 +115,7 @@ struct KanjiMetaBankIteratorTests {
         try jsonString.write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url], dataFormat: 3)
+        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url])
         var any = false
         for try await _ in iterator {
             any = true
@@ -124,7 +124,7 @@ struct KanjiMetaBankIteratorTests {
     }
 
     @Test func kanjiMetaIterator_NoFiles_ReturnsNoEntries() async throws {
-        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [], dataFormat: 3)
+        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [])
         var count = 0
         for try await _ in iterator {
             count += 1

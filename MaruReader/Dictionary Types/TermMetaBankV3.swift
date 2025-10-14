@@ -8,7 +8,7 @@
 import Foundation
 
 /// One entry: [term, type, data]
-struct TermMetaBankV3Entry: Codable {
+struct TermMetaBankV3Entry: DictionaryDataBankEntry {
     let term: String
     let kind: Kind
     let data: TermMetaEntryData
@@ -63,6 +63,47 @@ struct TermMetaBankV3Entry: Codable {
             try container.encode(pitch)
         case let .ipa(ipa):
             try container.encode(ipa)
+        }
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        let pitchArrayTransformer = PitchAccentArrayTransformer()
+        let ipaTranscriptionArrayTransformer = IPATranscriptionArrayTransformer()
+        switch data {
+        case let .frequency(freq):
+            return (.termFrequencyEntry, [
+                "dictionaryID": dictionaryID,
+                "expression": term,
+                "reading": "",
+                "value": freq.value,
+                "displayValue": freq.displayValue ?? "",
+                "id": UUID(),
+            ])
+        case let .frequencyWithReading(rf):
+            return (.termFrequencyEntry, [
+                "dictionaryID": dictionaryID,
+                "expression": term,
+                "reading": rf.reading,
+                "value": rf.frequency.value,
+                "displayValue": rf.frequency.displayValue ?? "",
+                "id": UUID(),
+            ])
+        case let .pitch(pitch):
+            return (.pitchAccentEntry, [
+                "dictionaryID": dictionaryID,
+                "expression": term,
+                "reading": pitch.reading,
+                "pitches": pitchArrayTransformer.transformedValue(pitch.pitches) as? Data ?? Data(),
+                "id": UUID(),
+            ])
+        case let .ipa(ipa):
+            return (.ipaEntry, [
+                "dictionaryID": dictionaryID,
+                "expression": term,
+                "reading": ipa.reading,
+                "transcriptions": ipaTranscriptionArrayTransformer.transformedValue(ipa.transcriptions) as? Data ?? Data(),
+                "id": UUID(),
+            ])
         }
     }
 }
@@ -182,10 +223,10 @@ struct PitchAccent: Codable {
 
 struct IPAData: Codable {
     let reading: String
-    let transcriptions: [Transcription]
+    let transcriptions: [IPATranscription]
+}
 
-    struct Transcription: Codable {
-        let ipa: String
-        let tags: [String]?
-    }
+struct IPATranscription: Codable {
+    let ipa: String
+    let tags: [String]?
 }

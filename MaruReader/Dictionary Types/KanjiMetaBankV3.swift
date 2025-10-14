@@ -62,7 +62,7 @@ enum KanjiFrequency: Codable {
 }
 
 /// Represents a single entry in the Kanji Meta Bank V3 schema.
-struct KanjiMetaBankV3Entry: Codable {
+struct KanjiMetaBankV3Entry: DictionaryDataBankEntry {
     let kanji: String
     let type: String
     let frequency: KanjiFrequency
@@ -87,5 +87,33 @@ struct KanjiMetaBankV3Entry: Codable {
         try container.encode(kanji)
         try container.encode(type)
         try container.encode(frequency)
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        (.kanjiFrequencyEntry, [
+            "character": kanji,
+            "displayFrequency": {
+                switch frequency {
+                case let .number(num):
+                    String(num)
+                case let .string(str):
+                    str
+                case let .object(_, displayValue):
+                    displayValue ?? String(describing: frequency)
+                }
+            }(),
+            "frequencyValue": {
+                switch frequency {
+                case let .number(num):
+                    num
+                case let .string(str):
+                    Double(str) ?? 0
+                case let .object(value, _):
+                    value
+                }
+            }(),
+            "dictionaryID": dictionaryID,
+            "id": UUID(),
+        ])
     }
 }

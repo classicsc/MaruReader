@@ -11,24 +11,21 @@ import os.log
 
 /// A generic streaming iterator for dictionary bank JSON files.
 /// Uses JsonStream to parse JSON without loading entire files into memory.
-struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
+struct StreamingBankIterator<Entry: DictionaryDataBankEntry>: AsyncSequence {
     typealias Element = Entry
 
     private let bankURLs: [URL]
-    private let dataFormat: Int
 
-    init(bankURLs: [URL], dataFormat: Int) {
+    init(bankURLs: [URL]) {
         self.bankURLs = bankURLs
-        self.dataFormat = dataFormat
     }
 
     func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(bankURLs: bankURLs, dataFormat: dataFormat)
+        AsyncIterator(bankURLs: bankURLs)
     }
 
     struct AsyncIterator: AsyncIteratorProtocol {
         private let bankURLs: [URL]
-        private let dataFormat: Int
 
         private var currentFileIndex: Int = 0
         private var currentInputStream: JsonInputStream?
@@ -41,9 +38,8 @@ struct StreamingBankIterator<Entry: Decodable>: AsyncSequence {
 
         private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "StreamingBankAsyncIterator")
 
-        init(bankURLs: [URL], dataFormat: Int) {
+        init(bankURLs: [URL]) {
             self.bankURLs = bankURLs
-            self.dataFormat = dataFormat
         }
 
         mutating func next() async throws -> Entry? {

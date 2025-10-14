@@ -43,8 +43,7 @@ struct TermBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         let terms = try await Array(iterator)
@@ -166,8 +165,7 @@ struct TermBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TermBankV1Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 1
+            bankURLs: [tempURL]
         )
 
         let terms = try await Array(iterator)
@@ -217,8 +215,7 @@ struct TermBankIteratorTests {
         }
 
         let iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: [tempURL1, tempURL2],
-            dataFormat: 3
+            bankURLs: [tempURL1, tempURL2]
         )
 
         let terms = try await Array(iterator)
@@ -244,8 +241,7 @@ struct TermBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         var iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         ).makeAsyncIterator()
 
         let term1 = try await iterator.next()
@@ -269,8 +265,7 @@ struct TermBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         let terms = try await Array(iterator)
@@ -280,8 +275,7 @@ struct TermBankIteratorTests {
 
     @Test func termBankIterator_NoFiles_ReturnsNoTerms() async throws {
         let iterator = StreamingBankIterator<TermBankV3Entry>(
-            bankURLs: [],
-            dataFormat: 3
+            bankURLs: []
         )
 
         let terms = try await Array(iterator)

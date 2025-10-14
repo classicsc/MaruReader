@@ -8,7 +8,7 @@
 import Foundation
 
 /// A single term entry from the TermBank V3 schema.
-struct TermBankV3Entry: Codable {
+struct TermBankV3Entry: DictionaryDataBankEntry {
     let expression: String
     let reading: String
     let definitionTags: [String]? // null | space‑separated string
@@ -62,6 +62,23 @@ struct TermBankV3Entry: Codable {
         try container.encode(glossary)
         try container.encode(sequence)
         try container.encode(termTags.joined(separator: " "))
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        let stringArrayTransformer = StringArrayTransformer()
+        let definitionArrayTransformer = DefinitionArrayTransformer()
+        return (.termEntry, [
+            "expression": self.expression,
+            "reading": self.reading,
+            "definitionTags": stringArrayTransformer.transformedValue(self.definitionTags ?? []) as? Data ?? Data(),
+            "dictionaryID": dictionaryID,
+            "glossary": definitionArrayTransformer.transformedValue(self.glossary) as? Data ?? Data(),
+            "id": UUID(),
+            "rules": stringArrayTransformer.transformedValue(self.rules) as? Data ?? Data(),
+            "score": self.score,
+            "sequence": Int64(self.sequence),
+            "termTags": stringArrayTransformer.transformedValue(self.termTags) as? Data ?? Data(),
+        ])
     }
 
     private static func split(_ s: String) -> [String] {

@@ -21,8 +21,7 @@ struct KanjiBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var entries: [KanjiBankV3Entry] = []
@@ -65,8 +64,7 @@ struct KanjiBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<KanjiBankV1Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 1
+            bankURLs: [tempURL]
         )
 
         var entries: [KanjiBankV1Entry] = []
@@ -113,8 +111,7 @@ struct KanjiBankIteratorTests {
         }
 
         let iterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: [tempURL1, tempURL2],
-            dataFormat: 3
+            bankURLs: [tempURL1, tempURL2]
         )
 
         var chars: [String] = []
@@ -139,8 +136,7 @@ struct KanjiBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var parsed: [KanjiBankV3Entry] = []
@@ -166,8 +162,7 @@ struct KanjiBankIteratorTests {
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         let iterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: [tempURL],
-            dataFormat: 3
+            bankURLs: [tempURL]
         )
 
         var count = 0
@@ -179,8 +174,7 @@ struct KanjiBankIteratorTests {
 
     @Test func kanjiBankIterator_NoFiles_ReturnsNoKanji() async throws {
         let iterator = StreamingBankIterator<KanjiBankV3Entry>(
-            bankURLs: [],
-            dataFormat: 3
+            bankURLs: []
         )
         var count = 0
         for try await _ in iterator {

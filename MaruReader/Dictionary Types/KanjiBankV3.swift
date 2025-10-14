@@ -15,7 +15,7 @@ import Foundation
 /// 3: space-separated tags (String, may be empty)
 /// 4: meanings array ([String])
 /// 5: stats object ([String: String])
-struct KanjiBankV3Entry: Codable {
+struct KanjiBankV3Entry: DictionaryDataBankEntry {
     let character: String
     let onyomi: [String]
     let kunyomi: [String]
@@ -60,6 +60,22 @@ struct KanjiBankV3Entry: Codable {
         try container.encode(tags.joined(separator: " "))
         try container.encode(meanings)
         try container.encode(stats)
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        let stringArrayTransformer = StringArrayTransformer()
+        let stringDictTransformer = StringDictionaryTransformer()
+
+        return (.kanjiEntry, [
+            "character": character,
+            "onyomi": stringArrayTransformer.transformedValue(onyomi) as? Data,
+            "kunyomi": stringArrayTransformer.transformedValue(kunyomi) as? Data,
+            "tags": stringArrayTransformer.transformedValue(tags) as? Data,
+            "meanings": stringArrayTransformer.transformedValue(meanings) as? Data,
+            "stats": stringDictTransformer.transformedValue(stats) as? Data,
+            "dictionaryID": dictionaryID,
+            "id": UUID(),
+        ])
     }
 
     private static func splitSpaceSeparated(_ s: String) -> [String] {

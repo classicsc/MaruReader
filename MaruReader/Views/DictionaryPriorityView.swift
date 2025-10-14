@@ -308,10 +308,3 @@ struct DictionaryPriorityRow: View {
         }
     }
 }
-
-#Preview {
-    NavigationStack {
-        DictionaryPriorityView()
-            .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-    }
-}

@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct TagBankV3Entry: Codable {
+struct TagBankV3Entry: DictionaryDataBankEntry {
     let name: String
     let category: String
     let order: Double
@@ -22,5 +22,19 @@ struct TagBankV3Entry: Codable {
         self.order = try container.decode(Double.self)
         self.notes = try container.decode(String.self)
         self.score = try container.decode(Double.self)
+    }
+
+    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+        (
+            .dictionaryTagMeta, [
+                "id": UUID(),
+                "dictionaryID": dictionaryID,
+                "name": name,
+                "category": category,
+                "order": order,
+                "notes": notes,
+                "score": score,
+            ]
+        )
     }
 }

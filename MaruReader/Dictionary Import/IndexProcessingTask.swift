@@ -37,7 +37,7 @@ actor IndexProcessingTask {
         return 0
     }
 
-    func start() async throws {
+    func start() async throws -> UUID {
         let container = self.persistentContainer
         let jobID = self.jobID
         // Load index.json
@@ -89,13 +89,15 @@ actor IndexProcessingTask {
 
         try Task.checkCancellation()
 
+        let dictionaryID = UUID()
+
         try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
                 throw DictionaryImportError.importNotFound
             }
             // Create the Dictionary entity and link to job
             let dictionary = Dictionary(context: context)
-            dictionary.id = UUID()
+            dictionary.id = dictionaryID
             dictionary.title = index.title
             dictionary.attribution = index.attribution
             dictionary.downloadURL = index.downloadUrl
@@ -134,8 +136,6 @@ actor IndexProcessingTask {
                     tag.score = Double(entry.score ?? 0)
 
                     context.insert(tag)
-
-                    tag.dictionary = dictionary
                 }
             }
 
@@ -151,5 +151,6 @@ actor IndexProcessingTask {
 
             try context.save()
         }
+        return dictionaryID
     }
 }
