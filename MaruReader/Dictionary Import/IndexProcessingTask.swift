@@ -134,6 +134,7 @@ actor IndexProcessingTask {
                     tag.order = Double(entry.order ?? 0)
                     tag.notes = entry.notes
                     tag.score = Double(entry.score ?? 0)
+                    tag.dictionaryID = dictionaryID
 
                     context.insert(tag)
                 }
