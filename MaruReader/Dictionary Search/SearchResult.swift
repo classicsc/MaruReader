@@ -21,6 +21,7 @@ struct SearchResult: Identifiable, Comparable {
     let definitionTags: [Tag]
     let deinflectionRules: [[String]]
     let sequence: Int64
+    let score: Double
 
     var html: String {
         definitions.toHTML()

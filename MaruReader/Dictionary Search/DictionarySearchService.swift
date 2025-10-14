@@ -70,17 +70,19 @@ actor DictionarySearchService {
 
         return grouped.map { termKey, termResults in
             let firstResult = termResults.first!
-            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { "\($0.dictionaryUUID)|\($0.sequence)" })
+            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { "\($0.dictionaryUUID)|\($0.sequence)|\($0.definitionTags)|\($0.score)" })
 
             let dictionaryResults = dictionaryGroups.map { _, dictResults in
                 let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
                 let dictionaryUUID = dictResults.first?.dictionaryUUID ?? UUID()
                 let sequence = dictResults.first?.sequence ?? 0
+                let score = dictResults.first?.score ?? 0.0
                 let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
                     sequence: sequence,
+                    score: score,
                     results: dictResults,
                     combinedHTML: combinedHTML
                 )
@@ -90,7 +92,9 @@ actor DictionarySearchService {
                 if lhsPriority != rhsPriority {
                     return lhsPriority < rhsPriority
                 }
-                // Sort by sequence (ascending: 0 before -1 before -2, etc.)
+                if lhs.score != rhs.score {
+                    return lhs.score > rhs.score
+                }
                 return lhs.sequence < rhs.sequence
             }
 

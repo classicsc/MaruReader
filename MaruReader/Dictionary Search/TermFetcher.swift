@@ -130,7 +130,8 @@ enum TermFetcher {
                         termTags: termTags,
                         definitionTags: definitionTags,
                         deinflectionRules: candidate.deinflectionInputRules,
-                        sequence: entry.sequence
+                        sequence: entry.sequence,
+                        score: entry.score
                     )
 
                     searchResults.append(searchResult)

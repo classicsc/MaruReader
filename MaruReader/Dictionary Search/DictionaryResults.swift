@@ -11,6 +11,7 @@ struct DictionaryResults: Identifiable {
     let dictionaryTitle: String
     let dictionaryUUID: UUID
     let sequence: Int64
+    let score: Double
     let results: [SearchResult]
     let combinedHTML: String
 
