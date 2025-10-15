@@ -138,8 +138,8 @@ extension [Definition] {
             // Determine if content should have structured-content class
             let contentClass = definition.isStructuredContent ? "gloss-content structured-content" : "gloss-content"
 
-            return "<li class=\"gloss-item click-scannable\" data-index=\"\(index)\"><span class=\"gloss-separator\"> </span><span class=\"\(contentClass)\">\(definitionHTML)</span></li>"
-        }.joined()
+            return "<li class=\"gloss-item click-scannable\" data-index=\"\(index)\"><span class=\"\(contentClass)\">\(definitionHTML)</span></li>"
+        }.joined(separator: "<span class=\"gloss-separator\"> </span>")
         return "<ul class=\"gloss-glossary-list\" data-count=\"\(self.count)\">\(itemsHTML)</ul>"
     }
 }

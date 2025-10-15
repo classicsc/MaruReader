@@ -106,7 +106,11 @@ body {
     font-size: 1.0625em;
     font-weight: 600;
     margin: 0 0 0.5em 0;
-    color: color-mix(in srgb, var(--text-color) 60% transparent);
+    color: white;
+    background: #aa66cc;
+    display: inline-block;
+    padding: 0.125em 0.375em;
+    border-radius: 0.25em;
 }
 
 .dictionary-header .tag-list {
