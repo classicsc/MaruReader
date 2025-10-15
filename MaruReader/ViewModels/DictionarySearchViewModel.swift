@@ -62,9 +62,9 @@ class DictionarySearchViewModel {
                     self.performSearch(term)
                 }
             },
-            onScan: { offset, context, cssSelector in
+            onScan: { offset, context, contextStartOffset, cssSelector in
                 Task { @MainActor in
-                    self.handleTextScan(offset, context: context, cssSelector: cssSelector)
+                    self.handleTextScan(offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
                 }
             }
         )
@@ -136,7 +136,7 @@ class DictionarySearchViewModel {
         }
     }
 
-    func handleTextScan(_ offset: Int, context: String, cssSelector: String) {
+    func handleTextScan(_ offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
             logger.debug("Scan ignored due to debounce")
@@ -150,7 +150,7 @@ class DictionarySearchViewModel {
             return
         }
 
-        let lookupRequest = TextLookupRequest(context: context, offset: offset, cssSelector: cssSelector)
+        let lookupRequest = TextLookupRequest(context: context, offset: offset, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
         popupSearchTask?.cancel()
         popupSearchTask = Task {
             guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
@@ -162,15 +162,20 @@ class DictionarySearchViewModel {
                 if value == WebPage.NavigationEvent.finished {
                     self.showPopup = true
 
-                    // The range to highlight within the context is given in the results object
-                    let highlightText = context[searchResults.primaryResultSourceRange]
+                    // Use offset-based highlighting for precise positioning
                     do {
                         try await page.clearHighlights()
-                        highlightBoundingRects = try await page.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                        highlightBoundingRects = try await page.highlightTextByContextRange(
+                            cssSelector: cssSelector,
+                            contextStartOffset: searchResults.contextStartOffset,
+                            matchStartInContext: searchResults.matchStartInContext,
+                            matchEndInContext: searchResults.matchEndInContext,
+                            styles: self.highlightStylesAsJSObject()
+                        )
                     } catch {
                         logger.error("Failed to highlight text: \(error.localizedDescription)")
                     }
-                    logger.debug("Highlighted text: \(highlightText)")
+                    logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
                     logger.debug("Highlight bounding rects: \(String(describing: self.highlightBoundingRects))")
                 }
             }

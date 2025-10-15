@@ -72,6 +72,7 @@ window.MaruReader.textScanning = {
         var result = {
             offset: contextResult.offset, // Offset of tapped character within context
             context: contextResult.context, // Surrounding text
+            contextStartOffset: contextResult.contextStartOffset, // Where context starts in full text
             rubyContext: contextResult.rubyContext, // RubyText if available
             cssSelector: cssPath // CSS selector
         };
@@ -104,6 +105,7 @@ window.MaruReader.textScanning = {
     extractContext: function(node, offset, contextLevel, maxContextChars, rubyContainer) {
         var context = '';
         var contextOffset = 0;
+        var contextStartOffset = 0;
         var rubyContextObj = null;
 
         if (rubyContainer) {
@@ -113,6 +115,7 @@ window.MaruReader.textScanning = {
             );
             context = rubyResult.context;
             contextOffset = rubyResult.offset;
+            contextStartOffset = rubyResult.contextStartOffset;
             rubyContextObj = rubyResult.rubyContext;
         } else {
             // Extract plain text context
@@ -121,11 +124,13 @@ window.MaruReader.textScanning = {
             );
             context = plainResult.context;
             contextOffset = plainResult.offset;
+            contextStartOffset = plainResult.contextStartOffset;
         }
 
         return {
             context: context,
             offset: contextOffset,
+            contextStartOffset: contextStartOffset,
             rubyContext: rubyContextObj
         };
     },
@@ -136,7 +141,7 @@ window.MaruReader.textScanning = {
      * @param {number} offset - Character offset
      * @param {number} contextLevel - Context level
      * @param {number} maxContextChars - Maximum characters
-     * @returns {Object} Context and offset
+     * @returns {Object} Context, offset, and contextStartOffset
      */
     extractPlainContext: function(node, offset, contextLevel, maxContextChars) {
         // Get all text from the paragraph or container
@@ -157,7 +162,8 @@ window.MaruReader.textScanning = {
             var context = fullText.substring(start, end);
             return {
                 context: context,
-                offset: fullTextOffset - start
+                offset: fullTextOffset - start,
+                contextStartOffset: start
             };
         }
 
@@ -177,18 +183,21 @@ window.MaruReader.textScanning = {
             var newStart = Math.max(0, charOffset - halfMax);
             var newEnd = Math.min(context.length, newStart + maxContextChars);
 
+            var finalContextStart = contextStart + newStart;
             context = context.substring(newStart, newEnd);
             charOffset = charOffset - newStart;
 
             return {
                 context: context,
-                offset: charOffset
+                offset: charOffset,
+                contextStartOffset: finalContextStart
             };
         }
 
         return {
             context: context,
-            offset: fullTextOffset - contextStart
+            offset: fullTextOffset - contextStart,
+            contextStartOffset: contextStart
         };
     },
 
@@ -199,7 +208,7 @@ window.MaruReader.textScanning = {
      * @param {number} contextLevel - Context level
      * @param {number} maxContextChars - Maximum characters
      * @param {Element} rubyContainer - Ruby container element
-     * @returns {Object} Context, offset, and ruby context
+     * @returns {Object} Context, offset, contextStartOffset, and ruby context
      */
     extractRubyContext: function(node, offset, contextLevel, maxContextChars, rubyContainer) {
         // Get ruby-aware text (base text without annotations)
@@ -223,6 +232,7 @@ window.MaruReader.textScanning = {
             return {
                 context: rubyAwareText.substring(start, end),
                 offset: rubyAwareOffset - start,
+                contextStartOffset: start,
                 rubyContext: {
                     baseText: rubyAwareText.substring(start, end),
                     originalText: originalText
@@ -245,13 +255,25 @@ window.MaruReader.textScanning = {
             var newStart = Math.max(0, contextOffset - halfMax);
             var newEnd = Math.min(context.length, newStart + maxContextChars);
 
+            var finalContextStart = contextStart + newStart;
             context = context.substring(newStart, newEnd);
             contextOffset = contextOffset - newStart;
+
+            return {
+                context: context,
+                offset: contextOffset,
+                contextStartOffset: finalContextStart,
+                rubyContext: {
+                    baseText: context,
+                    originalText: originalText
+                }
+            };
         }
 
         return {
             context: context,
             offset: contextOffset,
+            contextStartOffset: contextStart,
             rubyContext: {
                 baseText: context,
                 originalText: originalText

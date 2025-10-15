@@ -106,7 +106,9 @@ actor DictionarySearchService {
             requestID: query.id,
             results: groupedResults,
             primaryResult: topTerm,
-            primaryResultSourceRange: matchedRange
+            primaryResultSourceRange: matchedRange,
+            contextStartOffset: query.contextStartOffset,
+            context: query.context
         )
     }
 

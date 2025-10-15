@@ -12,6 +12,18 @@ struct TextLookupResponse {
     let results: [GroupedSearchResults] // Dictionary content
     let primaryResult: String // The matched term
     let primaryResultSourceRange: Range<String.Index> // Range in context
+    let contextStartOffset: Int // Where context starts in full element text
+    let context: String // The original context string
+
+    /// Start offset of the matched text within the context
+    var matchStartInContext: Int {
+        context.distance(from: context.startIndex, to: primaryResultSourceRange.lowerBound)
+    }
+
+    /// End offset of the matched text within the context
+    var matchEndInContext: Int {
+        context.distance(from: context.startIndex, to: primaryResultSourceRange.upperBound)
+    }
 
     func toPopupHTML() -> String {
         let termGroupsHTML = results.map { termGroup in

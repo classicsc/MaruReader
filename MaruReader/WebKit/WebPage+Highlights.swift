@@ -29,4 +29,16 @@ extension WebPage {
         }
         return boundingRects
     }
+
+    func highlightTextByContextRange(cssSelector: String, contextStartOffset: Int, matchStartInContext: Int, matchEndInContext: Int, styles: String) async throws -> [[String: Double]] {
+        let script = "return window.MaruReader.textHighlighting.highlightTextByContextRange('\(cssSelector)', \(contextStartOffset), \(matchStartInContext), \(matchEndInContext), \(styles));"
+        let result = try await self.callJavaScript(script)
+        guard let dataDict = result as? [String: Any],
+              let _ = dataDict["highlightId"] as? String,
+              let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
+        else {
+            throw HighlightError.invalidResponse
+        }
+        return boundingRects
+    }
 }

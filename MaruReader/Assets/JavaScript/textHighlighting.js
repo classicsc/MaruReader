@@ -67,6 +67,136 @@ window.MaruReader.textHighlighting = {
     },
 
     /**
+     * Highlights text using precise character offsets instead of text search
+     * @param {string} cssSelector - CSS selector path (may include ::text-node(N))
+     * @param {number} contextStartOffset - Where the context starts in the full element text
+     * @param {number} matchStartInContext - Start offset of match within context
+     * @param {number} matchEndInContext - End offset of match within context
+     * @param {Object} styles - Styles object with properties like backgroundColor, color, etc.
+     * @returns {Object} Object with highlightId and boundingRects array
+     */
+    highlightTextByContextRange: function(cssSelector, contextStartOffset, matchStartInContext, matchEndInContext, styles) {
+        console.log('highlightTextByContextRange called with:', cssSelector, contextStartOffset, matchStartInContext, matchEndInContext, styles);
+        if (!cssSelector || contextStartOffset === undefined || matchStartInContext === undefined || matchEndInContext === undefined) {
+            console.error('highlightTextByContextRange: missing required parameters');
+            return null;
+        }
+
+        // Parse the CSS selector to extract element selector and text node index
+        var selectorInfo = this.parseCSSSelector(cssSelector);
+        if (!selectorInfo) {
+            console.error('highlightTextByContextRange: failed to parse CSS selector:', cssSelector);
+            return null;
+        }
+
+        // Find the target element
+        var element = this.findElementBySelector(selectorInfo.selector);
+        if (!element) {
+            console.error('highlightTextByContextRange: element not found for selector:', selectorInfo.selector);
+            return null;
+        }
+
+        // Get all text nodes, filtering out ruby annotations
+        var textNodes = [];
+        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(element);
+        var node;
+
+        while (node = walker.nextNode()) {
+            textNodes.push(node);
+        }
+
+        if (textNodes.length === 0) {
+            console.error('highlightTextByContextRange: no text nodes found');
+            return null;
+        }
+
+        // Build the continuous text from text nodes and track node offsets
+        var fullText = '';
+        var nodeOffsets = []; // Track where each node starts in fullText
+
+        for (var i = 0; i < textNodes.length; i++) {
+            nodeOffsets.push(fullText.length);
+            fullText += textNodes[i].textContent;
+        }
+
+        // Calculate absolute offsets in full text
+        var matchStart = contextStartOffset + matchStartInContext;
+        var matchEnd = contextStartOffset + matchEndInContext;
+
+        console.log('Full text length:', fullText.length, 'Match range:', matchStart, '-', matchEnd);
+
+        // Validate offsets
+        if (matchStart < 0 || matchEnd > fullText.length || matchStart >= matchEnd) {
+            console.error('highlightTextByContextRange: invalid offsets', matchStart, matchEnd, fullText.length);
+            return null;
+        }
+
+        // Create ranges for the matching text
+        var ranges = this.createRangesFromOffsets(textNodes, nodeOffsets, matchStart, matchEnd);
+        if (!ranges || ranges.length === 0) {
+            console.error('highlightTextByContextRange: failed to create ranges');
+            return null;
+        }
+
+        // Create a unique highlight ID
+        var highlightId = 'marureader-highlight-' + (++this.highlightCounter);
+
+        // Create the highlight using CSS Custom Highlights API
+        var highlight = this.createHighlight(ranges, styles, highlightId);
+        if (!highlight) {
+            console.error('highlightTextByContextRange: failed to create highlight');
+            return null;
+        }
+
+        // Register the highlight
+        CSS.highlights.set(highlightId, highlight);
+
+        // Get bounding rectangles for all ranges
+        var boundingRects = this.getRangeBoundingRects(ranges);
+
+        return {
+            highlightId: highlightId,
+            boundingRects: boundingRects
+        };
+    },
+
+    /**
+     * Creates Range objects from absolute character offsets
+     * @param {Array<Node>} textNodes - Array of text nodes
+     * @param {Array<number>} nodeOffsets - Array of offsets where each node starts
+     * @param {number} matchStart - Start offset in full text
+     * @param {number} matchEnd - End offset in full text
+     * @returns {Array<Range>} Array of Range objects
+     */
+    createRangesFromOffsets: function(textNodes, nodeOffsets, matchStart, matchEnd) {
+        var ranges = [];
+        var currentOffset = matchStart;
+        var remainingLength = matchEnd - matchStart;
+
+        for (var i = 0; i < textNodes.length && remainingLength > 0; i++) {
+            var nodeStart = nodeOffsets[i];
+            var nodeEnd = (i + 1 < nodeOffsets.length) ? nodeOffsets[i + 1] : nodeStart + textNodes[i].textContent.length;
+            var nodeLength = nodeEnd - nodeStart;
+
+            // Check if this node contains part of the text to highlight
+            if (nodeEnd > currentOffset && nodeStart < matchEnd) {
+                var rangeStart = Math.max(0, currentOffset - nodeStart);
+                var rangeEnd = Math.min(nodeLength, rangeStart + remainingLength);
+
+                var range = document.createRange();
+                range.setStart(textNodes[i], rangeStart);
+                range.setEnd(textNodes[i], rangeEnd);
+                ranges.push(range);
+
+                remainingLength -= (rangeEnd - rangeStart);
+                currentOffset = nodeEnd;
+            }
+        }
+
+        return ranges;
+    },
+
+    /**
      * Clears all highlights from the registry
      */
     clearAllHighlights: function() {

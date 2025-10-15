@@ -14,13 +14,13 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private let searchService: DictionarySearchService
     private let onNavigate: @Sendable (String) -> Void
-    private let onScan: @Sendable (Int, String, String) -> Void
+    private let onScan: @Sendable (Int, String, Int, String) -> Void
     private let onPopup: @Sendable (String?) -> Void
 
     init(
         persistenceController: PersistenceController = PersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
-        onScan: @escaping @Sendable (Int, String, String) -> Void = { _, _, _ in },
+        onScan: @escaping @Sendable (Int, String, Int, String) -> Void = { _, _, _, _ in },
         onPopup: @escaping @Sendable (String?) -> Void = { _ in }
     ) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
@@ -63,7 +63,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         _ request: URLRequest,
         searchService _: DictionarySearchService,
         onNavigate: @escaping @Sendable (String) -> Void,
-        onScan: @escaping @Sendable (Int, String, String) -> Void,
+        onScan: @escaping @Sendable (Int, String, Int, String) -> Void,
         onPopup _: @escaping @Sendable (String?) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
@@ -137,7 +137,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private static func handleScanRequest(
         request: URLRequest,
-        onScan: @escaping @Sendable (Int, String, String) -> Void
+        onScan: @escaping @Sendable (Int, String, Int, String) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         // Extract the data parameter from the query string
         guard let postData = request.httpBody else {
@@ -148,12 +148,13 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         // Parse and log the text scan result
         do {
             if let jsonObject = try JSONSerialization.jsonObject(with: postData) as? [String: Any] {
-                // Call the onScan closure with offset and context
+                // Call the onScan closure with offset, context, contextStartOffset, and cssSelector
                 if let offset = jsonObject["offset"] as? Int,
                    let context = jsonObject["context"] as? String,
+                   let contextStartOffset = jsonObject["contextStartOffset"] as? Int,
                    let cssSelector = jsonObject["cssSelector"] as? String
                 {
-                    onScan(offset, context, cssSelector)
+                    onScan(offset, context, contextStartOffset, cssSelector)
                 }
             } else {
                 logger.error("Received malformed JSON data: \(postData)")

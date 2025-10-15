@@ -225,7 +225,7 @@ class BookReaderViewModel {
         logger.debug("Bookmarking current location")
     }
 
-    func searchInPopup(offset: Int, context: String, cssSelector: String) {
+    func searchInPopup(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // If popup is visible, hide it
         if self.showPopup {
             logger.debug("Hiding popup")
@@ -233,7 +233,7 @@ class BookReaderViewModel {
             return
         }
 
-        let lookupRequest = TextLookupRequest(context: context, offset: offset, cssSelector: cssSelector)
+        let lookupRequest = TextLookupRequest(context: context, offset: offset, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
         popupSearchTask?.cancel()
         popupSearchTask = Task {
             guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
@@ -243,12 +243,17 @@ class BookReaderViewModel {
             for try await value in loadSequence {
                 try Task.checkCancellation()
                 if value == WebPage.NavigationEvent.finished {
-                    // The range to highlight within the context is given in the results object
-                    let highlightText = context[searchResults.primaryResultSourceRange]
+                    // Use offset-based highlighting for precise positioning
                     await self.clearHighlights()
-                    let boundingRects = await self.highlightText(String(highlightText), elementSelector: cssSelector, styles: self.highlightStylesAsJSObject())
+                    let boundingRects = await self.highlightTextByContextRange(
+                        cssSelector: cssSelector,
+                        contextStartOffset: searchResults.contextStartOffset,
+                        matchStartInContext: searchResults.matchStartInContext,
+                        matchEndInContext: searchResults.matchEndInContext,
+                        styles: self.highlightStylesAsJSObject()
+                    )
                     self.highlightBoundingRects = boundingRects
-                    logger.debug("Highlighted text: \(highlightText)")
+                    logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
                     self.showPopup = true
                 }
             }
@@ -292,6 +297,28 @@ class BookReaderViewModel {
         }
     }
 
+    func highlightTextByContextRange(cssSelector: String, contextStartOffset: Int, matchStartInContext: Int, matchEndInContext: Int, styles: String) async -> [[String: Double]] {
+        logger.debug("Highlighting by context range: \(matchStartInContext)..<\(matchEndInContext) at context start \(contextStartOffset)")
+        guard let navigator else {
+            logger.warning("Navigator is not initialized, skipping highlight")
+            return []
+        }
+        do {
+            let result = try await navigator.maruHighlightTextByContextRange(
+                cssSelector: cssSelector,
+                contextStartOffset: contextStartOffset,
+                matchStartInContext: matchStartInContext,
+                matchEndInContext: matchEndInContext,
+                styles: styles
+            )
+            logger.debug("Highlight result bounding rects: \(result)")
+            return result
+        } catch {
+            logger.error("Highlighting by context range threw error: \(error.localizedDescription)")
+            return []
+        }
+    }
+
     func highlightStylesAsJSObject() -> String {
         let stylePairs = highlightStyles.map { key, value in
             "'\(key)': '\(value)'"
@@ -331,6 +358,23 @@ extension EPUBNavigatorViewController {
 
     func maruHighlightText(_ text: String, elementSelector: String, styles: String) async throws -> [[String: Double]] {
         let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
+        let result = await self.evaluateJavaScript(script)
+        switch result {
+        case let .success(value):
+            guard let dataDict = value as? [String: Any],
+                  let _ = dataDict["highlightId"] as? String,
+                  let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
+            else {
+                throw HighlightError.invalidResponse
+            }
+            return boundingRects
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func maruHighlightTextByContextRange(cssSelector: String, contextStartOffset: Int, matchStartInContext: Int, matchEndInContext: Int, styles: String) async throws -> [[String: Double]] {
+        let script = "window.MaruReader.textHighlighting.highlightTextByContextRange('\(cssSelector)', \(contextStartOffset), \(matchStartInContext), \(matchEndInContext), \(styles));"
         let result = await self.evaluateJavaScript(script)
         switch result {
         case let .success(value):

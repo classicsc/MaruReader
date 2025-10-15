@@ -71,13 +71,14 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
             guard let messageObject = message.body as? [String: Any],
                   let offset = messageObject["offset"] as? Int,
                   let context = messageObject["context"] as? String,
+                  let contextStartOffset = messageObject["contextStartOffset"] as? Int,
                   let cssSelector = messageObject["cssSelector"] as? String
             else {
                 logger.error("Invalid message body for textScanning")
                 return
             }
 
-            viewModel.searchInPopup(offset: offset, context: context, cssSelector: cssSelector)
+            viewModel.searchInPopup(offset: offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
         }
     }
 }
