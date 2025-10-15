@@ -72,7 +72,7 @@ struct BookReaderView: View {
                             HStack {
                                 Text(viewModel.book.title ?? "")
                                     .font(.headline)
-                                    .foregroundStyle(viewModel.overlayState.shouldShowToolbars ? .primary : .secondary)
+                                    .foregroundStyle(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
                                     .lineLimit(1)
                                     .truncationMode(.tail)
 
@@ -80,11 +80,11 @@ struct BookReaderView: View {
                                 case true:
                                     Image(systemName: "chevron.up")
                                         .font(.headline)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(toolbarSecondaryColor)
                                 case false:
                                     Image(systemName: "chevron.down")
                                         .font(.headline)
-                                        .foregroundStyle(.tertiary)
+                                        .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
                                 }
                             }
                             .frame(maxWidth: geometry.size.width * 0.7)
@@ -111,6 +111,7 @@ struct BookReaderView: View {
                 }
                 .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
+                .applyThemeColors(preferences: viewModel.readerPreferences)
                 if viewModel.showPopup {
                     if let center = DictionaryPopupView.computePopupCenter(
                         screenSize: geometry.size,
@@ -142,5 +143,30 @@ struct BookReaderView: View {
                 .padding(.horizontal)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Theme Color Helpers
+
+    private func toolbarForegroundColor(isPrimary: Bool) -> Color {
+        if let color = viewModel.readerPreferences.currentInterfaceForegroundColor {
+            return isPrimary ? color : color.opacity(0.6)
+        }
+        return isPrimary ? .primary : .secondary
+    }
+
+    private var toolbarSecondaryColor: Color {
+        viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
+    }
+}
+
+// MARK: - Theme Color View Modifier
+
+private extension View {
+    @ViewBuilder
+    func applyThemeColors(preferences: ReaderPreferences) -> some View {
+        self
+            .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .navigationBar)
+            .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .bottomBar)
+            .tint(preferences.currentInterfaceForegroundColor ?? .primary)
     }
 }

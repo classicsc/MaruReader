@@ -42,10 +42,10 @@ struct QuickReaderSettingsMenu: View {
             Divider()
 
             // Theme info (read-only in quick menu)
-            if let profile = preferences.profile {
-                if let theme = profile.theme, profile.darkTheme == nil {
-                    Label("Theme: \(theme.name ?? "Unknown")", systemImage: "paintpalette")
-                } else if let lightTheme = profile.theme, let darkTheme = profile.darkTheme {
+            if let lightTheme = preferences.lightTheme {
+                if preferences.darkTheme == nil {
+                    Label("Theme: \(lightTheme.name ?? "Unknown")", systemImage: "paintpalette")
+                } else if let darkTheme = preferences.darkTheme {
                     Label("Themes: \(lightTheme.name ?? "Light") / \(darkTheme.name ?? "Dark")", systemImage: "paintpalette")
                 }
             }

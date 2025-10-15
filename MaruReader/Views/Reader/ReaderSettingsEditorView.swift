@@ -154,31 +154,58 @@ struct ThemesTab: View {
 
     var body: some View {
         Form {
-            Section("System Themes") {
-                ForEach(themes.filter(\.isSystemTheme), id: \.id) { theme in
-                    HStack {
-                        ThemeIconView(theme: theme, size: 32)
-                        Text(theme.name ?? "Unnamed")
-                        Spacer()
-                        if isCurrentTheme(theme) {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.blue)
+            Section {
+                Toggle("Follow System", isOn: Binding(
+                    get: { preferences.isFollowingSystemTheme },
+                    set: { preferences.setFollowSystemTheme($0) }
+                ))
+            } footer: {
+                Text(preferences.isFollowingSystemTheme
+                    ? "Automatically switch between light and dark themes based on system appearance"
+                    : "Use the same theme regardless of system appearance")
+            }
+
+            if preferences.isFollowingSystemTheme {
+                // Dual theme mode: separate sections for light and dark
+                Section("Light Mode Theme") {
+                    ForEach(themes.filter(\.isSystemTheme), id: \.id) { theme in
+                        themeRow(theme: theme, isLightMode: true)
+                    }
+                }
+
+                if !themes.filter({ !$0.isSystemTheme }).isEmpty {
+                    Section("Light Mode - Custom Themes") {
+                        ForEach(themes.filter { !$0.isSystemTheme }, id: \.id) { theme in
+                            themeRow(theme: theme, isLightMode: true)
                         }
                     }
                 }
-            }
 
-            if !themes.filter({ !$0.isSystemTheme }).isEmpty {
-                Section("Custom Themes") {
-                    ForEach(themes.filter { !$0.isSystemTheme }, id: \.id) { theme in
-                        HStack {
-                            ThemeIconView(theme: theme, size: 32)
-                            Text(theme.name ?? "Unnamed")
-                            Spacer()
-                            if isCurrentTheme(theme) {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(.blue)
-                            }
+                Section("Dark Mode Theme") {
+                    ForEach(themes.filter(\.isSystemTheme), id: \.id) { theme in
+                        themeRow(theme: theme, isLightMode: false)
+                    }
+                }
+
+                if !themes.filter({ !$0.isSystemTheme }).isEmpty {
+                    Section("Dark Mode - Custom Themes") {
+                        ForEach(themes.filter { !$0.isSystemTheme }, id: \.id) { theme in
+                            themeRow(theme: theme, isLightMode: false)
+                        }
+                    }
+                }
+            } else {
+                // Single theme mode
+                Section("System Themes") {
+                    ForEach(themes.filter(\.isSystemTheme), id: \.id) { theme in
+                        themeRow(theme: theme, isLightMode: nil)
+                    }
+                }
+
+                if !themes.filter({ !$0.isSystemTheme }).isEmpty {
+                    Section("Custom Themes") {
+                        ForEach(themes.filter { !$0.isSystemTheme }, id: \.id) { theme in
+                            themeRow(theme: theme, isLightMode: nil)
                         }
                     }
                 }
@@ -197,8 +224,49 @@ struct ThemesTab: View {
         }
     }
 
-    private func isCurrentTheme(_ theme: ReaderTheme) -> Bool {
-        guard let currentTheme = preferences.currentTheme else { return false }
-        return currentTheme == theme
+    @ViewBuilder
+    private func themeRow(theme: ReaderTheme, isLightMode: Bool?) -> some View {
+        Button {
+            selectTheme(theme, isLightMode: isLightMode)
+        } label: {
+            HStack {
+                ThemeIconView(theme: theme, size: 32)
+                Text(theme.name ?? "Unnamed")
+                    .foregroundStyle(.primary)
+                Spacer()
+                if isThemeSelected(theme, isLightMode: isLightMode) {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.blue)
+                }
+            }
+        }
+    }
+
+    private func isThemeSelected(_ theme: ReaderTheme, isLightMode: Bool?) -> Bool {
+        if let isLightMode {
+            // Dual theme mode
+            if isLightMode {
+                preferences.lightTheme == theme
+            } else {
+                preferences.darkTheme == theme
+            }
+        } else {
+            // Single theme mode
+            preferences.lightTheme == theme
+        }
+    }
+
+    private func selectTheme(_ theme: ReaderTheme, isLightMode: Bool?) {
+        if let isLightMode {
+            // Dual theme mode
+            if isLightMode {
+                preferences.setLightTheme(theme)
+            } else {
+                preferences.setDarkTheme(theme)
+            }
+        } else {
+            // Single theme mode
+            preferences.setLightTheme(theme)
+        }
     }
 }

@@ -244,6 +244,18 @@ class ReaderPreferences {
         book.value(forKey: "spread") == nil
     }
 
+    // Light theme (observable)
+    var lightTheme: ReaderTheme? {
+        _ = updateTrigger
+        return profile?.theme
+    }
+
+    // Dark theme (observable)
+    var darkTheme: ReaderTheme? {
+        _ = updateTrigger
+        return profile?.darkTheme
+    }
+
     // Current theme (respects system dark mode if profile has both themes)
     var currentTheme: ReaderTheme? {
         _ = updateTrigger
@@ -256,6 +268,35 @@ class ReaderPreferences {
 
         // Otherwise use the single theme
         return profile.theme
+    }
+
+    // MARK: - Interface Colors
+
+    /// Returns the current theme's interface background color
+    var currentInterfaceBackgroundColor: SwiftUI.Color? {
+        _ = updateTrigger
+        guard let theme = currentTheme,
+              let color = theme.value(forKey: "interfaceBackgroundColor") as? ReadiumNavigator.Color
+        else { return nil }
+        return color.swiftUIColor
+    }
+
+    /// Returns the current theme's interface foreground color
+    var currentInterfaceForegroundColor: SwiftUI.Color? {
+        _ = updateTrigger
+        guard let theme = currentTheme,
+              let color = theme.value(forKey: "interfaceForegroundColor") as? ReadiumNavigator.Color
+        else { return nil }
+        return color.swiftUIColor
+    }
+
+    /// Returns the current theme's interface secondary color
+    var currentInterfaceSecondaryColor: SwiftUI.Color? {
+        _ = updateTrigger
+        guard let theme = currentTheme,
+              let color = theme.value(forKey: "interfaceSecondaryColor") as? ReadiumNavigator.Color
+        else { return nil }
+        return color.swiftUIColor
     }
 
     init(book: Book, context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
@@ -397,5 +438,62 @@ class ReaderPreferences {
         ]
 
         return (try? context.fetch(request)) ?? []
+    }
+
+    // MARK: - Theme Management
+
+    /// Sets the light mode theme for the current profile
+    func setLightTheme(_ theme: ReaderTheme?) {
+        guard let profile else { return }
+        profile.theme = theme
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
+    /// Sets the dark mode theme for the current profile
+    func setDarkTheme(_ theme: ReaderTheme?) {
+        guard let profile else { return }
+        profile.darkTheme = theme
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
+    /// Enables or disables follow system theme mode
+    /// When enabled, both light and dark themes should be set
+    /// When disabled, clears the dark theme
+    func setFollowSystemTheme(_ enabled: Bool) {
+        guard let profile else { return }
+
+        if !enabled {
+            // Disable follow system: clear dark theme
+            profile.darkTheme = nil
+        } else {
+            // Enable follow system: ensure both themes are set
+            // If dark theme is nil, set it to the current theme or default dark theme
+            if profile.darkTheme == nil {
+                // Try to get the system dark theme as default
+                let request = ReaderTheme.fetchRequest()
+                request.predicate = NSPredicate(format: "isSystemTheme == YES AND name == %@", "Dark")
+                request.fetchLimit = 1
+                if let darkTheme = try? context.fetch(request).first {
+                    profile.darkTheme = darkTheme
+                } else {
+                    profile.darkTheme = profile.theme
+                }
+            }
+        }
+
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
+    /// Returns whether the profile is in follow system theme mode
+    var isFollowingSystemTheme: Bool {
+        _ = updateTrigger
+        guard let profile else { return false }
+        return profile.darkTheme != nil
     }
 }
