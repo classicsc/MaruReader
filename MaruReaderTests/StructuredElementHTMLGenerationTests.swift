@@ -595,7 +595,7 @@ struct DictionaryContentMarkupTests {
         // Should use preferred dimensions for aspect ratio calculation
         let expectedAspectRatio = 100.0 / 150.0 // preferredHeight / preferredWidth
         let expectedPaddingTop = expectedAspectRatio * 100
-        let formattedPaddingTop = String(format: "%.4f", expectedPaddingTop).trimmingCharacters(in: CharacterSet(charactersIn: "0")).trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let formattedPaddingTop = formatNumber(expectedPaddingTop)
         #expect(html.contains("padding-top: \(formattedPaddingTop)%"))
         #expect(html.contains("width: 150em")) // Should use preferredWidth
     }
@@ -800,7 +800,7 @@ struct DictionaryContentMarkupTests {
         let html1 = element1.toHTML()
         // Should calculate width from preferredHeight and aspect ratio (height/width = 100/200 = 0.5)
         let expectedWidth1 = 150.0 / (100.0 / 200.0) // preferredHeight / invAspectRatio = 300
-        let formattedWidth1 = String(format: "%.0f", expectedWidth1) // Should be exactly 300
+        let formattedWidth1 = formatNumber(expectedWidth1)
         #expect(html1.contains("width: \(formattedWidth1)em"))
 
         // Test with neither preferred dimension (should use width/height)
@@ -824,10 +824,10 @@ struct DictionaryContentMarkupTests {
         let html2 = element2.toHTML()
         // Convert 120px to em using default 14px base: 120/14 ≈ 8.5714
         let expectedWidth2Em = 120.0 / 14.0
-        let formattedWidth2 = String(format: "%.4f", expectedWidth2Em).trimmingCharacters(in: CharacterSet(charactersIn: "0")).trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let formattedWidth2 = formatNumber(expectedWidth2Em)
         #expect(html2.contains("width: \(formattedWidth2)em"))
         let expectedPaddingTop2 = (80.0 / 120.0) * 100 // (height/width) * 100
-        let formattedPaddingTop2 = String(format: "%.4f", expectedPaddingTop2).trimmingCharacters(in: CharacterSet(charactersIn: "0")).trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        let formattedPaddingTop2 = formatNumber(expectedPaddingTop2)
         #expect(html2.contains("padding-top: \(formattedPaddingTop2)%"))
     }
 
@@ -896,5 +896,28 @@ struct DictionaryContentMarkupTests {
 
         #expect(html.contains("</span>")) // Container close
         #expect(html.contains("</a>")) // Link close
+    }
+
+    private func formatNumber(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = 0
+        formatter.maximumFractionDigits = 4
+        formatter.minimumIntegerDigits = 1
+        formatter.usesGroupingSeparator = false
+        formatter.roundingMode = .halfEven
+        let string = formatter.string(from: NSNumber(value: value)) ?? "0"
+        // Trim trailing zeros after decimal if present
+        if let decimalIndex = string.firstIndex(where: { $0 == "." }) {
+            let integerPart = String(string[..<decimalIndex])
+            let decimalPart = String(string[string.index(after: decimalIndex)...])
+            let trimmedDecimal = decimalPart.trimmingCharacters(in: CharacterSet(charactersIn: "0"))
+            if trimmedDecimal.isEmpty {
+                return integerPart
+            } else {
+                return integerPart + "." + trimmedDecimal
+            }
+        }
+        return string
     }
 }

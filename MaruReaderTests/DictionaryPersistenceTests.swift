@@ -411,7 +411,6 @@ struct DictionaryPersistenceTests {
 
         // Test glossary (definitions)
         let decoder = JSONDecoder()
-        print(termEntry)
         let glossary = termEntry?.glossary?.data(using: .utf8)
         let definitions = try? decoder.decode([Definition].self, from: glossary ?? Data())
         #expect(definitions?.count == 1)
