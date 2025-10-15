@@ -358,19 +358,19 @@ actor DictionaryImportManager {
     /// Delete a dictionary and all its associated data using batch deletions for performance.
     /// - Parameter dictionaryID: The NSManagedObjectID of the Dictionary to delete.
     /// - Parameter batchSize: The number of entities to delete in each batch (default: 1000).
-    func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 1000) async {
+    func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 10000) async {
         logger.debug("Starting dictionary deletion for \\(dictionaryID) with batch size \\(batchSize)")
 
         // First, mark as pending deletion for immediate UI feedback
-        let uiContext = container.newBackgroundContext()
+        let taskContext = container.newBackgroundContext()
         do {
-            try await uiContext.perform {
-                guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+            try await taskContext.perform {
+                guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
                 dictionary.pendingDeletion = true
                 dictionary.errorMessage = nil
-                try uiContext.save()
+                try taskContext.save()
             }
         } catch {
             logger.error("Failed to mark dictionary for deletion \\(dictionaryID): \\(error.localizedDescription)")
@@ -381,8 +381,8 @@ actor DictionaryImportManager {
         Task {
             do {
                 // Get dictionary UUID for media cleanup
-                let dictionaryUUID = try await uiContext.perform {
-                    guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+                let dictionaryUUID = try await taskContext.perform {
+                    guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                         throw DictionaryImportError.databaseError
                     }
                     return dictionary.id
@@ -414,13 +414,13 @@ actor DictionaryImportManager {
             } catch {
                 logger.error("Dictionary deletion failed for \\(dictionaryID): \\(error.localizedDescription)")
                 // Update the dictionary with error information
-                await uiContext.perform {
-                    guard let dictionary = try? uiContext.existingObject(with: dictionaryID) as? Dictionary else {
+                await taskContext.perform {
+                    guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                         return
                     }
                     dictionary.pendingDeletion = false
                     dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
-                    try? uiContext.save()
+                    try? taskContext.save()
                 }
             }
         }
@@ -462,29 +462,22 @@ actor DictionaryImportManager {
         context.shouldDeleteInaccessibleFaults = true
 
         return try await context.perform {
-            // Get dictionary in this context
-            guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
-                throw DictionaryImportError.databaseError
-            }
-
             // Create fetch request for this entity type
-            let fetchRequest = NSFetchRequest<NSManagedObject>(entityName: entityName)
-            fetchRequest.predicate = NSPredicate(format: "dictionary == %@", dictionary)
+            let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+            fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", dictionaryID)
             fetchRequest.fetchLimit = batchSize
-            fetchRequest.includesPropertyValues = false
+            fetchRequest.resultType = .managedObjectIDResultType
 
-            let objects = try context.fetch(fetchRequest)
-
-            if objects.isEmpty {
-                return false
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+            deleteRequest.resultType = .resultTypeCount
+            if let result = try context.execute(deleteRequest) as? NSBatchDeleteResult,
+               let count = result.result as? Int,
+               count > 0
+            {
+                return true
             } else {
-                // Delete the batch
-                for object in objects {
-                    context.delete(object)
-                }
-                try context.save()
+                return false
             }
-            return true
         }
     }
 }
