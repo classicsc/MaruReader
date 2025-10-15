@@ -483,7 +483,7 @@ struct ContentStyle: Codable, Sendable {
             classes.append("gloss-background")
         }
 
-        if let borderStyle, let borderWidth, let borderColor {
+        if borderStyle != nil && borderWidth != nil && borderColor != nil {
             classes.append("gloss-border")
         } else if borderStyle != nil || borderWidth != nil || borderColor != nil {
             classes.append("gloss-border-partial")
