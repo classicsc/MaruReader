@@ -9,6 +9,17 @@ import CoreData
 import Foundation
 import os.log
 
+/// Metadata for a dictionary used during search
+struct DictionaryMetadata: Sendable {
+    let id: UUID
+    let title: String
+    let termDisplayPriority: Int
+    let termFrequencyDisplayPriority: Int
+    let frequencyMode: String?
+    let termResultsEnabled: Bool
+    let termFrequencyEnabled: Bool
+}
+
 actor DictionarySearchService {
     /// The maximum forward lookup length for the TextLookupRequest API
     static let maxForwardLookupLength = 10
@@ -18,6 +29,9 @@ actor DictionarySearchService {
     private let persistenceController: PersistenceController
     private let candidateGenerator: DictionaryCandidateGenerator
     private let backgroundContext: NSManagedObjectContext
+
+    /// Cached dictionary metadata, refreshed before each search
+    private var dictionaryMetadataCache: [UUID: DictionaryMetadata] = [:]
 
     init(persistenceController: PersistenceController = PersistenceController.shared) {
         self.persistenceController = persistenceController
@@ -30,9 +44,42 @@ actor DictionarySearchService {
             return []
         }
 
+        // Refresh dictionary metadata before search
+        try await refreshDictionaryMetadata()
+
         let candidates = candidateGenerator.generateCandidates(from: query)
         let results = try await fetchTerms(for: candidates)
         return results
+    }
+
+    /// Refresh dictionary metadata cache from Core Data
+    private func refreshDictionaryMetadata() async throws {
+        let cache = try await backgroundContext.perform {
+            let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "isComplete == YES")
+
+            let dictionaries = try self.backgroundContext.fetch(fetchRequest)
+
+            var cache: [UUID: DictionaryMetadata] = [:]
+            for dict in dictionaries {
+                guard let id = dict.id else { continue }
+
+                let metadata = DictionaryMetadata(
+                    id: id,
+                    title: dict.title ?? "",
+                    termDisplayPriority: Int(dict.termDisplayPriority),
+                    termFrequencyDisplayPriority: Int(dict.termFrequencyDisplayPriority),
+                    frequencyMode: dict.frequencyMode,
+                    termResultsEnabled: dict.termResultsEnabled,
+                    termFrequencyEnabled: dict.termFrequencyEnabled
+                )
+                cache[id] = metadata
+            }
+
+            return cache
+        }
+
+        self.dictionaryMetadataCache = cache
     }
 
     /// Perform a search and get the TextLookupResponse
@@ -126,11 +173,17 @@ actor DictionarySearchService {
     private func fetchTerms(for candidates: [LookupCandidate]) async throws -> [SearchResult] {
         guard !candidates.isEmpty else { return [] }
 
+        let metadata = dictionaryMetadataCache
+
         return try await withCheckedThrowingContinuation { continuation in
             let context = backgroundContext
             context.perform {
                 do {
-                    let results = try TermFetcher.performFetch(candidates: candidates, context: context)
+                    let results = try TermFetcher.performFetch(
+                        candidates: candidates,
+                        dictionaryMetadata: metadata,
+                        context: context
+                    )
                     continuation.resume(returning: results)
                 } catch {
                     continuation.resume(throwing: error)

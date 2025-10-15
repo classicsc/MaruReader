@@ -272,6 +272,23 @@ actor DataBankProcessingTask {
             ipaProcessed,
             tagMetaProcessed,
         ]
+
+        try await context.perform {
+            guard let job = try? context.existingObject(with: self.jobID) as? DictionaryZIPFileImport else {
+                throw DictionaryImportError.databaseError
+            }
+            guard let dictionary = job.dictionary else {
+                throw DictionaryImportError.databaseError
+            }
+            dictionary.ipaCount = Int64(results[5])
+            dictionary.pitchesCount = Int64(results[4])
+            dictionary.kanjiCount = Int64(results[1])
+            dictionary.termCount = Int64(results[0])
+            dictionary.tagCount = Int64(results[6])
+            dictionary.kanjiFrequencyCount = Int64(results[3])
+            dictionary.termFrequencyCount = Int64(results[2])
+            try context.save()
+        }
         logger.info("Processed \(results.reduce(0, +)) entries: Terms=\(results[0]), Kanji=\(results[1]), TermFrequency=\(results[2]), KanjiFrequency=\(results[3]), PitchAccent=\(results[4]), IPA=\(results[5]), TagMeta=\(results[6])")
     }
 
