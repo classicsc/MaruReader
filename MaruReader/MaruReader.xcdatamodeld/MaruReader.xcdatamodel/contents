@@ -144,7 +144,7 @@
         <attribute name="expression" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
-        <attribute name="transcriptions" attributeType="Transformable" valueTransformerName="IPATranscriptionArrayTransformer"/>
+        <attribute name="transcriptions" attributeType="String" valueTransformerName="IPATranscriptionArrayTransformer"/>
         <fetchIndex name="byExpressionReading">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
@@ -154,11 +154,11 @@
         <attribute name="character" attributeType="String"/>
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="kunyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
-        <attribute name="meanings" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
-        <attribute name="onyomi" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
-        <attribute name="stats" attributeType="Transformable" valueTransformerName="StringDictionaryTransformer"/>
-        <attribute name="tags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="kunyomi" attributeType="String" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="meanings" attributeType="String" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="onyomi" attributeType="String" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="stats" attributeType="String" valueTransformerName="StringDictionaryTransformer"/>
+        <attribute name="tags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <fetchIndex name="byCharacter">
             <fetchIndexElement property="character" type="Binary" order="ascending"/>
         </fetchIndex>
@@ -177,7 +177,7 @@
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="expression" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="pitches" attributeType="Transformable" valueTransformerName="PitchAccentArrayTransformer"/>
+        <attribute name="pitches" attributeType="String" valueTransformerName="PitchAccentArrayTransformer"/>
         <attribute name="reading" attributeType="String"/>
         <fetchIndex name="byExpressionReading">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
@@ -218,16 +218,16 @@
         <relationship name="profilesDark" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="darkTheme" inverseEntity="ReaderProfile"/>
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
-        <attribute name="definitionTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="definitionTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="expression" attributeType="String"/>
-        <attribute name="glossary" attributeType="Transformable" valueTransformerName="DefinitionArrayTransformer"/>
+        <attribute name="glossary" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
-        <attribute name="rules" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="rules" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="termTags" attributeType="Transformable" valueTransformerName="StringArrayTransformer"/>
+        <attribute name="termTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <fetchIndex name="byExpressionReading">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>

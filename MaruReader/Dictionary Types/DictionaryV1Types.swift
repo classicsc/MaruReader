@@ -187,18 +187,32 @@ struct KanjiBankV1Entry: DictionaryDataBankEntry {
     }
 
     func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
-        let stringArrayTransformer = StringArrayTransformer()
-        let stringDictionaryTransformer = StringDictionaryTransformer()
+        let encoder = JSONEncoder()
+
+        let onyomiData = (try? encoder.encode(onyomi)) ?? Data()
+        let onyomiString = String(data: onyomiData, encoding: .utf8) ?? "[]"
+
+        let kunyomiData = (try? encoder.encode(kunyomi)) ?? Data()
+        let kunyomiString = String(data: kunyomiData, encoding: .utf8) ?? "[]"
+
+        let tagsData = (try? encoder.encode(tags)) ?? Data()
+        let tagsString = String(data: tagsData, encoding: .utf8) ?? "[]"
+
+        let meaningsData = (try? encoder.encode(meanings)) ?? Data()
+        let meaningsString = String(data: meaningsData, encoding: .utf8) ?? "[]"
+
+        let statsData = (try? encoder.encode([String: String]())) ?? Data()
+        let statsString = String(data: statsData, encoding: .utf8) ?? "{}"
 
         return (.kanjiEntry, [
             "character": character,
-            "onyomi": stringArrayTransformer.transformedValue(onyomi) as? Data,
-            "kunyomi": stringArrayTransformer.transformedValue(kunyomi) as? Data,
-            "tags": stringArrayTransformer.transformedValue(tags) as? Data,
-            "meanings": stringArrayTransformer.transformedValue(meanings) as? Data,
+            "onyomi": onyomiString,
+            "kunyomi": kunyomiString,
+            "tags": tagsString,
+            "meanings": meaningsString,
             "dictionaryID": dictionaryID,
             "id": UUID(),
-            "stats": stringDictionaryTransformer.transformedValue([:]) as? Data,
+            "stats": statsString,
         ])
     }
 
@@ -240,20 +254,28 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
     }
 
     func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
-        let stringArrayTransformer = StringArrayTransformer()
-        let definitionArrayTransformer = DefinitionArrayTransformer()
+        let encoder = JSONEncoder()
+
+        let definitionTagsData = (try? encoder.encode(definitionTags)) ?? Data()
+        let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
+
+        let glossaryData = (try? encoder.encode(glossary)) ?? Data()
+        let glossaryString = String(data: glossaryData, encoding: .utf8) ?? "[]"
+
+        let rulesData = (try? encoder.encode(rules)) ?? Data()
+        let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"
 
         return (.termEntry, [
             "expression": expression,
             "reading": reading,
-            "definitionTags": stringArrayTransformer.transformedValue(definitionTags) as? Data ?? Data(),
+            "definitionTags": definitionTagsString,
             "dictionaryID": dictionaryID,
-            "glossary": definitionArrayTransformer.transformedValue(glossary) as? Data ?? Data(),
+            "glossary": glossaryString,
             "id": UUID(),
-            "rules": stringArrayTransformer.transformedValue(rules) as? Data ?? Data(),
+            "rules": rulesString,
             "score": score,
             "sequence": 0,
-            "termTags": Data(),
+            "termTags": "[]",
         ])
     }
 

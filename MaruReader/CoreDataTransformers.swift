@@ -14,14 +14,6 @@ import ReadiumNavigator
 // MARK: - Transformer Names
 
 extension NSValueTransformerName {
-    static let stringArrayTransformer = NSValueTransformerName("StringArrayTransformer")
-    static let stringDictionaryTransformer = NSValueTransformerName("StringDictionaryTransformer")
-    static let definitionArrayTransformer = NSValueTransformerName("DefinitionArrayTransformer")
-    static let termMetaEntryDataTransformer = NSValueTransformerName("TermMetaEntryDataTransformer")
-    static let urlArrayTransformer = NSValueTransformerName("URLArrayTransformer")
-    static let pitchAccentArrayTransformer = NSValueTransformerName("PitchAccentArrayTransformer")
-    static let ipaTranscriptionArrayTransformer = NSValueTransformerName("IPATranscriptionArrayTransformer")
-    static let intArrayTransformer = NSValueTransformerName("IntArrayTransformer")
     static let readiumColorTransformer = NSValueTransformerName("ReadiumColorTransformer")
     static let readingProgressionTransformer = NSValueTransformerName("ReadingProgressionTransformer")
     static let imageFilterTransformer = NSValueTransformerName("ImageFilterTransformer")
@@ -32,14 +24,6 @@ extension NSValueTransformerName {
 enum CoreDataTransformers {
     static func register() {
         // Idempotent registration (setValueTransformer replaces any existing one with same name)
-        ValueTransformer.setValueTransformer(StringArrayTransformer(), forName: .stringArrayTransformer)
-        ValueTransformer.setValueTransformer(StringDictionaryTransformer(), forName: .stringDictionaryTransformer)
-        ValueTransformer.setValueTransformer(DefinitionArrayTransformer(), forName: .definitionArrayTransformer)
-        ValueTransformer.setValueTransformer(TermMetaEntryDataTransformer(), forName: .termMetaEntryDataTransformer)
-        ValueTransformer.setValueTransformer(URLArrayTransformer(), forName: .urlArrayTransformer)
-        ValueTransformer.setValueTransformer(PitchAccentArrayTransformer(), forName: .pitchAccentArrayTransformer)
-        ValueTransformer.setValueTransformer(IPATranscriptionArrayTransformer(), forName: .ipaTranscriptionArrayTransformer)
-        ValueTransformer.setValueTransformer(IntArrayTransformer(), forName: .intArrayTransformer)
         ValueTransformer.setValueTransformer(ReadiumColorTransformer(), forName: .readiumColorTransformer)
         ValueTransformer.setValueTransformer(ReadingProgressionTransformer(), forName: .readingProgressionTransformer)
         ValueTransformer.setValueTransformer(ImageFilterTransformer(), forName: .imageFilterTransformer)
@@ -69,40 +53,6 @@ class JSONValueTransformer<Input>: ValueTransformer where Input: Codable {
         guard let data = value as? Data else { return nil }
         do { return try decoder.decode(Input.self, from: data) } catch { return nil }
     }
-}
-
-// MARK: - Concrete Transformers
-
-final class StringArrayTransformer: JSONValueTransformer<[String]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class StringDictionaryTransformer: JSONValueTransformer<[String: String]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class DefinitionArrayTransformer: JSONValueTransformer<[Definition]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class TermMetaEntryDataTransformer: JSONValueTransformer<TermMetaEntryData> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class URLArrayTransformer: JSONValueTransformer<[URL]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class PitchAccentArrayTransformer: JSONValueTransformer<[PitchAccent]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class IPATranscriptionArrayTransformer: JSONValueTransformer<[IPATranscription]> {
-    // Nothing extra needed; subclass exists to provide unique name
-}
-
-final class IntArrayTransformer: JSONValueTransformer<[Int]> {
-    // Nothing extra needed; subclass exists to provide unique name
 }
 
 // MARK: - Readium Type Transformers

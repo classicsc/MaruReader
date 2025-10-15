@@ -171,138 +171,102 @@ struct DictionaryPersistenceTests {
         return zipURL
     }
 
-    // Helper: Verify job is properly cancelled using sendable DTO
-    private func verifyJobCancelled(_ jobDTO: DictionaryZIPFileImportDTO?) {
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isCancelled == true)
-        #expect(jobDTO?.isFailed == false)
-        #expect(jobDTO?.isComplete == false)
-        #expect(jobDTO?.timeCancelled != nil)
+    // Helper: Verify job is properly cancelled
+    @MainActor
+    private func verifyJobCancelled(_ job: MaruReader.DictionaryZIPFileImport?) {
+        #expect(job != nil)
+        #expect(job?.isCancelled == true)
+        #expect(job?.isFailed == false)
+        #expect(job?.isComplete == false)
+        #expect(job?.timeCancelled != nil)
     }
 
-    // Helper: Verify job is properly marked as failed using sendable DTO
-    private func verifyJobFailed(_ jobDTO: DictionaryZIPFileImportDTO?) {
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isFailed == true)
-        #expect(jobDTO?.isCancelled == false)
-        #expect(jobDTO?.isComplete == false)
-        #expect(jobDTO?.timeFailed != nil)
-        #expect(jobDTO?.displayProgressMessage?.isEmpty == false)
+    // Helper: Verify job is properly marked as failed
+    @MainActor
+    private func verifyJobFailed(_ job: MaruReader.DictionaryZIPFileImport?) {
+        #expect(job != nil)
+        #expect(job?.isFailed == true)
+        #expect(job?.isCancelled == false)
+        #expect(job?.isComplete == false)
+        #expect(job?.timeFailed != nil)
+        #expect(job?.displayProgressMessage?.isEmpty == false)
     }
 
-    // Helper: Get job DTO from context safely
-    private func getJobDTO(from context: NSManagedObjectContext, importID: NSManagedObjectID) async -> DictionaryZIPFileImportDTO? {
-        await context.perform {
-            guard let job = try? context.existingObject(with: importID) as? MaruReader.DictionaryZIPFileImport else {
-                return nil
-            }
-            return DictionaryZIPFileImportDTO(from: job)
-        }
+    // Helper: Get job from context safely
+    @MainActor
+    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> MaruReader.DictionaryZIPFileImport? {
+        try? context.existingObject(with: importID) as? MaruReader.DictionaryZIPFileImport
     }
 
-    // Helper: Fetch dictionaries as DTOs safely
-    private func fetchDictionaryDTOs(from context: NSManagedObjectContext) async -> [DictionaryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch dictionaries safely
+    @MainActor
+    private func fetchDictionaries(from context: NSManagedObjectContext) -> [MaruReader.Dictionary] {
+        let request: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch dictionary tag metas as DTOs safely
-    private func fetchDictionaryTagMetaDTOs(from context: NSManagedObjectContext) async -> [DictionaryTagMetaDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch dictionary tag metas safely
+    @MainActor
+    private func fetchDictionaryTagMetas(from context: NSManagedObjectContext) -> [MaruReader.DictionaryTagMeta] {
+        let request: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch terms as DTOs safely
-    private func fetchTermDTOs(from context: NSManagedObjectContext) async -> [TermDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.Term> = MaruReader.Term.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch term entries safely
+    @MainActor
+    private func fetchTermEntries(from context: NSManagedObjectContext) -> [MaruReader.TermEntry] {
+        let request: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch term entries as DTOs safely
-    private func fetchTermEntryDTOs(from context: NSManagedObjectContext) async -> [TermEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch kanji entries safely
+    @MainActor
+    private func fetchKanjiEntries(from context: NSManagedObjectContext) -> [MaruReader.KanjiEntry] {
+        let request: NSFetchRequest<MaruReader.KanjiEntry> = MaruReader.KanjiEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch kanji as DTOs safely
-    private func fetchKanjiDTOs(from context: NSManagedObjectContext) async -> [KanjiDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.Kanji> = MaruReader.Kanji.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch kanji frequency entries safely
+    @MainActor
+    private func fetchKanjiFrequencyEntries(from context: NSManagedObjectContext) -> [MaruReader.KanjiFrequencyEntry] {
+        let request: NSFetchRequest<MaruReader.KanjiFrequencyEntry> = MaruReader.KanjiFrequencyEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch kanji entries as DTOs safely
-    private func fetchKanjiEntryDTOs(from context: NSManagedObjectContext) async -> [KanjiEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.KanjiEntry> = MaruReader.KanjiEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch term frequency entries safely
+    @MainActor
+    private func fetchTermFrequencyEntries(from context: NSManagedObjectContext) -> [MaruReader.TermFrequencyEntry] {
+        let request: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch kanji frequency entries as DTOs safely
-    private func fetchKanjiFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [KanjiFrequencyEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.KanjiFrequencyEntry> = MaruReader.KanjiFrequencyEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch pitch accent entries safely
+    @MainActor
+    private func fetchPitchAccentEntries(from context: NSManagedObjectContext) -> [MaruReader.PitchAccentEntry] {
+        let request: NSFetchRequest<MaruReader.PitchAccentEntry> = MaruReader.PitchAccentEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch term frequency entries as DTOs safely
-    private func fetchTermFrequencyEntryDTOs(from context: NSManagedObjectContext) async -> [TermFrequencyEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
+    // Helper: Fetch IPA entries safely
+    @MainActor
+    private func fetchIPAEntries(from context: NSManagedObjectContext) -> [MaruReader.IPAEntry] {
+        let request: NSFetchRequest<MaruReader.IPAEntry> = MaruReader.IPAEntry.fetchRequest()
+        return (try? context.fetch(request)) ?? []
     }
 
-    // Helper: Fetch pitch accent entries as DTOs safely
-    private func fetchPitchAccentEntryDTOs(from context: NSManagedObjectContext) async -> [PitchAccentEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.PitchAccentEntry> = MaruReader.PitchAccentEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
-    }
-
-    // Helper: Fetch IPA entries as DTOs safely
-    private func fetchIPAEntryDTOs(from context: NSManagedObjectContext) async -> [IPAEntryDTO] {
-        await context.perform {
-            let request: NSFetchRequest<MaruReader.IPAEntry> = MaruReader.IPAEntry.fetchRequest()
-            let results = (try? context.fetch(request)) ?? []
-            return results.toDTOs()
-        }
-    }
-
-    // Helper: Verify directory cleanup using DTO
-    private func verifyDirectoryCleanup(importManager: MaruReader.DictionaryImportManager, context _: NSManagedObjectContext, importID: NSManagedObjectID) async {
+    // Helper: Verify directory cleanup
+    private func verifyDirectoryCleanup(importManager: MaruReader.DictionaryImportManager, importID: NSManagedObjectID) async {
         let workingDirectoryExists = try? await importManager.workingDirectoryExists(for: importID)
         let mediaDirectoryExists = try? await importManager.mediaDirectoryExists(for: importID)
         #expect(workingDirectoryExists == false)
         #expect(mediaDirectoryExists == false)
     }
 
-    @Test func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
+    @Test @MainActor func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
         // - Action: Call importDictionary
-        // - Expected: DictionaryEntry created and marked complete; fetchable data.
+        // - Expected: Dictionary created and marked complete; fetchable data.
         let indexJSON = """
         {
             "title": "TestDict",
@@ -390,29 +354,28 @@ struct DictionaryPersistenceTests {
 
         // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isCancelled == false)
-        #expect(jobDTO?.isFailed == false)
-        #expect(jobDTO?.displayProgressMessage == "Import complete.")
-        // Assert: tag banks marked processed
-        let tagBanks = jobDTO?.tagBanks ?? []
-        let processedTagBanks = jobDTO?.processedTagBanks ?? []
-        // Confirm contents match
-        let tagBankSet = Set(tagBanks)
-        let processedTagBankSet = Set(processedTagBanks)
-        #expect(tagBankSet == processedTagBankSet)
+        let job = getJob(from: context, importID: importID)
+        #expect(job != nil)
+        #expect(job?.isCancelled == false)
+        #expect(job?.isFailed == false)
+        #expect(job?.displayProgressMessage == "Import complete.")
 
         // Assert: Data persisted
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.count == 1)
-        let dictResult = dictResults.first
-        #expect(dictResult?.title == "TestDict")
-        #expect(dictResult?.revision == "1.0")
-        #expect(dictResult?.format == 3)
-        #expect(dictResult?.isComplete == true)
+        let dict = dictResults.first
+        #expect(dict?.title == "TestDict")
+        #expect(dict?.revision == "1.0")
+        #expect(dict?.format == 3)
+        #expect(dict?.isComplete == true)
 
-        let tagResults = await fetchDictionaryTagMetaDTOs(from: context)
+        guard let dictionary = dictResults.first else {
+            Issue.record("Dictionary not found")
+            return
+        }
+        let dictionaryID = dictionary.id
+
+        let tagResults = fetchDictionaryTagMetas(from: context)
         #expect(tagResults.count == 3)
 
         let nounTag = tagResults.first { $0.name == "noun" }
@@ -420,191 +383,177 @@ struct DictionaryPersistenceTests {
         #expect(nounTag?.notes == "Common noun")
         #expect(nounTag?.order == 1)
         #expect(nounTag?.score == 0)
-        #expect(nounTag?.dictionaryID == dictResult?.id)
+        #expect(nounTag?.dictionaryID == dictionaryID)
 
         let termTag = tagResults.first { $0.name == "term-tag" }
         #expect(termTag?.category == "termTag")
         #expect(termTag?.notes == "Term tag")
         #expect(termTag?.order == 2)
         #expect(termTag?.score == 0)
-        #expect(termTag?.dictionaryID == dictResult?.id)
+        #expect(termTag?.dictionaryID == dictionaryID)
 
         let defTag = tagResults.first { $0.name == "def-tag" }
         #expect(defTag?.category == "definitionTag")
         #expect(defTag?.notes == "Definition tag")
         #expect(defTag?.order == 3)
         #expect(defTag?.score == 0)
-        #expect(defTag?.dictionaryID == dictResult?.id)
+        #expect(defTag?.dictionaryID == dictionaryID)
 
-        // Assert: Term and TermEntry persisted with all attributes
-        let termResults = await fetchTermDTOs(from: context)
-        #expect(termResults.count == 2) // One with reading, one with empty reading from frequency
-
-        // Find the term with reading (from term bank, pitch, and IPA)
-        let termWithReading = termResults.first { $0.reading == "たべる" }
-        #expect(termWithReading?.expression == "食べる")
-        #expect(termWithReading?.reading == "たべる")
-        #expect(termWithReading?.id != nil)
-
-        // Find the term with empty reading (from frequency)
-        let termWithoutReading = termResults.first { $0.reading == "" }
-        #expect(termWithoutReading?.expression == "食べる")
-        #expect(termWithoutReading?.reading == "")
-        #expect(termWithoutReading?.id != nil)
-
-        let termEntryResults = await fetchTermEntryDTOs(from: context)
-        #expect(termEntryResults.count == 1)
-        let termEntry = termEntryResults.first
+        // Assert: TermEntry persisted with all attributes
+        let termResults = fetchTermEntries(from: context)
+        #expect(termResults.count == 1)
+        let termEntry = termResults.first
+        #expect(termEntry?.expression == "食べる")
+        #expect(termEntry?.reading == "たべる")
         #expect(termEntry?.score == 100)
         #expect(termEntry?.sequence == 1)
-        #expect(termEntry?.id != nil)
+        #expect(termEntry?.dictionaryID == dictionaryID)
 
         // Test glossary (definitions)
-        let definitions = termEntry?.glossary
+        let decoder = JSONDecoder()
+        print(termEntry)
+        let glossary = termEntry?.glossary?.data(using: .utf8)
+        let definitions = try? decoder.decode([Definition].self, from: glossary ?? Data())
         #expect(definitions?.count == 1)
         if case let .text(glossaryText) = definitions?.first {
             #expect(glossaryText == "to eat")
         }
 
-        // Test rules
-        let rules = termEntry?.rules
+        // Test rules (now stored as JSON string)
+        let rulesData = termEntry?.rules?.data(using: .utf8)
+        let rules = try? decoder.decode([String].self, from: rulesData ?? Data())
         #expect(rules == ["A"])
 
-        // Test definition tags (3rd element in V3 schema)
-        let definitionTags = termEntry?.definitionTags
+        // Test definition tags (now stored as JSON string)
+        let definitionTagsData = termEntry?.definitionTags?.data(using: .utf8)
+        let definitionTags = try? decoder.decode([String].self, from: definitionTagsData ?? Data())
         #expect(definitionTags == ["def-tag"])
 
-        // Test term tags (8th element in V3 schema)
-        let termTags = termEntry?.termTags ?? []
+        // Test term tags (8th element in V3 schema, now stored as JSON string)
+        let termTagsData = termEntry?.termTags?.data(using: .utf8)
+        let termTags = (try? decoder.decode([String].self, from: termTagsData ?? Data())) ?? []
         #expect(termTags.sorted() == ["noun", "term-tag"])
 
-        // Test relationships
-        #expect(termEntry?.termID == termWithReading?.id)
-        #expect(termEntry?.dictionaryID == dictResult?.id)
-
-        // Assert: Tag linking worked (verified by tag names in termTags and definitionTags arrays)
-        #expect(termEntry?.termTags.sorted() == ["noun", "term-tag"])
-        #expect(termEntry?.definitionTags == ["def-tag"])
-
-        // Assert: Kanji and KanjiEntry persisted with all V3 attributes
-        let kanjiResults = await fetchKanjiDTOs(from: context)
+        // Assert: KanjiEntry persisted with all V3 attributes
+        let kanjiResults = fetchKanjiEntries(from: context)
         #expect(kanjiResults.count == 1)
         let kanji = kanjiResults.first
         #expect(kanji?.character == "食")
-        #expect(kanji?.id != nil)
+        #expect(kanji?.dictionaryID == dictionaryID)
 
-        let kanjiEntryResults = await fetchKanjiEntryDTOs(from: context)
-        #expect(kanjiEntryResults.count == 1)
-        let kanjiEntry = kanjiEntryResults.first
-        #expect(kanjiEntry?.id != nil)
-
-        // Test onyomi
-        let onyomi = kanjiEntry?.onyomi
+        // Test onyomi (now stored as JSON string)
+        let onyomiData = kanji?.onyomi?.data(using: .utf8)
+        let onyomi = try? decoder.decode([String].self, from: onyomiData ?? Data())
         #expect(onyomi == ["ショク"])
 
-        // Test kunyomi
-        let kunyomi = kanjiEntry?.kunyomi
+        // Test kunyomi (now stored as JSON string)
+        let kunyomiData = kanji?.kunyomi?.data(using: .utf8)
+        let kunyomi = try? decoder.decode([String].self, from: kunyomiData ?? Data())
         #expect(kunyomi == ["た.べ"])
 
-        // Test meanings
-        let meanings = kanjiEntry?.meanings ?? []
+        // Test meanings (now stored as JSON string)
+        let meaningsData = kanji?.meanings?.data(using: .utf8)
+        let meanings = (try? decoder.decode([String].self, from: meaningsData ?? Data())) ?? []
         #expect(meanings.sorted() == ["eat", "food"])
 
-        // Test stats
-        let stats = kanjiEntry?.stats ?? [:]
+        // Test stats (now stored as JSON string)
+        let statsData = kanji?.stats?.data(using: .utf8)
+        let stats = (try? decoder.decode([String: String].self, from: statsData ?? Data())) ?? [:]
         #expect(stats["freq"] == "100")
 
-        // Test tags
-        let kanjiTags = kanjiEntry?.tags ?? []
+        // Test tags (now stored as JSON string)
+        let kanjiTagsData = kanji?.tags?.data(using: .utf8)
+        let kanjiTags = (try? decoder.decode([String].self, from: kanjiTagsData ?? Data())) ?? []
         #expect(kanjiTags.sorted() == ["noun", "term-tag"])
 
-        // Test relationships
-        #expect(kanjiEntry?.kanjiID == kanji?.id)
-        #expect(kanjiEntry?.dictionaryID == dictResult?.id)
-
-        // Assert: Tag linking for kanji (verified by tag names in tags array)
-        #expect(kanjiEntry?.tags.sorted() == ["noun", "term-tag"])
-
         // Assert: Kanji frequency entries persisted
-        let kanjiFreqResults = await fetchKanjiFrequencyEntryDTOs(from: context)
+        let kanjiFreqResults = fetchKanjiFrequencyEntries(from: context)
         #expect(kanjiFreqResults.count == 1)
         let kanjiFreq = kanjiFreqResults.first
+        #expect(kanjiFreq?.character == "食")
         #expect(kanjiFreq?.frequencyValue == 200)
         #expect(kanjiFreq?.displayFrequency == "200★")
-        #expect(kanjiFreq?.dictionaryID == dictResult?.id)
-        #expect(kanjiFreq?.kanjiID == kanji?.id)
+        #expect(kanjiFreq?.dictionaryID == dictionaryID)
 
         // Assert: Term frequency entries persisted
-        let termFreqResults = await fetchTermFrequencyEntryDTOs(from: context)
+        let termFreqResults = fetchTermFrequencyEntries(from: context)
         #expect(termFreqResults.count == 1)
         let termFreq = termFreqResults.first
+        #expect(termFreq?.expression == "食べる")
+        #expect(termFreq?.reading == "")
         #expect(termFreq?.value == 5000)
         #expect(termFreq?.displayValue == "5000㋕")
-        #expect(termFreq?.dictionaryID == dictResult?.id)
-        #expect(termFreq?.termID == termWithoutReading?.id) // Frequency entries use empty reading term
+        #expect(termFreq?.dictionaryID == dictionaryID)
 
-        // Assert: Pitch accent entries persisted (2 pitch accents from the test data)
-        let pitchResults = await fetchPitchAccentEntryDTOs(from: context)
-        #expect(pitchResults.count == 2)
+        // Assert: Pitch accent entries persisted (1 entry with 2 pitches in array)
+        let pitchResults = fetchPitchAccentEntries(from: context)
+        #expect(pitchResults.count == 1)
+        let pitchEntry = pitchResults.first
+        #expect(pitchEntry?.expression == "食べる")
+        #expect(pitchEntry?.reading == "たべる")
+        #expect(pitchEntry?.dictionaryID == dictionaryID)
+
+        // Pitch data is now stored as JSON string
+        let pitchesData = pitchEntry?.pitches?.data(using: .utf8)
+        let pitches = (try? decoder.decode([PitchAccent].self, from: pitchesData ?? Data())) ?? []
+        #expect(pitches.count == 2)
 
         // First pitch accent: mora position 2 with nasal [1], devoice [3]
-        let moraPitch = pitchResults.first { $0.mora == 2 }
-        #expect(moraPitch != nil)
-        #expect(moraPitch?.pattern == nil)
-        #expect(moraPitch?.mora == 2)
-        let moraNasal = moraPitch?.nasal
-        let moraDevoice = moraPitch?.devoice
-        #expect(moraNasal == [1])
-        #expect(moraDevoice == [3])
-        let moraTags = moraPitch?.tags
-        #expect(moraTags?.sorted() == ["noun", "term-tag"])
-        #expect(moraPitch?.dictionaryID == dictResult?.id)
-        #expect(moraPitch?.termID == termWithReading?.id)
-
-        // Second pitch accent: pattern "HLL"
-        let patternPitch = pitchResults.first { $0.pattern == "HLL" }
-        #expect(patternPitch != nil)
-        #expect(patternPitch?.pattern == "HLL")
-        #expect(patternPitch?.mora == 0)
-        #expect(patternPitch?.nasal == nil)
-        #expect(patternPitch?.devoice == nil)
-        let patternTags = patternPitch?.tags
-        #expect(patternTags == ["def-tag"])
-        #expect(patternPitch?.dictionaryID == dictResult?.id)
-
-        // Assert: Pitch accent tag linking (verified by tag names in tags arrays)
-        #expect(moraPitch?.tags?.sorted() == ["noun", "term-tag"])
-        #expect(patternPitch?.tags == ["def-tag"])
-
-        // Assert: IPA entries persisted (2 transcriptions from the test data)
-        let ipaResults = await fetchIPAEntryDTOs(from: context)
-        #expect(ipaResults.count == 2)
-
-        // First IPA transcription with tags
-        let taggedIPA = ipaResults.first { $0.tags?.contains("noun") == true }
-        #expect(taggedIPA != nil)
-        #expect(taggedIPA?.transcription == "/tabe̞ɾɯ̟ᵝ/")
-        let ipaTags = taggedIPA?.tags
-        #expect(ipaTags == ["noun"])
-        #expect(taggedIPA?.dictionaryID == dictResult?.id)
-        #expect(taggedIPA?.termID == termWithReading?.id)
-
-        // Second IPA transcription without tags
-        let untaggedIPA = ipaResults.first { $0.tags?.isEmpty != false }
-        #expect(untaggedIPA != nil)
-        #expect(untaggedIPA?.transcription == "/tabeɾɯ/")
-        #expect(untaggedIPA?.tags == nil)
-        #expect(untaggedIPA?.dictionaryID == dictResult?.id)
-
-        // Assert: IPA tag linking (verified by tag names in tags array)
-        #expect(taggedIPA?.tags == ["noun"])
-
-        // Assert: Media files are copied to application support directory
-        guard let dictionaryID = dictResult?.id else {
-            Issue.record("Dictionary ID is nil")
-            return
+        if pitches.count > 0 {
+            let moraPitch = pitches[0]
+            switch moraPitch.position {
+            case let .mora(value):
+                #expect(value == 2)
+            default: Issue.record("Expected mora position, got \(moraPitch.position)"); return
+            }
+            #expect(moraPitch.nasal == [1])
+            #expect(moraPitch.devoice == [3])
+            #expect(moraPitch.tags?.sorted() == ["noun", "term-tag"])
         }
 
+        // Second pitch accent: pattern "HLL"
+        if pitches.count > 1 {
+            let patternPitch = pitches[1]
+            switch patternPitch.position {
+            case let .pattern(value):
+                #expect(value == "HLL")
+            default: Issue.record("Expected pattern position, got \(patternPitch.position)"); return
+            }
+            #expect(patternPitch.nasal == nil)
+            #expect(patternPitch.devoice == nil)
+            #expect(patternPitch.tags == ["def-tag"])
+        } else {
+            Issue.record("Expected second pitch accent entry")
+        }
+
+        // Assert: IPA entries persisted (1 entry with 2 transcriptions in array)
+        let ipaResults = fetchIPAEntries(from: context)
+        #expect(ipaResults.count == 1)
+        let ipaEntry = ipaResults.first
+        #expect(ipaEntry?.expression == "食べる")
+        #expect(ipaEntry?.reading == "たべる")
+        #expect(ipaEntry?.dictionaryID == dictionaryID)
+
+        // Transcriptions data is now stored as JSON string
+        let transcriptionsData = ipaEntry?.transcriptions?.data(using: .utf8)
+        let transcriptions = (try? decoder.decode([IPATranscription].self, from: transcriptionsData ?? Data())) ?? []
+        #expect(transcriptions.count == 2)
+
+        // First IPA transcription with tags
+        if transcriptions.count > 0 {
+            let taggedIPA = transcriptions[0]
+            #expect(taggedIPA.ipa == "/tabe̞ɾɯ̟ᵝ/")
+            #expect(taggedIPA.tags == ["noun"])
+        }
+
+        // Second IPA transcription without tags
+        if transcriptions.count > 1 {
+            let untaggedIPA = transcriptions[1]
+            #expect(untaggedIPA.ipa == "/tabeɾɯ/")
+            #expect(untaggedIPA.tags == nil)
+        }
+
+        // Assert: Media files are copied to application support directory
         let fileManager = FileManager.default
         let appSupportDir = try fileManager.url(
             for: .applicationSupportDirectory,
@@ -612,6 +561,10 @@ struct DictionaryPersistenceTests {
             appropriateFor: nil,
             create: false
         )
+        guard let dictionaryID else {
+            Issue.record("Dictionary ID not found")
+            return
+        }
         let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Verify media directory exists
@@ -637,7 +590,7 @@ struct DictionaryPersistenceTests {
         #expect(jsonInMedia.isEmpty, "JSON files should not be copied to media directory")
     }
 
-    @Test func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
+    @Test @MainActor func importDictionary_ValidV1ZIP_ImportsSuccessfully() async throws {
         // Setup: index.json with legacy tagMeta and no tag_bank file.
         let indexJSON = """
         {
@@ -676,17 +629,23 @@ struct DictionaryPersistenceTests {
 
         // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isCancelled == false)
-        #expect(jobDTO?.isFailed == false)
-        #expect(jobDTO?.displayProgressMessage == "Import complete.")
+        let job = getJob(from: context, importID: importID)
+        #expect(job != nil)
+        #expect(job?.isCancelled == false)
+        #expect(job?.isFailed == false)
+        #expect(job?.displayProgressMessage == "Import complete.")
 
-        let dictionaryResults = await fetchDictionaryDTOs(from: context)
+        let dictionaryResults = fetchDictionaries(from: context)
         #expect(dictionaryResults.count == 1)
         #expect(dictionaryResults.first?.title == "LegacyDict")
 
-        let tagResults = await fetchDictionaryTagMetaDTOs(from: context)
+        guard let dictionary = dictionaryResults.first else {
+            Issue.record("Dictionary not found")
+            return
+        }
+        let dictionaryID = dictionary.id
+
+        let tagResults = fetchDictionaryTagMetas(from: context)
         #expect(tagResults.count == 2)
 
         let nounTag = tagResults.first { $0.name == "noun" }
@@ -694,32 +653,29 @@ struct DictionaryPersistenceTests {
         #expect(nounTag?.notes == "Common noun")
         #expect(nounTag?.order == 1)
         #expect(nounTag?.score == 0)
-        #expect(nounTag?.dictionaryID == dictionaryResults.first?.id)
+        #expect(nounTag?.dictionaryID == dictionaryID)
 
         let defTag = tagResults.first { $0.name == "def-tag" }
         #expect(defTag?.category == "definitionTag")
         #expect(defTag?.notes == "Definition tag")
         #expect(defTag?.order == 2)
         #expect(defTag?.score == 0)
-        #expect(defTag?.dictionaryID == dictionaryResults.first?.id)
+        #expect(defTag?.dictionaryID == dictionaryID)
 
-        // Assert: Term and TermEntry persisted with all V1 attributes
-        let termResults = await fetchTermDTOs(from: context)
+        // Assert: TermEntry persisted with all V1 attributes
+        let termResults = fetchTermEntries(from: context)
         #expect(termResults.count == 1)
-        let term = termResults.first
-        #expect(term?.expression == "猫")
-        #expect(term?.reading == "ねこ")
-        #expect(term?.id != nil)
-
-        let termEntryResults = await fetchTermEntryDTOs(from: context)
-        #expect(termEntryResults.count == 1)
-        let termEntry = termEntryResults.first
+        let termEntry = termResults.first
+        #expect(termEntry?.expression == "猫")
+        #expect(termEntry?.reading == "ねこ")
         #expect(termEntry?.score == 100)
         #expect(termEntry?.sequence == 0) // V1 doesn't have sequence, defaults to 0
-        #expect(termEntry?.id != nil)
+        #expect(termEntry?.dictionaryID == dictionaryID)
 
-        // Test glossary (V1 uses remaining elements as string definitions)
-        let definitions = termEntry?.glossary
+        // Test glossary (V1 uses remaining elements as string definitions) - now stored as JSON string
+        let decoder = JSONDecoder()
+        let glossaryData = termEntry?.glossary?.data(using: .utf8)
+        let definitions = try? decoder.decode([Definition].self, from: glossaryData ?? Data())
         #expect(definitions?.count == 2)
         if case let .text(firstGlossary) = definitions?[0] {
             #expect(firstGlossary == "cat")
@@ -728,73 +684,54 @@ struct DictionaryPersistenceTests {
             #expect(secondGlossary == "feline")
         }
 
-        // Test rules
-        let rules = termEntry?.rules
+        // Test rules (now stored as JSON string)
+        let rulesData = termEntry?.rules?.data(using: .utf8)
+        let rules = try? decoder.decode([String].self, from: rulesData ?? Data())
         #expect(rules == ["v1"])
 
-        // Test definition tags (V1 has only definition tags, no separate term tags)
-        let definitionTags = termEntry?.definitionTags ?? []
+        // Test definition tags (V1 has only definition tags, no separate term tags) - now stored as JSON string
+        let definitionTagsData = termEntry?.definitionTags?.data(using: .utf8)
+        let definitionTags = (try? decoder.decode([String].self, from: definitionTagsData ?? Data())) ?? []
         #expect(definitionTags.sorted() == ["def-tag", "noun"])
 
-        // Test term tags (should be empty for V1)
-        let termTags = termEntry?.termTags ?? []
+        // Test term tags (should be empty for V1) - now stored as JSON string
+        let termTagsData = termEntry?.termTags?.data(using: .utf8)
+        let termTags = (try? decoder.decode([String].self, from: termTagsData ?? Data())) ?? []
         #expect(termTags.isEmpty == true)
 
-        // Test relationships
-        #expect(termEntry?.termID == term?.id)
-        #expect(termEntry?.dictionaryID == dictionaryResults.first?.id)
-
-        // Assert: Definition tag linking (verified by tag names in definitionTags array)
-        #expect(termEntry?.definitionTags.sorted() == ["def-tag", "noun"])
-
-        // Assert: No term tags for V1
-        #expect(termEntry?.termTags.isEmpty == true)
-
-        // Assert: Kanji and KanjiEntry persisted with all V1 attributes
-        let kanjiResults = await fetchKanjiDTOs(from: context)
+        // Assert: KanjiEntry persisted with all V1 attributes
+        let kanjiResults = fetchKanjiEntries(from: context)
         #expect(kanjiResults.count == 1)
         let kanji = kanjiResults.first
         #expect(kanji?.character == "猫")
-        #expect(kanji?.id != nil)
+        #expect(kanji?.dictionaryID == dictionaryID)
 
-        let kanjiEntryResults = await fetchKanjiEntryDTOs(from: context)
-        #expect(kanjiEntryResults.count == 1)
-        let kanjiEntry = kanjiEntryResults.first
-        #expect(kanjiEntry?.id != nil)
-
-        // Test onyomi
-        let onyomi = kanjiEntry?.onyomi
+        // Test onyomi (now stored as JSON string)
+        let onyomiData = kanji?.onyomi?.data(using: .utf8)
+        let onyomi = try? decoder.decode([String].self, from: onyomiData ?? Data())
         #expect(onyomi == ["ビョウ"])
 
-        // Test kunyomi
-        let kunyomi = kanjiEntry?.kunyomi
+        // Test kunyomi (now stored as JSON string)
+        let kunyomiData = kanji?.kunyomi?.data(using: .utf8)
+        let kunyomi = try? decoder.decode([String].self, from: kunyomiData ?? Data())
         #expect(kunyomi == ["ねこ"])
 
-        // Test meanings (V1 format has meanings as remaining string elements)
-        let meanings = kanjiEntry?.meanings ?? []
+        // Test meanings (V1 format has meanings as remaining string elements) - now stored as JSON string
+        let meaningsData = kanji?.meanings?.data(using: .utf8)
+        let meanings = (try? decoder.decode([String].self, from: meaningsData ?? Data())) ?? []
         #expect(meanings.sorted() == ["cat", "feline animal"])
 
-        // Test stats (V1 doesn't have stats, should be empty)
-        let stats = kanjiEntry?.stats ?? [:]
+        // Test stats (V1 doesn't have stats, should be empty) - now stored as JSON string
+        let statsData = kanji?.stats?.data(using: .utf8)
+        let stats = (try? decoder.decode([String: String].self, from: statsData ?? Data())) ?? [:]
         #expect(stats.isEmpty == true)
 
-        // Test tags
-        let kanjiTags = kanjiEntry?.tags
+        // Test tags (now stored as JSON string)
+        let kanjiTagsData = kanji?.tags?.data(using: .utf8)
+        let kanjiTags = try? decoder.decode([String].self, from: kanjiTagsData ?? Data())
         #expect(kanjiTags == ["noun"])
 
-        // Test relationships
-        #expect(kanjiEntry?.kanjiID == kanji?.id)
-        #expect(kanjiEntry?.dictionaryID == dictionaryResults.first?.id)
-
-        // Assert: Tag linking for kanji (verified by tag names in tags array)
-        #expect(kanjiEntry?.tags == ["noun"])
-
         // Assert: Media files are copied for V1 format as well
-        guard let dictionaryID = dictionaryResults.first?.id else {
-            Issue.record("Dictionary ID is nil")
-            return
-        }
-
         let fileManager = FileManager.default
         let appSupportDir = try fileManager.url(
             for: .applicationSupportDirectory,
@@ -802,6 +739,10 @@ struct DictionaryPersistenceTests {
             appropriateFor: nil,
             create: false
         )
+        guard let dictionaryID else {
+            Issue.record("Dictionary ID not found")
+            return
+        }
         let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Verify media directory exists
@@ -853,18 +794,19 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobCancelled(jobDTO)
+        await MainActor.run {
+            let job = getJob(from: context, importID: importID)
+            verifyJobCancelled(job)
 
-        // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+            // Verify no Core Data entities were created
+            let dictResults = fetchDictionaries(from: context)
+            #expect(dictResults.isEmpty)
 
-        // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
-        #expect(dictResults.isEmpty)
+            let termResults = fetchTermEntries(from: context)
+            #expect(termResults.isEmpty)
+        }
 
-        let termResults = await fetchTermDTOs(from: context)
-        #expect(termResults.isEmpty)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
     @Test func importDictionary_CancelAfterIndex_CleansUpProperly() async throws {
@@ -903,16 +845,17 @@ struct DictionaryPersistenceTests {
         await importManager.waitForCompletion(jobID: importID)
 
         // Verify job is properly cancelled
-        let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobCancelled(jobDTO)
+        await MainActor.run {
+            let context = persistenceController.container.viewContext
+            let job = getJob(from: context, importID: importID)
+            verifyJobCancelled(job)
 
+            // Verify dictionary was deleted during cleanup
+            let dictResults = fetchDictionaries(from: context)
+            #expect(dictResults.isEmpty)
+        }
         // Verify cleanup (dictionary should be deleted)
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
-
-        // Verify dictionary was deleted during cleanup
-        let dictResults = await fetchDictionaryDTOs(from: context)
-        #expect(dictResults.isEmpty)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
     @Test func importDictionary_CancelAfterMediaCopy_CleansUpProperly() async throws {
@@ -941,7 +884,7 @@ struct DictionaryPersistenceTests {
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
-            if cancellationCount == 7 { // After media copy
+            if cancellationCount == 4 { // After media copy
                 throw CancellationError()
             }
         }
@@ -952,19 +895,19 @@ struct DictionaryPersistenceTests {
         await importManager.waitForCompletion(jobID: importID)
 
         // Verify job is properly cancelled
-        let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobCancelled(jobDTO)
-
+        await MainActor.run {
+            let context = persistenceController.container.viewContext
+            let job = getJob(from: context, importID: importID)
+            verifyJobCancelled(job)
+            // Verify dictionary was deleted during cleanup
+            let dictResults = fetchDictionaries(from: context)
+            #expect(dictResults.isEmpty)
+        }
         // Verify cleanup (media directory should be removed despite being created)
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
-
-        // Verify dictionary was deleted during cleanup
-        let dictResults = await fetchDictionaryDTOs(from: context)
-        #expect(dictResults.isEmpty)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
-    @Test func importDictionary_CancelQueuedJob_CleansUpProperly() async throws {
+    @Test @MainActor func importDictionary_CancelQueuedJob_CleansUpProperly() async throws {
         // Test cancellation of a job that's still in queue (not started)
         let indexJSON = """
         {
@@ -995,20 +938,20 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobCancelled(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobCancelled(job)
 
         // For queued jobs, no directories should be created
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 
     // MARK: - Failure Tests
 
-    @Test func importDictionary_MalformedZIP_FailsAndCleansUp() async throws {
+    @Test @MainActor func importDictionary_MalformedZIP_FailsAndCleansUp() async throws {
         // Test failure with corrupted ZIP file
         let zipURL = try createCorruptedZIP()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
@@ -1023,18 +966,18 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobFailed(job)
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 
-    @Test func importDictionary_MissingIndexJSON_FailsAndCleansUp() async throws {
+    @Test @MainActor func importDictionary_MissingIndexJSON_FailsAndCleansUp() async throws {
         // Test failure when index.json is missing
         let zipURL = try createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
@@ -1049,18 +992,18 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobFailed(job)
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 
-    @Test func importDictionary_InvalidJSON_FailsAndCleansUp() async throws {
+    @Test @MainActor func importDictionary_InvalidJSON_FailsAndCleansUp() async throws {
         // Test failure with malformed JSON in bank files
         let indexJSON = """
         {
@@ -1087,18 +1030,18 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobFailed(job)
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify dictionary was deleted during cleanup
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 
-    @Test func importDictionary_UnsupportedFormat_FailsAndCleansUp() async throws {
+    @Test @MainActor func importDictionary_UnsupportedFormat_FailsAndCleansUp() async throws {
         // Test failure with unsupported format version
         let indexJSON = """
         {
@@ -1126,14 +1069,14 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobFailed(job)
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 
@@ -1171,19 +1114,21 @@ struct DictionaryPersistenceTests {
         await importManager.waitForCompletion(jobID: importID)
 
         // Verify job is properly marked as failed
-        let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        await MainActor.run {
+            let context = persistenceController.container.viewContext
+            let job = getJob(from: context, importID: importID)
+            verifyJobFailed(job)
+
+            // Verify no Core Data entities were created
+            let dictResults = fetchDictionaries(from: context)
+            #expect(dictResults.isEmpty)
+        }
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
-
-        // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
-        #expect(dictResults.isEmpty)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
-    @Test func importDictionary_NoBankFiles_FailsAndCleansUp() async throws {
+    @Test @MainActor func importDictionary_NoBankFiles_FailsAndCleansUp() async throws {
         // Test failure when no valid bank files are present
         let indexJSON = """
         {
@@ -1207,14 +1152,14 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, importID: importID)
-        verifyJobFailed(jobDTO)
+        let job = getJob(from: context, importID: importID)
+        verifyJobFailed(job)
 
         // Verify cleanup
-        await verifyDirectoryCleanup(importManager: importManager, context: context, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
         // Verify no Core Data entities were created
-        let dictResults = await fetchDictionaryDTOs(from: context)
+        let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.isEmpty)
     }
 }

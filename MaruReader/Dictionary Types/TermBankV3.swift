@@ -65,19 +65,31 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     }
 
     func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
-        let stringArrayTransformer = StringArrayTransformer()
-        let definitionArrayTransformer = DefinitionArrayTransformer()
+        let encoder = JSONEncoder()
+
+        let glossaryData = (try? encoder.encode(self.glossary)) ?? Data()
+        let glossaryString = String(data: glossaryData, encoding: .utf8) ?? "[]"
+
+        let definitionTagsData = self.definitionTags != nil ? (try? encoder.encode(self.definitionTags)) ?? Data() : Data()
+        let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
+
+        let rulesData = (try? encoder.encode(self.rules)) ?? Data()
+        let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"
+
+        let termTagsData = (try? encoder.encode(self.termTags)) ?? Data()
+        let termTagsString = String(data: termTagsData, encoding: .utf8) ?? "[]"
+
         return (.termEntry, [
             "expression": self.expression,
             "reading": self.reading,
-            "definitionTags": stringArrayTransformer.transformedValue(self.definitionTags ?? []) as? Data ?? Data(),
+            "definitionTags": definitionTagsString,
             "dictionaryID": dictionaryID,
-            "glossary": definitionArrayTransformer.transformedValue(self.glossary) as? Data ?? Data(),
+            "glossary": glossaryString,
             "id": UUID(),
-            "rules": stringArrayTransformer.transformedValue(self.rules) as? Data ?? Data(),
+            "rules": rulesString,
             "score": self.score,
             "sequence": Int64(self.sequence),
-            "termTags": stringArrayTransformer.transformedValue(self.termTags) as? Data ?? Data(),
+            "termTags": termTagsString,
         ])
     }
 

@@ -67,8 +67,7 @@ struct TermMetaBankV3Entry: DictionaryDataBankEntry {
     }
 
     func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
-        let pitchArrayTransformer = PitchAccentArrayTransformer()
-        let ipaTranscriptionArrayTransformer = IPATranscriptionArrayTransformer()
+        let encoder = JSONEncoder()
         switch data {
         case let .frequency(freq):
             return (.termFrequencyEntry, [
@@ -89,19 +88,23 @@ struct TermMetaBankV3Entry: DictionaryDataBankEntry {
                 "id": UUID(),
             ])
         case let .pitch(pitch):
+            let pitchesData = (try? encoder.encode(pitch.pitches)) ?? Data()
+            let pitchesString = String(data: pitchesData, encoding: .utf8) ?? "[]"
             return (.pitchAccentEntry, [
                 "dictionaryID": dictionaryID,
                 "expression": term,
                 "reading": pitch.reading,
-                "pitches": pitchArrayTransformer.transformedValue(pitch.pitches) as? Data ?? Data(),
+                "pitches": pitchesString,
                 "id": UUID(),
             ])
         case let .ipa(ipa):
+            let transcriptionsData = (try? encoder.encode(ipa.transcriptions)) ?? Data()
+            let transcriptionsString = String(data: transcriptionsData, encoding: .utf8) ?? "[]"
             return (.ipaEntry, [
                 "dictionaryID": dictionaryID,
                 "expression": term,
                 "reading": ipa.reading,
-                "transcriptions": ipaTranscriptionArrayTransformer.transformedValue(ipa.transcriptions) as? Data ?? Data(),
+                "transcriptions": transcriptionsString,
                 "id": UUID(),
             ])
         }

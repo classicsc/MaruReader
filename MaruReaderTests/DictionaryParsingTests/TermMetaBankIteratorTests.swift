@@ -25,7 +25,7 @@ struct TermMetaBankIteratorTests {
         try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
-        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [tempURL], dataFormat: 3)
+        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [tempURL])
 
         var entries: [TermMetaBankV3Entry] = []
         for try await entry in iterator {
@@ -109,7 +109,7 @@ struct TermMetaBankIteratorTests {
         try jsonString2.write(to: url2, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url1); try? FileManager.default.removeItem(at: url2) }
 
-        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url1, url2], dataFormat: 3)
+        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url1, url2])
         var terms: [String] = []
         for try await e in iterator {
             terms.append(e.term)
@@ -128,7 +128,7 @@ struct TermMetaBankIteratorTests {
         try jsonString.write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url], dataFormat: 3)
+        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url])
         var collected: [TermMetaBankV3Entry] = []
         var errorOccurred = false
         do {
@@ -149,7 +149,7 @@ struct TermMetaBankIteratorTests {
         try jsonString.write(to: url, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url], dataFormat: 3)
+        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url])
         var any = false
         for try await _ in iterator {
             any = true
@@ -158,7 +158,7 @@ struct TermMetaBankIteratorTests {
     }
 
     @Test func termMetaIterator_NoFiles_ReturnsNoEntries() async throws {
-        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [], dataFormat: 3)
+        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [])
         var count = 0
         for try await _ in iterator {
             count += 1
