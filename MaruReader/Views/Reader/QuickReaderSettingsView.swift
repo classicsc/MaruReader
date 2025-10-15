@@ -14,64 +14,30 @@ struct QuickReaderSettingsMenu: View {
     var body: some View {
         Menu {
             // Font Size
-            Menu {
-                Stepper(
-                    value: Binding(
-                        get: { preferences.effectiveFontSize },
-                        set: { preferences.fontSize = $0 }
-                    ),
-                    in: 50 ... 200,
-                    step: 10
-                ) {
-                    if preferences.isUsingDefaultFontSize {
-                        Text("Font Size: 100% (Default)")
-                    } else {
-                        Text("Font Size: \(Int(preferences.fontSize))%")
-                    }
+            Stepper(
+                value: Binding(
+                    get: { preferences.effectiveFontSize },
+                    set: { preferences.fontSize = $0 }
+                ),
+                in: 50 ... 200,
+                step: 10,
+                label: {
+                    Label("Font Size", systemImage: "textformat.size")
                 }
-            } label: {
-                Label("Font Size", systemImage: "textformat.size")
-            }
+            )
 
             // Horizontal Margin
-            Menu {
-                Stepper(
-                    value: Binding(
-                        get: { preferences.effectiveHorizontalMargin },
-                        set: { preferences.horizontalMargin = $0 }
-                    ),
-                    in: 0.5 ... 3.0,
-                    step: 0.25
-                ) {
-                    if preferences.isUsingDefaultHorizontalMargin {
-                        Text("Horizontal: 1.0 (Default)")
-                    } else {
-                        Text("Horizontal: \(preferences.horizontalMargin, specifier: "%.2f")")
-                    }
+            Stepper(
+                value: Binding(
+                    get: { preferences.effectiveHorizontalMargin },
+                    set: { preferences.horizontalMargin = $0 }
+                ),
+                in: 0.5 ... 3.0,
+                step: 0.25,
+                label: {
+                    Label("Margin", systemImage: "arrow.left.and.right")
                 }
-            } label: {
-                Label("Horizontal Margin", systemImage: "arrow.left.and.right")
-            }
-
-            // Vertical Margin
-            Menu {
-                Stepper(
-                    value: Binding(
-                        get: { preferences.effectiveVerticalMargin },
-                        set: { preferences.verticalMargin = $0 }
-                    ),
-                    in: 0.5 ... 3.0,
-                    step: 0.25
-                ) {
-                    if preferences.isUsingDefaultVerticalMargin {
-                        Text("Vertical: 1.0 (Default)")
-                    } else {
-                        Text("Vertical: \(preferences.verticalMargin, specifier: "%.2f")")
-                    }
-                }
-            } label: {
-                Label("Vertical Margin", systemImage: "arrow.up.and.down")
-            }
+            )
 
             Divider()
 

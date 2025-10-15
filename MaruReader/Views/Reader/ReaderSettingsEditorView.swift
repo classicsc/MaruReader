@@ -109,27 +109,17 @@ struct ReadingSettingsTab: View {
             }
 
             Section("Font") {
-                VStack(spacing: 12) {
-                    HStack {
+                Stepper(
+                    value: Binding(
+                        get: { preferences.effectiveFontSize },
+                        set: { preferences.fontSize = $0 }
+                    ),
+                    in: 50 ... 200,
+                    step: 5,
+                    label: {
                         Text("Size")
-                        Spacer()
-                        if preferences.isUsingDefaultFontSize {
-                            Text("100% (Default)")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("\(Int(preferences.fontSize))%")
-                                .foregroundStyle(.secondary)
-                        }
                     }
-                    Slider(
-                        value: Binding(
-                            get: { preferences.effectiveFontSize },
-                            set: { preferences.fontSize = $0 }
-                        ),
-                        in: 50 ... 200,
-                        step: 5
-                    )
-                }
+                )
 
                 HStack {
                     Text("Family")
@@ -141,46 +131,14 @@ struct ReadingSettingsTab: View {
 
             Section("Margins") {
                 VStack(spacing: 12) {
-                    HStack {
-                        Text("Horizontal")
-                        Spacer()
-                        if preferences.isUsingDefaultHorizontalMargin {
-                            Text("1.0 (Default)")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("\(preferences.horizontalMargin, specifier: "%.2f")")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Slider(
+                    Stepper(
                         value: Binding(
                             get: { preferences.effectiveHorizontalMargin },
                             set: { preferences.horizontalMargin = $0 }
                         ),
                         in: 0.5 ... 3.0,
-                        step: 0.25
-                    )
-                }
-
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Vertical")
-                        Spacer()
-                        if preferences.isUsingDefaultVerticalMargin {
-                            Text("1.0 (Default)")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text("\(preferences.verticalMargin, specifier: "%.2f")")
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Slider(
-                        value: Binding(
-                            get: { preferences.effectiveVerticalMargin },
-                            set: { preferences.verticalMargin = $0 }
-                        ),
-                        in: 0.5 ... 3.0,
-                        step: 0.25
+                        step: 0.25,
+                        label: { Text("Horizontal") }
                     )
                 }
             }
