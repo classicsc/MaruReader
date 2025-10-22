@@ -43,12 +43,6 @@ struct BookReaderView: View {
                     }
                     .presentationDetents([.medium, .large])
                 }
-                .sheet(isPresented: Binding(
-                    get: { viewModel.overlayState == .showingSettingsEditorSheet },
-                    set: { if !$0 { viewModel.overlayState = .none } }
-                )) {
-                    ReaderSettingsEditorView(preferences: viewModel.readerPreferences)
-                }
                 .onChange(of: colorScheme) {
                     viewModel.readerPreferences.submitToNavigator()
                 }
@@ -105,7 +99,7 @@ struct BookReaderView: View {
                         }
 
                         QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
-                            viewModel.overlayState = .showingSettingsEditorSheet
+                            viewModel.overlayState = .showingQuickSettings
                         }
                     }
                 }

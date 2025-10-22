@@ -25,7 +25,6 @@ enum BookReaderOverlayState {
     case none
     case showingTableOfContents
     case showingQuickSettings
-    case showingSettingsEditorSheet
     case showingToolbars
     case showingSearch
     case showingDictionarySheet
@@ -33,7 +32,7 @@ enum BookReaderOverlayState {
 
     var shouldShowNavigationBackButton: Bool {
         switch self {
-        case .showingSettingsEditorSheet, .showingSearch, .showingBookmarks, .showingDictionarySheet, .none:
+        case .showingSearch, .showingBookmarks, .showingDictionarySheet, .none:
             false
         default:
             true

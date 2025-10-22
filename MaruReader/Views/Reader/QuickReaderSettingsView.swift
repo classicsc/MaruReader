@@ -38,25 +38,6 @@ struct QuickReaderSettingsMenu: View {
                     Label("Margin", systemImage: "arrow.left.and.right")
                 }
             )
-
-            Divider()
-
-            // Theme info (read-only in quick menu)
-            if let lightTheme = preferences.lightTheme {
-                if preferences.darkTheme == nil {
-                    Label("Theme: \(lightTheme.name ?? "Unknown")", systemImage: "paintpalette")
-                } else if let darkTheme = preferences.darkTheme {
-                    Label("Themes: \(lightTheme.name ?? "Light") / \(darkTheme.name ?? "Dark")", systemImage: "paintpalette")
-                }
-            }
-
-            Divider()
-
-            Button {
-                onOpenFullSettings()
-            } label: {
-                Label("More Settings...", systemImage: "gearshape")
-            }
         } label: {
             Image(systemName: "textformat.size.ja")
         }
