@@ -82,6 +82,27 @@
 		DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderTests.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DBCFB1CD2EAACDA100B4F27D /* Exceptions for "MaruReaderCore" folder in "MaruReader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WebKit/MediaURLSchemeHandler.swift,
+				WebKit/ResourceURLSchemeHandler.swift,
+				"WebKit/WebPage+Highlights.swift",
+			);
+			target = DB2B698B2E660F8B00EDA656 /* MaruReader */;
+		};
+		DBCFB1CE2EAACDA100B4F27D /* Exceptions for "MaruReaderCore" folder in "MaruReaderCore" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WebKit/MediaURLSchemeHandler.swift,
+				WebKit/ResourceURLSchemeHandler.swift,
+				"WebKit/WebPage+Highlights.swift",
+			);
+			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		DB2B698E2E660F8B00EDA656 /* MaruReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -100,6 +121,10 @@
 		};
 		DBCFB1612EAAAE8B00B4F27D /* MaruReaderCore */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DBCFB1CD2EAACDA100B4F27D /* Exceptions for "MaruReaderCore" folder in "MaruReader" target */,
+				DBCFB1CE2EAACDA100B4F27D /* Exceptions for "MaruReaderCore" folder in "MaruReaderCore" target */,
+			);
 			path = MaruReaderCore;
 			sourceTree = "<group>";
 		};

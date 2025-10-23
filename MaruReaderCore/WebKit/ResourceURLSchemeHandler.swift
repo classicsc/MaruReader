@@ -10,7 +10,7 @@ import os.log
 import UniformTypeIdentifiers
 import WebKit
 
-class ResourceURLSchemeHandler: URLSchemeHandler {
+public class ResourceURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ResourceURLSchemeHandler")
 
     // Allowlist of resources that can be served
@@ -23,7 +23,7 @@ class ResourceURLSchemeHandler: URLSchemeHandler {
         "textHighlighting.js",
     ]
 
-    nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
+    public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let task = Task { @Sendable in
                 do {

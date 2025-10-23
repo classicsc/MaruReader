@@ -10,10 +10,10 @@ import os.log
 import UniformTypeIdentifiers
 import WebKit
 
-class MediaURLSchemeHandler: URLSchemeHandler {
+public class MediaURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaURLSchemeHandler")
 
-    nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
+    public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let task = Task { @Sendable in
                 do {

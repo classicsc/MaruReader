@@ -6,11 +6,10 @@
 //
 
 import Foundation
-import MaruReaderCore
 import os.log
 import WebKit
 
-class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
+public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryLookupURLSchemeHandler")
 
     private let searchService: DictionarySearchService
@@ -18,7 +17,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
     private let onScan: @Sendable (Int, String, Int, String) -> Void
     private let onPopup: @Sendable (String?) -> Void
 
-    init(
+    public init(
         persistenceController: PersistenceController = PersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
         onScan: @escaping @Sendable (Int, String, Int, String) -> Void = { _, _, _, _ in },
@@ -30,7 +29,7 @@ class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         self.onPopup = onPopup
     }
 
-    nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
+    public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let searchService = self.searchService
             let onNavigate = self.onNavigate
