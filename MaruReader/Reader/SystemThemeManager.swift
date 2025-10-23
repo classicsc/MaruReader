@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import ReadiumNavigator
 import SwiftUI
 

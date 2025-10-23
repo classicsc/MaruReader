@@ -5,6 +5,7 @@
 //  Dictionary priority management interface for controlling display order and frequency ranking.
 //
 import CoreData
+import MaruReaderCore
 import SwiftUI
 
 struct DictionaryPriorityView: View {

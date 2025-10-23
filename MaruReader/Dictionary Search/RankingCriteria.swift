@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MaruReaderCore
 
 /// Encapsulates the 9-tier ranking criteria for search results
 struct RankingCriteria: Comparable {

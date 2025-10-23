@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import os.log
 
 /// Fetches terms from Core Data using batch queries and converts them to SearchResult structs

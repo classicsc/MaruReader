@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 
 /// Represents a dictionary tag with metadata
 struct Tag: Codable, Sendable, Identifiable, Hashable {

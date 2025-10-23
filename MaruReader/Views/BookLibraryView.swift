@@ -4,6 +4,7 @@
 //  Book library view with import progress and book grid display.
 //
 import CoreData
+import MaruReaderCore
 import SwiftUI
 import UniformTypeIdentifiers
 

@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import os.log
 
 /// Metadata for a dictionary used during search

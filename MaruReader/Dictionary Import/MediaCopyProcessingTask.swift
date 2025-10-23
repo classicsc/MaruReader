@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import os.log
 
 /// A task to copy media files from the working directory to the permanent media directory.

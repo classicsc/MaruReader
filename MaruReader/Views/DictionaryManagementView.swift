@@ -5,6 +5,7 @@
 //  Dictionary management interface for viewing imported dictionaries
 //
 import CoreData
+import MaruReaderCore
 import SwiftUI
 import UniformTypeIdentifiers
 
