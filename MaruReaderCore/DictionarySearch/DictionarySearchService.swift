@@ -7,7 +7,6 @@
 
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
 
 /// Metadata for a dictionary used during search
@@ -21,7 +20,7 @@ struct DictionaryMetadata: Sendable {
     let termFrequencyEnabled: Bool
 }
 
-actor DictionarySearchService {
+public actor DictionarySearchService {
     /// The maximum forward lookup length for the TextLookupRequest API
     static let maxForwardLookupLength = 10
 
@@ -34,13 +33,13 @@ actor DictionarySearchService {
     /// Cached dictionary metadata, refreshed before each search
     private var dictionaryMetadataCache: [UUID: DictionaryMetadata] = [:]
 
-    init(persistenceController: PersistenceController = PersistenceController.shared) {
+    public init(persistenceController: PersistenceController = PersistenceController.shared) {
         self.persistenceController = persistenceController
         self.backgroundContext = persistenceController.container.newBackgroundContext()
         self.candidateGenerator = DictionaryCandidateGenerator()
     }
 
-    func performSearch(query: String) async throws -> [SearchResult] {
+    public func performSearch(query: String) async throws -> [SearchResult] {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return []
         }
@@ -84,7 +83,7 @@ actor DictionarySearchService {
     }
 
     /// Perform a search and get the TextLookupResponse
-    func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
+    public func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
         // Get the text to query using the offset within context and the max lookup length
         let startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
         let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex

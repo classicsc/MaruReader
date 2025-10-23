@@ -5,6 +5,8 @@
 //  Created by Sam Smoker on 9/6/25.
 //
 
+import Foundation
+
 enum DictionaryImportError: Error, Equatable {
     case notADictionary
     case unsupportedFormat

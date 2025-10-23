@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct DictionaryResults: Identifiable {
+struct DictionaryResults: Identifiable, Sendable {
     let dictionaryTitle: String
     let dictionaryUUID: UUID
     let sequence: Int64

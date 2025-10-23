@@ -5,10 +5,9 @@
 //  Created by Sam Smoker on 9/21/25.
 //
 
-import AsyncAlgorithms
+internal import AsyncAlgorithms
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
 
 actor DataBankProcessingTask {

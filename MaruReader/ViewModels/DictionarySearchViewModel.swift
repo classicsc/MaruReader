@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MaruReaderCore
 import Observation
 import os.log
 import SwiftUI

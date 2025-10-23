@@ -7,25 +7,25 @@
 
 import Foundation
 
-struct TextLookupResponse {
-    let requestID: UUID
-    let results: [GroupedSearchResults] // Dictionary content
-    let primaryResult: String // The matched term
-    let primaryResultSourceRange: Range<String.Index> // Range in context
-    let contextStartOffset: Int // Where context starts in full element text
-    let context: String // The original context string
+public struct TextLookupResponse: Sendable {
+    public let requestID: UUID
+    public let results: [GroupedSearchResults] // Dictionary content
+    public let primaryResult: String // The matched term
+    public let primaryResultSourceRange: Range<String.Index> // Range in context
+    public let contextStartOffset: Int // Where context starts in full element text
+    public let context: String // The original context string
 
     /// Start offset of the matched text within the context
-    var matchStartInContext: Int {
+    public var matchStartInContext: Int {
         context.distance(from: context.startIndex, to: primaryResultSourceRange.lowerBound)
     }
 
     /// End offset of the matched text within the context
-    var matchEndInContext: Int {
+    public var matchEndInContext: Int {
         context.distance(from: context.startIndex, to: primaryResultSourceRange.upperBound)
     }
 
-    func toPopupHTML() -> String {
+    public func toPopupHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
@@ -87,7 +87,7 @@ struct TextLookupResponse {
         """
     }
 
-    func toResultsHTML() -> String {
+    public func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """

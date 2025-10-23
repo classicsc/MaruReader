@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DB5DFD082E76701F0085AC1F /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -16,8 +15,10 @@
 		DBCFB16B2EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBCFB1762EAAAE8B00B4F27D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C72EAAC56800B4F27D /* JsonStream */; };
+		DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */; };
+		DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1CB2EAAC58A00B4F27D /* Zip */; };
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
-		DBD906A02E9AF52D00A4F03E /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -114,14 +115,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB5DFD082E76701F0085AC1F /* JsonStream in Frameworks */,
 				DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */,
 				DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */,
 				DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */,
 				DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */,
 				DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */,
 				DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */,
-				DBD906A02E9AF52D00A4F03E /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -143,6 +142,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */,
+				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
+				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,6 +300,9 @@
 			);
 			name = MaruReaderCore;
 			packageProductDependencies = (
+				DBCFB1C72EAAC56800B4F27D /* JsonStream */,
+				DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */,
+				DBCFB1CB2EAAC58A00B4F27D /* Zip */,
 			);
 			productName = MaruReaderCore;
 			productReference = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */;
@@ -999,6 +1004,21 @@
 			productName = ReadiumShared;
 		};
 		DBC9FEB02E6C9B7800F1E920 /* Zip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
+			productName = Zip;
+		};
+		DBCFB1C72EAAC56800B4F27D /* JsonStream */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
+			productName = JsonStream;
+		};
+		DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		DBCFB1CB2EAAC58A00B4F27D /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
 			productName = Zip;

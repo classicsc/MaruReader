@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct SearchResult: Identifiable, Comparable {
+public struct SearchResult: Identifiable, Comparable, Sendable {
     let candidate: LookupCandidate
     let term: String
     let reading: String?
@@ -23,22 +23,22 @@ struct SearchResult: Identifiable, Comparable {
     let sequence: Int64
     let score: Double
 
-    var html: String {
+    public var html: String {
         definitions.toHTML()
     }
 
     // Unique identifier combining multiple properties
-    var id: String {
+    public var id: String {
         "\(term)|\(reading ?? "")|\(dictionaryTitle)|\(candidate.text)|\(candidate.originalSubstring)|\(sequence)"
     }
 
     // MARK: - Comparable Implementation
 
-    static func < (lhs: SearchResult, rhs: SearchResult) -> Bool {
+    public static func < (lhs: SearchResult, rhs: SearchResult) -> Bool {
         lhs.rankingCriteria < rhs.rankingCriteria
     }
 
-    static func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
+    public static func == (lhs: SearchResult, rhs: SearchResult) -> Bool {
         lhs.rankingCriteria == rhs.rankingCriteria
     }
 }

@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import JsonStream
+internal import JsonStream
 import os.log
 
 /// A generic streaming iterator for dictionary bank JSON files.

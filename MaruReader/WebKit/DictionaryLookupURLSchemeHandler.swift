@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MaruReaderCore
 import os.log
 import WebKit
 

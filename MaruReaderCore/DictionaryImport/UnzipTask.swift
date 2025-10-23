@@ -7,9 +7,8 @@
 
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
-import Zip
+internal import Zip
 
 actor UnzipTask {
     let jobID: NSManagedObjectID

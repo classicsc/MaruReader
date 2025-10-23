@@ -7,12 +7,11 @@
 
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
-import Zip
+internal import Zip
 
-actor DictionaryImportManager {
-    static let shared = DictionaryImportManager(container: PersistenceController.shared.container)
+public actor DictionaryImportManager {
+    public static let shared = DictionaryImportManager(container: PersistenceController.shared.container)
 
     // Constants
     /// The supported dictionary format versions
@@ -35,7 +34,7 @@ actor DictionaryImportManager {
 
     /// Enqueue a new dictionary import from the given ZIP file URL.
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
-    func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
+    public func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
         // Create DictionaryZIPFileImport in Core Data (on MainActor)
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
@@ -66,7 +65,7 @@ actor DictionaryImportManager {
 
     /// Cancel an ongoing or queued import job.
     /// - Parameter jobID: The NSManagedObjectID of the DictionaryZIPFileImport to cancel.
-    func cancelImport(jobID: NSManagedObjectID) async {
+    public func cancelImport(jobID: NSManagedObjectID) async {
         if currentJobID == jobID {
             currentTask?.cancel()
         } else {
@@ -359,7 +358,7 @@ actor DictionaryImportManager {
     /// Delete a dictionary and all its associated data using batch deletions for performance.
     /// - Parameter dictionaryID: The NSManagedObjectID of the Dictionary to delete.
     /// - Parameter batchSize: The number of entities to delete in each batch (default: 1000).
-    func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 10000) async {
+    public func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 10000) async {
         logger.debug("Starting dictionary deletion for \\(dictionaryID) with batch size \\(batchSize)")
 
         // First, mark as pending deletion for immediate UI feedback

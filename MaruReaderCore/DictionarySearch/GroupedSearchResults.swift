@@ -5,7 +5,7 @@
 //  Created by Sam Smoker on 9/26/25.
 //
 
-struct GroupedSearchResults: Identifiable {
+public struct GroupedSearchResults: Identifiable, Sendable {
     let termKey: String
     let expression: String
     let reading: String?
@@ -13,9 +13,9 @@ struct GroupedSearchResults: Identifiable {
     let termTags: [Tag]
     let deinflectionInfo: String?
 
-    var id: String { termKey }
+    public var id: String { termKey }
 
-    var displayTerm: String {
+    public var displayTerm: String {
         if let reading, !reading.isEmpty {
             return "\(expression) [\(reading)]"
         }

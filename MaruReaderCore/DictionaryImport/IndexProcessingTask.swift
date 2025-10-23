@@ -7,7 +7,6 @@
 
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
 
 actor IndexProcessingTask {
