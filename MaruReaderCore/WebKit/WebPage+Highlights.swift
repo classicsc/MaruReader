@@ -8,11 +8,11 @@
 import os.log
 import WebKit
 
-enum HighlightError: Error {
+public enum HighlightError: Error {
     case invalidResponse
 }
 
-extension WebPage {
+public extension WebPage {
     func clearHighlights() async throws {
         let script = "window.MaruReader.textHighlighting.clearAllHighlights();"
         try await self.callJavaScript(script)

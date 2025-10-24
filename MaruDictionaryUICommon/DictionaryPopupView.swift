@@ -5,15 +5,24 @@
 //  Created by Sam Smoker on 10/3/25.
 //
 
+import MaruReaderCore
 import os.log
-import ReadiumNavigator
 import SwiftUI
 import WebKit
 
-struct DictionaryPopupView: View {
+public enum ProgressDirection {
+    case rtl
+    case ltr
+}
+
+public struct DictionaryPopupView: View {
     @State var page: WebPage
 
-    var body: some View {
+    public init(page: WebPage) {
+        self._page = State(initialValue: page)
+    }
+
+    public var body: some View {
         ZStack {
             WebView(page)
             if page.isLoading {
@@ -31,7 +40,7 @@ struct DictionaryPopupView: View {
         .shadow(radius: 10)
     }
 
-    static func computePopupCenter(screenSize: CGSize, popupSize: CGSize = CGSize(width: 100, height: 200), highlightBoundingRects: [[String: Double]]?, readingProgression: ReadingProgression, isVerticalWriting: Bool) -> CGPoint? {
+    public static func computePopupCenter(screenSize: CGSize, popupSize: CGSize = CGSize(width: 100, height: 200), highlightBoundingRects: [[String: Double]]?, readingProgression: ProgressDirection, isVerticalWriting: Bool) -> CGPoint? {
         let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryPopupView")
         guard let rects = highlightBoundingRects, !rects.isEmpty else { return nil }
 

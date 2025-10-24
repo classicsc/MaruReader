@@ -7,21 +7,21 @@ import os.log
 import SwiftUI
 import WebKit
 
-struct DictionarySearchView: View {
+public struct DictionarySearchView: View {
     @State private var viewModel = DictionarySearchViewModel()
     @FocusState private var isTextFieldFocused: Bool
     @State private var query: String = ""
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
-    init(initialQuery: String = "") {
+    public init(initialQuery: String = "") {
         _query = State(initialValue: initialQuery)
         if !initialQuery.isEmpty {
             viewModel.performSearch(initialQuery)
         }
     }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
                 TextField("Search dictionary", text: $query)

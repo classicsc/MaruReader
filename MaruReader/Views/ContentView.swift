@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import MaruDictionaryUICommon
 import SwiftUI
 
 struct ContentView: View {

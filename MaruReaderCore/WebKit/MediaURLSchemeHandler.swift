@@ -11,6 +11,8 @@ import UniformTypeIdentifiers
 import WebKit
 
 public class MediaURLSchemeHandler: URLSchemeHandler {
+    public init() {}
+
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaURLSchemeHandler")
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

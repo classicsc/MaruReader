@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MaruDictionaryUICommon
 import MaruReaderCore
 import SwiftUI
 
@@ -108,11 +109,18 @@ struct BookReaderView: View {
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
                 .applyThemeColors(preferences: viewModel.readerPreferences)
                 if viewModel.showPopup {
+                    let progression = viewModel.readingProgression()
+                    let rp: ProgressDirection = switch progression {
+                    case .rtl:
+                        .rtl
+                    case .ltr:
+                        .ltr
+                    }
                     if let center = DictionaryPopupView.computePopupCenter(
                         screenSize: geometry.size,
                         popupSize: CGSize(width: 200, height: 200),
                         highlightBoundingRects: viewModel.highlightBoundingRects,
-                        readingProgression: viewModel.readingProgression(),
+                        readingProgression: rp,
                         isVerticalWriting: viewModel.isVerticalWriting()
                     ) {
                         DictionaryPopupView(page: viewModel.popupPage)

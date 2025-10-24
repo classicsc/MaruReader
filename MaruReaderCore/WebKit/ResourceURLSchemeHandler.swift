@@ -11,6 +11,8 @@ import UniformTypeIdentifiers
 import WebKit
 
 public class ResourceURLSchemeHandler: URLSchemeHandler {
+    public init() {}
+
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ResourceURLSchemeHandler")
 
     // Allowlist of resources that can be served
