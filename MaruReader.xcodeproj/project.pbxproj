@@ -22,6 +22,11 @@
 		DB6FDFAE2EAB4BB6005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB6FDFAF2EAB4BB6005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB6FDFB32EAB4BCD005DF219 /* Zip */; };
+		DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
+		DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB6FDFCD2EAB54E8005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
+		DB6FDFCE2EAB54E8005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -85,6 +90,27 @@
 			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
 			remoteInfo = MaruReaderCore;
 		};
+		DB6FDFC12EAB54C6005DF219 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB6FDFB82EAB54C6005DF219;
+			remoteInfo = MaruShareExtension;
+		};
+		DB6FDFCB2EAB54E8005DF219 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB58C9012EAB173700CE59FD;
+			remoteInfo = MaruDictionaryUICommon;
+		};
+		DB6FDFCF2EAB54E8005DF219 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
+			remoteInfo = MaruReaderCore;
+		};
 		DBCFB16C2EAAAE8B00B4F27D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
@@ -142,6 +168,29 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DB6FDFC82EAB54C6005DF219 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB6FDFD12EAB54E8005DF219 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */,
+				DB6FDFCE2EAB54E8005DF219 /* MaruReaderCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -163,10 +212,21 @@
 		DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderCoreTests.xctestplan; sourceTree = "<group>"; };
 		DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruDictionaryUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruDictionaryUICommonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MaruShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruReaderCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBCFB16A2EAAAE8B00B4F27D /* MaruReaderCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderTests.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DB6FDFC42EAB54C6005DF219 /* Exceptions for "MaruShareExtension" folder in "MaruShareExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		DB2B698E2E660F8B00EDA656 /* MaruReader */ = {
@@ -192,6 +252,14 @@
 		DB58C9122EAB173700CE59FD /* MaruDictionaryUICommonTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = MaruDictionaryUICommonTests;
+			sourceTree = "<group>";
+		};
+		DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DB6FDFC42EAB54C6005DF219 /* Exceptions for "MaruShareExtension" folder in "MaruShareExtension" target */,
+			);
+			path = MaruShareExtension;
 			sourceTree = "<group>";
 		};
 		DBCFB1612EAAAE8B00B4F27D /* MaruReaderCore */ = {
@@ -255,6 +323,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DB6FDFB62EAB54C6005DF219 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */,
+				DB6FDFCD2EAB54E8005DF219 /* MaruReaderCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DBCFB15D2EAAAE8B00B4F27D /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,6 +367,7 @@
 				DBCFB1702EAAAE8B00B4F27D /* MaruReaderCoreTests */,
 				DB58C9032EAB173700CE59FD /* MaruDictionaryUICommon */,
 				DB58C9122EAB173700CE59FD /* MaruDictionaryUICommonTests */,
+				DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */,
 				DBC9FEAF2E6C9B7800F1E920 /* Frameworks */,
 				DB2B698D2E660F8B00EDA656 /* Products */,
 			);
@@ -305,6 +383,7 @@
 				DBCFB16A2EAAAE8B00B4F27D /* MaruReaderCoreTests.xctest */,
 				DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */,
 				DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */,
+				DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -344,12 +423,14 @@
 				DB2B69892E660F8B00EDA656 /* Frameworks */,
 				DB2B698A2E660F8B00EDA656 /* Resources */,
 				DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */,
+				DB6FDFC82EAB54C6005DF219 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				DBCFB1742EAAAE8B00B4F27D /* PBXTargetDependency */,
 				DB58C9162EAB173700CE59FD /* PBXTargetDependency */,
+				DB6FDFC22EAB54C6005DF219 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB2B698E2E660F8B00EDA656 /* MaruReader */,
@@ -466,6 +547,31 @@
 			productReference = DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB6FDFC52EAB54C6005DF219 /* Build configuration list for PBXNativeTarget "MaruShareExtension" */;
+			buildPhases = (
+				DB6FDFB52EAB54C6005DF219 /* Sources */,
+				DB6FDFB62EAB54C6005DF219 /* Frameworks */,
+				DB6FDFB72EAB54C6005DF219 /* Resources */,
+				DB6FDFD12EAB54E8005DF219 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DB6FDFCC2EAB54E8005DF219 /* PBXTargetDependency */,
+				DB6FDFD02EAB54E8005DF219 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */,
+			);
+			name = MaruShareExtension;
+			packageProductDependencies = (
+			);
+			productName = MaruShareExtension;
+			productReference = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DBCFB1772EAAAE8B00B4F27D /* Build configuration list for PBXNativeTarget "MaruReaderCore" */;
@@ -547,6 +653,9 @@
 						CreatedOnToolsVersion = 26.0.1;
 						TestTargetID = DB2B698B2E660F8B00EDA656;
 					};
+					DB6FDFB82EAB54C6005DF219 = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
 					DBCFB15F2EAAAE8B00B4F27D = {
 						CreatedOnToolsVersion = 26.0.1;
 					};
@@ -583,6 +692,7 @@
 				DBCFB1692EAAAE8B00B4F27D /* MaruReaderCoreTests */,
 				DB58C9012EAB173700CE59FD /* MaruDictionaryUICommon */,
 				DB58C90B2EAB173700CE59FD /* MaruDictionaryUICommonTests */,
+				DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -619,6 +729,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DB58C90A2EAB173700CE59FD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB6FDFB72EAB54C6005DF219 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -677,6 +794,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DB6FDFB52EAB54C6005DF219 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DBCFB15C2EAAAE8B00B4F27D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -728,6 +852,21 @@
 			isa = PBXTargetDependency;
 			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
 			targetProxy = DB6FDFB02EAB4BB6005DF219 /* PBXContainerItemProxy */;
+		};
+		DB6FDFC22EAB54C6005DF219 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */;
+			targetProxy = DB6FDFC12EAB54C6005DF219 /* PBXContainerItemProxy */;
+		};
+		DB6FDFCC2EAB54E8005DF219 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB58C9012EAB173700CE59FD /* MaruDictionaryUICommon */;
+			targetProxy = DB6FDFCB2EAB54E8005DF219 /* PBXContainerItemProxy */;
+		};
+		DB6FDFD02EAB54E8005DF219 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
+			targetProxy = DB6FDFCF2EAB54E8005DF219 /* PBXContainerItemProxy */;
 		};
 		DBCFB16D2EAAAE8B00B4F27D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1134,6 +1273,66 @@
 			};
 			name = Release;
 		};
+		DB6FDFC62EAB54C6005DF219 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MaruShareExtension/MaruShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H4RNAHR5B8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MaruShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DB6FDFC72EAB54C6005DF219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MaruShareExtension/MaruShareExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H4RNAHR5B8;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruShareExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MaruShareExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruShareExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		DBCFB1782EAAAE8B00B4F27D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1309,6 +1508,15 @@
 			buildConfigurations = (
 				DB58C91D2EAB173700CE59FD /* Debug */,
 				DB58C91E2EAB173700CE59FD /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DB6FDFC52EAB54C6005DF219 /* Build configuration list for PBXNativeTarget "MaruShareExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DB6FDFC62EAB54C6005DF219 /* Debug */,
+				DB6FDFC72EAB54C6005DF219 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
