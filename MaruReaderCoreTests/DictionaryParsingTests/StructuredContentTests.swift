@@ -6,7 +6,7 @@
 //
 
 import Foundation
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
 
 struct StructuredContentTests {

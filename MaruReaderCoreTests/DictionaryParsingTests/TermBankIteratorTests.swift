@@ -6,8 +6,9 @@
 //
 
 import Foundation
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
+internal import AsyncAlgorithms
 
 struct TermBankIteratorTests {
     @Test func termBankIterator_V3Format_ParsesCorrectly() async throws {

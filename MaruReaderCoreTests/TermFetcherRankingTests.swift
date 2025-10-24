@@ -5,7 +5,7 @@
 //  Created by Claude on 9/23/25.
 //
 
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
 
 struct TermFetcherRankingTests {

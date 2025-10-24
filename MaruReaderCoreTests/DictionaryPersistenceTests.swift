@@ -7,7 +7,7 @@
 
 import CoreData
 import Foundation
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
 import Zip
 
@@ -173,7 +173,7 @@ struct DictionaryPersistenceTests {
 
     // Helper: Verify job is properly cancelled
     @MainActor
-    private func verifyJobCancelled(_ job: MaruReader.DictionaryZIPFileImport?) {
+    private func verifyJobCancelled(_ job: DictionaryZIPFileImport?) {
         #expect(job != nil)
         #expect(job?.isCancelled == true)
         #expect(job?.isFailed == false)
@@ -183,7 +183,7 @@ struct DictionaryPersistenceTests {
 
     // Helper: Verify job is properly marked as failed
     @MainActor
-    private func verifyJobFailed(_ job: MaruReader.DictionaryZIPFileImport?) {
+    private func verifyJobFailed(_ job: DictionaryZIPFileImport?) {
         #expect(job != nil)
         #expect(job?.isFailed == true)
         #expect(job?.isCancelled == false)
@@ -194,68 +194,68 @@ struct DictionaryPersistenceTests {
 
     // Helper: Get job from context safely
     @MainActor
-    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> MaruReader.DictionaryZIPFileImport? {
-        try? context.existingObject(with: importID) as? MaruReader.DictionaryZIPFileImport
+    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> DictionaryZIPFileImport? {
+        try? context.existingObject(with: importID) as? DictionaryZIPFileImport
     }
 
     // Helper: Fetch dictionaries safely
     @MainActor
-    private func fetchDictionaries(from context: NSManagedObjectContext) -> [MaruReader.Dictionary] {
-        let request: NSFetchRequest<MaruReader.Dictionary> = MaruReader.Dictionary.fetchRequest()
+    private func fetchDictionaries(from context: NSManagedObjectContext) -> [Dictionary] {
+        let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch dictionary tag metas safely
     @MainActor
-    private func fetchDictionaryTagMetas(from context: NSManagedObjectContext) -> [MaruReader.DictionaryTagMeta] {
-        let request: NSFetchRequest<MaruReader.DictionaryTagMeta> = MaruReader.DictionaryTagMeta.fetchRequest()
+    private func fetchDictionaryTagMetas(from context: NSManagedObjectContext) -> [DictionaryTagMeta] {
+        let request: NSFetchRequest<DictionaryTagMeta> = DictionaryTagMeta.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch term entries safely
     @MainActor
-    private func fetchTermEntries(from context: NSManagedObjectContext) -> [MaruReader.TermEntry] {
-        let request: NSFetchRequest<MaruReader.TermEntry> = MaruReader.TermEntry.fetchRequest()
+    private func fetchTermEntries(from context: NSManagedObjectContext) -> [TermEntry] {
+        let request: NSFetchRequest<TermEntry> = TermEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch kanji entries safely
     @MainActor
-    private func fetchKanjiEntries(from context: NSManagedObjectContext) -> [MaruReader.KanjiEntry] {
-        let request: NSFetchRequest<MaruReader.KanjiEntry> = MaruReader.KanjiEntry.fetchRequest()
+    private func fetchKanjiEntries(from context: NSManagedObjectContext) -> [KanjiEntry] {
+        let request: NSFetchRequest<KanjiEntry> = KanjiEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch kanji frequency entries safely
     @MainActor
-    private func fetchKanjiFrequencyEntries(from context: NSManagedObjectContext) -> [MaruReader.KanjiFrequencyEntry] {
-        let request: NSFetchRequest<MaruReader.KanjiFrequencyEntry> = MaruReader.KanjiFrequencyEntry.fetchRequest()
+    private func fetchKanjiFrequencyEntries(from context: NSManagedObjectContext) -> [KanjiFrequencyEntry] {
+        let request: NSFetchRequest<KanjiFrequencyEntry> = KanjiFrequencyEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch term frequency entries safely
     @MainActor
-    private func fetchTermFrequencyEntries(from context: NSManagedObjectContext) -> [MaruReader.TermFrequencyEntry] {
-        let request: NSFetchRequest<MaruReader.TermFrequencyEntry> = MaruReader.TermFrequencyEntry.fetchRequest()
+    private func fetchTermFrequencyEntries(from context: NSManagedObjectContext) -> [TermFrequencyEntry] {
+        let request: NSFetchRequest<TermFrequencyEntry> = TermFrequencyEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch pitch accent entries safely
     @MainActor
-    private func fetchPitchAccentEntries(from context: NSManagedObjectContext) -> [MaruReader.PitchAccentEntry] {
-        let request: NSFetchRequest<MaruReader.PitchAccentEntry> = MaruReader.PitchAccentEntry.fetchRequest()
+    private func fetchPitchAccentEntries(from context: NSManagedObjectContext) -> [PitchAccentEntry] {
+        let request: NSFetchRequest<PitchAccentEntry> = PitchAccentEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Fetch IPA entries safely
     @MainActor
-    private func fetchIPAEntries(from context: NSManagedObjectContext) -> [MaruReader.IPAEntry] {
-        let request: NSFetchRequest<MaruReader.IPAEntry> = MaruReader.IPAEntry.fetchRequest()
+    private func fetchIPAEntries(from context: NSManagedObjectContext) -> [IPAEntry] {
+        let request: NSFetchRequest<IPAEntry> = IPAEntry.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
     // Helper: Verify directory cleanup
-    private func verifyDirectoryCleanup(importManager: MaruReader.DictionaryImportManager, importID: NSManagedObjectID) async {
+    private func verifyDirectoryCleanup(importManager: DictionaryImportManager, importID: NSManagedObjectID) async {
         let workingDirectoryExists = try? await importManager.workingDirectoryExists(for: importID)
         let mediaDirectoryExists = try? await importManager.mediaDirectoryExists(for: importID)
         #expect(workingDirectoryExists == false)
@@ -344,8 +344,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -774,8 +774,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger during unzip (after first cancellation check)
         var cancellationCount = 0
@@ -826,8 +826,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: ["test.png"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after index processing
         var cancellationCount = 0
@@ -876,8 +876,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after media copy
         var cancellationCount = 0
@@ -924,8 +924,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -955,8 +955,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createCorruptedZIP()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -981,8 +981,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1019,8 +1019,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: invalidTermJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1058,8 +1058,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1097,8 +1097,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up error injection to simulate file system error
         await importManager.setTestErrorInjection {
@@ -1141,8 +1141,8 @@ struct DictionaryPersistenceTests {
         let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = MaruReader.PersistenceController(inMemory: true)
-        let importManager = MaruReader.DictionaryImportManager(container: persistenceController.container)
+        let persistenceController = PersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 

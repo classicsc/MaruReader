@@ -9,12 +9,16 @@
 /* Begin PBXBuildFile section */
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
+		DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */; };
+		DB58C8F62EAB134800CE59FD /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
+		DB58C8F72EAB134800CE59FD /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB58C8FA2EAB137600CE59FD /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB58C8F92EAB137600CE59FD /* Zip */; };
+		DB58C8FC2EAB138300CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DB58C8FB2EAB138300CE59FD /* AsyncAlgorithms */; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
 		DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED52E8B332D00E9723D /* ReadiumShared */; };
 		DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBC9FEB02E6C9B7800F1E920 /* Zip */; };
-		DBCFB16B2EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBCFB1762EAAAE8B00B4F27D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C72EAAC56800B4F27D /* JsonStream */; };
@@ -62,6 +66,17 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		DB58C8F82EAB134800CE59FD /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				DB58C8F72EAB134800CE59FD /* MaruReaderCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -79,6 +94,7 @@
 		DB2B698C2E660F8B00EDA656 /* MaruReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MaruReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB2B699E2E660F8D00EDA656 /* MaruReaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB2B69A82E660F8D00EDA656 /* MaruReaderUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderCoreTests.xctestplan; sourceTree = "<group>"; };
 		DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruReaderCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBCFB16A2EAAAE8B00B4F27D /* MaruReaderCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderTests.xctestplan; sourceTree = "<group>"; };
@@ -181,7 +197,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DBCFB16B2EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */,
+				DB58C8FA2EAB137600CE59FD /* Zip in Frameworks */,
+				DB58C8F62EAB134800CE59FD /* MaruReaderCore.framework in Frameworks */,
+				DB58C8FC2EAB138300CE59FD /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -191,6 +209,7 @@
 		DB2B69832E660F8B00EDA656 = {
 			isa = PBXGroup;
 			children = (
+				DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */,
 				DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */,
 				DB2B698E2E660F8B00EDA656 /* MaruReader */,
 				DB2B69A12E660F8D00EDA656 /* MaruReaderTests */,
@@ -344,6 +363,7 @@
 				DBCFB1662EAAAE8B00B4F27D /* Sources */,
 				DBCFB1672EAAAE8B00B4F27D /* Frameworks */,
 				DBCFB1682EAAAE8B00B4F27D /* Resources */,
+				DB58C8F82EAB134800CE59FD /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -356,6 +376,8 @@
 			);
 			name = MaruReaderCoreTests;
 			packageProductDependencies = (
+				DB58C8F92EAB137600CE59FD /* Zip */,
+				DB58C8FB2EAB138300CE59FD /* AsyncAlgorithms */,
 			);
 			productName = MaruReaderCoreTests;
 			productReference = DBCFB16A2EAAAE8B00B4F27D /* MaruReaderCoreTests.xctest */;
@@ -426,6 +448,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */,
+				DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1008,6 +1031,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DB58C8F92EAB137600CE59FD /* Zip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
+			productName = Zip;
+		};
+		DB58C8FB2EAB138300CE59FD /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
 		DB5DFD072E76701F0085AC1F /* JsonStream */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;

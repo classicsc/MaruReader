@@ -1,5 +1,5 @@
 import Foundation
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
 
 /// Test suite for the JapaneseTextPreprocessor and its rules

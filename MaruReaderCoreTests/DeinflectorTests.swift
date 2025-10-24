@@ -8,7 +8,7 @@
 // Copyright (C) 2024-2025  Yomitan Authors
 // Used under the terms of the GNU General Public License v3.0
 
-@testable import MaruReader
+@testable import MaruReaderCore
 import Testing
 
 struct DeinflectorTests {
