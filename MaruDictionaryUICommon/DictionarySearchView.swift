@@ -13,9 +13,11 @@ public struct DictionarySearchView: View {
     @State private var query: String = ""
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
+    private let onDismiss: (() -> Void)?
 
-    public init(initialQuery: String = "") {
+    public init(initialQuery: String = "", onDismiss: (() -> Void)? = nil) {
         _query = State(initialValue: initialQuery)
+        self.onDismiss = onDismiss
         if !initialQuery.isEmpty {
             viewModel.performSearch(initialQuery)
         }
@@ -77,6 +79,15 @@ public struct DictionarySearchView: View {
             }
             .padding(.horizontal)
             .navigationTitle("Dictionary")
+            .toolbar {
+                if let onDismiss {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") {
+                            onDismiss()
+                        }
+                    }
+                }
+            }
         }
     }
 }

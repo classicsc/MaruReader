@@ -30,10 +30,9 @@ class ShareViewController: UIViewController {
     }
 
     private func showDictionarySearch(for text: String) {
-        let searchView = DictionarySearchView(initialQuery: text)
-            .onDisappear {
-                self.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
-            }
+        let searchView = DictionarySearchView(initialQuery: text) { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+        }
 
         let hostingController = UIHostingController(rootView: searchView)
 
