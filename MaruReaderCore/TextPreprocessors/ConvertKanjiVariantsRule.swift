@@ -25,7 +25,7 @@ class ConvertKanjiVariantsRule: TextPreprocessorRule {
         var variantCharacters: Set<String> = []
 
         // Load full_list.json for mappings
-        if let url = Bundle.main.url(forResource: "full_list", withExtension: "json"),
+        if let url = Bundle.framework.url(forResource: "full_list", withExtension: "json"),
            let data = try? Data(contentsOf: url),
            let mappings = try? JSONDecoder().decode([KanjiMapping].self, from: data)
         {
@@ -38,7 +38,7 @@ class ConvertKanjiVariantsRule: TextPreprocessorRule {
         }
 
         // Load itaiji_list.json for regex pattern (validation)
-        if let url = Bundle.main.url(forResource: "itaiji_list", withExtension: "json"),
+        if let url = Bundle.framework.url(forResource: "itaiji_list", withExtension: "json"),
            let data = try? Data(contentsOf: url),
            let itaijiList = try? JSONDecoder().decode([String].self, from: data)
         {

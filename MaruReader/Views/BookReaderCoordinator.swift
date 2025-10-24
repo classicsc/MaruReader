@@ -51,7 +51,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
     func navigator(_: EPUBNavigatorViewController, setupUserScripts userContentController: WKUserContentController) {
         let scriptNames = ["domUtilities", "textScanning", "textHighlighting"]
         for name in scriptNames {
-            guard let scriptURL = Bundle.main.url(forResource: name, withExtension: "js"),
+            guard let scriptURL = Bundle.framework.url(forResource: name, withExtension: "js"),
                   let scriptContent = try? String(contentsOf: scriptURL, encoding: .utf8)
             else {
                 continue

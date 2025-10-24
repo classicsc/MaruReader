@@ -116,7 +116,8 @@ public class ResourceURLSchemeHandler: URLSchemeHandler {
         let name = components.first ?? filename
         let ext = components.count > 1 ? components.last : nil
 
-        guard let resourceURL = Bundle.main.url(forResource: name, withExtension: ext) else {
+        guard let resourceURL = Bundle.framework.url(forResource: name, withExtension: ext) else {
+            logger.error("Resource file not found in bundle: \(filename)")
             throw NSError(domain: "ResourceURLSchemeHandler", code: 404, userInfo: [
                 NSLocalizedDescriptionKey: "Resource file not found in bundle: \(filename)",
             ])
