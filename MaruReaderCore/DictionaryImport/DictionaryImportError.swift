@@ -19,6 +19,7 @@ enum DictionaryImportError: Error, Equatable {
     case noWorkingDirectory
     case unzipFailed(underlyingError: Error)
     case deletionFailed
+    case mediaDirectoryCreationFailed
 
     var localizedDescription: String {
         switch self {
@@ -44,6 +45,8 @@ enum DictionaryImportError: Error, Equatable {
             "Failed to unzip the dictionary file: \(underlyingError.localizedDescription)"
         case .deletionFailed:
             "Failed to delete the dictionary."
+        case .mediaDirectoryCreationFailed:
+            "Failed to create media directory for the dictionary."
         }
     }
 

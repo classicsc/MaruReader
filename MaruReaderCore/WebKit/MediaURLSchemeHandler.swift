@@ -98,13 +98,12 @@ public class MediaURLSchemeHandler: URLSchemeHandler {
     }
 
     private static func mediaFileURL(dictionaryUUID: UUID, filePath: String) throws -> URL {
-        let appSupport = try FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
-        let base = appSupport
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            throw MediaURLError.mediaDirectoryNotFound
+        }
+        let base = appGroupDir
             .appendingPathComponent("Media", isDirectory: true)
             .appendingPathComponent(dictionaryUUID.uuidString, isDirectory: true)
 
@@ -178,4 +177,8 @@ public class MediaURLSchemeHandler: URLSchemeHandler {
             .data(data),
         ]
     }
+}
+
+enum MediaURLError: Error {
+    case mediaDirectoryNotFound
 }

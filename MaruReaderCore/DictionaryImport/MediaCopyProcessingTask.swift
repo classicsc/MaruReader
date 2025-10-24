@@ -55,13 +55,12 @@ actor MediaCopyProcessingTask {
         // Setup media directory path
         let fileManager = FileManager.default
 
-        let appSupportDir = try fileManager.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: true
-        )
-        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            throw DictionaryImportError.mediaDirectoryCreationFailed
+        }
+        let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Create media directory if it doesn't exist
         if !fileManager.fileExists(atPath: mediaDir.path) {

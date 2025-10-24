@@ -258,18 +258,13 @@ public actor DictionaryImportManager {
             }
             guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else { return false }
 
-            do {
-                let appSupportDir = try FileManager.default.url(
-                    for: .applicationSupportDirectory,
-                    in: .userDomainMask,
-                    appropriateFor: nil,
-                    create: false
-                )
-                let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
-                return FileManager.default.fileExists(atPath: mediaDir.path)
-            } catch {
+            guard let appGroupDir = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+            ) else {
                 return false
             }
+            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+            return FileManager.default.fileExists(atPath: mediaDir.path)
         }
     }
 
@@ -280,34 +275,12 @@ public actor DictionaryImportManager {
         }
 
         do {
-            let appSupportDir = try fileManager.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: false
-            )
-            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
-
-            if fileManager.fileExists(atPath: mediaDir.path) {
-                try fileManager.removeItem(at: mediaDir)
+            guard let appGroupDir = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+            ) else {
+                return
             }
-        } catch {}
-    }
-
-    static func cleanMediaDirectoryForDictionary(dictionary: Dictionary) {
-        let fileManager = FileManager.default
-        guard let dictionaryID = dictionary.id else {
-            return
-        }
-
-        do {
-            let appSupportDir = try fileManager.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: false
-            )
-            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
             if fileManager.fileExists(atPath: mediaDir.path) {
                 try fileManager.removeItem(at: mediaDir)
@@ -319,13 +292,12 @@ public actor DictionaryImportManager {
         let fileManager = FileManager.default
 
         do {
-            let appSupportDir = try fileManager.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: false
-            )
-            let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
+            guard let appGroupDir = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+            ) else {
+                return
+            }
+            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
 
             if fileManager.fileExists(atPath: mediaDir.path) {
                 try fileManager.removeItem(at: mediaDir)
