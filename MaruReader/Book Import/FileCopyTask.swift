@@ -16,7 +16,7 @@ actor FileCopyTask {
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer = PersistenceController.shared.container) {
+    init(jobID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
         self.jobID = jobID
         self.persistentContainer = container
     }

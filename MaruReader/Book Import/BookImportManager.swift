@@ -7,11 +7,10 @@
 
 import CoreData
 import Foundation
-import MaruReaderCore
 import os.log
 
 actor BookImportManager {
-    static let shared = BookImportManager(container: PersistenceController.shared.container)
+    static let shared = BookImportManager(container: BookDataPersistenceController.shared.container)
 
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
@@ -58,7 +57,7 @@ actor BookImportManager {
             queue.removeAll { $0 == jobID }
             // Also mark as cancelled in Core Data
             await MainActor.run {
-                let context = PersistenceController.shared.container.viewContext
+                let context = BookDataPersistenceController.shared.container.viewContext
                 if let job = try? context.existingObject(with: jobID) as? BookEPUBImport {
                     job.isCancelled = true
                     job.timeCancelled = Date()

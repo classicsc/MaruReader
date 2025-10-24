@@ -10,8 +10,8 @@ import CoreData
 // MARK: - PersistenceController
 
 /// Manages the Core Data stack with support for app groups and extensions
-public final class PersistenceController: Sendable {
-    public static let shared = PersistenceController()
+public final class DictionaryPersistenceController: Sendable {
+    public static let shared = DictionaryPersistenceController()
 
     // MARK: - App Group Configuration
 
@@ -32,16 +32,16 @@ public final class PersistenceController: Sendable {
         inMemory: Bool = false,
         storeURL: URL? = nil
     ) {
-        let bundle = Bundle(for: PersistenceController.self)
-        guard let modelURL = bundle.url(forResource: "MaruReader", withExtension: "momd") else {
-            fatalError("Failed to locate momd file for MaruReader in framework bundle")
+        let bundle = Bundle(for: DictionaryPersistenceController.self)
+        guard let modelURL = bundle.url(forResource: "MaruDictionary", withExtension: "momd") else {
+            fatalError("Failed to locate momd file for MaruDictionary in framework bundle")
         }
         guard let model = NSManagedObjectModel(contentsOf: modelURL) else {
             fatalError("Failed to load model from: \(modelURL)")
         }
 
         // Create container
-        container = NSPersistentContainer(name: "MaruReader", managedObjectModel: model)
+        container = NSPersistentContainer(name: "MaruDictionary", managedObjectModel: model)
 
         // Configure store location
         if inMemory {
@@ -55,7 +55,7 @@ public final class PersistenceController: Sendable {
             if let appGroupURL = FileManager.default.containerURL(
                 forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
             ) {
-                let storeURL = appGroupURL.appendingPathComponent("MaruReader.sqlite")
+                let storeURL = appGroupURL.appendingPathComponent("MaruDictionary.sqlite")
                 container.persistentStoreDescriptions.first?.url = storeURL
             } else {
                 // Fallback to default location if app group not configured
@@ -92,8 +92,8 @@ public final class PersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
-    public extension PersistenceController {
+    public extension DictionaryPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: PersistenceController = .init(inMemory: true)
+        @MainActor static let preview: DictionaryPersistenceController = .init(inMemory: true)
     }
 #endif

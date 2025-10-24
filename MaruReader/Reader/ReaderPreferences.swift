@@ -300,7 +300,7 @@ class ReaderPreferences {
         return color.swiftUIColor
     }
 
-    init(book: Book, context: NSManagedObjectContext = PersistenceController.shared.container.viewContext) {
+    init(book: Book, context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext) {
         self.book = book
         self.context = context
 

@@ -1,47 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
-    <entity name="Book" representedClassName="Book" syncable="YES" codeGenerationType="class">
-        <attribute name="added" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="author" optional="YES" attributeType="String"/>
-        <attribute name="coverFileName" optional="YES" attributeType="String"/>
-        <attribute name="errorMessage" optional="YES" attributeType="String"/>
-        <attribute name="fileName" optional="YES" attributeType="String"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="language" optional="YES" attributeType="String"/>
-        <attribute name="lastOpenedPage" optional="YES" attributeType="String"/>
-        <attribute name="mediaType" optional="YES" attributeType="String"/>
-        <attribute name="originalFileName" optional="YES" attributeType="String"/>
-        <attribute name="scroll" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="spread" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="textDirection" optional="YES" attributeType="Transformable" valueTransformerName="ReadingProgressionTransformer"/>
-        <attribute name="title" optional="YES" attributeType="String"/>
-        <attribute name="verticalText" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
-        <relationship name="bookmarks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Bookmark" inverseName="book" inverseEntity="Bookmark"/>
-        <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="BookEPUBImport" inverseName="book" inverseEntity="BookEPUBImport"/>
-        <relationship name="readerProfile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="books" inverseEntity="ReaderProfile"/>
-    </entity>
-    <entity name="BookEPUBImport" representedClassName="BookEPUBImport" syncable="YES" codeGenerationType="class">
-        <attribute name="coverExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
-        <attribute name="file" optional="YES" attributeType="URI"/>
-        <attribute name="fileCopied" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="metadataSaved" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
-        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
-        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="importJob" inverseEntity="Book"/>
-    </entity>
-    <entity name="Bookmark" representedClassName="Bookmark" syncable="YES" codeGenerationType="class">
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="location" attributeType="String"/>
-        <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="bookmarks" inverseEntity="Book"/>
-    </entity>
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
@@ -187,39 +145,6 @@
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
             <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
-    </entity>
-    <entity name="ReaderProfile" representedClassName="ReaderProfile" syncable="YES" codeGenerationType="class">
-        <attribute name="displayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="fontFamily" optional="YES" attributeType="String"/>
-        <attribute name="fontSize" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="fontWeight" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="horizontalMargin" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="iconCharacter" optional="YES" attributeType="String"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="language" optional="YES" attributeType="String"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="verticalMargin" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Book" inverseName="readerProfile" inverseEntity="Book"/>
-        <relationship name="darkTheme" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderTheme" inverseName="profilesDark" inverseEntity="ReaderTheme"/>
-        <relationship name="theme" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderTheme" inverseName="profiles" inverseEntity="ReaderTheme"/>
-    </entity>
-    <entity name="ReaderTheme" representedClassName="ReaderTheme" syncable="YES" codeGenerationType="class">
-        <attribute name="backgroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="displayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="highlightColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="iconColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="iconTextColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="imageFilter" optional="YES" attributeType="Transformable" valueTransformerName="ImageFilterTransformer"/>
-        <attribute name="interfaceBackgroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="interfaceForegroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="interfaceSecondaryColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="isSystemTheme" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="textColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <relationship name="profiles" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="theme" inverseEntity="ReaderProfile"/>
-        <relationship name="profilesDark" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="darkTheme" inverseEntity="ReaderProfile"/>
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>

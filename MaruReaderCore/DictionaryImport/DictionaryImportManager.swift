@@ -11,7 +11,7 @@ import os.log
 internal import Zip
 
 public actor DictionaryImportManager {
-    public static let shared = DictionaryImportManager(container: PersistenceController.shared.container)
+    public static let shared = DictionaryImportManager(container: DictionaryPersistenceController.shared.container)
 
     // Constants
     /// The supported dictionary format versions
@@ -72,7 +72,7 @@ public actor DictionaryImportManager {
             queue.removeAll { $0 == jobID }
             // Also mark as cancelled in Core Data
             await MainActor.run {
-                let context = PersistenceController.shared.container.viewContext
+                let context = DictionaryPersistenceController.shared.container.viewContext
                 if let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport {
                     job.isCancelled = true
                     job.timeCancelled = Date()

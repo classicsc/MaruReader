@@ -19,6 +19,9 @@
 		DB58C9182EAB173700CE59FD /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C9252EAB186800CE59FD /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB58C9262EAB186800CE59FD /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB6FDFAE2EAB4BB6005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
+		DB6FDFAF2EAB4BB6005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB6FDFB32EAB4BCD005DF219 /* Zip */; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -75,6 +78,13 @@
 			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
 			remoteInfo = MaruReaderCore;
 		};
+		DB6FDFB02EAB4BB6005DF219 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
+			remoteInfo = MaruReaderCore;
+		};
 		DBCFB16C2EAAAE8B00B4F27D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
@@ -117,6 +127,17 @@
 			dstSubfolderSpec = 10;
 			files = (
 				DB58C9262EAB186800CE59FD /* MaruReaderCore.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB6FDFB22EAB4BB6005DF219 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				DB6FDFAF2EAB4BB6005DF219 /* MaruReaderCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -206,6 +227,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */,
+				DB6FDFAE2EAB4BB6005DF219 /* MaruReaderCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,17 +375,20 @@
 				DB2B699A2E660F8D00EDA656 /* Sources */,
 				DB2B699B2E660F8D00EDA656 /* Frameworks */,
 				DB2B699C2E660F8D00EDA656 /* Resources */,
+				DB6FDFB22EAB4BB6005DF219 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				DB2B69A02E660F8D00EDA656 /* PBXTargetDependency */,
+				DB6FDFB12EAB4BB6005DF219 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB2B69A12E660F8D00EDA656 /* MaruReaderTests */,
 			);
 			name = MaruReaderTests;
 			packageProductDependencies = (
+				DB6FDFB32EAB4BCD005DF219 /* Zip */,
 			);
 			productName = MaruReaderTests;
 			productReference = DB2B699E2E660F8D00EDA656 /* MaruReaderTests.xctest */;
@@ -697,6 +723,11 @@
 			isa = PBXTargetDependency;
 			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
 			targetProxy = DB58C92C2EAB18CA00CE59FD /* PBXContainerItemProxy */;
+		};
+		DB6FDFB12EAB4BB6005DF219 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
+			targetProxy = DB6FDFB02EAB4BB6005DF219 /* PBXContainerItemProxy */;
 		};
 		DBCFB16D2EAAAE8B00B4F27D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1352,6 +1383,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
 			productName = JsonStream;
+		};
+		DB6FDFB32EAB4BCD005DF219 /* Zip */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
+			productName = Zip;
 		};
 		DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -16,7 +16,7 @@ actor UnzipTask {
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "MaruReader", category: "UnzipTask")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer = PersistenceController.shared.container) {
+    init(jobID: NSManagedObjectID, container: NSPersistentContainer = DictionaryPersistenceController.shared.container) {
         self.jobID = jobID
         self.persistentContainer = container
     }

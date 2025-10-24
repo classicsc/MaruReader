@@ -18,7 +18,7 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
     private let onPopup: @Sendable (String?) -> Void
 
     public init(
-        persistenceController: PersistenceController = PersistenceController.shared,
+        persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
         onScan: @escaping @Sendable (Int, String, Int, String) -> Void = { _, _, _, _ in },
         onPopup: @escaping @Sendable (String?) -> Void = { _ in }

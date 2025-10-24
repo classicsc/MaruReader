@@ -13,7 +13,7 @@ import SwiftUI
 
 @MainActor
 class SystemThemeManager {
-    private let context: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    private let context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
 
     // Stable IDs for system themes
     private let lightThemeID = UUID(uuidString: "E4D81462-B651-43E3-A670-79A13C0B9A65")!

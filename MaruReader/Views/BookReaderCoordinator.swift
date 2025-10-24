@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import os.log
 import ReadiumNavigator
 import ReadiumShared
@@ -17,7 +18,7 @@ import WebKit
 @MainActor
 class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate, WKScriptMessageHandler {
     let viewModel: BookReaderViewModel
-    let viewContext: NSManagedObjectContext = PersistenceController.shared.container.viewContext
+    let viewContext: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderCoordinator")
 
