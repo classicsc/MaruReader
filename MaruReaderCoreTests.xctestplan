@@ -4,7 +4,11 @@
       "id" : "5E76D930-5B3C-4783-89B3-020D5C382252",
       "name" : "Configuration 1",
       "options" : {
-
+        "commandLineArgumentEntries" : [
+          {
+            "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+          }
+        ]
       }
     }
   ],
