@@ -214,9 +214,7 @@ window.MaruReader.textScanning = {
         // Get original text with ruby annotations
         var originalText = rubyContainer.textContent || '';
 
-        // Find the offset in ruby-aware text
-        var rubyElements = window.MaruReader.domUtilities.getRubyElements(rubyContainer);
-        var rubyAwareOffset = this.calculateRubyOffset(rubyElements, node, offset);
+        var rubyAwareOffset = this.findOffsetInFullText(rubyContainer, node, offset);
 
         // Find sentence boundaries in ruby-aware text
         var sentences = this.findSentences(rubyAwareText);
@@ -416,66 +414,6 @@ window.MaruReader.textScanning = {
     },
 
     /**
-     * Calculates the offset within ruby-aware text
-     * @param {HTMLCollection} rubyElements - Ruby elements collection
-     * @param {Node} targetNode - Target text node
-     * @param {number} offset - Offset within the text node
-     * @returns {number} Calculated HTML offset
-     */
-    calculateRubyOffset: function(rubyElements, targetNode, offset) {
-        var beforeText = '';
-        var found = false;
-        
-        for (var i = 0; i < rubyElements.length && !found; i++) {
-            var ruby = rubyElements[i];
-            var rbElements = window.MaruReader.domUtilities.getRbElements(ruby);
-
-            if (rbElements.length > 0) {
-                for (var j = 0; j < rbElements.length && !found; j++) {
-                    var rbElement = rbElements[j];
-                    var rbText = rbElement.textContent || '';
-
-                    // Check if this rb contains our tapped text node
-                    var rbTextNode = rbElement.firstChild;
-                    if (rbTextNode && rbTextNode.nodeType === 3 && rbTextNode === targetNode) {
-                        return beforeText.length + offset;
-                    }
-
-                    beforeText += rbText;
-                }
-            } else {
-                // Handle ruby elements without rb children (direct text nodes)
-                var rubyText = window.MaruReader.domUtilities.getRubyBaseText(ruby);
-
-                // Check if this ruby contains our tapped text node
-                var walker = document.createTreeWalker(
-                    ruby,
-                    NodeFilter.SHOW_TEXT,
-                    {
-                        acceptNode: function(textNode) {
-                            return !window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
-                                ? NodeFilter.FILTER_ACCEPT
-                                : NodeFilter.FILTER_REJECT;
-                        }
-                    }
-                );
-
-                var textNode;
-                while ((textNode = walker.nextNode()) && !found) {
-                    if (textNode === targetNode) {
-                        return beforeText.length + offset;
-                    }
-                }
-
-                beforeText += rubyText;
-            }
-        }
-        
-        return offset; // fallback
-    },
-
-
-    /**
      * Finds the most accurate character at the given point using multiple methods
      * @param {number} x - X coordinate
      * @param {number} y - Y coordinate
@@ -493,7 +431,6 @@ window.MaruReader.textScanning = {
                 offset = Math.max(0, node.data.length - 1);
             }
 
-            // For more accurate character detection, we'll use character boundary detection
             var accurateResult = this.findAccurateCharacterOffset(node, offset, x, y);
             if (accurateResult) {
                 return accurateResult;
