@@ -420,7 +420,6 @@ window.MaruReader.textScanning = {
      * @returns {Object|null} Object with node, offset, and character, or null if not found
      */
     findCharacterAtPoint: function(x, y) {
-        // Method 1: Try caretRangeFromPoint first
         var range = document.caretRangeFromPoint(x, y);
         if (range && range.startContainer.nodeType === 3) {
             var node = range.startContainer;
@@ -444,15 +443,6 @@ window.MaruReader.textScanning = {
                     offset: offset,
                     character: character
                 };
-            }
-        }
-
-        // Method 2: Element-based search as fallback
-        var element = document.elementFromPoint(x, y);
-        if (element) {
-            var textResult = this.findCharacterInElement(element, x, y);
-            if (textResult) {
-                return textResult;
             }
         }
 
@@ -523,43 +513,6 @@ window.MaruReader.textScanning = {
         // Return the best match if it's within reasonable bounds
         if (bestMatch && (bestMatch.withinBounds || bestMatch.distance < 20)) {
             return bestMatch;
-        }
-
-        return null;
-    },
-
-    /**
-     * Searches for character within an element by examining text nodes
-     * @param {Element} element - Element to search within
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
-     * @returns {Object|null} Character result or null
-     */
-    findCharacterInElement: function(element, x, y) {
-        var walker = document.createTreeWalker(
-            element,
-            NodeFilter.SHOW_TEXT,
-            {
-                acceptNode: function(textNode) {
-                    // Skip empty text nodes and ruby annotations
-                    if (!textNode.textContent.trim()) {
-                        return NodeFilter.FILTER_REJECT;
-                    }
-                    return window.MaruReader.domUtilities &&
-                           window.MaruReader.domUtilities.isInsideRubyAnnotation &&
-                           window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
-                        ? NodeFilter.FILTER_REJECT
-                        : NodeFilter.FILTER_ACCEPT;
-                }
-            }
-        );
-
-        var textNode;
-        while (textNode = walker.nextNode()) {
-            var result = this.findAccurateCharacterOffset(textNode, 0, x, y);
-            if (result && result.withinBounds) {
-                return result;
-            }
         }
 
         return null;
