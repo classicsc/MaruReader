@@ -15,14 +15,20 @@ public struct TextLookupResponse: Sendable {
     public let contextStartOffset: Int // Where context starts in full element text
     public let context: String // The original context string
 
-    /// Start offset of the matched text within the context
+    /// Start offset of the matched text within the context (UTF-16 code units for JS compatibility)
     public var matchStartInContext: Int {
-        context.distance(from: context.startIndex, to: primaryResultSourceRange.lowerBound)
+        guard let utf16Lower = primaryResultSourceRange.lowerBound.samePosition(in: context.utf16) else {
+            return 0
+        }
+        return context.utf16.distance(from: context.utf16.startIndex, to: utf16Lower)
     }
 
-    /// End offset of the matched text within the context
+    /// End offset of the matched text within the context (UTF-16 code units for JS compatibility)
     public var matchEndInContext: Int {
-        context.distance(from: context.startIndex, to: primaryResultSourceRange.upperBound)
+        guard let utf16Upper = primaryResultSourceRange.upperBound.samePosition(in: context.utf16) else {
+            return 0
+        }
+        return context.utf16.distance(from: context.utf16.startIndex, to: utf16Upper)
     }
 
     public func toPopupHTML() -> String {

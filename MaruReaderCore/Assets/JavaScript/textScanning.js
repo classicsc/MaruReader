@@ -61,12 +61,9 @@ window.MaruReader.textScanning = {
             node, offset, contextLevel, maxContextChars, rubyContext
         );
 
-        // Generate CSS path for the text node
-        var cssPath = window.MaruReader.domUtilities.generateCSSPath(node);
-        var textNodeIndex = window.MaruReader.domUtilities.getTextNodeIndex(node);
-        if (textNodeIndex > 0) {
-            cssPath += '::text-node(' + textNodeIndex + ')';
-        }
+        // Generate CSS path for the container element
+        var container = this.findTextContainer(node);
+        var cssPath = window.MaruReader.domUtilities.generateContainerCSSPath(container);
 
         // Build result matching TextLookupRequest structure
         var result = {

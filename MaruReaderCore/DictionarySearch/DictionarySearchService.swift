@@ -88,6 +88,8 @@ public actor DictionarySearchService {
         let startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
         let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex
         let queryText = String(query.context[startIndex ..< endIndex])
+        logger.debug("Performing text lookup for query: \(queryText)")
+        logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
         let results = try await performSearch(query: queryText)
         let groupedResults = DictionarySearchService.groupResults(results)
@@ -101,6 +103,7 @@ public actor DictionarySearchService {
 
         // The range in context that was matched
         let matchedRange = startIndex ..< query.context.index(startIndex, offsetBy: topOriginalSubstring.count)
+        logger.debug("Top term: \(topTerm), Matched range: \(matchedRange)")
 
         return TextLookupResponse(
             requestID: query.id,

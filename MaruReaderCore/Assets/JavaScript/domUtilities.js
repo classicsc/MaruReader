@@ -7,45 +7,6 @@ window.MaruReader = window.MaruReader || {};
 window.MaruReader.domUtilities = {
 
     /**
-     * Generates a CSS selector path for a given node
-     * @param {Node} node - The text node to generate a path for
-     * @returns {string} CSS selector path
-     */
-    generateCSSPath: function(node) {
-        if (node.nodeType !== 3) return '';
-        
-        var element = node.parentElement;
-        if (!element) return '';
-        
-        var path = [];
-        
-        while (element && element !== document.body) {
-            var selector = element.tagName.toLowerCase();
-            
-            if (element.id) {
-                selector += '#' + element.id;
-                path.unshift(selector);
-                break;
-            } else {
-                var siblings = Array.from(element.parentNode.children);
-                var sameTagSiblings = siblings.filter(function(sibling) {
-                    return sibling.tagName === element.tagName;
-                });
-                
-                if (sameTagSiblings.length > 1) {
-                    var index = sameTagSiblings.indexOf(element) + 1;
-                    selector += ':nth-of-type(' + index + ')';
-                }
-                
-                path.unshift(selector);
-                element = element.parentElement;
-            }
-        }
-        
-        return path.join(' > ');
-    },
-
-    /**
      * Gets the index of a text node among its siblings
      * @param {Node} textNode - The text node
      * @returns {number} Index of the text node
@@ -199,5 +160,42 @@ window.MaruReader.domUtilities = {
             }
             return text;
         }
+    },
+
+    /**
+     * Generates a CSS selector path for an element
+     * @param {Element} element - The element to generate a path for
+     * @returns {string} CSS selector path
+     */
+    generateContainerCSSPath: function(element) {
+        if (!element || element.nodeType !== 1) return '';
+
+        var path = [];
+        var current = element;
+
+        while (current && current !== document.body) {
+            var selector = current.tagName.toLowerCase();
+
+            if (current.id) {
+                selector += '#' + current.id;
+                path.unshift(selector);
+                break;
+            } else {
+                var siblings = Array.from(current.parentNode.children);
+                var sameTagSiblings = siblings.filter(function(sibling) {
+                    return sibling.tagName === current.tagName;
+                });
+
+                if (sameTagSiblings.length > 1) {
+                    var index = sameTagSiblings.indexOf(current) + 1;
+                    selector += ':nth-of-type(' + index + ')';
+                }
+
+                path.unshift(selector);
+                current = current.parentElement;
+            }
+        }
+
+        return path.join(' > ');
     }
 };
