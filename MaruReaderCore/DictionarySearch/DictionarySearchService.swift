@@ -85,9 +85,18 @@ public actor DictionarySearchService {
     /// Perform a search and get the TextLookupResponse
     public func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
         // Get the text to query using the offset within context and the max lookup length
-        let startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
+        var startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
         let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex
+        // If the query text begins with whitespace or punctuation, skip those characters
+        while startIndex < endIndex, query.context[startIndex].isWhitespace || query.context[startIndex].isPunctuation {
+            startIndex = query.context.index(after: startIndex)
+        }
         let queryText = String(query.context[startIndex ..< endIndex])
+        // If the query text is empty after trimming, return nil
+        guard !queryText.isEmpty else {
+            logger.debug("Skipping text lookup for empty query text")
+            return nil
+        }
         logger.debug("Performing text lookup for query: \(queryText)")
         logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
