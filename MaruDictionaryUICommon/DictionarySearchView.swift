@@ -78,7 +78,7 @@ public struct DictionarySearchView: View {
                 }
             }
             .padding(.horizontal)
-            .navigationTitle("Dictionary")
+            .navigationTitle("Maru Dictionary")
             .toolbar {
                 if let onDismiss {
                     ToolbarItem(placement: .cancellationAction) {
