@@ -10,64 +10,7 @@ window.MaruReader.textHighlighting = {
     highlightCounter: 0,
 
     /**
-     * Highlights text at the specified CSS selector location
-     * @param {string} textToHighlight - The text substring to highlight
-     * @param {string} cssSelector - CSS selector path (may include ::text-node(N))
-     * @param {Object} styles - Styles object with properties like backgroundColor, color, etc.
-     * @returns {Object} Object with highlightId and boundingRects array
-     */
-    highlightText: function(textToHighlight, cssSelector, styles) {
-        console.log('highlightText called with:', textToHighlight, cssSelector, styles);
-        if (!textToHighlight || !cssSelector) {
-            console.error('highlightText: missing required parameters');
-            return null;
-        }
-
-        // Parse the CSS selector to extract element selector and text node index
-        var selectorInfo = this.parseCSSSelector(cssSelector);
-        if (!selectorInfo) {
-            console.error('highlightText: failed to parse CSS selector:', cssSelector);
-            return null;
-        }
-
-        // Find the target element
-        var element = this.findElementBySelector(selectorInfo.selector);
-        if (!element) {
-            console.error('highlightText: element not found for selector:', selectorInfo.selector);
-            return null;
-        }
-
-        // Find the text ranges to highlight (ruby-aware)
-        var ranges = this.findTextInElement(element, textToHighlight, selectorInfo.textNodeIndex);
-        if (!ranges || ranges.length === 0) {
-            console.warn('highlightText: text not found:', textToHighlight);
-            return null;
-        }
-
-        // Create a unique highlight ID
-        var highlightId = 'marureader-highlight-' + (++this.highlightCounter);
-
-        // Create the highlight using CSS Custom Highlights API
-        var highlight = this.createHighlight(ranges, styles, highlightId);
-        if (!highlight) {
-            console.error('highlightText: failed to create highlight');
-            return null;
-        }
-
-        // Register the highlight
-        CSS.highlights.set(highlightId, highlight);
-
-        // Get bounding rectangles for all ranges
-        var boundingRects = this.getRangeBoundingRects(ranges);
-
-        return {
-            highlightId: highlightId,
-            boundingRects: boundingRects
-        };
-    },
-
-    /**
-     * Highlights text using precise character offsets instead of text search
+     * Highlights text using character offsets within a context
      * @param {string} cssSelector - CSS selector path (may include ::text-node(N))
      * @param {number} contextStartOffset - Where the context starts in the full element text
      * @param {number} matchStartInContext - Start offset of match within context

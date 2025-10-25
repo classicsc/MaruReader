@@ -249,22 +249,6 @@ class BookReaderViewModel {
         }
     }
 
-    func highlightText(_ text: String, elementSelector: String, styles: String) async -> [[String: Double]] {
-        logger.debug("Highlighting text: \(text) in element: \(elementSelector) with styles: \(styles)")
-        guard let navigator else {
-            logger.warning("Navigator is not initialized, skipping highlight")
-            return []
-        }
-        do {
-            let result = try await navigator.maruHighlightText(text, elementSelector: elementSelector, styles: styles)
-            logger.debug("Highlight result bounding rects: \(result)")
-            return result
-        } catch {
-            logger.error("Highlighting threw error: \(error.localizedDescription)")
-            return []
-        }
-    }
-
     func highlightTextByContextRange(cssSelector: String, contextStartOffset: Int, matchStartInContext: Int, matchEndInContext: Int, styles: String) async -> [[String: Double]] {
         logger.debug("Highlighting by context range: \(matchStartInContext)..<\(matchEndInContext) at context start \(contextStartOffset)")
         guard let navigator else {
@@ -319,23 +303,6 @@ extension EPUBNavigatorViewController {
         switch result {
         case .success:
             return
-        case let .failure(error):
-            throw error
-        }
-    }
-
-    func maruHighlightText(_ text: String, elementSelector: String, styles: String) async throws -> [[String: Double]] {
-        let script = "window.MaruReader.textHighlighting.highlightText('\(text)', '\(elementSelector)', \(styles));"
-        let result = await self.evaluateJavaScript(script)
-        switch result {
-        case let .success(value):
-            guard let dataDict = value as? [String: Any],
-                  let _ = dataDict["highlightId"] as? String,
-                  let boundingRects = dataDict["boundingRects"] as? [[String: Double]]
-            else {
-                throw HighlightError.invalidResponse
-            }
-            return boundingRects
         case let .failure(error):
             throw error
         }

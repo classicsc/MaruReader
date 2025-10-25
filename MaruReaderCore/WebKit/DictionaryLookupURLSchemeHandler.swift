@@ -175,6 +175,7 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             httpVersion: "HTTP/1.1",
             headerFields: [
                 "Content-Type": "text/plain",
+                "Access-Control-Allow-Origin": "*",
                 "Content-Length": "2",
             ]
         )!
