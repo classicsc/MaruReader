@@ -7,22 +7,6 @@ window.MaruReader = window.MaruReader || {};
 window.MaruReader.domUtilities = {
 
     /**
-     * Gets the index of a text node among its siblings
-     * @param {Node} textNode - The text node
-     * @returns {number} Index of the text node
-     */
-    getTextNodeIndex: function(textNode) {
-        var parent = textNode.parentNode;
-        if (!parent) return 0;
-        
-        var textNodes = Array.from(parent.childNodes).filter(function(node) {
-            return node.nodeType === 3;
-        });
-        
-        return textNodes.indexOf(textNode);
-    },
-
-    /**
      * Checks if a node is inside ruby annotation elements (rt or rp)
      * @param {Node} node - Node to check
      * @returns {boolean} True if inside rt or rp element
@@ -105,61 +89,6 @@ window.MaruReader.domUtilities = {
             container = container.parentNode;
         }
         return container;
-    },
-
-    /**
-     * Gets all ruby elements within a container
-     * @param {Element} container - Container element
-     * @returns {HTMLCollection} Collection of ruby elements
-     */
-    getRubyElements: function(container) {
-        return container.getElementsByTagName('ruby');
-    },
-
-    /**
-     * Gets the rb elements within a ruby element
-     * @param {Element} rubyElement - Ruby element
-     * @returns {HTMLCollection} Collection of rb elements
-     */
-    getRbElements: function(rubyElement) {
-        return rubyElement.getElementsByTagName('rb');
-    },
-
-    /**
-     * Gets the base text content of a ruby element (excluding rt and rp)
-     * @param {Element} rubyElement - Ruby element
-     * @returns {string} Base text content
-     */
-    getRubyBaseText: function(rubyElement) {
-        var rbElements = this.getRbElements(rubyElement);
-        if (rbElements.length > 0) {
-            // If rb elements exist, use their text content
-            var text = '';
-            for (var i = 0; i < rbElements.length; i++) {
-                text += rbElements[i].textContent || '';
-            }
-            return text;
-        } else {
-            // If no rb elements, extract direct text nodes (excluding rt/rp)
-            var walker = document.createTreeWalker(
-                rubyElement,
-                NodeFilter.SHOW_TEXT,
-                {
-                    acceptNode: function(textNode) {
-                        return window.MaruReader.domUtilities.isInsideRubyAnnotation(textNode)
-                            ? NodeFilter.FILTER_REJECT
-                            : NodeFilter.FILTER_ACCEPT;
-                    }
-                }
-            );
-
-            var text = '';
-            var textNode;
-            while (textNode = walker.nextNode()) {
-                text += textNode.textContent;
-            }
-            return text;
-        }
     },
 
     /**
