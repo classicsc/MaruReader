@@ -1,8 +1,0 @@
-//
-//  MaruDictionaryUICommon.swift
-//  MaruDictionaryUICommon
-//
-//  Created by Sam Smoker on 10/23/25.
-//
-
-import Foundation

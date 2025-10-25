@@ -249,11 +249,6 @@
 			path = MaruDictionaryUICommon;
 			sourceTree = "<group>";
 		};
-		DB58C9122EAB173700CE59FD /* MaruDictionaryUICommonTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = MaruDictionaryUICommonTests;
-			sourceTree = "<group>";
-		};
 		DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -366,7 +361,6 @@
 				DBCFB1612EAAAE8B00B4F27D /* MaruReaderCore */,
 				DBCFB1702EAAAE8B00B4F27D /* MaruReaderCoreTests */,
 				DB58C9032EAB173700CE59FD /* MaruDictionaryUICommon */,
-				DB58C9122EAB173700CE59FD /* MaruDictionaryUICommonTests */,
 				DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */,
 				DBC9FEAF2E6C9B7800F1E920 /* Frameworks */,
 				DB2B698D2E660F8B00EDA656 /* Products */,
@@ -536,9 +530,6 @@
 			dependencies = (
 				DB58C90F2EAB173700CE59FD /* PBXTargetDependency */,
 				DB58C9112EAB173700CE59FD /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				DB58C9122EAB173700CE59FD /* MaruDictionaryUICommonTests */,
 			);
 			name = MaruDictionaryUICommonTests;
 			packageProductDependencies = (
