@@ -12,7 +12,7 @@ import os.log
 import SwiftUI
 import WebKit
 
-enum ResultDisplayState {
+public enum ResultDisplayState {
     case startPage
     case noResults(String)
     case searching
@@ -24,7 +24,7 @@ enum ResultDisplayState {
 @MainActor
 @Observable
 public class DictionarySearchViewModel {
-    var resultState: ResultDisplayState = .startPage
+    var resultState: ResultDisplayState
     var showPopup = false
     var focusState: Bool = false
     var page: WebPage = .init()
@@ -46,7 +46,8 @@ public class DictionarySearchViewModel {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
 
-    public init() {
+    public init(resultState: ResultDisplayState = .startPage) {
+        self.resultState = resultState
         initializeWebPage()
         initializePopupPage()
     }

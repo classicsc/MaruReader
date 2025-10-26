@@ -50,7 +50,7 @@ class ShareViewController: UIViewController {
 }
 
 struct SearchView: View {
-    private var viewModel = DictionarySearchViewModel()
+    private var viewModel = DictionarySearchViewModel(resultState: .searching)
     private let onDismiss: (() -> Void)?
 
     init(query: String, onDismiss: (() -> Void)? = nil) {

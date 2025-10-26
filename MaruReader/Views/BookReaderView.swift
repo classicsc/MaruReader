@@ -14,7 +14,7 @@ import SwiftUI
 
 struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
-    @State private var searchSheetViewModel = DictionarySearchViewModel()
+    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @Environment(\.colorScheme) var colorScheme
 
     init(book: Book) {
