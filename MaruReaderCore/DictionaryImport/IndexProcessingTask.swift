@@ -9,7 +9,7 @@ import CoreData
 import Foundation
 import os.log
 
-actor IndexProcessingTask {
+struct IndexProcessingTask {
     let jobID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")

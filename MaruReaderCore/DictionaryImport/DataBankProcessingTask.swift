@@ -10,7 +10,7 @@ import CoreData
 import Foundation
 import os.log
 
-actor DataBankProcessingTask {
+struct DataBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID

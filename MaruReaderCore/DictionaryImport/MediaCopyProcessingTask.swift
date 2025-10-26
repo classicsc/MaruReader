@@ -10,7 +10,7 @@ import Foundation
 import os.log
 
 /// A task to copy media files from the working directory to the permanent media directory.
-actor MediaCopyProcessingTask {
+struct MediaCopyProcessingTask {
     let jobID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")

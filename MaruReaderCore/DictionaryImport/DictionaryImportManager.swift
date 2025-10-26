@@ -132,8 +132,7 @@ public actor DictionaryImportManager {
             try Task.checkCancellation()
             try testErrorInjection?()
             let unzipTask = UnzipTask(jobID: jobID, container: container)
-            await unzipTask.start()
-            try await unzipTask.task?.value
+            try await unzipTask.start()
             logger.debug("Import job \(jobID) unzipped")
             try Task.checkCancellation()
             try await testCancellationHook?()

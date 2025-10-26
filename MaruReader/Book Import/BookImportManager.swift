@@ -118,22 +118,19 @@ actor BookImportManager {
             try testErrorInjection?()
 
             let metadataTask = MetadataProcessingTask(jobID: jobID, container: container)
-            await metadataTask.start()
-            try await metadataTask.task?.value
+            try await metadataTask.start()
             logger.debug("Import job \(jobID) metadata processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let fileCopyTask = FileCopyTask(jobID: jobID, container: container)
-            await fileCopyTask.start()
-            try await fileCopyTask.task?.value
+            try await fileCopyTask.start()
             logger.debug("Import job \(jobID) file copied")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
             let coverExtractionTask = CoverExtractionTask(jobID: jobID, container: container)
-            await coverExtractionTask.start()
-            try await coverExtractionTask.task?.value
+            try await coverExtractionTask.start()
             logger.debug("Import job \(jobID) cover extracted")
             try Task.checkCancellation()
             try await testCancellationHook?()
