@@ -9,8 +9,8 @@ import WebKit
 
 public struct DictionarySearchView: View {
     @State private var viewModel = DictionarySearchViewModel()
-    @FocusState private var isTextFieldFocused: Bool
     @State private var query: String = ""
+    @FocusState private var isSearchFieldFocused: Bool
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
     private let onDismiss: (() -> Void)?
@@ -26,23 +26,6 @@ public struct DictionarySearchView: View {
     public var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 12) {
-                TextField("Search dictionary", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.top)
-                    .focused($isTextFieldFocused)
-                    .onChange(of: query) { _, newValue in
-                        viewModel.performSearch(newValue)
-                    }
-                    .onChange(of: isTextFieldFocused) { _, isFocused in
-                        if isFocused {
-                            viewModel.textFieldFocused()
-                        } else {
-                            viewModel.textFieldUnfocused()
-                        }
-                    }
-                    .onSubmit {
-                        viewModel.performSearch(query)
-                    }
                 GeometryReader { geometry in
                     ZStack(alignment: .topLeading) {
                         switch viewModel.resultState {
@@ -87,6 +70,18 @@ public struct DictionarySearchView: View {
                         }
                     }
                 }
+            }
+        }
+        .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Dictionary")
+        .searchFocused($isSearchFieldFocused)
+        .onChange(of: query) { _, newValue in
+            viewModel.performSearch(newValue)
+        }
+        .onChange(of: isSearchFieldFocused) { _, isFocused in
+            if isFocused {
+                viewModel.textFieldFocused()
+            } else {
+                viewModel.textFieldUnfocused()
             }
         }
     }
