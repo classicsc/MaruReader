@@ -552,19 +552,19 @@ struct DictionaryPersistenceTests {
             #expect(untaggedIPA.tags == nil)
         }
 
-        // Assert: Media files are copied to application support directory
+        // Assert: Media files are copied to app group directory
         let fileManager = FileManager.default
-        let appSupportDir = try fileManager.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
+        guard let appGroupDir = fileManager.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            Issue.record("App group directory not found")
+            return
+        }
         guard let dictionaryID else {
             Issue.record("Dictionary ID not found")
             return
         }
-        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+        let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Verify media directory exists
         #expect(fileManager.fileExists(atPath: mediaDir.path))
@@ -732,17 +732,17 @@ struct DictionaryPersistenceTests {
 
         // Assert: Media files are copied for V1 format as well
         let fileManager = FileManager.default
-        let appSupportDir = try fileManager.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        )
+        guard let appGroupDir = fileManager.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            Issue.record("App group directory not found")
+            return
+        }
         guard let dictionaryID else {
             Issue.record("Dictionary ID not found")
             return
         }
-        let mediaDir = appSupportDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+        let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Verify media directory exists
         #expect(fileManager.fileExists(atPath: mediaDir.path))
