@@ -30,7 +30,7 @@ class ShareViewController: UIViewController {
     }
 
     private func showDictionarySearch(for text: String) {
-        let searchView = DictionarySearchView(initialQuery: text) { [weak self] in
+        let searchView = SearchView(query: text) { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         }
 
@@ -46,5 +46,29 @@ class ShareViewController: UIViewController {
 
     private func cancelRequest() {
         extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
+    }
+}
+
+struct SearchView: View {
+    private var viewModel = DictionarySearchViewModel()
+    private let onDismiss: (() -> Void)?
+
+    init(query: String, onDismiss: (() -> Void)? = nil) {
+        viewModel.performSearch(query)
+        self.onDismiss = onDismiss
+    }
+
+    var body: some View {
+        NavigationStack {
+            DictionarySearchView()
+                .environment(viewModel)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            onDismiss?()
+                        }
+                    }
+                }
+        }
     }
 }

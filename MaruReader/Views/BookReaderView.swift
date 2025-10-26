@@ -14,6 +14,7 @@ import SwiftUI
 
 struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
+    @State private var searchSheetViewModel = DictionarySearchViewModel()
     @Environment(\.colorScheme) var colorScheme
 
     init(book: Book) {
@@ -31,7 +32,8 @@ struct BookReaderView: View {
             readerView
                 .sheet(isPresented: $viewModel.showingDictionarySheet) {
                     NavigationStack {
-                        DictionarySearchView(initialQuery: viewModel.sheetQueryTerm)
+                        DictionarySearchView()
+                            .environment(searchSheetViewModel)
                             .navigationTitle("Dictionary")
                             .navigationBarTitleDisplayMode(.inline)
                             .navigationBarBackButtonHidden(true)
@@ -42,6 +44,9 @@ struct BookReaderView: View {
                                     }
                                 }
                             }
+                    }
+                    .onAppear {
+                        searchSheetViewModel.performSearch(viewModel.sheetQueryTerm)
                     }
                     .presentationDetents([.medium, .large])
                 }

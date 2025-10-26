@@ -14,7 +14,7 @@ import WebKit
 
 enum ResultDisplayState {
     case startPage
-    case noResults
+    case noResults(String)
     case searching
     case ready
     case error(Error)
@@ -23,7 +23,7 @@ enum ResultDisplayState {
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
 @Observable
-class DictionarySearchViewModel {
+public class DictionarySearchViewModel {
     var resultState: ResultDisplayState = .startPage
     var showPopup = false
     var focusState: Bool = false
@@ -46,7 +46,7 @@ class DictionarySearchViewModel {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
 
-    init() {
+    public init() {
         initializeWebPage()
         initializePopupPage()
     }
@@ -92,7 +92,7 @@ class DictionarySearchViewModel {
         popupPage.isInspectable = true
     }
 
-    func performSearch(_ searchQuery: String) {
+    public func performSearch(_ searchQuery: String) {
         searchTask?.cancel()
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
@@ -114,7 +114,7 @@ class DictionarySearchViewModel {
             do {
                 guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                     await MainActor.run {
-                        self.resultState = .noResults
+                        self.resultState = .noResults(searchQuery)
                     }
                     return
                 }
@@ -137,7 +137,7 @@ class DictionarySearchViewModel {
         }
     }
 
-    func handleTextScan(_ offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
+    private func handleTextScan(_ offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
             logger.debug("Scan ignored due to debounce")
@@ -183,7 +183,7 @@ class DictionarySearchViewModel {
         }
     }
 
-    func hidePopup() {
+    public func hidePopup() {
         self.showPopup = false
         Task { @MainActor in
             do {
@@ -194,12 +194,12 @@ class DictionarySearchViewModel {
         }
     }
 
-    func textFieldFocused() {
+    public func textFieldFocused() {
         focusDebounceTask?.cancel()
         focusState = true
     }
 
-    func textFieldUnfocused() {
+    public func textFieldUnfocused() {
         focusDebounceTask?.cancel()
         Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
@@ -209,7 +209,7 @@ class DictionarySearchViewModel {
         }
     }
 
-    func highlightStylesAsJSObject() -> String {
+    private func highlightStylesAsJSObject() -> String {
         let stylePairs = highlightStyles.map { key, value in
             "'\(key)': '\(value)'"
         }
