@@ -25,8 +25,6 @@
 		DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
 		DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DB6FDFCD2EAB54E8005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
-		DB6FDFCE2EAB54E8005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -104,13 +102,6 @@
 			remoteGlobalIDString = DB58C9012EAB173700CE59FD;
 			remoteInfo = MaruDictionaryUICommon;
 		};
-		DB6FDFCF2EAB54E8005DF219 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
-			remoteInfo = MaruReaderCore;
-		};
 		DBCFB16C2EAAAE8B00B4F27D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
@@ -186,7 +177,6 @@
 			dstSubfolderSpec = 10;
 			files = (
 				DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */,
-				DB6FDFCE2EAB54E8005DF219 /* MaruReaderCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -323,7 +313,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */,
-				DB6FDFCD2EAB54E8005DF219 /* MaruReaderCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -551,7 +540,6 @@
 			);
 			dependencies = (
 				DB6FDFCC2EAB54E8005DF219 /* PBXTargetDependency */,
-				DB6FDFD02EAB54E8005DF219 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB6FDFBA2EAB54C6005DF219 /* MaruShareExtension */,
@@ -853,11 +841,6 @@
 			isa = PBXTargetDependency;
 			target = DB58C9012EAB173700CE59FD /* MaruDictionaryUICommon */;
 			targetProxy = DB6FDFCB2EAB54E8005DF219 /* PBXContainerItemProxy */;
-		};
-		DB6FDFD02EAB54E8005DF219 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
-			targetProxy = DB6FDFCF2EAB54E8005DF219 /* PBXContainerItemProxy */;
 		};
 		DBCFB16D2EAAAE8B00B4F27D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

@@ -1,5 +1,4 @@
 import MaruDictionaryUICommon
-import MaruReaderCore
 import Social
 import SwiftUI
 import UIKit
