@@ -14,29 +14,26 @@ struct ContentView: View {
     private let bookPersistenceController = BookDataPersistenceController.shared
     private let dictionaryPersistenceController = DictionaryPersistenceController.shared
 
-    var body: some View {
-        TabView {
-            BookLibraryView()
-                .tabItem { Label("Library", systemImage: "books.vertical") }
-                .environment(\.managedObjectContext, bookPersistenceController.container.viewContext)
-            DictionarySearchTab()
-                .tabItem { Label("Dictionary", systemImage: "magnifyingglass") }
-            SettingsView()
-                .tabItem { Label("Settings", systemImage: "gear") }
-                .environment(\.managedObjectContext, dictionaryPersistenceController.container.viewContext)
-        }
-    }
-}
-
-struct DictionarySearchTab: View {
     @State private var searchViewModel = DictionarySearchViewModel()
     @State private var query: String = ""
     @FocusState private var isSearchFieldFocused: Bool
 
     var body: some View {
-        NavigationStack {
-            DictionarySearchView()
-                .environment(searchViewModel)
+        TabView {
+            Tab("Library", systemImage: "books.vertical") {
+                BookLibraryView()
+                    .environment(\.managedObjectContext, bookPersistenceController.container.viewContext)
+            }
+            Tab("Settings", systemImage: "gear") {
+                SettingsView()
+                    .environment(\.managedObjectContext, dictionaryPersistenceController.container.viewContext)
+            }
+            Tab(role: .search) {
+                NavigationStack {
+                    DictionarySearchView()
+                        .environment(searchViewModel)
+                }
+            }
         }
         .searchable(text: $query, placement: .automatic, prompt: "Search Dictionary")
         .searchFocused($isSearchFieldFocused)
@@ -50,5 +47,6 @@ struct DictionarySearchTab: View {
                 searchViewModel.textFieldUnfocused()
             }
         }
+        .tabViewSearchActivation(.searchTabSelection)
     }
 }
