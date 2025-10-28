@@ -12,7 +12,7 @@ import Foundation
 
 /// Normalizes CJK compatibility characters using NFKD normalization
 /// Based on Yomitan's normalizeCJKCompatibilityCharacters function
-class NormalizeCJKCompatibilityCharactersRule: TextPreprocessorRule {
+struct NormalizeCJKCompatibilityCharactersRule: TextPreprocessorRule {
     let name = "normalizeCJKCompatibilityCharacters"
     let description = "Normalize CJK compatibility characters: ㌀ → アパート, ㍻ → 平成"
 

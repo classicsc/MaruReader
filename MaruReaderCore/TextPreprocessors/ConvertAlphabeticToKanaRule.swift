@@ -12,7 +12,7 @@ import Foundation
 
 /// Converts alphabetic characters to kana equivalents
 /// Based on Yomitan's convertAlphabeticToKana function
-class ConvertAlphabeticToKanaRule: TextPreprocessorRule {
+struct ConvertAlphabeticToKanaRule: TextPreprocessorRule {
     let name = "convertAlphabeticToKana"
     let description = "Convert alphabetic text to kana: chikara → ちから"
 

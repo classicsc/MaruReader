@@ -20,7 +20,7 @@ protocol TextPreprocessorRule {
 
 // MARK: - Preprocessor Implementation
 
-class JapaneseTextPreprocessor {
+struct JapaneseTextPreprocessor {
     // MARK: - Properties
 
     private let maxVariants: Int
@@ -40,7 +40,7 @@ class JapaneseTextPreprocessor {
     ///   - text: Input text to preprocess
     ///   - rules: Array of preprocessor rules to apply
     /// - Returns: Tuple containing array of text variants and mapping of variants to applied rules
-    func generateVariants(_ text: String, using rules: [TextPreprocessorRule]) -> (variants: [String], appliedRules: [String: [String]]) {
+    mutating func generateVariants(_ text: String, using rules: [TextPreprocessorRule]) -> (variants: [String], appliedRules: [String: [String]]) {
         // Check cache first
         let cacheKey = createCacheKey(text: text, rules: rules)
         if let cached = cache[cacheKey], let cachedRules = rulesCache[cacheKey] {
@@ -93,7 +93,7 @@ class JapaneseTextPreprocessor {
     ///   - candidate: Input LookupCandidate to preprocess
     ///   - rules: Array of preprocessor rules to apply
     /// - Returns: Array of LookupCandidates with preprocessing rules applied
-    func generateVariants(_ candidate: LookupCandidate, using rules: [TextPreprocessorRule]) -> [LookupCandidate] {
+    mutating func generateVariants(_ candidate: LookupCandidate, using rules: [TextPreprocessorRule]) -> [LookupCandidate] {
         let (variants, appliedRules) = generateVariants(candidate.text, using: rules)
 
         return variants.map { variant in

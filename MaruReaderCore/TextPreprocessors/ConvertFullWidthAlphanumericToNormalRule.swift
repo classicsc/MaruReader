@@ -12,7 +12,7 @@ import Foundation
 
 /// Converts full-width alphanumeric characters to normal-width equivalents
 /// Based on Yomitan's convertFullWidthAlphanumericToNormal function
-class ConvertFullWidthAlphanumericToNormalRule: TextPreprocessorRule {
+struct ConvertFullWidthAlphanumericToNormalRule: TextPreprocessorRule {
     let name = "convertFullWidthAlphanumericToNormal"
     let description = "Convert full width alphanumeric to normal: ａｂｃ１２３ → abc123"
 

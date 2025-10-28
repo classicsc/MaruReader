@@ -12,7 +12,7 @@ import Foundation
 
 /// Normalizes kanji variant forms to their standard forms
 /// Based on Yomitan's convertVariants function using itaiji data
-class ConvertKanjiVariantsRule: TextPreprocessorRule {
+struct ConvertKanjiVariantsRule: TextPreprocessorRule {
     let name = "convertKanjiVariants"
     let description = "Convert kanji variants to standard forms: 弌 → 一, 萬 → 万"
 

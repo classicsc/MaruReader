@@ -12,7 +12,7 @@ import Foundation
 
 /// Converts katakana characters to hiragana equivalents
 /// Based on Yomitan's convertKatakanaToHiragana function
-class ConvertKatakanaToHiraganaRule: TextPreprocessorRule {
+struct ConvertKatakanaToHiraganaRule: TextPreprocessorRule {
     let name = "convertKatakanaToHiragana"
     let description = "Convert katakana to hiragana: カタカナ → かたかな"
 

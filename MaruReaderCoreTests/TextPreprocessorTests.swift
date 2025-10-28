@@ -911,7 +911,7 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation with a single preprocessor rule
         // Input: Half-width text with one rule
         // Expected: Array containing original and converted text
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
@@ -926,7 +926,7 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation when rules don't change the input
         // Input: Full-width text with half-width conversion rule
         // Expected: Only original text (rule produces no change)
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ヨミチャン" // Already full-width
 
@@ -940,7 +940,7 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation with no rules
         // Input: Any text with empty rules array
         // Expected: Only original text
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let input = "test"
 
         let variants = preprocessor.generateVariants(input, using: [])
@@ -953,7 +953,7 @@ struct TextPreprocessorTests {
         // Purpose: Test that variant generation respects the maxVariants limit
         // Input: Text and rules that could generate many variants, with low limit
         // Expected: Variants array doesn't exceed maxVariants
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 2)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 2)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
@@ -969,7 +969,7 @@ struct TextPreprocessorTests {
         // Purpose: Test that identical inputs use cached results
         // Input: Same text and rules called twice
         // Expected: Same results both times (verifies caching works)
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
@@ -984,7 +984,7 @@ struct TextPreprocessorTests {
         // Purpose: Test that different rule sets produce different cache entries
         // Input: Same text with different rule combinations
         // Expected: Different results for different rule sets
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
@@ -1003,7 +1003,7 @@ struct TextPreprocessorTests {
         // Purpose: Test that identical rules don't create duplicate variants
         // Input: Same rule applied multiple times
         // Expected: No duplicate variants in result
-        let preprocessor = JapaneseTextPreprocessor(maxVariants: 10)
+        var preprocessor = JapaneseTextPreprocessor(maxVariants: 10)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 

@@ -12,7 +12,7 @@ import Foundation
 
 /// Normalizes combining dakuten and handakuten characters
 /// Based on Yomitan's normalizeCombiningCharacters function
-class NormalizeCombiningCharactersRule: TextPreprocessorRule {
+struct NormalizeCombiningCharactersRule: TextPreprocessorRule {
     let name = "normalizeCombiningCharacters"
     let description = "Normalize combining dakuten/handakuten: が → が, ぱ → ぱ"
 

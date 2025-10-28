@@ -12,7 +12,7 @@ import Foundation
 
 /// Collapses emphatic character sequences (small tsu, prolonged sound marks)
 /// Based on Yomitan's collapseEmphaticSequences function
-class CollapseEmphaticSequencesRule: TextPreprocessorRule {
+struct CollapseEmphaticSequencesRule: TextPreprocessorRule {
     let name = "collapseEmphaticSequences"
     let description = "Collapse emphatic sequences: っっっ → っ, ーーー → ー"
 

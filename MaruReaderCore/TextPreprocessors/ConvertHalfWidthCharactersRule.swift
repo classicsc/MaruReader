@@ -12,7 +12,7 @@ import Foundation
 
 /// Converts half-width katakana characters to full-width equivalents
 /// Based on Yomitan's convertHalfWidthKanaToFullWidth function
-class ConvertHalfWidthCharactersRule: TextPreprocessorRule {
+struct ConvertHalfWidthCharactersRule: TextPreprocessorRule {
     let name = "convertHalfWidthCharacters"
     let description = "Convert half width characters to full width: ﾖﾐﾁｬﾝ → ヨミチャン"
 
