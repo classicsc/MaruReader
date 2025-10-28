@@ -66,7 +66,7 @@ struct BookReaderView: View {
                 .ignoresSafeArea()
                 .popover(
                     isPresented: $viewModel.showPopup,
-                    attachmentAnchor: .point(.zero)
+                    attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                 ) {
                     WebView(viewModel.popupPage)
                         .frame(width: 200, height: 200)

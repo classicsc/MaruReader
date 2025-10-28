@@ -63,7 +63,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var book: Book
     var readerPreferences: ReaderPreferences
     var navigator: EPUBNavigatorViewController?
-    var popupAnchorPosition: UnitPoint = .zero
+    var popupAnchorPosition: CGRect = .zero
 
     private var popupSearchTask: Task<Void, Error>?
 
@@ -216,10 +216,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                     )
                     let boundingRectsAsCGRects = getBoundingRects(highlightBoundingRects: boundingRects)
                     if let firstRect = boundingRectsAsCGRects.first {
-                        self.popupAnchorPosition = UnitPoint(
-                            x: firstRect.midX,
-                            y: firstRect.midY
-                        )
+                        self.popupAnchorPosition = firstRect
                     } else {
                         logger.debug("No bounding rects returned for highlight")
                         self.popupAnchorPosition = .zero
