@@ -55,7 +55,19 @@ enum BookReaderOverlayState {
 final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var readerState: BookReaderState = .loading
     var overlayState: BookReaderOverlayState = .showingToolbars
-    var showPopup = false
+    private var showingPopup: Bool = false
+    var showPopup: Bool {
+        get { showingPopup }
+        set {
+            if !newValue {
+                Task {
+                    await clearHighlights()
+                }
+            }
+            showingPopup = newValue
+        }
+    }
+
     var popupPage: WebPage = .init()
     var sheetQueryTerm: String = ""
     var publication: Publication?
