@@ -38,7 +38,6 @@ public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
-    private var lookupSchemeHandler: DictionaryLookupURLSchemeHandler?
 
     let highlightStyles = [
         "background-color": "yellow",
@@ -57,7 +56,7 @@ public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
-        
+
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "textScanning")
         config.userContentController = userContentController
@@ -70,15 +69,9 @@ public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
 
-        let lookupHandler = DictionaryLookupURLSchemeHandler(
-            onNavigate: { term in
-                Task { @MainActor in
-                    self.performSearch(term)
-                }
-            }
-        )
-
-        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = lookupHandler
+        let userContentController = WKUserContentController()
+        userContentController.add(self, name: "navigateToTerm")
+        config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
     }
@@ -206,7 +199,7 @@ public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
         return "{\(stylePairs.joined(separator: ", "))}"
     }
-    
+
     public func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
         if message.name == "textScanning" {
             logger.debug("Received textScanning message: \(String(describing: message.body))")
@@ -221,6 +214,13 @@ public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             }
 
             handleTextScan(offset: offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
+        } else if message.name == "navigateToTerm" {
+            if let term = message.body as? String {
+                logger.debug("Received navigateToTerm message for term: \(term)")
+                performSearch(term)
+            } else {
+                logger.warning("navigateToTerm message body is not a string")
+            }
         }
     }
 }

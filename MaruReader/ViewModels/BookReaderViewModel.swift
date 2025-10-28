@@ -52,7 +52,7 @@ enum BookReaderOverlayState {
 
 @MainActor
 @Observable
-class BookReaderViewModel {
+class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var readerState: BookReaderState = .loading
     var overlayState: BookReaderOverlayState = .showingToolbars
     var showPopup = false
@@ -70,7 +70,6 @@ class BookReaderViewModel {
     private let searchService = DictionarySearchService()
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
-    private var lookupSchemeHandler: DictionaryLookupURLSchemeHandler?
 
     let highlightStyles = [
         "background-color": "yellow",
@@ -81,11 +80,12 @@ class BookReaderViewModel {
     init(book: Book) {
         self.book = book
         self.readerPreferences = ReaderPreferences(book: book)
+        super.init()
 
         Task {
             await loadPublication()
-            initializePopupPage()
         }
+        initializePopupPage()
     }
 
     var showingDictionarySheet: Bool {
@@ -169,15 +169,9 @@ class BookReaderViewModel {
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
 
-        let lookupHandler = DictionaryLookupURLSchemeHandler(
-            onNavigate: { term in
-                Task { @MainActor in
-                    self.searchInDictionarySheet(term)
-                }
-            }
-        )
-
-        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = lookupHandler
+        let userContentController = WKUserContentController()
+        userContentController.add(self, name: "navigateToTerm")
+        config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
     }
@@ -294,6 +288,19 @@ class BookReaderViewModel {
     func readingProgression() -> ReadiumNavigator.ReadingProgression {
         guard let navigator else { return .ltr }
         return navigator.settings.readingProgression
+    }
+
+    // MARK: - WKScriptMessageHandler
+
+    func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "navigateToTerm" {
+            if let term = message.body as? String {
+                logger.debug("Received navigateToTerm message for term: \(term)")
+                searchInDictionarySheet(term)
+            } else {
+                logger.warning("navigateToTerm message body is not a string")
+            }
+        }
     }
 }
 

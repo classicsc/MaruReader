@@ -79,10 +79,9 @@ public struct TextLookupResponse: Sendable {
             <link rel="stylesheet" href="marureader-resource://popup.css">
             <script>
                 function navigateToTerm(term) {
-                    var message = new XMLHttpRequest();
-                    message.open("POST", "marureader-lookup://lookup/navigate", true);
-                    message.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                    message.send(JSON.stringify({ term: term }));
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navigateToTerm) {
+                        window.webkit.messageHandlers.navigateToTerm.postMessage(term);
+                    }
                 }
             </script>
         </head>
