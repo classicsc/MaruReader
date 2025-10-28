@@ -12,8 +12,6 @@
 import Testing
 
 struct DeinflectorTests {
-    private let deinflector = JapaneseDeinflector()
-
     // MARK: - Helper Methods
 
     @MainActor private func assertDeinflection(
@@ -21,6 +19,7 @@ struct DeinflectorTests {
         expectedBase: String,
         expectedReasons: [String]
     ) {
+        var deinflector = JapaneseDeinflector()
         let candidates = deinflector.deinflect(source)
 
         // Find matching candidate
@@ -37,6 +36,7 @@ struct DeinflectorTests {
     @MainActor private func assertNoDeinflection(
         source: String
     ) {
+        var deinflector = JapaneseDeinflector()
         let candidates = deinflector.deinflect(source)
         #expect(
             candidates.isEmpty,
@@ -498,6 +498,7 @@ struct DeinflectorTests {
     // MARK: - Max Depth Tests
 
     @MainActor @Test func maxDepthLimiting() {
+        var deinflector = JapaneseDeinflector()
         // Test with limited max depth
         let shallowCandidates = deinflector.deinflect("食べさせられたくなかった", maxDepth: 2)
         let deepCandidates = deinflector.deinflect("食べさせられたくなかった", maxDepth: 10)
@@ -509,6 +510,7 @@ struct DeinflectorTests {
     // MARK: - Edge Cases and Invalid Forms
 
     @MainActor @Test func invalidForms() {
+        var deinflector = JapaneseDeinflector()
         // Invalid conjugations (these should not produce valid results)
         let invalidResults = deinflector.deinflect("食べるない") // Invalid double verb ending
         #expect(invalidResults.isEmpty || !invalidResults.contains { $0.base == "食べる" && $0.transforms.contains("negative") })
@@ -517,6 +519,7 @@ struct DeinflectorTests {
     // MARK: - Caching Tests
 
     @MainActor @Test func caching() {
+        var deinflector = JapaneseDeinflector()
         let text = "食べている"
 
         // First call
@@ -538,6 +541,7 @@ struct DeinflectorTests {
     // MARK: - Dictionary Form Sorting Tests
 
     @MainActor @Test func dictionaryFormsSortedFirst() {
+        var deinflector = JapaneseDeinflector()
         // Test that dictionary forms (those with isDictionaryForm=true conditions) are sorted first
         let candidates = deinflector.deinflect("食べます") // Should produce both 食べる and intermediate forms
 

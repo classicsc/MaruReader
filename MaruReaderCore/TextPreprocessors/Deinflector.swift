@@ -89,7 +89,7 @@ struct Transform {
     let rules: [SuffixRule] // Array of suffixInflection ports
 }
 
-class JapaneseDeinflector {
+struct JapaneseDeinflector {
     /// Conditions metadata (port 'conditions' object)
     static let conditionDetails: [Condition: (name: String, isDictionaryForm: Bool, subConditions: [Condition])] = [
         .v: ("Verb", false, [.v1, .v5, .vk, .vs, .vz]),
@@ -156,7 +156,7 @@ class JapaneseDeinflector {
     }
 
     /// Main function: Generate deinflected candidates with rule traces
-    func deinflect(_ text: String, maxDepth: Int = 10) -> [DeinflectionCandidate] {
+    mutating func deinflect(_ text: String, maxDepth: Int = 10) -> [DeinflectionCandidate] {
         if let cached = cache[text] { return cached }
 
         var candidates: [DeinflectionCandidate] = []
@@ -230,7 +230,7 @@ class JapaneseDeinflector {
     }
 
     /// Generate deinflected LookupCandidates, preserving original metadata and adding deinflection rules
-    func deinflect(_ candidate: LookupCandidate, maxDepth: Int = 10) -> [LookupCandidate] {
+    mutating func deinflect(_ candidate: LookupCandidate, maxDepth: Int = 10) -> [LookupCandidate] {
         let deinflectionCandidates = deinflect(candidate.text, maxDepth: maxDepth)
 
         return deinflectionCandidates.map { deinflectionCandidate in
@@ -247,9 +247,6 @@ class JapaneseDeinflector {
             )
         }
     }
-
-    // Clear cache if needed (e.g., memory pressure)
-    func clearCache() { cache = [:] }
 }
 
 /// Candidate struct

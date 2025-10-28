@@ -18,7 +18,7 @@ class DictionaryCandidateGenerator {
     // MARK: - Properties
 
     private var preprocessor: JapaneseTextPreprocessor
-    private let deinflector: JapaneseDeinflector
+    private var deinflector: JapaneseDeinflector
     private let maxCandidates: Int
 
     // MARK: - Initialization
