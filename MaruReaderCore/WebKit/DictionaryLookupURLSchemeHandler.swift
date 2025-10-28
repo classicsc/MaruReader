@@ -14,35 +14,25 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
     private let searchService: DictionarySearchService
     private let onNavigate: @Sendable (String) -> Void
-    private let onScan: @Sendable (Int, String, Int, String) -> Void
-    private let onPopup: @Sendable (String?) -> Void
 
     public init(
         persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared,
         onNavigate: @escaping @Sendable (String) -> Void = { _ in },
-        onScan: @escaping @Sendable (Int, String, Int, String) -> Void = { _, _, _, _ in },
-        onPopup: @escaping @Sendable (String?) -> Void = { _ in }
     ) {
         self.searchService = DictionarySearchService(persistenceController: persistenceController)
         self.onNavigate = onNavigate
-        self.onScan = onScan
-        self.onPopup = onPopup
     }
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let searchService = self.searchService
             let onNavigate = self.onNavigate
-            let onScan = self.onScan
-            let onPopup = self.onPopup
             let task = Task { @Sendable in
                 do {
                     let results = try await Self.handleRequest(
                         request,
                         searchService: searchService,
                         onNavigate: onNavigate,
-                        onScan: onScan,
-                        onPopup: onPopup
                     )
                     for result in results {
                         continuation.yield(result)
@@ -63,8 +53,6 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
         _ request: URLRequest,
         searchService _: DictionarySearchService,
         onNavigate: @escaping @Sendable (String) -> Void,
-        onScan: @escaping @Sendable (Int, String, Int, String) -> Void,
-        onPopup _: @escaping @Sendable (String?) -> Void
     ) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
             logger.error("Invalid URL in request")
@@ -83,9 +71,7 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
 
         let path = url.path(percentEncoded: false)
 
-        if path == "/scan", request.httpMethod == "POST" {
-            return try await handleScanRequest(request: request, onScan: onScan)
-        } else if path == "/navigate", request.httpMethod == "POST" {
+        if path == "/navigate", request.httpMethod == "POST" {
             return try await handleNavigateRequest(request: request, onNavigate: onNavigate)
         } else {
             logger.error("Unknown path in marureader-lookup URL: \(path)")
@@ -132,39 +118,6 @@ public class DictionaryLookupURLSchemeHandler: URLSchemeHandler {
             return createScanErrorResponse("Invalid JSON data")
         }
 
-        return createScanSuccessResponse()
-    }
-
-    private static func handleScanRequest(
-        request: URLRequest,
-        onScan: @escaping @Sendable (Int, String, Int, String) -> Void
-    ) async throws -> [URLSchemeTaskResult] {
-        // Extract the data parameter from the query string
-        guard let postData = request.httpBody else {
-            logger.error("Missing or invalid data parameter in text scan URL")
-            return createScanErrorResponse("Missing data parameter")
-        }
-
-        // Parse and log the text scan result
-        do {
-            if let jsonObject = try JSONSerialization.jsonObject(with: postData) as? [String: Any] {
-                // Call the onScan closure with offset, context, contextStartOffset, and cssSelector
-                if let offset = jsonObject["offset"] as? Int,
-                   let context = jsonObject["context"] as? String,
-                   let contextStartOffset = jsonObject["contextStartOffset"] as? Int,
-                   let cssSelector = jsonObject["cssSelector"] as? String
-                {
-                    onScan(offset, context, contextStartOffset, cssSelector)
-                }
-            } else {
-                logger.error("Received malformed JSON data: \(postData)")
-            }
-        } catch {
-            logger.error("Failed to parse JSON data: \(error.localizedDescription)")
-            return createScanErrorResponse("Invalid JSON data")
-        }
-
-        // Return a simple success response
         return createScanSuccessResponse()
     }
 

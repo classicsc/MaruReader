@@ -74,18 +74,12 @@ window.MaruReader.textScanning = {
             cssSelector: cssPath // CSS selector
         };
         
-        // If we're in a WKWebView, return via message handler, otherwise use XHR
+        // If we're in a WKWebView, return via message handler
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.textScanning) {
             window.webkit.messageHandlers.textScanning.postMessage(result);
             console.log("Text scanning result sent via message handler:", result);
             return result;
         }
-        
-        // Send the result to Swift by XHR
-        var resultRequest = new XMLHttpRequest();
-        resultRequest.open("POST", "marureader-lookup://lookup/scan", true);
-        resultRequest.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        resultRequest.send(JSON.stringify(result));
         
         return result;
     },

@@ -23,7 +23,7 @@ public enum ResultDisplayState {
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
 @Observable
-public class DictionarySearchViewModel {
+public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var resultState: ResultDisplayState
     var showPopup = false
     var focusState: Bool = false
@@ -48,6 +48,7 @@ public class DictionarySearchViewModel {
 
     public init(resultState: ResultDisplayState = .startPage) {
         self.resultState = resultState
+        super.init()
         initializeWebPage()
         initializePopupPage()
     }
@@ -56,21 +57,10 @@ public class DictionarySearchViewModel {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
-
-        // Create lookup handler with closures that update state
-        let lookupHandler = DictionaryLookupURLSchemeHandler(
-            onNavigate: { term in
-                Task { @MainActor in
-                    self.performSearch(term)
-                }
-            },
-            onScan: { offset, context, contextStartOffset, cssSelector in
-                Task { @MainActor in
-                    self.handleTextScan(offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
-                }
-            }
-        )
-        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = lookupHandler
+        
+        let userContentController = WKUserContentController()
+        userContentController.add(self, name: "textScanning")
+        config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
     }
@@ -138,7 +128,7 @@ public class DictionarySearchViewModel {
         }
     }
 
-    private func handleTextScan(_ offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
+    private func handleTextScan(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
             logger.debug("Scan ignored due to debounce")
@@ -215,5 +205,22 @@ public class DictionarySearchViewModel {
             "'\(key)': '\(value)'"
         }
         return "{\(stylePairs.joined(separator: ", "))}"
+    }
+    
+    public func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+        if message.name == "textScanning" {
+            logger.debug("Received textScanning message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let offset = messageObject["offset"] as? Int,
+                  let context = messageObject["context"] as? String,
+                  let contextStartOffset = messageObject["contextStartOffset"] as? Int,
+                  let cssSelector = messageObject["cssSelector"] as? String
+            else {
+                logger.error("Invalid message body for textScanning")
+                return
+            }
+
+            handleTextScan(offset: offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
+        }
     }
 }
