@@ -10,7 +10,7 @@ import os.log
 import UniformTypeIdentifiers
 import WebKit
 
-public class MediaURLSchemeHandler: URLSchemeHandler {
+public final class MediaURLSchemeHandler: URLSchemeHandler {
     public init() {}
 
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaURLSchemeHandler")

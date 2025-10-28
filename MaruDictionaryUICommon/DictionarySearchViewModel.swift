@@ -23,7 +23,7 @@ public enum ResultDisplayState {
 // Helper class to hold mutable state references for the scheme handler
 @MainActor
 @Observable
-public class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
+public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var resultState: ResultDisplayState
     var showPopup = false
     var focusState: Bool = false

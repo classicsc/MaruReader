@@ -52,7 +52,7 @@ enum BookReaderOverlayState {
 
 @MainActor
 @Observable
-class BookReaderViewModel: NSObject, WKScriptMessageHandler {
+final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var readerState: BookReaderState = .loading
     var overlayState: BookReaderOverlayState = .showingToolbars
     var showPopup = false

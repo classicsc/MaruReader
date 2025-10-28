@@ -12,7 +12,7 @@ import ReadiumNavigator
 import SwiftUI
 
 @MainActor
-class SystemThemeManager {
+struct SystemThemeManager {
     private let context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
 
     // Stable IDs for system themes

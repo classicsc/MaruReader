@@ -15,7 +15,7 @@ import SwiftUI
 
 @MainActor
 @Observable
-class ReaderPreferences {
+final class ReaderPreferences {
     private(set) var book: Book
     private let context: NSManagedObjectContext
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ReaderPreferences")
