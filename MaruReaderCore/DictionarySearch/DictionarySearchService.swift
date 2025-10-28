@@ -27,7 +27,7 @@ public actor DictionarySearchService {
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchService")
 
     private let persistenceController: DictionaryPersistenceController
-    private let candidateGenerator: DictionaryCandidateGenerator
+    private var candidateGenerator: DictionaryCandidateGenerator
     private let backgroundContext: NSManagedObjectContext
 
     /// Cached dictionary metadata, refreshed before each search

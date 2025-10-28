@@ -9,7 +9,7 @@ import Foundation
 
 /// Generates `LookupCandidate` objects from user input through substring generation,
 /// preprocessing, and deinflection pipelines.
-class DictionaryCandidateGenerator {
+struct DictionaryCandidateGenerator {
     // MARK: - Constants
 
     static let defaultMaxCandidates = 1000
@@ -38,7 +38,7 @@ class DictionaryCandidateGenerator {
     /// Generate lookup candidates from user input
     /// - Parameter query: User search string
     /// - Returns: Array of `LookupCandidate` objects with full transformation provenance
-    func generateCandidates(from query: String) -> [LookupCandidate] {
+    mutating func generateCandidates(from query: String) -> [LookupCandidate] {
         guard !query.isEmpty else { return [] }
 
         var candidatesByText: [String: CandidateAccumulator] = [:]
@@ -116,7 +116,7 @@ class DictionaryCandidateGenerator {
     /// Apply text preprocessing rules to generate variants
     /// - Parameter candidate: Base lookup candidate
     /// - Returns: Array of candidates with preprocessing applied
-    private func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
+    private mutating func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
         // Preprocessor config for Japanese, currently all rules enabled
         let defaultTextPreprocessorRules: [TextPreprocessorRule] = [
             NormalizeCJKCompatibilityCharactersRule(),
@@ -136,7 +136,7 @@ class DictionaryCandidateGenerator {
     /// Apply deinflection rules to generate potential dictionary forms
     /// - Parameter candidate: Preprocessed lookup candidate
     /// - Returns: Array of candidates with deinflection applied
-    private func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
+    private mutating func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
         deinflector.deinflect(candidate)
     }
 }
