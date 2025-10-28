@@ -63,7 +63,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var book: Book
     var readerPreferences: ReaderPreferences
     var navigator: EPUBNavigatorViewController?
-    var highlightBoundingRects: [[String: Double]]?
+    var popupAnchorPosition: UnitPoint = .zero
 
     private var popupSearchTask: Task<Void, Error>?
 
@@ -214,7 +214,16 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                         matchEndInContext: searchResults.matchEndInContext,
                         styles: self.highlightStylesAsJSObject()
                     )
-                    self.highlightBoundingRects = boundingRects
+                    let boundingRectsAsCGRects = getBoundingRects(highlightBoundingRects: boundingRects)
+                    if let firstRect = boundingRectsAsCGRects.first {
+                        self.popupAnchorPosition = UnitPoint(
+                            x: firstRect.midX,
+                            y: firstRect.midY
+                        )
+                    } else {
+                        logger.debug("No bounding rects returned for highlight")
+                        self.popupAnchorPosition = .zero
+                    }
                     logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
                     self.showPopup = true
                 }
@@ -222,9 +231,22 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    private func getBoundingRects(highlightBoundingRects: [[String: Double]]) -> [CGRect] {
+        highlightBoundingRects.compactMap { dict in
+            guard let x = dict["x"],
+                  let y = dict["y"],
+                  let width = dict["width"],
+                  let height = dict["height"]
+            else {
+                return nil
+            }
+            return CGRect(x: x, y: y, width: width, height: height)
+        }
+    }
+
     func hidePopup() {
         self.showPopup = false
-        self.highlightBoundingRects = nil
+        self.popupAnchorPosition = .zero
         Task { @MainActor in
             await self.clearHighlights()
         }
