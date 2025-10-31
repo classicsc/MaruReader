@@ -84,7 +84,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
 
     let highlightStyles = [
-        "background-color": "yellow",
+        "background-color": "inherit",
     ]
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderViewModel")
