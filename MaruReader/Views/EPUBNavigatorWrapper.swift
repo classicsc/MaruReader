@@ -27,8 +27,9 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             }
 
             // Build initial preferences from stored settings
+            // The CSS override is required for pagination of vertical writing
             let initialPreferences = viewModel.readerPreferences.buildEPUBPreferences()
-            let config = EPUBNavigatorViewController.Configuration(preferences: initialPreferences, defaults: EPUBDefaults())
+            let config = EPUBNavigatorViewController.Configuration(preferences: initialPreferences, defaults: EPUBDefaults(), readiumCSSRSProperties: CSSRSProperties(overrides: ["-webkit-column-axis": "horizontal"]))
 
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(

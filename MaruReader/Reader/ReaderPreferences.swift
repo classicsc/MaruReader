@@ -332,9 +332,7 @@ final class ReaderPreferences {
             preferences.scroll = scrollValue
         }
 
-        if let verticalTextValue = book.value(forKey: "verticalText") as? Bool {
-            preferences.verticalText = verticalTextValue
-        }
+        preferences.verticalText = false
 
         if let spreadValue = book.value(forKey: "spread") as? Bool {
             // Map spread: Bool -> Spread enum (.always/.never)
