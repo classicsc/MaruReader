@@ -249,7 +249,10 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             else {
                 return nil
             }
-            return CGRect(x: x, y: y, width: width, height: height)
+            return CGRect(x: x + readerPreferences.horizontalMargin,
+                          y: y + readerPreferences.horizontalMargin,
+                          width: width,
+                          height: height)
         }
     }
 
