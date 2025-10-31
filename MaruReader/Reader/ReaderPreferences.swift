@@ -362,24 +362,13 @@ final class ReaderPreferences {
                 preferences.fontWeight = profile.fontWeight
             }
 
-            // Margins (use horizontalMargin as pageMargins since EPUBPreferences has a single value)
-            // Only set if non-zero to allow navigator to use its default (1.0)
-            if profile.horizontalMargin != 0.0 {
-                preferences.pageMargins = profile.horizontalMargin
-            }
-
-            // Theme-based settings
-            if let theme = currentTheme {
-                if let bgColor = theme.value(forKey: "backgroundColor") as? ReadiumNavigator.Color {
-                    preferences.backgroundColor = bgColor
-                }
-                if let textColor = theme.value(forKey: "textColor") as? ReadiumNavigator.Color {
-                    preferences.textColor = textColor
-                }
-                if let imageFilter = theme.value(forKey: "imageFilter") as? ImageFilter {
-                    preferences.imageFilter = imageFilter
-                }
-            }
+            preferences.pageMargins = 0
+        }
+        
+        if UITraitCollection.current.userInterfaceStyle == .dark {
+            preferences.theme = .dark
+        } else {
+            preferences.theme = .light
         }
 
         return preferences

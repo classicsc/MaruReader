@@ -25,11 +25,20 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             guard let publication = viewModel.publication else {
                 return createErrorViewController(message: "Publication not ready")
             }
+            
+            let insets: [UIUserInterfaceSizeClass: EPUBContentInsets] = [
+                .compact: (top: 0, bottom: 0),
+                .regular: (top: 0, bottom: 0),
+            ]
 
             // Build initial preferences from stored settings
             // The CSS override is required for pagination of vertical writing
             let initialPreferences = viewModel.readerPreferences.buildEPUBPreferences()
-            let config = EPUBNavigatorViewController.Configuration(preferences: initialPreferences, defaults: EPUBDefaults(), readiumCSSRSProperties: CSSRSProperties(overrides: ["-webkit-column-axis": "horizontal"]))
+            let config = EPUBNavigatorViewController.Configuration(
+                preferences: initialPreferences,
+                defaults: EPUBDefaults(),
+                contentInset: insets,
+                readiumCSSRSProperties: CSSRSProperties(overrides: ["-webkit-column-axis": "horizontal"]))
 
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(

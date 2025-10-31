@@ -63,7 +63,7 @@ struct BookReaderView: View {
                 EPUBNavigatorWrapper(
                     viewModel: viewModel
                 )
-                .ignoresSafeArea()
+                .padding(viewModel.readerPreferences.horizontalMargin)
                 .popover(
                     isPresented: $viewModel.showPopup,
                     attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
