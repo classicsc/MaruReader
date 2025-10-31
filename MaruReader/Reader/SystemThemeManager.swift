@@ -145,6 +145,8 @@ struct SystemThemeManager {
         profile.isDefault = true
         profile.displayPriority = 0
         profile.language = language
+        profile.horizontalMargin = 40.0
+        profile.verticalMargin = 20.0
 
         // Most attributes not set to allow fallback to publication defaults
 

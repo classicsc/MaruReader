@@ -364,7 +364,7 @@ final class ReaderPreferences {
 
             preferences.pageMargins = 0
         }
-        
+
         if UITraitCollection.current.userInterfaceStyle == .dark {
             preferences.theme = .dark
         } else {

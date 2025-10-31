@@ -29,11 +29,11 @@ struct QuickReaderSettingsMenu: View {
             // Horizontal Margin
             Stepper(
                 value: Binding(
-                    get: { preferences.effectiveHorizontalMargin },
+                    get: { preferences.horizontalMargin },
                     set: { preferences.horizontalMargin = $0 }
                 ),
-                in: 0.5 ... 3.0,
-                step: 0.25,
+                in: 0.0 ... 100.0,
+                step: 10.0,
                 label: {
                     Label("Margin", systemImage: "arrow.left.and.right")
                 }
