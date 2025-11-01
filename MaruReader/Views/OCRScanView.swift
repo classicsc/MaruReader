@@ -85,13 +85,15 @@ struct OCRScanView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
 
                 if !isProcessing {
-                    ForEach(Array(ocr.observations.enumerated()), id: \.offset) { _, observation in
-                        Box(observation: observation)
+                    ForEach(Array(ocr.observations.enumerated()), id: \.offset) { index, observation in
+                        let boxRect = calculateBoxRect(observation: observation, in: imageRect)
+
+                        Rectangle()
                             .stroke(Color.blue, lineWidth: 2)
-                            .frame(width: imageRect.width, height: imageRect.height)
-                            .offset(x: imageRect.minX, y: imageRect.minY)
-                            .contentShape(Rectangle())
+                            .frame(width: boxRect.width, height: boxRect.height)
+                            .offset(x: boxRect.minX, y: boxRect.minY)
                             .onTapGesture {
+                                logger.debug("Tapped observation \(index)")
                                 selectedObservation = observation
                                 showingTextSheet = true
                             }
@@ -129,6 +131,15 @@ struct OCRScanView: View {
         }
 
         return imageRect
+    }
+
+    /// Calculate the actual rect for an observation's bounding box within the image rect
+    private func calculateBoxRect(observation: RecognizedTextObservation, in imageRect: CGRect) -> CGRect {
+        // Convert normalized coordinates to image coordinates (with upper-left origin)
+        let boxInImage = observation.boundingBox.toImageCoordinates(imageRect.size, origin: .upperLeft)
+
+        // Offset by the image rect's position within the container
+        return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
     }
 
     private func textDetailSheet(for observation: RecognizedTextObservation) -> some View {
