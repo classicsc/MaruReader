@@ -94,9 +94,10 @@ struct OCRScanView: View {
                         let boxRect = calculateBoxRect(observation: observation.observation, in: imageRect)
 
                         Rectangle()
-                            .stroke(Color.blue, lineWidth: 2)
+                            .strokeBorder(Color.blue, lineWidth: 2)
+                            .background(Color.blue.opacity(0.0))
                             .frame(width: boxRect.width, height: boxRect.height)
-                            .offset(x: boxRect.minX, y: boxRect.minY)
+                            .position(x: boxRect.midX, y: boxRect.midY)
                             .onTapGesture {
                                 logger.debug("Tapped observation \(index)")
                                 selectedObservation = observation
