@@ -10,8 +10,8 @@ import SwiftUI
 import Vision
 
 public actor OCR {
-    /// The array of `RecognizedTextObservation` objects to hold the request's results.
-    @MainActor public var observations = [RecognizedTextObservation]()
+    /// The array of the request's results.
+    @MainActor public var observations = [TextObservationData]()
 
     /// The Vision request.
     var request: RecognizeTextRequest
@@ -40,8 +40,17 @@ public actor OCR {
         /// Add each observation to the `observations` array.
         await MainActor.run {
             for observation in results {
-                observations.append(observation)
+                observations.append(TextObservationData(observation: observation))
             }
         }
+    }
+}
+
+public struct TextObservationData: Identifiable {
+    public let id = UUID()
+    public let observation: RecognizedTextObservation
+
+    public init(observation: RecognizedTextObservation) {
+        self.observation = observation
     }
 }
