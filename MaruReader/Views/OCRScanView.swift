@@ -76,7 +76,9 @@ struct OCRScanView: View {
 
     private func imageView(_ image: UIImage) -> some View {
         GeometryReader { geometry in
-            ZStack {
+            let imageRect = calculateImageRect(image: image, in: geometry.size)
+
+            ZStack(alignment: .topLeading) {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
@@ -86,6 +88,8 @@ struct OCRScanView: View {
                     ForEach(Array(ocr.observations.enumerated()), id: \.offset) { _, observation in
                         Box(observation: observation)
                             .stroke(Color.blue, lineWidth: 2)
+                            .frame(width: imageRect.width, height: imageRect.height)
+                            .offset(x: imageRect.minX, y: imageRect.minY)
                             .contentShape(Rectangle())
                             .onTapGesture {
                                 selectedObservation = observation
@@ -102,6 +106,29 @@ struct OCRScanView: View {
                 }
             }
         }
+    }
+
+    /// Calculate the actual rect where the image is displayed within the container
+    private func calculateImageRect(image: UIImage, in containerSize: CGSize) -> CGRect {
+        let imageAspect = image.size.width / image.size.height
+        let containerAspect = containerSize.width / containerSize.height
+
+        let imageRect: CGRect
+        if imageAspect > containerAspect {
+            // Image is wider - fit to width
+            let width = containerSize.width
+            let height = width / imageAspect
+            let yOffset = (containerSize.height - height) / 2
+            imageRect = CGRect(x: 0, y: yOffset, width: width, height: height)
+        } else {
+            // Image is taller - fit to height
+            let height = containerSize.height
+            let width = height * imageAspect
+            let xOffset = (containerSize.width - width) / 2
+            imageRect = CGRect(x: xOffset, y: 0, width: width, height: height)
+        }
+
+        return imageRect
     }
 
     private func textDetailSheet(for observation: RecognizedTextObservation) -> some View {
