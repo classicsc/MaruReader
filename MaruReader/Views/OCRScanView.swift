@@ -61,10 +61,8 @@ struct OCRScanView: View {
                     Text(errorMessage)
                 }
             }
-            .sheet(item: $selectedObservation) { _ in
-                if let observation = selectedObservation {
-                    textDetailSheet(for: observation)
-                }
+            .sheet(item: $selectedObservation) { observation in
+                textDetailSheet(for: observation)
             }
         }
     }
