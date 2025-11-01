@@ -25,11 +25,23 @@ public enum ResultDisplayState {
 @Observable
 public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var resultState: ResultDisplayState
-    var showPopup = false
+    private var showingPopup: Bool = false
+    var showPopup: Bool {
+        get { showingPopup }
+        set {
+            if !newValue {
+                Task {
+                    try? await page.clearHighlights()
+                }
+            }
+            showingPopup = newValue
+        }
+    }
+
     var focusState: Bool = false
     var page: WebPage = .init()
     var popupPage: WebPage = .init()
-    var highlightBoundingRects: [[String: Double]]?
+    var popupAnchorPosition: CGRect = .zero
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
@@ -40,7 +52,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
 
     let highlightStyles = [
-        "background-color": "yellow",
+        "background-color": "inherit",
     ]
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
@@ -121,6 +133,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    private func getBoundingRects(highlightBoundingRects: [[String: Double]]) -> [CGRect] {
+        highlightBoundingRects.compactMap { dict in
+            guard let x = dict["x"],
+                  let y = dict["y"],
+                  let width = dict["width"],
+                  let height = dict["height"]
+            else {
+                return nil
+            }
+            return CGRect(x: x,
+                          y: y,
+                          width: width,
+                          height: height)
+        }
+    }
+
     private func handleTextScan(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
@@ -150,18 +178,23 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     // Use offset-based highlighting for precise positioning
                     do {
                         try await page.clearHighlights()
-                        highlightBoundingRects = try await page.highlightTextByContextRange(
+                        let highlightBoundingRects = try await page.highlightTextByContextRange(
                             cssSelector: cssSelector,
                             contextStartOffset: searchResults.contextStartOffset,
                             matchStartInContext: searchResults.matchStartInContext,
                             matchEndInContext: searchResults.matchEndInContext,
                             styles: self.highlightStylesAsJSObject()
                         )
+                        let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
+                        if let firstRect = boundingRects.first {
+                            await MainActor.run {
+                                self.popupAnchorPosition = firstRect
+                            }
+                        }
                     } catch {
                         logger.error("Failed to highlight text: \(error.localizedDescription)")
                     }
                     logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
-                    logger.debug("Highlight bounding rects: \(String(describing: self.highlightBoundingRects))")
                 }
             }
         }

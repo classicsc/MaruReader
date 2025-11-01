@@ -16,25 +16,20 @@ public struct DictionarySearchView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GeometryReader { geometry in
+            GeometryReader { _ in
                 ZStack(alignment: .topLeading) {
                     switch viewModel.resultState {
                     case .ready:
                         WebView(viewModel.page)
-                        // Popup overlay
-                        if viewModel.showPopup {
-                            if let center = DictionaryPopupView.computePopupCenter(
-                                screenSize: geometry.size,
-                                popupSize: CGSize(width: 200, height: 200),
-                                highlightBoundingRects: viewModel.highlightBoundingRects,
-                                readingProgression: .ltr,
-                                isVerticalWriting: false
+                            // Popup overlay
+                            .popover(
+                                isPresented: Binding(get: { viewModel.showPopup }, set: { viewModel.showPopup = $0 }),
+                                attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                             ) {
-                                DictionaryPopupView(page: viewModel.popupPage)
+                                WebView(viewModel.popupPage)
                                     .frame(width: 200, height: 200)
-                                    .position(x: center.x, y: center.y)
+                                    .presentationCompactAdaptation(.popover)
                             }
-                        }
                     case let .noResults(query):
                         ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
                     case .startPage:
