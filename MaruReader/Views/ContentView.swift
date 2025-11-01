@@ -24,12 +24,12 @@ struct ContentView: View {
                 BookLibraryView()
                     .environment(\.managedObjectContext, bookPersistenceController.container.viewContext)
             }
+            Tab("Scan", systemImage: "doc.text.viewfinder") {
+                OCRScanView()
+            }
             Tab("Settings", systemImage: "gear") {
                 SettingsView()
                     .environment(\.managedObjectContext, dictionaryPersistenceController.container.viewContext)
-            }
-            Tab("Scan", systemImage: "doc.text.viewfinder") {
-                OCRScanView()
             }
             Tab(role: .search) {
                 NavigationStack {
