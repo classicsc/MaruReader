@@ -13,11 +13,10 @@ import Vision
 struct OCRScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var observations = [RecognizedTextObservation]()
+    @State private var observations = [TextObservationData]()
     @State private var isProcessing = false
     @State private var errorMessage: String?
-    @State private var selectedObservation: RecognizedTextObservation?
-    @State private var showingTextSheet = false
+    @State private var selectedObservation: TextObservationData?
 
     private var request: RecognizeTextRequest
 
@@ -62,7 +61,7 @@ struct OCRScanView: View {
                     Text(errorMessage)
                 }
             }
-            .sheet(isPresented: $showingTextSheet) {
+            .sheet(item: $selectedObservation) { _ in
                 if let observation = selectedObservation {
                     textDetailSheet(for: observation)
                 }
@@ -94,7 +93,7 @@ struct OCRScanView: View {
 
                 if !isProcessing {
                     ForEach(Array(observations.enumerated()), id: \.offset) { index, observation in
-                        let boxRect = calculateBoxRect(observation: observation, in: imageRect)
+                        let boxRect = calculateBoxRect(observation: observation.observation, in: imageRect)
 
                         Rectangle()
                             .stroke(Color.blue, lineWidth: 2)
@@ -103,7 +102,6 @@ struct OCRScanView: View {
                             .onTapGesture {
                                 logger.debug("Tapped observation \(index)")
                                 selectedObservation = observation
-                                showingTextSheet = true
                             }
                     }
                 }
@@ -150,14 +148,14 @@ struct OCRScanView: View {
         return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
     }
 
-    private func textDetailSheet(for observation: RecognizedTextObservation) -> some View {
+    private func textDetailSheet(for observation: TextObservationData) -> some View {
         logger.debug("Showing text detail sheet")
-        logger.debug("Detected text: \(observation.topCandidates(1).first?.string ?? "None")")
+        logger.debug("Detected text: \(observation.observation.topCandidates(1).first?.string ?? "None")")
 
         return NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if let text = observation.topCandidates(1).first?.string {
+                    if let text = observation.observation.topCandidates(1).first?.string {
                         Text(text)
                             .font(.body)
                             .textSelection(.enabled)
@@ -175,7 +173,7 @@ struct OCRScanView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        showingTextSheet = false
+                        selectedObservation = nil
                     }
                 }
             }
@@ -224,7 +222,12 @@ struct OCRScanView: View {
 
         /// Add each observation to the `observations` array.
         for observation in results {
-            observations.append(observation)
+            observations.append(TextObservationData(observation: observation))
         }
     }
+}
+
+struct TextObservationData: Identifiable {
+    let id = UUID()
+    let observation: RecognizedTextObservation
 }
