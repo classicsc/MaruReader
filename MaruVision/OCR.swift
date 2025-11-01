@@ -45,17 +45,3 @@ public actor OCR {
         }
     }
 }
-
-/// Create and dynamically size a bounding box.
-public struct Box: Shape {
-    private let normalizedRect: NormalizedRect
-
-    public init(observation: any BoundingBoxProviding) {
-        normalizedRect = observation.boundingBox
-    }
-
-    public func path(in rect: CGRect) -> Path {
-        let rect = normalizedRect.toImageCoordinates(rect.size, origin: .upperLeft)
-        return Path(rect)
-    }
-}

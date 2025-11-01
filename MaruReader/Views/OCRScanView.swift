@@ -5,7 +5,6 @@
 //  Created by Sam Smoker on 10/31/25.
 //
 
-import MaruVision
 import os.log
 import PhotosUI
 import SwiftUI
@@ -14,13 +13,22 @@ import Vision
 struct OCRScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var ocr = OCR()
+    @State private var observations = [RecognizedTextObservation]()
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var selectedObservation: RecognizedTextObservation?
     @State private var showingTextSheet = false
 
+    private var request: RecognizeTextRequest
+
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
+
+    init() {
+        self.request = RecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        request.recognitionLanguages = [.init(identifier: "ja-JP")]
+    }
 
     var body: some View {
         NavigationStack {
@@ -85,7 +93,7 @@ struct OCRScanView: View {
                     .frame(width: geometry.size.width, height: geometry.size.height)
 
                 if !isProcessing {
-                    ForEach(Array(ocr.observations.enumerated()), id: \.offset) { index, observation in
+                    ForEach(Array(observations.enumerated()), id: \.offset) { index, observation in
                         let boxRect = calculateBoxRect(observation: observation, in: imageRect)
 
                         Rectangle()
@@ -196,12 +204,27 @@ struct OCRScanView: View {
             selectedImage = image
 
             // Perform OCR
-            try await ocr.performOCR(imageData: data)
+            try await performOCR(imageData: data)
 
             isProcessing = false
         } catch {
             errorMessage = "OCR failed: \(error.localizedDescription)"
             isProcessing = false
+        }
+    }
+
+    private func performOCR(imageData: Data) async throws {
+        /// Clear the `observations` array for photo recapture.
+        observations.removeAll()
+
+        /// Perform the request on the image data and return the results.
+        let results = try await request.perform(on: imageData)
+
+        logger.debug("OCR found \(String(describing: results.count)) text observations.")
+
+        /// Add each observation to the `observations` array.
+        for observation in results {
+            observations.append(observation)
         }
     }
 }
