@@ -28,6 +28,9 @@ struct ContentView: View {
                 SettingsView()
                     .environment(\.managedObjectContext, dictionaryPersistenceController.container.viewContext)
             }
+            Tab("Scan", systemImage: "doc.text.viewfinder") {
+                OCRScanView()
+            }
             Tab(role: .search) {
                 NavigationStack {
                     DictionarySearchView()
