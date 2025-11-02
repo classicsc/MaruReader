@@ -7,13 +7,13 @@
 
 import Foundation
 
-public struct TextLookupRequest: Identifiable {
+public struct TextLookupRequest: Identifiable, Sendable {
     public let id: UUID
-    let offset: Int // Offset of tapped character within context
-    let context: String // Surrounding text
-    let contextStartOffset: Int // Where context starts in the full element text
-    let rubyContext: RubyText? // Context including ruby annotations if available
-    let cssSelector: String? // CSS selector if applicable
+    public let offset: Int // Offset of tapped character within context
+    public let context: String // Surrounding text
+    public let contextStartOffset: Int // Where context starts in the full element text
+    public let rubyContext: RubyText? // Context including ruby annotations if available
+    public let cssSelector: String? // CSS selector if applicable
 
     public init(context: String, offset: Int = 0, contextStartOffset: Int = 0, rubyContext: RubyText? = nil, cssSelector: String? = nil) {
         self.id = UUID()
