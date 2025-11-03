@@ -3,6 +3,7 @@
 //
 //  Dictionary search view with integrated HTML rendering.
 //
+import MaruReaderCore
 import os.log
 import SwiftUI
 import WebKit
@@ -15,7 +16,20 @@ public struct DictionarySearchView: View {
     public init() {}
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // Context display (if available)
+            if let request = viewModel.currentRequest {
+                ContextDisplayView(
+                    context: request.context,
+                    matchRange: viewModel.currentResponse?.primaryResultSourceRange,
+                    onCharacterTap: { offset in
+                        viewModel.performSearchAtOffset(offset)
+                    }
+                )
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            // Main results area
             GeometryReader { _ in
                 ZStack(alignment: .topLeading) {
                     switch viewModel.resultState {
@@ -43,6 +57,29 @@ public struct DictionarySearchView: View {
                             .background(Color(.systemBackground))
                     }
                 }
+            }
+
+            // Navigation toolbar (only visible when navigation is possible)
+            if viewModel.history.canGoBack || viewModel.history.canGoForward {
+                HStack(spacing: 16) {
+                    Button(action: { viewModel.navigateBack() }) {
+                        Label("Back", systemImage: "chevron.backward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .disabled(!viewModel.history.canGoBack)
+
+                    Button(action: { viewModel.navigateForward() }) {
+                        Label("Forward", systemImage: "chevron.forward")
+                            .labelStyle(.iconOnly)
+                    }
+                    .disabled(!viewModel.history.canGoForward)
+
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                .background(Color(.systemBackground))
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
     }

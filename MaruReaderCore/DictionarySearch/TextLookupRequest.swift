@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct TextLookupRequest: Identifiable, Sendable {
+public struct TextLookupRequest: Sendable, Identifiable {
     public let id: UUID
     public let offset: Int // Offset of tapped character within context
     public let context: String // Surrounding text

@@ -30,6 +30,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         get { showingPopup }
         set {
             if !newValue {
+                currentPopupResponse = nil
                 Task {
                     try? await page.clearHighlights()
                 }
@@ -42,9 +43,17 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var page: WebPage = .init()
     var popupPage: WebPage = .init()
     var popupAnchorPosition: CGRect = .zero
+    private var currentPopupResponse: TextLookupResponse?
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
+
+    // Store current lookup request and response for context display
+    var currentRequest: TextLookupRequest?
+    var currentResponse: TextLookupResponse?
+
+    // Navigation history for back/forward functionality
+    let history = NavigationHistory()
 
     private let searchService = DictionarySearchService()
 
@@ -62,6 +71,40 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         super.init()
         initializeWebPage()
         initializePopupPage()
+    }
+
+    /// Initialize with an existing lookup response to preserve context
+    public init(response: TextLookupResponse) {
+        self.resultState = .ready
+
+        // Reconstruct the request from the response data
+        // Use the start of the match as the offset
+        let reconstructedRequest = TextLookupRequest(
+            context: response.context,
+            offset: response.matchStartInContext,
+            contextStartOffset: response.contextStartOffset,
+            rubyContext: nil,
+            cssSelector: nil
+        )
+
+        self.currentRequest = reconstructedRequest
+        self.currentResponse = response
+        super.init()
+        initializeWebPage()
+        initializePopupPage()
+
+        // Load the HTML and push to navigation history
+        Task {
+            let loadSequence = page.load(html: response.toResultsHTML())
+            for try await value in loadSequence {
+                if value == WebPage.NavigationEvent.finished {
+                    await MainActor.run {
+                        self.history.push(request: reconstructedRequest, response: response)
+                    }
+                    return
+                }
+            }
+        }
     }
 
     private func initializeWebPage() {
@@ -88,33 +131,47 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         popupPage.isInspectable = true
     }
 
-    public func performSearch(_ searchQuery: String) {
+    /// Perform a search at a specific offset within the current context
+    public func performSearchAtOffset(_ offset: Int) {
+        guard let currentRequest else { return }
+        let newRequest = TextLookupRequest(
+            context: currentRequest.context,
+            offset: offset,
+            contextStartOffset: currentRequest.contextStartOffset,
+            rubyContext: currentRequest.rubyContext,
+            cssSelector: currentRequest.cssSelector
+        )
+        performSearchWithRequest(newRequest)
+    }
+
+    /// Perform a search with a specific TextLookupRequest
+    private func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
         searchTask?.cancel()
         searchTask = Task {
-            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
             if Task.isCancelled { return }
             Task { @MainActor in
                 self.hidePopup()
-            }
-            guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                await MainActor.run {
-                    self.resultState = .startPage
-                }
-                return
             }
 
             let updateTask = Task { @MainActor in
                 self.resultState = .searching
             }
-            let lookupRequest = TextLookupRequest(context: searchQuery)
             do {
                 guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                     await MainActor.run {
-                        self.resultState = .noResults(searchQuery)
+                        self.currentRequest = lookupRequest
+                        self.currentResponse = nil
+                        self.resultState = .noResults(lookupRequest.context)
                     }
                     return
                 }
                 await updateTask.value
+                await MainActor.run {
+                    self.currentRequest = lookupRequest
+                    self.currentResponse = searchResults
+                    // Push to navigation history
+                    self.history.push(request: lookupRequest, response: searchResults)
+                }
                 let loadSequence = page.load(html: searchResults.toResultsHTML())
                 for try await value in loadSequence {
                     if Task.isCancelled { return }
@@ -125,11 +182,35 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 }
             } catch {
                 await MainActor.run {
+                    self.currentRequest = lookupRequest
+                    self.currentResponse = nil
                     self.resultState = .error(error)
                 }
                 self.logger.error("Search error: \(error.localizedDescription)")
                 return
             }
+        }
+    }
+
+    public func performSearch(_ searchQuery: String) {
+        // Cancel any existing search
+        searchTask?.cancel()
+
+        // Handle empty query
+        guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            currentRequest = nil
+            currentResponse = nil
+            resultState = .startPage
+            return
+        }
+
+        // Start new search with debounce
+        searchTask = Task {
+            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
+            if Task.isCancelled { return }
+
+            let lookupRequest = TextLookupRequest(context: searchQuery)
+            performSearchWithRequest(lookupRequest)
         }
     }
 
@@ -169,6 +250,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 return
             }
+            // Store the response so we can preserve context when navigating
+            await MainActor.run {
+                self.currentPopupResponse = searchResults
+            }
             let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
             for try await value in loadSequence {
                 try Task.checkCancellation()
@@ -202,6 +287,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     public func hidePopup() {
         self.showPopup = false
+        self.currentPopupResponse = nil
         Task { @MainActor in
             do {
                 try await page.clearHighlights()
@@ -250,9 +336,81 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         } else if message.name == "navigateToTerm" {
             if let term = message.body as? String {
                 logger.debug("Received navigateToTerm message for term: \(term)")
-                performSearch(term)
+                // If we have a popup response with context, use it to preserve context
+                if let popupResponse = currentPopupResponse {
+                    // Reconstruct request from the popup response to preserve context
+                    let request = TextLookupRequest(
+                        context: popupResponse.context,
+                        offset: popupResponse.matchStartInContext,
+                        contextStartOffset: popupResponse.contextStartOffset,
+                        rubyContext: nil,
+                        cssSelector: nil
+                    )
+                    performSearchWithRequest(request)
+                } else {
+                    // Fallback to simple search if no popup context available
+                    performSearch(term)
+                }
             } else {
                 logger.warning("navigateToTerm message body is not a string")
+            }
+        }
+    }
+
+    /// Navigate backwards in history
+    public func navigateBack() {
+        guard let entry = history.goBack() else {
+            logger.warning("Cannot navigate back: no history available")
+            return
+        }
+
+        // Cancel any pending searches
+        searchTask?.cancel()
+
+        // Restore state from history entry
+        currentRequest = entry.request
+        currentResponse = entry.response
+        hidePopup()
+
+        // Load the HTML and update result state
+        Task {
+            let loadSequence = page.load(html: entry.response.toResultsHTML())
+            for try await value in loadSequence {
+                if value == WebPage.NavigationEvent.finished {
+                    await MainActor.run {
+                        self.resultState = .ready
+                    }
+                    return
+                }
+            }
+        }
+    }
+
+    /// Navigate forwards in history
+    public func navigateForward() {
+        guard let entry = history.goForward() else {
+            logger.warning("Cannot navigate forward: no history available")
+            return
+        }
+
+        // Cancel any pending searches
+        searchTask?.cancel()
+
+        // Restore state from history entry
+        currentRequest = entry.request
+        currentResponse = entry.response
+        hidePopup()
+
+        // Load the HTML and update result state
+        Task {
+            let loadSequence = page.load(html: entry.response.toResultsHTML())
+            for try await value in loadSequence {
+                if value == WebPage.NavigationEvent.finished {
+                    await MainActor.run {
+                        self.resultState = .ready
+                    }
+                    return
+                }
             }
         }
     }

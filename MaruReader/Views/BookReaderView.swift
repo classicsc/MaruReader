@@ -15,7 +15,7 @@ import WebKit
 
 struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
-    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
+    @State private var searchSheetViewModel: DictionarySearchViewModel?
     @Environment(\.colorScheme) var colorScheme
 
     init(book: Book) {
@@ -33,21 +33,26 @@ struct BookReaderView: View {
             readerView
                 .sheet(isPresented: $viewModel.showingDictionarySheet) {
                     NavigationStack {
-                        DictionarySearchView()
-                            .environment(searchSheetViewModel)
-                            .navigationTitle("Dictionary")
-                            .navigationBarTitleDisplayMode(.inline)
-                            .navigationBarBackButtonHidden(true)
-                            .toolbar {
-                                ToolbarItem(placement: .cancellationAction) {
-                                    Button("Done") {
-                                        viewModel.showingDictionarySheet = false
+                        if let sheetViewModel = searchSheetViewModel {
+                            DictionarySearchView()
+                                .environment(sheetViewModel)
+                                .navigationTitle("Dictionary")
+                                .navigationBarTitleDisplayMode(.inline)
+                                .navigationBarBackButtonHidden(true)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Done") {
+                                            viewModel.showingDictionarySheet = false
+                                        }
                                     }
                                 }
-                            }
+                        }
                     }
                     .onAppear {
-                        searchSheetViewModel.performSearch(viewModel.sheetQueryTerm)
+                        // Initialize the view model with the lookup response
+                        if let response = viewModel.sheetLookupResponse {
+                            searchSheetViewModel = DictionarySearchViewModel(response: response)
+                        }
                     }
                     .presentationDetents([.medium, .large])
                 }

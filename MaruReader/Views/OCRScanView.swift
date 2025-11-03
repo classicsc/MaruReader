@@ -5,6 +5,7 @@
 //  Created by Sam Smoker on 10/31/25.
 //
 
+import MaruDictionaryUICommon
 import MaruVision
 import os.log
 import PhotosUI
@@ -17,6 +18,7 @@ struct OCRScanView: View {
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var selectedObservation: TextObservationData?
+    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var ocr = OCR()
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
@@ -53,8 +55,26 @@ struct OCRScanView: View {
                     Text(errorMessage)
                 }
             }
-            .sheet(item: $selectedObservation) { observation in
-                textDetailSheet(for: observation)
+            .sheet(item: $selectedObservation) { _ in
+                NavigationStack {
+                    DictionarySearchView()
+                        .environment(searchSheetViewModel)
+                        .navigationTitle("Dictionary")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .navigationBarBackButtonHidden(true)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    selectedObservation = nil
+                                }
+                            }
+                        }
+                }
+                .onAppear {
+                    // Initialize the view model with the transcript
+                    searchSheetViewModel.performSearch(selectedObservation?.observation.transcript ?? "")
+                }
+                .presentationDetents([.medium, .large])
             }
         }
     }
@@ -137,38 +157,6 @@ struct OCRScanView: View {
 
         // Offset by the image rect's position within the container
         return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
-    }
-
-    private func textDetailSheet(for observation: TextObservationData) -> some View {
-        logger.debug("Showing text detail sheet")
-        logger.debug("Detected text: \(observation.observation.topCandidates(1).first?.string ?? "None")")
-
-        return NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if let text = observation.observation.topCandidates(1).first?.string {
-                        Text(text)
-                            .font(.body)
-                            .textSelection(.enabled)
-                            .padding()
-                    } else {
-                        Text("No text detected")
-                            .foregroundStyle(.secondary)
-                            .padding()
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .navigationTitle("Detected Text")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") {
-                        selectedObservation = nil
-                    }
-                }
-            }
-        }
     }
 
     private func loadImage(from item: PhotosPickerItem?) async {

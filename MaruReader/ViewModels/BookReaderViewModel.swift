@@ -69,13 +69,14 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     var popupPage: WebPage = .init()
-    var sheetQueryTerm: String = ""
+    var sheetLookupResponse: TextLookupResponse?
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
     var readerPreferences: ReaderPreferences
     var navigator: EPUBNavigatorViewController?
     var popupAnchorPosition: CGRect = .zero
+    private var currentPopupResponse: TextLookupResponse?
 
     private var popupSearchTask: Task<Void, Error>?
 
@@ -188,9 +189,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         popupPage.isInspectable = true
     }
 
-    func searchInDictionarySheet(_ term: String) {
-        logger.debug("Searching in dictionary sheet for term: \(term)")
-        sheetQueryTerm = term
+    func searchInDictionarySheet(response: TextLookupResponse) {
+        logger.debug("Opening dictionary sheet with context: \(response.context)")
+        sheetLookupResponse = response
         showingDictionarySheet = true
     }
 
@@ -212,6 +213,10 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         popupSearchTask = Task {
             guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 return
+            }
+            // Store the response so we can pass it when opening the dictionary sheet
+            await MainActor.run {
+                self.currentPopupResponse = searchResults
             }
             let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
             for try await value in loadSequence {
@@ -259,6 +264,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     func hidePopup() {
         self.showPopup = false
         self.popupAnchorPosition = .zero
+        self.currentPopupResponse = nil
         Task { @MainActor in
             await self.clearHighlights()
         }
@@ -330,7 +336,12 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         if message.name == "navigateToTerm" {
             if let term = message.body as? String {
                 logger.debug("Received navigateToTerm message for term: \(term)")
-                searchInDictionarySheet(term)
+                // Pass the current popup response if available
+                if let response = currentPopupResponse {
+                    searchInDictionarySheet(response: response)
+                } else {
+                    logger.warning("No current popup response available, cannot preserve context")
+                }
             } else {
                 logger.warning("navigateToTerm message body is not a string")
             }
