@@ -17,9 +17,13 @@ final class ShareViewController: UIViewController {
             return
         }
 
-        // Check if it's an image
+        // Check if it's an image (direct image data)
         if itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
             handleImageShare(itemProvider: itemProvider)
+        }
+        // Check if it's a URL (web images from Safari)
+        else if itemProvider.hasItemConformingToTypeIdentifier(UTType.url.identifier) {
+            handleURLShare(itemProvider: itemProvider)
         }
         // Check if it's text
         else if itemProvider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
@@ -67,6 +71,35 @@ final class ShareViewController: UIViewController {
 
             DispatchQueue.main.async {
                 self?.showSearchView(mode: .image(image: image, imageData: data))
+            }
+        }
+    }
+
+    private func handleURLShare(itemProvider: NSItemProvider) {
+        itemProvider.loadItem(forTypeIdentifier: UTType.url.identifier, options: nil) { [weak self] item, error in
+            guard error == nil, let url = item as? URL else {
+                self?.cancelRequest()
+                return
+            }
+
+            // Download the content from the URL
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+
+                do {
+                    let (data, _) = try await URLSession.shared.data(from: url)
+
+                    // Try to create an image from the downloaded data
+                    if let image = UIImage(data: data) {
+                        self.showSearchView(mode: .image(image: image, imageData: data))
+                    } else {
+                        // Not an image, cancel
+                        self.cancelRequest()
+                    }
+                } catch {
+                    // Failed to download or process
+                    self.cancelRequest()
+                }
             }
         }
     }
