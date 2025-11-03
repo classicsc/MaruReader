@@ -22,7 +22,7 @@ public struct OCRScanView: View {
     @State private var ocr = OCR()
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
-    
+
     public init() {}
 
     public var body: some View {
@@ -35,6 +35,7 @@ public struct OCRScanView: View {
                 }
             }
             .navigationTitle("Scan")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     PhotosPicker(selection: $selectedItem, matching: .images) {

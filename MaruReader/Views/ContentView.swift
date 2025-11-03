@@ -7,8 +7,8 @@
 
 import CoreData
 import MaruDictionaryUICommon
-import MaruVisionUICommon
 import MaruReaderCore
+import MaruVisionUICommon
 import SwiftUI
 
 struct ContentView: View {
