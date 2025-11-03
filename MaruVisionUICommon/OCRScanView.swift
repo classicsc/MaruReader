@@ -12,7 +12,7 @@ import PhotosUI
 import SwiftUI
 import Vision
 
-struct OCRScanView: View {
+public struct OCRScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var isProcessing = false
@@ -22,8 +22,10 @@ struct OCRScanView: View {
     @State private var ocr = OCR()
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
+    
+    public init() {}
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             VStack {
                 if let image = selectedImage {
