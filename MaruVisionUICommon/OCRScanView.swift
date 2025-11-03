@@ -17,8 +17,6 @@ public struct OCRScanView: View {
     @State private var selectedImage: UIImage?
     @State private var isProcessing = false
     @State private var errorMessage: String?
-    @State private var selectedObservation: TextObservationData?
-    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var ocr = OCR()
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
@@ -29,7 +27,11 @@ public struct OCRScanView: View {
         NavigationStack {
             VStack {
                 if let image = selectedImage {
-                    imageView(image)
+                    OCRImageResultsView(
+                        image: image,
+                        observations: ocr.observations,
+                        isProcessing: isProcessing
+                    )
                 } else {
                     placeholderView
                 }
@@ -58,27 +60,6 @@ public struct OCRScanView: View {
                     Text(errorMessage)
                 }
             }
-            .sheet(item: $selectedObservation) { _ in
-                NavigationStack {
-                    DictionarySearchView()
-                        .environment(searchSheetViewModel)
-                        .navigationTitle("Dictionary")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .navigationBarBackButtonHidden(true)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
-                                    selectedObservation = nil
-                                }
-                            }
-                        }
-                }
-                .onAppear {
-                    // Initialize the view model with the transcript
-                    searchSheetViewModel.performSearch(selectedObservation?.observation.transcript ?? "")
-                }
-                .presentationDetents([.medium, .large])
-            }
         }
     }
 
@@ -92,74 +73,6 @@ public struct OCRScanView: View {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private func imageView(_ image: UIImage) -> some View {
-        GeometryReader { geometry in
-            let imageRect = calculateImageRect(image: image, in: geometry.size)
-
-            ZStack(alignment: .topLeading) {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-
-                if !isProcessing {
-                    ForEach(Array(ocr.observations.enumerated()), id: \.offset) { index, observation in
-                        let boxRect = calculateBoxRect(observation: observation.observation, in: imageRect)
-
-                        Rectangle()
-                            .strokeBorder(Color.blue, lineWidth: 2)
-                            .background(Color.blue.opacity(0.0))
-                            .frame(width: boxRect.width, height: boxRect.height)
-                            .position(x: boxRect.midX, y: boxRect.midY)
-                            .onTapGesture {
-                                logger.debug("Tapped observation \(index)")
-                                selectedObservation = observation
-                            }
-                    }
-                }
-
-                if isProcessing {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .background(Color.black.opacity(0.2))
-                }
-            }
-        }
-    }
-
-    /// Calculate the actual rect where the image is displayed within the container
-    private func calculateImageRect(image: UIImage, in containerSize: CGSize) -> CGRect {
-        let imageAspect = image.size.width / image.size.height
-        let containerAspect = containerSize.width / containerSize.height
-
-        let imageRect: CGRect
-        if imageAspect > containerAspect {
-            // Image is wider - fit to width
-            let width = containerSize.width
-            let height = width / imageAspect
-            let yOffset = (containerSize.height - height) / 2
-            imageRect = CGRect(x: 0, y: yOffset, width: width, height: height)
-        } else {
-            // Image is taller - fit to height
-            let height = containerSize.height
-            let width = height * imageAspect
-            let xOffset = (containerSize.width - width) / 2
-            imageRect = CGRect(x: xOffset, y: 0, width: width, height: height)
-        }
-
-        return imageRect
-    }
-
-    /// Calculate the actual rect for an observation's bounding box within the image rect
-    private func calculateBoxRect(observation: RecognizedTextObservation, in imageRect: CGRect) -> CGRect {
-        // Convert normalized coordinates to image coordinates (with upper-left origin)
-        let boxInImage = observation.boundingBox.toImageCoordinates(imageRect.size, origin: .upperLeft)
-
-        // Offset by the image rect's position within the container
-        return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
     }
 
     private func loadImage(from item: PhotosPickerItem?) async {

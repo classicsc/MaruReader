@@ -1,35 +1,78 @@
 import MaruDictionaryUICommon
+import MaruVision
+import MaruVisionUICommon
 import Social
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Extract shared text
         guard let extensionItem = extensionContext?.inputItems.first as? NSExtensionItem,
-              let itemProvider = extensionItem.attachments?.first,
-              itemProvider.hasItemConformingToTypeIdentifier("public.text")
+              let itemProvider = extensionItem.attachments?.first
         else {
             cancelRequest()
             return
         }
 
-        itemProvider.loadItem(forTypeIdentifier: "public.text", options: nil) { [weak self] item, _ in
+        // Check if it's an image
+        if itemProvider.hasItemConformingToTypeIdentifier(UTType.image.identifier) {
+            handleImageShare(itemProvider: itemProvider)
+        }
+        // Check if it's text
+        else if itemProvider.hasItemConformingToTypeIdentifier(UTType.text.identifier) {
+            handleTextShare(itemProvider: itemProvider)
+        } else {
+            cancelRequest()
+        }
+    }
+
+    private func handleTextShare(itemProvider: NSItemProvider) {
+        itemProvider.loadItem(forTypeIdentifier: UTType.text.identifier, options: nil) { [weak self] item, _ in
             guard let text = item as? String else {
                 self?.cancelRequest()
                 return
             }
 
             DispatchQueue.main.async {
-                self?.showDictionarySearch(for: text)
+                self?.showSearchView(mode: .text(query: text))
             }
         }
     }
 
-    private func showDictionarySearch(for text: String) {
-        let searchView = SearchView(query: text) { [weak self] in
+    private func handleImageShare(itemProvider: NSItemProvider) {
+        itemProvider.loadItem(forTypeIdentifier: UTType.image.identifier, options: nil) { [weak self] item, error in
+            guard error == nil else {
+                self?.cancelRequest()
+                return
+            }
+
+            var imageData: Data?
+
+            // Handle different image item types
+            if let data = item as? Data {
+                imageData = data
+            } else if let url = item as? URL {
+                imageData = try? Data(contentsOf: url)
+            } else if let image = item as? UIImage {
+                imageData = image.jpegData(compressionQuality: 1.0)
+            }
+
+            guard let data = imageData, let image = UIImage(data: data) else {
+                self?.cancelRequest()
+                return
+            }
+
+            DispatchQueue.main.async {
+                self?.showSearchView(mode: .image(image: image, imageData: data))
+            }
+        }
+    }
+
+    private func showSearchView(mode: SearchView.Mode) {
+        let searchView = SearchView(mode: mode) { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil, completionHandler: nil)
         }
 
@@ -49,25 +92,76 @@ final class ShareViewController: UIViewController {
 }
 
 struct SearchView: View {
-    private var viewModel = DictionarySearchViewModel(resultState: .searching)
+    enum Mode {
+        case text(query: String)
+        case image(image: UIImage, imageData: Data)
+    }
+
+    @State private var viewModel = DictionarySearchViewModel(resultState: .searching)
+    @State private var ocr = OCR()
+    @State private var isProcessing = false
+    @State private var errorMessage: String?
+
+    private let mode: Mode
     private let onDismiss: (() -> Void)?
 
-    init(query: String, onDismiss: (() -> Void)? = nil) {
-        viewModel.performSearch(query)
+    init(mode: Mode, onDismiss: (() -> Void)? = nil) {
+        self.mode = mode
         self.onDismiss = onDismiss
     }
 
     var body: some View {
         NavigationStack {
-            DictionarySearchView()
-                .environment(viewModel)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            onDismiss?()
+            Group {
+                switch mode {
+                case let .text(query):
+                    DictionarySearchView()
+                        .environment(viewModel)
+                        .onAppear {
+                            viewModel.performSearch(query)
                         }
+
+                case let .image(image, imageData):
+                    OCRImageResultsView(
+                        image: image,
+                        observations: ocr.observations,
+                        isProcessing: isProcessing
+                    )
+                    .task {
+                        await performOCR(imageData: imageData)
                     }
                 }
+            }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done") {
+                        onDismiss?()
+                    }
+                }
+            }
+            .alert("Error", isPresented: .init(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                if let errorMessage {
+                    Text(errorMessage)
+                }
+            }
+        }
+    }
+
+    private func performOCR(imageData: Data) async {
+        isProcessing = true
+        errorMessage = nil
+
+        do {
+            try await ocr.performOCR(imageData: imageData)
+            isProcessing = false
+        } catch {
+            errorMessage = "OCR failed: \(error.localizedDescription)"
+            isProcessing = false
         }
     }
 }
