@@ -37,18 +37,18 @@ struct ContentView: View {
                     DictionarySearchView()
                         .environment(searchViewModel)
                 }
-            }
-        }
-        .searchable(text: $query, placement: .automatic, prompt: "Search Dictionary")
-        .searchFocused($isSearchFieldFocused)
-        .onChange(of: query) { _, newValue in
-            searchViewModel.performSearch(newValue)
-        }
-        .onChange(of: isSearchFieldFocused) { _, isFocused in
-            if isFocused {
-                searchViewModel.textFieldFocused()
-            } else {
-                searchViewModel.textFieldUnfocused()
+                .searchable(text: $query, placement: .automatic, prompt: "Search Dictionary")
+                .searchFocused($isSearchFieldFocused)
+                .onChange(of: query) { _, newValue in
+                    searchViewModel.performSearch(newValue)
+                }
+                .onChange(of: isSearchFieldFocused) { _, isFocused in
+                    if isFocused {
+                        searchViewModel.textFieldFocused()
+                    } else {
+                        searchViewModel.textFieldUnfocused()
+                    }
+                }
             }
         }
         .tabViewSearchActivation(.searchTabSelection)
