@@ -365,4 +365,28 @@ extension TermFetcherRankingTests {
         // Source term length (criterion 1) should override dictionary priority (criterion 6)
         #expect(longCriteria > shortCriteria, "Source term length should override dictionary priority")
     }
+
+    // MARK: - Multi-frequency tests
+
+    @Test func frequencyInfoPrioritySorting() {
+        let highPriorityInfo = FrequencyInfo(
+            dictionaryTitle: "HighPriorityDict",
+            value: 1000.0,
+            mode: "occurrence-based",
+            priority: 1
+        )
+        let lowPriorityInfo = FrequencyInfo(
+            dictionaryTitle: "LowPriorityDict",
+            value: 100.0,
+            mode: "occurrence-based",
+            priority: 10
+        )
+
+        let unsorted = [lowPriorityInfo, highPriorityInfo]
+        let sorted = unsorted.sorted { $0.priority < $1.priority }
+
+        #expect(sorted[0].priority == 1, "Highest priority (lowest number) should sort first")
+        #expect(sorted[0].dictionaryTitle == "HighPriorityDict")
+        #expect(sorted[1].priority == 10, "Lower priority should sort after")
+    }
 }

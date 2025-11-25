@@ -111,9 +111,10 @@ enum TermFetcher {
                     continue
                 }
 
-                // Get frequency for this term
+                // Get frequencies for this term
                 let frequencyKey = "\(expression)|\(reading)"
-                let frequency = frequencyMap[frequencyKey] ?? (nil, nil)
+                let frequencies = frequencyMap[frequencyKey] ?? []
+                let bestFrequency = frequencies.first
 
                 // Build term tags
                 let termTagNames = decodeStringArray(from: entry.termTags) ?? []
@@ -131,18 +132,18 @@ enum TermFetcher {
                     tagMetadataMap: tagMetadataMap
                 )
 
-                // Create ranking criteria
+                // Create ranking criteria using best frequency
                 let rankingCriteria = RankingCriteria(
                     candidate: candidate,
                     term: expression,
                     entry: entry,
                     definitions: definitions,
-                    frequency: frequency,
+                    frequency: (bestFrequency?.value, bestFrequency?.mode),
                     dictionaryTitle: dictMetadata.title,
                     dictionaryPriority: dictMetadata.termDisplayPriority
                 )
 
-                logger.debug("Created SearchResult: term='\(expression, privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), sequence=\(entry.sequence)")
+                logger.debug("Created SearchResult: term='\(expression, privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), frequencies=\(frequencies.count), sequence=\(entry.sequence)")
 
                 // Create SearchResult
                 let searchResult = SearchResult(
@@ -150,7 +151,8 @@ enum TermFetcher {
                     term: expression,
                     reading: reading.isEmpty ? nil : reading,
                     definitions: definitions,
-                    frequency: frequency.value,
+                    frequency: bestFrequency?.value,
+                    frequencies: frequencies,
                     dictionaryTitle: dictMetadata.title,
                     dictionaryUUID: dictionaryID,
                     displayPriority: dictMetadata.termDisplayPriority,
@@ -200,7 +202,7 @@ enum TermFetcher {
         dictionaryMetadata: [UUID: DictionaryMetadata],
         context: NSManagedObjectContext,
         logger: Logger
-    ) throws -> [String: (value: Double?, mode: String?)] {
+    ) throws -> [String: [FrequencyInfo]] {
         // Filter to only frequency-enabled dictionaries
         let frequencyEnabledIDs = dictionaryMetadata
             .filter(\.value.termFrequencyEnabled)
@@ -221,33 +223,38 @@ enum TermFetcher {
         let frequencyEntries = try context.fetch(fetchRequest)
         logger.debug("Found \(frequencyEntries.count) frequency entries")
 
-        // Build map: "expression|reading" -> best frequency
-        var frequencyMap: [String: (value: Double?, mode: String?)] = [:]
+        // Build map: "expression|reading" -> [FrequencyInfo] sorted by priority asc
+        var frequencyMap: [String: [FrequencyInfo]] = [:]
 
         // Group by expression+reading
-        let grouped = [String: [TermFrequencyEntry]](grouping: frequencyEntries) { entry in
+        let grouped = Swift.Dictionary(grouping: frequencyEntries, by: { entry in
             guard let expression = entry.expression, let reading = entry.reading else {
                 return ""
             }
             return "\(expression)|\(reading)"
-        }
+        })
 
         for (key, entries) in grouped {
-            // Get frequency from highest priority dictionary
-            let bestFrequency = entries.compactMap { entry -> (Double, Int, String?)? in
+            var freqInfos: [FrequencyInfo] = []
+            for entry in entries {
                 guard let dictionaryID = entry.dictionaryID,
                       let dictMetadata = dictionaryMetadata[dictionaryID],
                       dictMetadata.termFrequencyEnabled
                 else {
-                    return nil
+                    continue
                 }
-                return (entry.value, dictMetadata.termFrequencyDisplayPriority, dictMetadata.frequencyMode)
+                let value = entry.value
+                let info = FrequencyInfo(
+                    dictionaryTitle: dictMetadata.title,
+                    value: value,
+                    mode: dictMetadata.frequencyMode,
+                    priority: dictMetadata.termFrequencyDisplayPriority
+                )
+                freqInfos.append(info)
             }
-            .min { $0.1 < $1.1 } // Lower priority number is higher priority
-
-            if let best = bestFrequency {
-                frequencyMap[key] = (best.0, best.2)
-            }
+            // Sort by priority ascending (lower number = higher priority)
+            freqInfos.sort { $0.priority < $1.priority }
+            frequencyMap[key] = freqInfos
         }
 
         return frequencyMap

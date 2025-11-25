@@ -1,6 +1,6 @@
 /* This file is derived from structured-content.css, part of the Yomitan project.
-* Copyright (C) 2024-2025  Yomitan Authors
-* Used under the terms of the GNU General Public License v3.0
+ * Copyright (C) 2024-2025  Yomitan Authors
+ * Used under the terms of the GNU General Public License v3.0
  */
 
 /* Root and variables for iOS system colors and sizing */
@@ -19,6 +19,9 @@
     --background-color-dark2: color-mix(in srgb, Canvas 80% CanvasText 20%);
     --gloss-image-background-color: Canvas;
 
+    /* Frequency color (matching tag) */
+    --frequency-color: #5cb85c;
+    
     /* Typography scale */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
@@ -52,28 +55,74 @@
     --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
-/* Material Symbols Outlined font for icons */
-@font-face {
-  font-family: 'Material Symbols Outlined';
-  font-style: normal;
-  font-weight: 400;
-  src: url('marureader-resource://MaterialSymbolsOutlined.woff2') format('woff');
+/* Frequency display styles */
+.frequency-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
 }
 
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+.freq-compact {
+    background: var(--frequency-color);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: var(--font-size-xs);
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.freq-toggle {
+    background: var(--frequency-color);
+    color: white;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.freq-toggle:hover {
+    background: color-mix(in srgb, var(--frequency-color) 80%, black);
+    transform: scale(1.05);
+}
+
+.freq-toggle:active {
+    transform: scale(0.95);
+}
+
+.freq-expanded {
+    display: none;
+    inline-size: max-content;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-left: 4px;
+    padding: 2px 4px;
+    background: var(--background-color-dark1);
+    border-radius: 6px;
+}
+
+.freq-item {
+    background: transparent;
+    color: var(--text-color);
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: 500;
+}
+
+.freq-separator {
+    color: var(--text-color-light2);
+    font-weight: normal;
 }
 
 /* Body and layout from SearchViewModel */

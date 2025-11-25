@@ -23,6 +23,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
         "domUtilities.js",
         "textScanning.js",
         "textHighlighting.js",
+        "frequencyDisplay.js",
     ]
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

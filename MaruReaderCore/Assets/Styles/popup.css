@@ -201,3 +201,22 @@
     border-radius: 3px;
     display: inline-block;
 }
+
+/* Frequency display for popup (compact only) */
+.frequency-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 4px;
+}
+
+.freq-compact {
+    background: #5cb85c;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}

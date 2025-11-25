@@ -13,6 +13,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
     let reading: String?
     let definitions: [Definition]
     let frequency: Double?
+    let frequencies: [FrequencyInfo]
     let dictionaryTitle: String
     let dictionaryUUID: UUID
     let displayPriority: Int
