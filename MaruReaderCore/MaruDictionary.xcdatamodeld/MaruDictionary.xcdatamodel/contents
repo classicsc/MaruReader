@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24411" systemVersion="25B78" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
@@ -58,6 +58,14 @@
         <fetchIndex name="byIPAEnabled">
             <fetchIndexElement property="ipaEnabled" type="Binary" order="ascending"/>
         </fetchIndex>
+    </entity>
+    <entity name="DictionaryDisplayPreferences" representedClassName="DictionaryDisplayPreferences" syncable="YES" codeGenerationType="class">
+        <attribute name="enabled" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="fontFamily" attributeType="String"/>
+        <attribute name="fontSize" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="popupFontSize" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="showDeinflection" attributeType="Boolean" usesScalarValueType="YES"/>
     </entity>
     <entity name="DictionaryTagMeta" representedClassName="DictionaryTagMeta" syncable="YES" codeGenerationType="class">
         <attribute name="category" attributeType="String"/>
