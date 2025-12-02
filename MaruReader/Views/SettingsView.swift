@@ -18,6 +18,9 @@ struct SettingsView: View {
                 }
                 Section("Appearance") {
                     Toggle("Dark Mode (stub)", isOn: $darkMode)
+                    NavigationLink(destination: DictionaryDisplaySettingsView()) {
+                        Label("Dictionary Display", systemImage: "textformat")
+                    }
                 }
                 Section("About") {
                     LabeledContent("App Version", value: appVersion)

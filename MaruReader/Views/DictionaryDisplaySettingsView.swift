@@ -1,6 +1,6 @@
-import SwiftUI
 import CoreData
 import MaruReaderCore
+import SwiftUI
 
 struct DictionaryDisplaySettingsView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -21,7 +21,7 @@ struct DictionaryDisplaySettingsView: View {
         ("System", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
         ("Serif", "TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
         ("Sans Serif", "HelveticaNeue, Helvetica, Arial, sans-serif"),
-        ("Monospace", "Menlo, Monaco, 'Courier New', monospace")
+        ("Monospace", "Menlo, Monaco, 'Courier New', monospace"),
     ]
 
     var body: some View {
@@ -37,8 +37,8 @@ struct DictionaryDisplaySettingsView: View {
                 }
 
                 Section("Font Size Scale") {
-                    Stepper("Content: \(fontSize, specifier: "%.2f")x", value: $fontSize, in: 0.5...3.0, step: 0.05)
-                    Stepper("Popup: \(popupFontSize, specifier: "%.2f")x", value: $popupFontSize, in: 0.5...3.0, step: 0.05)
+                    Stepper("Content: \(fontSize, specifier: "%.2f")x", value: $fontSize, in: 0.5 ... 3.0, step: 0.05)
+                    Stepper("Popup: \(popupFontSize, specifier: "%.2f")x", value: $popupFontSize, in: 0.5 ... 3.0, step: 0.05)
                 }
 
                 Section("Display Options") {
