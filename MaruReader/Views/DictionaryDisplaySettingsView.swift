@@ -12,7 +12,7 @@ struct DictionaryDisplaySettingsView: View {
         animation: .default
     ) private var activePreferences: FetchedResults<DictionaryDisplayPreferences>
 
-    @State private var fontFamily: String = DictionaryDisplayDefaults.defaultFontFamily
+    @State private var selectedFontIndex: Int = 0
     @State private var fontSize: Double = DictionaryDisplayDefaults.defaultFontSize
     @State private var popupFontSize: Double = DictionaryDisplayDefaults.defaultPopupFontSize
     @State private var showDeinflection: Bool = DictionaryDisplayDefaults.defaultShowDeinflection
@@ -24,13 +24,17 @@ struct DictionaryDisplaySettingsView: View {
         ("Monospace", "Menlo, Monaco, 'Courier New', monospace"),
     ]
 
+    private var fontFamily: String {
+        fontOptions[selectedFontIndex].family
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section("Font Family") {
-                    Picker("Font Family", selection: $fontFamily) {
-                        ForEach(fontOptions, id: \.family) { option in
-                            Text(option.displayName).tag(option.family)
+                    Picker("Font Family", selection: $selectedFontIndex) {
+                        ForEach(0 ..< fontOptions.count, id: \.self) { index in
+                            Text(fontOptions[index].displayName).tag(index)
                         }
                     }
                     .pickerStyle(.menu)
@@ -48,7 +52,7 @@ struct DictionaryDisplaySettingsView: View {
             .navigationTitle("Display Settings")
             .onAppear(perform: loadPreferences)
             .onChange(of: activePreferences.count) { _, _ in loadPreferences() }
-            .onChange(of: fontFamily) { _, _ in savePreferences() }
+            .onChange(of: selectedFontIndex) { _, _ in savePreferences() }
             .onChange(of: fontSize) { _, _ in savePreferences() }
             .onChange(of: popupFontSize) { _, _ in savePreferences() }
             .onChange(of: showDeinflection) { _, _ in savePreferences() }
@@ -57,7 +61,13 @@ struct DictionaryDisplaySettingsView: View {
 
     private func loadPreferences() {
         if let pref = activePreferences.first {
-            fontFamily = pref.fontFamily ?? DictionaryDisplayDefaults.defaultFontFamily
+            if let family = pref.fontFamily,
+               let index = fontOptions.firstIndex(where: { $0.family == family })
+            {
+                selectedFontIndex = index
+            } else {
+                selectedFontIndex = 0
+            }
             fontSize = pref.fontSize
             popupFontSize = pref.popupFontSize
             showDeinflection = pref.showDeinflection
