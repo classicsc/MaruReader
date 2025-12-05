@@ -7,8 +7,8 @@
 .popup-results-body {
     margin: 0;
     padding: 8px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-    font-size: 13px;
+    font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif);
+    font-size: calc(13px * var(--popup-font-size-multiplier, 1.0));
     line-height: 1.4;
     color: var(--text-color);
     background: transparent;
@@ -199,7 +199,7 @@
     padding: 3px 6px;
     background: var(--background-color-dark1);
     border-radius: 3px;
-    display: inline-block;
+    display: var(--deinflection-display, inline-block);
 }
 
 /* Frequency display for popup (compact only) */

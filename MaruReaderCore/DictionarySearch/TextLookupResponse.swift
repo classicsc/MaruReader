@@ -7,6 +7,25 @@
 
 import Foundation
 
+public struct DisplayStyles: Sendable {
+    public let fontFamily: String
+    public let contentFontSize: Double
+    public let popupFontSize: Double
+    public let showDeinflection: Bool
+
+    public init(
+        fontFamily: String,
+        contentFontSize: Double,
+        popupFontSize: Double,
+        showDeinflection: Bool
+    ) {
+        self.fontFamily = fontFamily
+        self.contentFontSize = contentFontSize
+        self.popupFontSize = popupFontSize
+        self.showDeinflection = showDeinflection
+    }
+}
+
 private extension String {
     func escapeHTML() -> String {
         var result = self.replacingOccurrences(of: "&", with: "&amp;")
@@ -14,6 +33,12 @@ private extension String {
         result = result.replacingOccurrences(of: ">", with: "&gt;")
         result = result.replacingOccurrences(of: "\"", with: "&quot;")
         result = result.replacingOccurrences(of: "'", with: "&#39;")
+        return result
+    }
+
+    func cssEscape() -> String {
+        var result = self.replacingOccurrences(of: "\\", with: "\\\\")
+        result = result.replacingOccurrences(of: "\"", with: "\\\"")
         return result
     }
 }
@@ -25,6 +50,7 @@ public struct TextLookupResponse: Sendable {
     public let primaryResultSourceRange: Range<String.Index> // Range in context
     public let contextStartOffset: Int // Where context starts in full element text
     public let context: String // The original context string
+    public let styles: DisplayStyles
 
     /// Start offset of the matched text within the context (UTF-16 code units for JS compatibility)
     public var matchStartInContext: Int {
@@ -40,6 +66,20 @@ public struct TextLookupResponse: Sendable {
             return 0
         }
         return context.utf16.distance(from: context.utf16.startIndex, to: utf16Upper)
+    }
+
+    private func generateCSS() -> String {
+        let fontFamilyEsc = styles.fontFamily.cssEscape()
+        return """
+        <style>
+        :root {
+            --font-family: "\(fontFamilyEsc)";
+            --content-font-size-multiplier: \(styles.contentFontSize);
+            --popup-font-size-multiplier: \(styles.popupFontSize);
+            --deinflection-display: \(styles.showDeinflection ? "inline-block" : "none");
+        }
+        </style>
+        """
     }
 
     private func termFrequencyHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
@@ -148,6 +188,7 @@ public struct TextLookupResponse: Sendable {
                     }
                 }
             </script>
+            \(generateCSS())
         </head>
         <body class="popup-results-body">
             \(termGroupsHTML)
@@ -217,6 +258,7 @@ public struct TextLookupResponse: Sendable {
                     }
                 });
             </script>
+            \(generateCSS())
         </head>
         <body>
             \(termGroupsHTML)

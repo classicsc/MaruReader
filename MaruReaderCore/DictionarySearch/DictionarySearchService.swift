@@ -82,6 +82,43 @@ public actor DictionarySearchService {
         self.dictionaryMetadataCache = cache
     }
 
+    private func getDisplayStyles() async throws -> DisplayStyles {
+        try await backgroundContext.perform {
+            let fetchRequest: NSFetchRequest<DictionaryDisplayPreferences> = DictionaryDisplayPreferences.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "enabled == %@", NSNumber(booleanLiteral: true))
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
+            fetchRequest.fetchLimit = 1
+
+            let prefs = try self.backgroundContext.fetch(fetchRequest)
+
+            if let pref = prefs.first {
+                return DisplayStyles(
+                    fontFamily: pref.fontFamily ?? DictionaryDisplayDefaults.defaultFontFamily,
+                    contentFontSize: pref.fontSize,
+                    popupFontSize: pref.popupFontSize,
+                    showDeinflection: pref.showDeinflection
+                )
+            } else {
+                let newPref = DictionaryDisplayPreferences(context: self.backgroundContext)
+                newPref.id = UUID()
+                newPref.enabled = true
+                newPref.fontFamily = DictionaryDisplayDefaults.defaultFontFamily
+                newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
+                newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
+                newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
+
+                try self.backgroundContext.save()
+
+                return DisplayStyles(
+                    fontFamily: DictionaryDisplayDefaults.defaultFontFamily,
+                    contentFontSize: DictionaryDisplayDefaults.defaultFontSize,
+                    popupFontSize: DictionaryDisplayDefaults.defaultPopupFontSize,
+                    showDeinflection: DictionaryDisplayDefaults.defaultShowDeinflection
+                )
+            }
+        }
+    }
+
     /// Perform a search and get the TextLookupResponse
     public func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
         // Get the text to query using the offset within context and the max lookup length
@@ -105,6 +142,7 @@ public actor DictionarySearchService {
         guard !groupedResults.isEmpty else {
             return nil
         }
+        let styles = try await getDisplayStyles()
         // Get the top ranked result
         let topResult = groupedResults.first?.dictionariesResults.first?.results.first
         let topTerm = topResult?.term ?? ""
@@ -120,7 +158,8 @@ public actor DictionarySearchService {
             primaryResult: topTerm,
             primaryResultSourceRange: matchedRange,
             contextStartOffset: query.contextStartOffset,
-            context: query.context
+            context: query.context,
+            styles: styles
         )
     }
 

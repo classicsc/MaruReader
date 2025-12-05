@@ -127,11 +127,11 @@
 
 /* Body and layout from SearchViewModel */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: var(--font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
     margin: 0.75em;
     padding: 0;
     line-height: var(--line-height);
-    font-size: 1em;
+    font-size: calc(1em * var(--content-font-size-multiplier, 1.0));
     color: var(--text-color);
     background-color: var(--background-color);
 }
@@ -954,7 +954,7 @@ body {
     padding: 0.1875em 0.375em;
     background: var(--background-color-dark1);
     border-radius: 0.1875em;
-    display: inline-block;
+    display: var(--deinflection-display, inline-block);
 }
 
 /* Print styles */
