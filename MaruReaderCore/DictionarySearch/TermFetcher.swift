@@ -62,6 +62,15 @@ enum TermFetcher {
             logger: logger
         )
 
+        let pitchAccentMap = try fetchPitchAccentMap(
+            expressions: expressions,
+            readings: readings,
+            enabledDictionaryIDs: enabledDictionaryIDs,
+            dictionaryMetadata: dictionaryMetadata,
+            context: context,
+            logger: logger
+        )
+
         let tagMetadataMap = try fetchTagMetadataMap(
             enabledDictionaryIDs: enabledDictionaryIDs,
             context: context,
@@ -116,6 +125,9 @@ enum TermFetcher {
                 let frequencies = frequencyMap[frequencyKey] ?? []
                 let bestFrequency = frequencies.first
 
+                // Get pitch accents for this term
+                let pitchAccents = pitchAccentMap[frequencyKey] ?? []
+
                 // Build term tags
                 let termTagNames = decodeStringArray(from: entry.termTags) ?? []
                 let termTags = buildTags(
@@ -153,6 +165,7 @@ enum TermFetcher {
                     definitions: definitions,
                     frequency: bestFrequency?.value,
                     frequencies: frequencies,
+                    pitchAccents: pitchAccents,
                     dictionaryTitle: dictMetadata.title,
                     dictionaryUUID: dictionaryID,
                     displayPriority: dictMetadata.termDisplayPriority,
@@ -260,6 +273,72 @@ enum TermFetcher {
         return frequencyMap
     }
 
+    /// Fetch pitch accent data and build a lookup map
+    private static func fetchPitchAccentMap(
+        expressions: Set<String>,
+        readings: Set<String>,
+        enabledDictionaryIDs _: [UUID],
+        dictionaryMetadata: [UUID: DictionaryMetadata],
+        context: NSManagedObjectContext,
+        logger: Logger
+    ) throws -> [String: [PitchAccentResults]] {
+        // Filter to only pitch-accent-enabled dictionaries
+        let pitchEnabledIDs = dictionaryMetadata
+            .filter(\.value.pitchAccentEnabled)
+            .map(\.key)
+
+        guard !pitchEnabledIDs.isEmpty else {
+            return [:]
+        }
+
+        let fetchRequest: NSFetchRequest<PitchAccentEntry> = PitchAccentEntry.fetchRequest()
+        fetchRequest.predicate = NSPredicate(
+            format: "expression IN %@ AND reading IN %@ AND dictionaryID IN %@",
+            Array(expressions),
+            Array(readings),
+            pitchEnabledIDs
+        )
+
+        let pitchEntries = try context.fetch(fetchRequest)
+        logger.debug("Found \(pitchEntries.count) pitch accent entries")
+
+        // Build map: "expression|reading" -> [PitchAccentResults] sorted by priority asc
+        var pitchAccentMap: [String: [PitchAccentResults]] = [:]
+
+        // Group by expression+reading
+        let grouped = Swift.Dictionary(grouping: pitchEntries, by: { entry in
+            guard let expression = entry.expression, let reading = entry.reading else {
+                return ""
+            }
+            return "\(expression)|\(reading)"
+        })
+
+        for (key, entries) in grouped {
+            var pitchResults: [PitchAccentResults] = []
+            for entry in entries {
+                guard let dictionaryID = entry.dictionaryID,
+                      let dictMetadata = dictionaryMetadata[dictionaryID],
+                      dictMetadata.pitchAccentEnabled,
+                      let pitches = decodePitchAccents(from: entry.pitches)
+                else {
+                    continue
+                }
+                let result = PitchAccentResults(
+                    dictionaryTitle: dictMetadata.title,
+                    dictionaryID: dictionaryID,
+                    priority: dictMetadata.pitchDisplayPriority,
+                    pitches: pitches
+                )
+                pitchResults.append(result)
+            }
+            // Sort by priority ascending (lower number = higher priority)
+            pitchResults.sort { $0.priority < $1.priority }
+            pitchAccentMap[key] = pitchResults
+        }
+
+        return pitchAccentMap
+    }
+
     /// Fetch tag metadata and build a lookup map
     private static func fetchTagMetadataMap(
         enabledDictionaryIDs: [UUID],
@@ -322,5 +401,16 @@ enum TermFetcher {
         }
 
         return try? JSONDecoder().decode([Definition].self, from: data)
+    }
+
+    /// Decode pitch accents from JSON string
+    private static func decodePitchAccents(from jsonString: String?) -> [PitchAccent]? {
+        guard let jsonString,
+              let data = jsonString.data(using: .utf8)
+        else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode([PitchAccent].self, from: data)
     }
 }

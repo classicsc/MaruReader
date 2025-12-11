@@ -14,6 +14,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
     let definitions: [Definition]
     let frequency: Double?
     let frequencies: [FrequencyInfo]
+    let pitchAccents: [PitchAccentResults]
     let dictionaryTitle: String
     let dictionaryUUID: UUID
     let displayPriority: Int

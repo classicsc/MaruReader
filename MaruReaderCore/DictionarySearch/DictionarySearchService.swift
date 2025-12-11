@@ -15,9 +15,11 @@ struct DictionaryMetadata: Sendable {
     let title: String
     let termDisplayPriority: Int
     let termFrequencyDisplayPriority: Int
+    let pitchDisplayPriority: Int
     let frequencyMode: String?
     let termResultsEnabled: Bool
     let termFrequencyEnabled: Bool
+    let pitchAccentEnabled: Bool
 }
 
 public actor DictionarySearchService {
@@ -69,9 +71,11 @@ public actor DictionarySearchService {
                     title: dict.title ?? "",
                     termDisplayPriority: Int(dict.termDisplayPriority),
                     termFrequencyDisplayPriority: Int(dict.termFrequencyDisplayPriority),
+                    pitchDisplayPriority: Int(dict.pitchDisplayPriority),
                     frequencyMode: dict.frequencyMode,
                     termResultsEnabled: dict.termResultsEnabled,
-                    termFrequencyEnabled: dict.termFrequencyEnabled
+                    termFrequencyEnabled: dict.termFrequencyEnabled,
+                    pitchAccentEnabled: dict.pitchAccentEnabled
                 )
                 cache[id] = metadata
             }
@@ -202,6 +206,21 @@ public actor DictionarySearchService {
             let allTermTags = termResults.map(\.termTags)
             let mergedTermTags = [Tag].merge(allTermTags)
 
+            // Aggregate pitch accents from all results for this term
+            let allPitchAccents = termResults.flatMap(\.pitchAccents)
+            let pitchAccentsByDictionary = Swift.Dictionary(grouping: allPitchAccents, by: \.dictionaryID)
+            let pitchAccentResults = pitchAccentsByDictionary.map { dictionaryID, pitchResults in
+                let firstResult = pitchResults.first!
+                // Flatten all pitches from this dictionary
+                let allPitches = pitchResults.flatMap(\.pitches)
+                return PitchAccentResults(
+                    dictionaryTitle: firstResult.dictionaryTitle,
+                    dictionaryID: dictionaryID,
+                    priority: firstResult.priority,
+                    pitches: allPitches
+                )
+            }.sorted { $0.priority < $1.priority }
+
             // Format deinflection info from top result
             let deinflectionInfo = formatDeinflectionInfo(from: firstResult.deinflectionRules)
 
@@ -210,6 +229,7 @@ public actor DictionarySearchService {
                 expression: firstResult.term,
                 reading: firstResult.reading,
                 dictionariesResults: dictionaryResults,
+                pitchAccentResults: pitchAccentResults,
                 termTags: mergedTermTags,
                 deinflectionInfo: deinflectionInfo
             )

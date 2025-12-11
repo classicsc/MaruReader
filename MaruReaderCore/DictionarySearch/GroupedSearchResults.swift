@@ -10,6 +10,7 @@ public struct GroupedSearchResults: Identifiable, Sendable {
     let expression: String
     let reading: String?
     let dictionariesResults: [DictionaryResults]
+    let pitchAccentResults: [PitchAccentResults]
     let termTags: [Tag]
     let deinflectionInfo: String?
 

@@ -172,17 +172,17 @@ struct PitchData: Codable {
     let pitches: [PitchAccent]
 }
 
-struct PitchAccent: Codable {
-    let position: PitchPosition
-    let nasal: [Int]?
-    let devoice: [Int]?
-    let tags: [String]?
+public struct PitchAccent: Codable, Sendable {
+    public let position: PitchPosition
+    public let nasal: [Int]?
+    public let devoice: [Int]?
+    public let tags: [String]?
 
-    enum PitchPosition: Codable {
+    public enum PitchPosition: Codable, Sendable {
         case mora(Int)
         case pattern(String) // e.g. "HHLL"
 
-        init(from decoder: Decoder) throws {
+        public init(from decoder: Decoder) throws {
             let container = try decoder.singleValueContainer()
             if let num = try? container.decode(Int.self) {
                 self = .mora(num)
@@ -191,7 +191,7 @@ struct PitchAccent: Codable {
             }
         }
 
-        func encode(to encoder: Encoder) throws {
+        public func encode(to encoder: Encoder) throws {
             var container = encoder.singleValueContainer()
             switch self {
             case let .mora(n): try container.encode(n)
@@ -205,7 +205,7 @@ struct PitchAccent: Codable {
         case position, nasal, devoice, tags
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         self.position = try c.decode(PitchPosition.self, forKey: .position)
 
