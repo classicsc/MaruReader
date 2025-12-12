@@ -60,12 +60,17 @@
         </fetchIndex>
     </entity>
     <entity name="DictionaryDisplayPreferences" representedClassName="DictionaryDisplayPreferences" syncable="YES" codeGenerationType="class">
-        <attribute name="enabled" attributeType="Boolean" usesScalarValueType="YES"/>
-        <attribute name="fontFamily" attributeType="String"/>
-        <attribute name="fontSize" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="enabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="fontFamily" attributeType="String" defaultValueString="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"/>
+        <attribute name="fontSize" attributeType="Double" defaultValueString="1" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="popupFontSize" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="showDeinflection" attributeType="Boolean" usesScalarValueType="YES"/>
+        <attribute name="pitchDownstepNotationInHeaderEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="pitchResultsAreaCollapsedDisplay" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="pitchResultsAreaDownstepNotationEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="pitchResultsAreaDownstepPositionEnabled" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="pitchResultsAreaEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="popupFontSize" attributeType="Double" defaultValueString="1" usesScalarValueType="YES"/>
+        <attribute name="showDeinflection" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
     </entity>
     <entity name="DictionaryTagMeta" representedClassName="DictionaryTagMeta" syncable="YES" codeGenerationType="class">
         <attribute name="category" attributeType="String"/>
