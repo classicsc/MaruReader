@@ -314,10 +314,8 @@ public struct TextLookupResponse: Sendable {
                     itemHTML += "<span class=\"pitch-position-text\">\(positionText.escapeHTML())</span>"
                 }
 
-                // Add dictionary name (for expanded view when multiple dictionaries)
-                if allResults.count > 1 || pitchResult.pitches.count > 1 {
-                    itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
-                }
+                // Add dictionary name
+                itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
 
                 itemHTML += "</div>"
                 pitchItemsHTML.append(itemHTML)
