@@ -12,17 +12,32 @@ public struct DisplayStyles: Sendable {
     public let contentFontSize: Double
     public let popupFontSize: Double
     public let showDeinflection: Bool
+    public let pitchDownstepNotationInHeaderEnabled: Bool
+    public let pitchResultsAreaCollapsedDisplay: Bool
+    public let pitchResultsAreaDownstepNotationEnabled: Bool
+    public let pitchResultsAreaDownstepPositionEnabled: Bool
+    public let pitchResultsAreaEnabled: Bool
 
     public init(
         fontFamily: String,
         contentFontSize: Double,
         popupFontSize: Double,
-        showDeinflection: Bool
+        showDeinflection: Bool,
+        pitchDownstepNotationInHeaderEnabled: Bool,
+        pitchResultsAreaCollapsedDisplay: Bool,
+        pitchResultsAreaDownstepNotationEnabled: Bool,
+        pitchResultsAreaDownstepPositionEnabled: Bool,
+        pitchResultsAreaEnabled: Bool
     ) {
         self.fontFamily = fontFamily
         self.contentFontSize = contentFontSize
         self.popupFontSize = popupFontSize
         self.showDeinflection = showDeinflection
+        self.pitchDownstepNotationInHeaderEnabled = pitchDownstepNotationInHeaderEnabled
+        self.pitchResultsAreaCollapsedDisplay = pitchResultsAreaCollapsedDisplay
+        self.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled
+        self.pitchResultsAreaDownstepPositionEnabled = pitchResultsAreaDownstepPositionEnabled
+        self.pitchResultsAreaEnabled = pitchResultsAreaEnabled
     }
 }
 

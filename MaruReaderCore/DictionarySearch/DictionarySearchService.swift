@@ -100,7 +100,12 @@ public actor DictionarySearchService {
                     fontFamily: pref.fontFamily ?? DictionaryDisplayDefaults.defaultFontFamily,
                     contentFontSize: pref.fontSize,
                     popupFontSize: pref.popupFontSize,
-                    showDeinflection: pref.showDeinflection
+                    showDeinflection: pref.showDeinflection,
+                    pitchDownstepNotationInHeaderEnabled: pref.pitchDownstepNotationInHeaderEnabled,
+                    pitchResultsAreaCollapsedDisplay: pref.pitchResultsAreaCollapsedDisplay,
+                    pitchResultsAreaDownstepNotationEnabled: pref.pitchResultsAreaDownstepNotationEnabled,
+                    pitchResultsAreaDownstepPositionEnabled: pref.pitchResultsAreaDownstepPositionEnabled,
+                    pitchResultsAreaEnabled: pref.pitchResultsAreaEnabled
                 )
             } else {
                 let newPref = DictionaryDisplayPreferences(context: self.backgroundContext)
@@ -110,6 +115,11 @@ public actor DictionarySearchService {
                 newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
                 newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
                 newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
+                newPref.pitchDownstepNotationInHeaderEnabled = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
+                newPref.pitchResultsAreaCollapsedDisplay = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
+                newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
+                newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
+                newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
 
                 try self.backgroundContext.save()
 
@@ -117,7 +127,12 @@ public actor DictionarySearchService {
                     fontFamily: DictionaryDisplayDefaults.defaultFontFamily,
                     contentFontSize: DictionaryDisplayDefaults.defaultFontSize,
                     popupFontSize: DictionaryDisplayDefaults.defaultPopupFontSize,
-                    showDeinflection: DictionaryDisplayDefaults.defaultShowDeinflection
+                    showDeinflection: DictionaryDisplayDefaults.defaultShowDeinflection,
+                    pitchDownstepNotationInHeaderEnabled: DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled,
+                    pitchResultsAreaCollapsedDisplay: DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay,
+                    pitchResultsAreaDownstepNotationEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled,
+                    pitchResultsAreaDownstepPositionEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled,
+                    pitchResultsAreaEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
                 )
             }
         }
