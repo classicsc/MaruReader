@@ -6,8 +6,6 @@
 import SwiftUI
 
 struct SettingsView: View {
-    @State private var darkMode: Bool = false
-
     var body: some View {
         NavigationStack {
             Form {
@@ -17,7 +15,6 @@ struct SettingsView: View {
                     }
                 }
                 Section("Appearance") {
-                    Toggle("Dark Mode (stub)", isOn: $darkMode)
                     NavigationLink(destination: DictionaryDisplaySettingsView()) {
                         Label("Dictionary Display", systemImage: "textformat")
                     }
