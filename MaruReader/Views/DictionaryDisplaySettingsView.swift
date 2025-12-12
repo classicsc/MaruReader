@@ -16,6 +16,11 @@ struct DictionaryDisplaySettingsView: View {
     @State private var fontSize: Double = DictionaryDisplayDefaults.defaultFontSize
     @State private var popupFontSize: Double = DictionaryDisplayDefaults.defaultPopupFontSize
     @State private var showDeinflection: Bool = DictionaryDisplayDefaults.defaultShowDeinflection
+    @State private var pitchDownstepNotationInHeaderEnabled: Bool = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
+    @State private var pitchResultsAreaCollapsedDisplay: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
+    @State private var pitchResultsAreaDownstepNotationEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
+    @State private var pitchResultsAreaDownstepPositionEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
+    @State private var pitchResultsAreaEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
 
     private let fontOptions: [(displayName: String, family: String)] = [
         ("System", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
@@ -48,6 +53,17 @@ struct DictionaryDisplaySettingsView: View {
                 Section("Display Options") {
                     Toggle("Show Deinflection Info", isOn: $showDeinflection)
                 }
+
+                Section("Pitch Accent") {
+                    Toggle("Downstep Notation in Header", isOn: $pitchDownstepNotationInHeaderEnabled)
+                    Toggle("Show Pitch Dictionaries", isOn: $pitchResultsAreaEnabled)
+
+                    if pitchResultsAreaEnabled {
+                        Toggle("Top Result Only", isOn: $pitchResultsAreaCollapsedDisplay)
+                        Toggle("Show Downstep Notation", isOn: $pitchResultsAreaDownstepNotationEnabled)
+                        Toggle("Show Downstep Positions", isOn: $pitchResultsAreaDownstepPositionEnabled)
+                    }
+                }
             }
             .navigationTitle("Display Settings")
             .onAppear(perform: loadPreferences)
@@ -56,6 +72,11 @@ struct DictionaryDisplaySettingsView: View {
             .onChange(of: fontSize) { _, _ in savePreferences() }
             .onChange(of: popupFontSize) { _, _ in savePreferences() }
             .onChange(of: showDeinflection) { _, _ in savePreferences() }
+            .onChange(of: pitchDownstepNotationInHeaderEnabled) { _, _ in savePreferences() }
+            .onChange(of: pitchResultsAreaCollapsedDisplay) { _, _ in savePreferences() }
+            .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
+            .onChange(of: pitchResultsAreaDownstepPositionEnabled) { _, _ in savePreferences() }
+            .onChange(of: pitchResultsAreaEnabled) { _, _ in savePreferences() }
         }
     }
 
@@ -71,6 +92,11 @@ struct DictionaryDisplaySettingsView: View {
             fontSize = pref.fontSize
             popupFontSize = pref.popupFontSize
             showDeinflection = pref.showDeinflection
+            pitchDownstepNotationInHeaderEnabled = pref.pitchDownstepNotationInHeaderEnabled
+            pitchResultsAreaCollapsedDisplay = pref.pitchResultsAreaCollapsedDisplay
+            pitchResultsAreaDownstepNotationEnabled = pref.pitchResultsAreaDownstepNotationEnabled
+            pitchResultsAreaDownstepPositionEnabled = pref.pitchResultsAreaDownstepPositionEnabled
+            pitchResultsAreaEnabled = pref.pitchResultsAreaEnabled
         } else {
             createDefaultPreferences()
         }
@@ -97,6 +123,11 @@ struct DictionaryDisplaySettingsView: View {
         newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
         newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
         newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
+        newPref.pitchDownstepNotationInHeaderEnabled = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
+        newPref.pitchResultsAreaCollapsedDisplay = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
+        newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
+        newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
+        newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
 
         do {
             try viewContext.save()
@@ -111,6 +142,11 @@ struct DictionaryDisplaySettingsView: View {
         pref.fontSize = fontSize
         pref.popupFontSize = popupFontSize
         pref.showDeinflection = showDeinflection
+        pref.pitchDownstepNotationInHeaderEnabled = pitchDownstepNotationInHeaderEnabled
+        pref.pitchResultsAreaCollapsedDisplay = pitchResultsAreaCollapsedDisplay
+        pref.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled
+        pref.pitchResultsAreaDownstepPositionEnabled = pitchResultsAreaDownstepPositionEnabled
+        pref.pitchResultsAreaEnabled = pitchResultsAreaEnabled
         do {
             try viewContext.save()
         } catch {
