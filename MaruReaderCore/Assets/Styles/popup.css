@@ -220,3 +220,34 @@
     line-height: 1;
     white-space: nowrap;
 }
+
+/* Popup-specific pitch accent styles */
+.popup-pitch-results-area {
+    margin: 4px 0 6px 0;
+    padding: 4px 8px;
+    background: var(--background-color-dark1);
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.popup-pitch-results-area .pitch-results-list {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.popup-pitch-results-area .pitch-result-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.popup-pitch-results-area .pitch-notation {
+    display: inline;
+}
+
+.popup-pitch-results-area .pitch-position-text {
+    font-size: 10px;
+    padding: 1px 4px;
+}

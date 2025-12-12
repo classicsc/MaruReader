@@ -145,8 +145,241 @@ public struct TextLookupResponse: Sendable {
         """
     }
 
+    // MARK: - Pitch Accent HTML Generation
+
+    /// Splits a reading string into individual mora.
+    /// Handles small kana that combine with previous characters (きょ → one mora).
+    private func splitIntoMora(_ reading: String) -> [String] {
+        var mora: [String] = []
+        var i = reading.startIndex
+
+        // Small kana that combine with previous character to form one mora
+        let smallKana: Set<Character> = [
+            "ゃ", "ゅ", "ょ", "ャ", "ュ", "ョ",
+            "ぁ", "ぃ", "ぅ", "ぇ", "ぉ",
+            "ァ", "ィ", "ゥ", "ェ", "ォ",
+        ]
+
+        while i < reading.endIndex {
+            let char = reading[i]
+            let nextIndex = reading.index(after: i)
+
+            // Check if next character is a small kana
+            if nextIndex < reading.endIndex {
+                let nextChar = reading[nextIndex]
+                if smallKana.contains(nextChar) {
+                    mora.append(String(char) + String(nextChar))
+                    i = reading.index(after: nextIndex)
+                    continue
+                }
+            }
+
+            mora.append(String(char))
+            i = nextIndex
+        }
+
+        return mora
+    }
+
+    /// Converts mora position to high/low pattern array.
+    /// - Position 0 = heiban (flat): LHHH... (low first, then all high, no downstep)
+    /// - Position 1 = atamadaka: HLLL... (high first, then all low)
+    /// - Position N = nakadaka/odaka: LHHH...LLL (low first, high until N, then low)
+    private func moraPositionToPattern(_ position: Int, moraCount: Int) -> [Bool] {
+        guard moraCount > 0 else { return [] }
+
+        var pattern = [Bool](repeating: false, count: moraCount)
+
+        if position == 0 {
+            // Heiban: first mora low, rest high
+            for i in 1 ..< moraCount {
+                pattern[i] = true
+            }
+        } else if position == 1 {
+            // Atamadaka: first mora high, rest low
+            pattern[0] = true
+        } else {
+            // Nakadaka or Odaka: first mora low, then high until position, then low
+            for i in 1 ..< min(position, moraCount) {
+                pattern[i] = true
+            }
+        }
+
+        return pattern
+    }
+
+    /// Converts pattern string (like "HHLL") to boolean array.
+    private func patternStringToArray(_ pattern: String) -> [Bool] {
+        pattern.map { $0 == "H" || $0 == "h" }
+    }
+
+    /// Generates HTML for pitch notation on a reading.
+    private func generatePitchNotationHTML(reading: String, pitchAccent: PitchAccent) -> String {
+        let moraArray = splitIntoMora(reading)
+        guard !moraArray.isEmpty else { return reading.escapeHTML() }
+
+        let pattern: [Bool]
+        let downstepPosition: Int?
+
+        switch pitchAccent.position {
+        case let .mora(position):
+            pattern = moraPositionToPattern(position, moraCount: moraArray.count)
+            downstepPosition = position > 0 && position <= moraArray.count ? position : nil
+        case let .pattern(patternStr):
+            pattern = patternStringToArray(patternStr)
+            // Find downstep position in pattern (where H changes to L)
+            var foundDownstep: Int?
+            for i in 0 ..< pattern.count - 1 where pattern[i] && !pattern[i + 1] {
+                foundDownstep = i + 1
+                break
+            }
+            downstepPosition = foundDownstep
+        }
+
+        var html = "<span class=\"pitch-reading\">"
+
+        for (index, mora) in moraArray.enumerated() {
+            let isHigh = index < pattern.count ? pattern[index] : false
+            let isDownstep = downstepPosition != nil && index + 1 == downstepPosition
+
+            var classes = ["pitch-mora"]
+            classes.append(isHigh ? "pitch-mora-high" : "pitch-mora-low")
+            if isDownstep {
+                classes.append("pitch-mora-downstep")
+            }
+
+            html += "<span class=\"\(classes.joined(separator: " "))\">\(mora.escapeHTML())</span>"
+        }
+
+        html += "</span>"
+        return html
+    }
+
+    /// Generates the pitch position text display (e.g., circled numbers or pattern string).
+    private func generatePitchPositionText(pitchAccent: PitchAccent) -> String {
+        switch pitchAccent.position {
+        case let .mora(position):
+            // Use circled numbers for positions 0-9
+            let circledNumbers = ["⓪", "①", "②", "③", "④", "⑤", "⑥", "⑦", "⑧", "⑨"]
+            if position >= 0, position < circledNumbers.count {
+                return circledNumbers[position]
+            }
+            return String(position)
+        case let .pattern(pattern):
+            return pattern
+        }
+    }
+
+    /// Generates HTML for the pitch results area.
+    private func pitchResultsAreaHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
+        guard styles.pitchResultsAreaEnabled,
+              !termGroup.pitchAccentResults.isEmpty
+        else {
+            return ""
+        }
+
+        let reading = termGroup.reading ?? termGroup.expression
+
+        // Get all pitch results sorted by priority
+        let allResults = termGroup.pitchAccentResults
+        guard let firstResult = allResults.first,
+              !firstResult.pitches.isEmpty
+        else {
+            return ""
+        }
+
+        // Generate HTML for pitch items
+        var pitchItemsHTML: [String] = []
+        var isFirstItem = true
+
+        for pitchResult in allResults {
+            for pitch in pitchResult.pitches {
+                var itemClasses = ["pitch-result-item"]
+                if !isFirstItem, styles.pitchResultsAreaCollapsedDisplay {
+                    itemClasses.append("pitch-result-collapsed")
+                }
+
+                var itemHTML = "<div class=\"\(itemClasses.joined(separator: " "))\">"
+
+                // Add visual notation if enabled
+                if styles.pitchResultsAreaDownstepNotationEnabled {
+                    itemHTML += "<span class=\"pitch-notation\">"
+                    itemHTML += generatePitchNotationHTML(reading: reading, pitchAccent: pitch)
+                    itemHTML += "</span>"
+                }
+
+                // Add position text if enabled
+                if styles.pitchResultsAreaDownstepPositionEnabled {
+                    let positionText = generatePitchPositionText(pitchAccent: pitch)
+                    itemHTML += "<span class=\"pitch-position-text\">\(positionText.escapeHTML())</span>"
+                }
+
+                // Add dictionary name (for expanded view when multiple dictionaries)
+                if allResults.count > 1 || pitchResult.pitches.count > 1 {
+                    itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
+                }
+
+                itemHTML += "</div>"
+                pitchItemsHTML.append(itemHTML)
+                isFirstItem = false
+            }
+        }
+
+        // Count total items for toggle button
+        let totalItems = allResults.reduce(0) { $0 + $1.pitches.count }
+        let showToggle = !compactOnly && styles.pitchResultsAreaCollapsedDisplay && totalItems > 1
+
+        let cssClass = compactOnly ? "popup-pitch-results-area" : "pitch-results-area"
+
+        var html = "<div class=\"\(cssClass)\">"
+
+        if !compactOnly {
+            html += "<div class=\"pitch-results-header\">"
+            html += "<span class=\"pitch-results-label\">Pitch</span>"
+            if showToggle {
+                html += """
+                <button type="button" class="pitch-toggle" data-expanded="false" aria-label="Show more pitch results">+</button>
+                """
+            }
+            html += "</div>"
+        }
+
+        html += "<div class=\"pitch-results-list\">"
+        html += pitchItemsHTML.joined()
+        html += "</div>"
+        html += "</div>"
+
+        return html
+    }
+
+    /// Generates the term header with optional pitch notation.
+    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String) -> String {
+        let expression = termGroup.expression.escapeHTML()
+
+        guard let reading = termGroup.reading, !reading.isEmpty else {
+            return "<h2 class=\"\(cssClass)\">\(expression)</h2>"
+        }
+
+        let readingHTML: String
+
+            // Check if pitch notation in header is enabled and we have pitch data
+            = if styles.pitchDownstepNotationInHeaderEnabled,
+            let firstPitchResult = termGroup.pitchAccentResults.first,
+            let firstPitch = firstPitchResult.pitches.first
+        {
+            generatePitchNotationHTML(reading: reading, pitchAccent: firstPitch)
+        } else {
+            reading.escapeHTML()
+        }
+
+        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]</h2>"
+    }
+
     public func toPopupHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
+            // Generate term header with optional pitch notation
+            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "popup-term-header")
+
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
             <div class="popup-term-tags">
@@ -163,12 +396,16 @@ public struct TextLookupResponse: Sendable {
 
             let frequencyHTML = termFrequencyHTML(for: termGroup, compactOnly: true)
 
+            // Generate pitch results area (compact for popup)
+            let pitchHTML = pitchResultsAreaHTML(for: termGroup, compactOnly: true)
+
             return """
             <div class="popup-term-group" onclick="navigateToTerm('\(termGroup.expression.escapeHTML())')">
-                <h2 class="popup-term-header">\(termGroup.displayTerm.escapeHTML())</h2>
+                \(headerHTML)
                 \(tagsHTML)
                 \(deinflectionHTML)
                 \(frequencyHTML)
+                \(pitchHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
                     // Use first result's definition tags for header
                     let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
@@ -214,6 +451,9 @@ public struct TextLookupResponse: Sendable {
 
     public func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
+            // Generate term header with optional pitch notation
+            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header")
+
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
             <div class="term-tags">
@@ -230,12 +470,16 @@ public struct TextLookupResponse: Sendable {
 
             let frequencyHTML = termFrequencyHTML(for: termGroup)
 
+            // Generate pitch results area
+            let pitchHTML = pitchResultsAreaHTML(for: termGroup)
+
             return """
             <section class="term-group">
-                <h2 class="term-header">\(termGroup.displayTerm.escapeHTML())</h2>
+                \(headerHTML)
                 \(tagsHTML)
                 \(deinflectionHTML)
                 \(frequencyHTML)
+                \(pitchHTML)
                 \(termGroup.dictionariesResults.map { dictionaryResult in
                     // Use first result's definition tags for header
                     let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
@@ -266,10 +510,14 @@ public struct TextLookupResponse: Sendable {
             <script src="marureader-resource://textScanning.js"></script>
             <script src="marureader-resource://textHighlighting.js"></script>
             <script src="marureader-resource://frequencyDisplay.js"></script>
+            <script src="marureader-resource://pitchDisplay.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     if (window.MaruReader && window.MaruReader.frequencyDisplay) {
                         window.MaruReader.frequencyDisplay.initialize();
+                    }
+                    if (window.MaruReader && window.MaruReader.pitchDisplay) {
+                        window.MaruReader.pitchDisplay.initialize();
                     }
                 });
             </script>

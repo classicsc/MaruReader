@@ -21,6 +21,9 @@
 
     /* Frequency color (matching tag) */
     --frequency-color: #5cb85c;
+
+    /* Pitch accent color */
+    --pitch-accent-color: #e91e63;
     
     /* Typography scale */
     --font-size-xs: 0.75rem;
@@ -955,6 +958,129 @@ body {
     background: var(--background-color-dark1);
     border-radius: 0.1875em;
     display: var(--deinflection-display, inline-block);
+}
+
+/* Pitch Accent Notation */
+
+/* Container for pitch-annotated reading */
+.pitch-reading {
+    display: inline;
+}
+
+/* Individual mora with pitch border */
+.pitch-mora {
+    display: inline;
+    position: relative;
+    border-width: 1px;
+    border-style: solid;
+    border-color: transparent;
+    padding-top: 0.1em;
+    padding-bottom: 0.1em;
+}
+
+/* High pitch mora - border on top */
+.pitch-mora-high {
+    border-top-color: var(--pitch-accent-color);
+    border-bottom-color: transparent;
+}
+
+/* Low pitch mora - border on bottom */
+.pitch-mora-low {
+    border-top-color: transparent;
+    border-bottom-color: var(--pitch-accent-color);
+}
+
+/* Downstep marker - vertical line on right side */
+.pitch-mora-downstep {
+    border-right-color: var(--pitch-accent-color);
+    border-right-width: 1px;
+    border-right-style: solid;
+}
+
+/* Pitch Results Area */
+.pitch-results-area {
+    margin: 0.25em 0 0.5em 0;
+    padding: 0.375em 0.5em;
+    background: var(--background-color-dark1);
+    border-radius: 0.25em;
+    border-left: 2px solid var(--pitch-accent-color);
+}
+
+.pitch-results-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    margin-bottom: 0.25em;
+}
+
+.pitch-results-label {
+    font-size: 0.6875em;
+    font-weight: 600;
+    color: var(--text-color-light1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.pitch-toggle {
+    background: var(--pitch-accent-color);
+    color: white;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.pitch-toggle:hover {
+    background: color-mix(in srgb, var(--pitch-accent-color) 80%, black);
+    transform: scale(1.05);
+}
+
+.pitch-toggle:active {
+    transform: scale(0.95);
+}
+
+.pitch-results-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25em;
+}
+
+.pitch-result-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    flex-wrap: wrap;
+}
+
+.pitch-result-collapsed {
+    display: none;
+}
+
+.pitch-notation {
+    display: inline-flex;
+    align-items: baseline;
+}
+
+.pitch-position-text {
+    font-size: 0.75em;
+    color: var(--text-color-light1);
+    background: var(--background-color-dark2);
+    padding: 0.125em 0.375em;
+    border-radius: 0.25em;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+.pitch-dictionary-name {
+    font-size: 0.625em;
+    color: var(--text-color-light2);
 }
 
 /* Print styles */
