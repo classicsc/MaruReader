@@ -55,7 +55,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     // Navigation history for back/forward functionality
     let history = NavigationHistory()
 
-    private let searchService = DictionarySearchService()
+    private let audioLookupService = AudioLookupService(persistenceController: .shared)
+    private let searchService: DictionarySearchService
 
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
@@ -69,9 +70,15 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     public init(resultState: ResultDisplayState = .startPage) {
         self.resultState = resultState
+        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
         super.init()
         initializeWebPage()
         initializePopupPage()
+
+        // Load audio providers asynchronously
+        Task {
+            try? await audioLookupService.loadProviders()
+        }
     }
 
     /// Initialize with an existing lookup response to preserve context
@@ -90,9 +97,15 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         self.currentRequest = reconstructedRequest
         self.currentResponse = response
+        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
         super.init()
         initializeWebPage()
         initializePopupPage()
+
+        // Load audio providers asynchronously
+        Task {
+            try? await audioLookupService.loadProviders()
+        }
 
         // Load the HTML and push to navigation history
         Task {

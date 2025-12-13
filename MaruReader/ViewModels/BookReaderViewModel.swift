@@ -80,7 +80,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
     private var popupSearchTask: Task<Void, Error>?
 
-    private let searchService = DictionarySearchService()
+    private let audioLookupService = AudioLookupService(persistenceController: .shared)
+    private let searchService: DictionarySearchService
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
@@ -94,7 +95,13 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     init(book: Book) {
         self.book = book
         self.readerPreferences = ReaderPreferences(book: book)
+        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
         super.init()
+
+        // Load audio providers asynchronously
+        Task {
+            try? await audioLookupService.loadProviders()
+        }
 
         Task {
             await loadPublication()
