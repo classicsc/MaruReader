@@ -5,7 +5,9 @@
 //  Created by Sam Smoker on 12/12/25.
 //
 
-public enum AudioSourceType: String, Sendable, Codable {
-    case urlPattern
-    case indexedZIP
+import Foundation
+
+public enum AudioSourceType: Sendable {
+    case urlPattern(String)
+    case indexed(UUID)
 }
