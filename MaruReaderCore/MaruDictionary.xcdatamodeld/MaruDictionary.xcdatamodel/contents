@@ -15,6 +15,7 @@
         <attribute name="sourceID" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
     <entity name="AudioSource" representedClassName="AudioSource" syncable="YES" codeGenerationType="class">
+        <attribute name="audioFileExtensions" attributeType="String"/>
         <attribute name="baseRemoteURL" optional="YES" attributeType="String"/>
         <attribute name="dateAdded" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="enabled" attributeType="Boolean" usesScalarValueType="YES"/>
