@@ -27,6 +27,27 @@
         <attribute name="urlPattern" optional="YES" attributeType="String"/>
         <attribute name="version" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="year" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioSourceImport" inverseName="audioSource" inverseEntity="AudioSourceImport"/>
+    </entity>
+    <entity name="AudioSourceImport" representedClassName="AudioSourceImport" syncable="YES" codeGenerationType="class">
+        <attribute name="archiveExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
+        <attribute name="entriesProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="file" attributeType="URI"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="indexProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="mediaImported" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeFailed" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="workingDirectory" attributeType="URI"/>
+        <relationship name="audioSource" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioSource" inverseName="importJob" inverseEntity="AudioSource"/>
     </entity>
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
