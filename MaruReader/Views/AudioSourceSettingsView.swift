@@ -15,7 +15,6 @@ struct AudioSourceSettingsView: View {
 
     @State private var showingAddURLPatternSheet = false
     @State private var showingZipImporter = false
-    @State private var showingAddMenu = false
 
     @State private var importError: Error?
     @State private var showingError = false
@@ -77,19 +76,17 @@ struct AudioSourceSettingsView: View {
                 EditButton()
             }
             ToolbarItem(placement: .primaryAction) {
-                Button(action: { showingAddMenu = true }) {
+                Menu {
+                    Button("Import Indexed ZIP") {
+                        showingZipImporter = true
+                    }
+                    Button("Add URL Pattern") {
+                        showingAddURLPatternSheet = true
+                    }
+                } label: {
                     Image(systemName: "plus")
                 }
             }
-        }
-        .confirmationDialog("Add Audio Source", isPresented: $showingAddMenu) {
-            Button("Import Indexed ZIP") {
-                showingZipImporter = true
-            }
-            Button("Add URL Pattern") {
-                showingAddURLPatternSheet = true
-            }
-            Button("Cancel", role: .cancel) {}
         }
         .sheet(isPresented: $showingAddURLPatternSheet) {
             NavigationStack {
@@ -357,7 +354,6 @@ private struct AddURLPatternAudioSourceView: View {
 
     @State private var name: String = ""
     @State private var urlPattern: String = ""
-    @State private var isLocal: Bool = false
 
     @State private var errorMessage: String?
     @State private var showingError = false
@@ -366,7 +362,6 @@ private struct AddURLPatternAudioSourceView: View {
         Form {
             Section("Audio Source") {
                 TextField("Name", text: $name)
-                Toggle("Local Source", isOn: $isLocal)
             }
 
             Section("URL Pattern") {
@@ -423,7 +418,7 @@ private struct AddURLPatternAudioSourceView: View {
         source.enabled = true
         source.indexedByHeadword = false
         source.urlPattern = trimmedPattern
-        source.isLocal = isLocal
+        source.isLocal = false
         source.baseRemoteURL = nil
         source.audioFileExtensions = ""
 
