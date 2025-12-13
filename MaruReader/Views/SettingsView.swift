@@ -13,6 +13,9 @@ struct SettingsView: View {
                     NavigationLink(destination: DictionaryManagementView()) {
                         Label("Dictionaries", systemImage: "book.closed")
                     }
+                    NavigationLink(destination: AudioSourceSettingsView()) {
+                        Label("Pronunciation Audio", systemImage: "speaker.wave.2")
+                    }
                 }
                 Section("Appearance") {
                     NavigationLink(destination: DictionaryDisplaySettingsView()) {
