@@ -18,6 +18,7 @@
         <attribute name="dateAdded" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="enabled" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="indexedByHeadword" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="priority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="urlPattern" optional="YES" attributeType="String"/>
