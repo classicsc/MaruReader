@@ -270,8 +270,64 @@ public struct TextLookupResponse: Sendable {
         }
     }
 
+    // MARK: - Audio HTML Generation
+
+    /// Serializes audio sources to JSON for use in HTML data attributes.
+    private func audioSourcesJSON(for sources: [AudioSourceResult]) -> String {
+        let sourceData = sources.map { source -> [String: String] in
+            var dict: [String: String] = ["url": source.url.absoluteString]
+            if let pitch = source.pitchNumber {
+                dict["pitch"] = pitch
+            }
+            return dict
+        }
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: sourceData),
+              let jsonString = String(data: jsonData, encoding: .utf8)
+        else {
+            return "[]"
+        }
+        return jsonString.escapeHTML()
+    }
+
+    /// Generates an audio button HTML element with the given sources.
+    private func audioButtonHTML(sources: [AudioSourceResult], pitchPosition: String? = nil) -> String {
+        guard !sources.isEmpty else { return "" }
+
+        // Filter by pitch position if specified
+        let filteredSources: [AudioSourceResult]
+        if let position = pitchPosition {
+            let matching = sources.filter { $0.pitchNumber == position }
+            filteredSources = matching.isEmpty ? sources : matching
+        } else {
+            filteredSources = sources
+        }
+
+        guard !filteredSources.isEmpty else { return "" }
+
+        let sourcesJSON = audioSourcesJSON(for: filteredSources)
+        return """
+        <button type="button" class="audio-button" data-audio-sources="\(sourcesJSON)" data-state="ready" aria-label="Play audio"></button>
+        """
+    }
+
+    /// Gets the primary pitch position string from pitch accent results.
+    private func primaryPitchPositionString(for termGroup: GroupedSearchResults) -> String? {
+        guard let firstPitchResult = termGroup.pitchAccentResults.first,
+              let firstPitch = firstPitchResult.pitches.first
+        else {
+            return nil
+        }
+
+        switch firstPitch.position {
+        case let .mora(position):
+            return String(position)
+        case .pattern:
+            return nil
+        }
+    }
+
     /// Generates HTML for the pitch results area.
-    private func pitchResultsAreaHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
+    private func pitchResultsAreaHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false, includeAudio: Bool = false) -> String {
         guard styles.pitchResultsAreaEnabled,
               !termGroup.pitchAccentResults.isEmpty
         else {
@@ -317,6 +373,19 @@ public struct TextLookupResponse: Sendable {
                 // Add dictionary name
                 itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
 
+                // Add audio button for this specific pitch if audio is available
+                if includeAudio, let audioResults = termGroup.audioResults {
+                    let pitchPositionString: String? = switch pitch.position {
+                    case let .mora(pos): String(pos)
+                    case .pattern: nil
+                    }
+
+                    let pitchSources = audioResults.sources(forPitchPosition: pitchPositionString)
+                    if !pitchSources.isEmpty {
+                        itemHTML += audioButtonHTML(sources: pitchSources, pitchPosition: pitchPositionString)
+                    }
+                }
+
                 itemHTML += "</div>"
                 pitchItemsHTML.append(itemHTML)
                 isFirstItem = false
@@ -350,12 +419,21 @@ public struct TextLookupResponse: Sendable {
         return html
     }
 
-    /// Generates the term header with optional pitch notation.
-    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String) -> String {
+    /// Generates the term header with optional pitch notation and audio button.
+    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String, includeAudio: Bool = false) -> String {
         let expression = termGroup.expression.escapeHTML()
 
+        // Generate audio button if requested and audio is available
+        let audioHTML: String
+        if includeAudio, let audioResults = termGroup.audioResults, audioResults.hasAudio {
+            let primaryPitch = primaryPitchPositionString(for: termGroup)
+            audioHTML = audioButtonHTML(sources: audioResults.sources, pitchPosition: primaryPitch)
+        } else {
+            audioHTML = ""
+        }
+
         guard let reading = termGroup.reading, !reading.isEmpty else {
-            return "<h2 class=\"\(cssClass)\">\(expression)</h2>"
+            return "<h2 class=\"\(cssClass)\">\(expression)\(audioHTML)</h2>"
         }
 
         let readingHTML: String
@@ -370,13 +448,34 @@ public struct TextLookupResponse: Sendable {
             reading.escapeHTML()
         }
 
-        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]</h2>"
+        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]\(audioHTML)</h2>"
     }
 
     public func toPopupHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
             // Generate term header with optional pitch notation
             let headerHTML = termHeaderHTML(for: termGroup, cssClass: "popup-term-header")
+
+            // Generate audio button for popup header
+            let audioButtonHTML: String
+            if let audioResults = termGroup.audioResults, audioResults.hasAudio {
+                let primaryPitch = primaryPitchPositionString(for: termGroup)
+                audioButtonHTML = self.audioButtonHTML(sources: audioResults.sources, pitchPosition: primaryPitch)
+            } else {
+                audioButtonHTML = ""
+            }
+
+            // Wrap header with audio button if audio is available
+            let headerSectionHTML: String = if !audioButtonHTML.isEmpty {
+                """
+                <div class="popup-term-header-wrapper">
+                    \(headerHTML)
+                    \(audioButtonHTML)
+                </div>
+                """
+            } else {
+                headerHTML
+            }
 
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
@@ -399,7 +498,7 @@ public struct TextLookupResponse: Sendable {
 
             return """
             <div class="popup-term-group" onclick="navigateToTerm('\(termGroup.expression.escapeHTML())')">
-                \(headerHTML)
+                \(headerSectionHTML)
                 \(tagsHTML)
                 \(deinflectionHTML)
                 \(frequencyHTML)
@@ -431,12 +530,18 @@ public struct TextLookupResponse: Sendable {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
             <link rel="stylesheet" href="marureader-resource://popup.css">
+            <script src="marureader-resource://audioDisplay.js"></script>
             <script>
                 function navigateToTerm(term) {
                     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navigateToTerm) {
                         window.webkit.messageHandlers.navigateToTerm.postMessage(term);
                     }
                 }
+                document.addEventListener('DOMContentLoaded', function() {
+                    if (window.MaruReader && window.MaruReader.audioDisplay) {
+                        window.MaruReader.audioDisplay.initialize();
+                    }
+                });
             </script>
             \(generateCSS())
         </head>
@@ -449,8 +554,8 @@ public struct TextLookupResponse: Sendable {
 
     public func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
-            // Generate term header with optional pitch notation
-            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header")
+            // Generate term header with optional pitch notation and audio
+            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true)
 
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
@@ -468,8 +573,8 @@ public struct TextLookupResponse: Sendable {
 
             let frequencyHTML = termFrequencyHTML(for: termGroup)
 
-            // Generate pitch results area
-            let pitchHTML = pitchResultsAreaHTML(for: termGroup)
+            // Generate pitch results area with audio buttons
+            let pitchHTML = pitchResultsAreaHTML(for: termGroup, includeAudio: true)
 
             return """
             <section class="term-group">
@@ -509,6 +614,7 @@ public struct TextLookupResponse: Sendable {
             <script src="marureader-resource://textHighlighting.js"></script>
             <script src="marureader-resource://frequencyDisplay.js"></script>
             <script src="marureader-resource://pitchDisplay.js"></script>
+            <script src="marureader-resource://audioDisplay.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     if (window.MaruReader && window.MaruReader.frequencyDisplay) {
@@ -516,6 +622,9 @@ public struct TextLookupResponse: Sendable {
                     }
                     if (window.MaruReader && window.MaruReader.pitchDisplay) {
                         window.MaruReader.pitchDisplay.initialize();
+                    }
+                    if (window.MaruReader && window.MaruReader.audioDisplay) {
+                        window.MaruReader.audioDisplay.initialize();
                     }
                 });
             </script>

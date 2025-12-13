@@ -83,6 +83,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private let searchService = DictionarySearchService()
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
+    private var audioSchemeHandler: AudioURLSchemeHandler = .init()
 
     let highlightStyles = [
         "background-color": "inherit",
@@ -181,6 +182,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "navigateToTerm")

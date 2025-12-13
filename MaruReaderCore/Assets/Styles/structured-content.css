@@ -24,7 +24,10 @@
 
     /* Pitch accent color */
     --pitch-accent-color: #e91e63;
-    
+
+    /* Audio playback color */
+    --audio-color: #2196f3;
+
     /* Typography scale */
     --font-size-xs: 0.75rem;
     --font-size-sm: 0.875rem;
@@ -1081,6 +1084,78 @@ body {
 .pitch-dictionary-name {
     font-size: 0.625em;
     color: var(--text-color-light2);
+}
+
+/* Audio Display Styles */
+
+/* Material Symbols font for audio icons */
+@font-face {
+    font-family: 'Material Symbols Outlined';
+    font-style: normal;
+    font-weight: 400;
+    src: url('marureader-resource://MaterialSymbolsOutlined.woff2') format('woff2');
+}
+
+.audio-button {
+    background: var(--audio-color);
+    color: white;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    vertical-align: middle;
+    margin-left: 4px;
+    font-family: 'Material Symbols Outlined';
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+}
+
+.audio-button:hover {
+    background: color-mix(in srgb, var(--audio-color) 80%, black);
+    transform: scale(1.05);
+}
+
+.audio-button:active {
+    transform: scale(0.95);
+}
+
+/* Audio button icon states */
+.audio-button::before {
+    content: 'volume_up';
+}
+
+.audio-button[data-state="loading"]::before {
+    content: 'hourglass_empty';
+}
+
+.audio-button[data-state="playing"]::before {
+    content: 'stop';
+}
+
+.audio-button[data-state="error"]::before {
+    content: 'volume_off';
+}
+
+.audio-button[data-state="error"] {
+    background: var(--text-color-light2);
+    cursor: not-allowed;
+}
+
+/* Pitch result item audio button (smaller) */
+.pitch-result-item .audio-button {
+    width: 16px;
+    height: 16px;
+    font-size: 12px;
+    margin-left: 4px;
 }
 
 /* Print styles */
