@@ -6,6 +6,7 @@
         <attribute name="name" attributeType="String"/>
         <attribute name="normalizedReading" attributeType="String"/>
         <attribute name="pitchNumber" attributeType="String"/>
+        <attribute name="pitchPattern" optional="YES" attributeType="String"/>
         <attribute name="sourceID" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
     <entity name="AudioHeadword" representedClassName="AudioHeadword" syncable="YES" codeGenerationType="class">

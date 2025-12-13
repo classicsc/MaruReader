@@ -122,6 +122,7 @@ struct AudioSourceEntryProcessingTask {
                 "name": filename,
                 "kanaReading": info.kanaReading,
                 "normalizedReading": normalizedReading,
+                "pitchPattern": info.pitchPattern ?? "",
                 "pitchNumber": info.pitchNumber ?? "",
             ])
 
