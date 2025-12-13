@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 
 /// Central service for audio lookups across all configured sources
 public actor AudioLookupService {
@@ -29,6 +30,12 @@ public actor AudioLookupService {
 
     private let persistenceController: DictionaryPersistenceController
 
+    // Observation tasks for auto-reload
+    private var observationTask: Task<Void, Never>?
+    private var reloadDebounceTask: Task<Void, Error>?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioLookupService")
+
     // MARK: - Initialization
 
     public init(persistenceController: DictionaryPersistenceController) {
@@ -37,8 +44,19 @@ public actor AudioLookupService {
 
     // MARK: - Provider Management
 
-    /// Initialize providers from Core Data configuration
+    /// Initialize providers from Core Data configuration and start observing for changes
     public func loadProviders() async throws {
+        try await loadProvidersInternal()
+
+        // Start observation if not already running
+        if observationTask == nil {
+            startObservingAudioSourceChanges()
+            logger.debug("Started observing AudioSource changes")
+        }
+    }
+
+    /// Internal method to load providers from Core Data
+    private func loadProvidersInternal() async throws {
         let context = persistenceController.newBackgroundContext()
 
         let sources: [(UUID, String, AudioSourceType, Int64, Bool, String?)] = try await context.perform {
@@ -86,6 +104,64 @@ public actor AudioLookupService {
                 baseRemoteURL: $0.5
             )
         }
+    }
+
+    // MARK: - Change Observation
+
+    /// Start observing Core Data changes for AudioSource entities
+    private func startObservingAudioSourceChanges() {
+        // Cancel existing observation if any
+        observationTask?.cancel()
+
+        observationTask = Task {
+            let notificationSequence = NotificationCenter.default.notifications(
+                named: NSNotification.Name.NSManagedObjectContextDidSave
+            )
+
+            for await notification in notificationSequence {
+                if containsAudioSourceChanges(notification) {
+                    logger.debug("AudioSource changes detected, scheduling reload")
+                    scheduleReload()
+                }
+            }
+        }
+    }
+
+    /// Check if a Core Data save notification contains AudioSource entity changes
+    private func containsAudioSourceChanges(_ notification: Notification) -> Bool {
+        guard let userInfo = notification.userInfo else { return false }
+
+        let inserted = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject> ?? []
+        let updated = userInfo[NSUpdatedObjectsKey] as? Set<NSManagedObject> ?? []
+        let deleted = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject> ?? []
+
+        let allChangedObjects = inserted.union(updated).union(deleted)
+
+        return allChangedObjects.contains { object in
+            object.entity.name == "AudioSource"
+        }
+    }
+
+    /// Schedule a provider reload with debouncing to handle rapid changes
+    private func scheduleReload() {
+        reloadDebounceTask?.cancel()
+        reloadDebounceTask = Task {
+            try await Task.sleep(nanoseconds: 250_000_000) // 250ms debounce
+            try Task.checkCancellation()
+            do {
+                try await self.reloadProviders()
+            } catch {
+                logger.error("Failed to reload providers: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    /// Reload providers and clear cache
+    private func reloadProviders() async throws {
+        logger.debug("Reloading audio providers")
+        cache.removeAll()
+        try await loadProvidersInternal()
+        logger.info("Audio providers reloaded successfully")
     }
 
     // MARK: - Audio Lookup
