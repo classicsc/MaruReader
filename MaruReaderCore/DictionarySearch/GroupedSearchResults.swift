@@ -13,6 +13,7 @@ public struct GroupedSearchResults: Identifiable, Sendable {
     let pitchAccentResults: [PitchAccentResults]
     let termTags: [Tag]
     let deinflectionInfo: String?
+    let audioResults: TermAudioResults?
 
     public var id: String { termKey }
 
@@ -21,5 +22,25 @@ public struct GroupedSearchResults: Identifiable, Sendable {
             return "\(expression) [\(reading)]"
         }
         return expression
+    }
+
+    init(
+        termKey: String,
+        expression: String,
+        reading: String?,
+        dictionariesResults: [DictionaryResults],
+        pitchAccentResults: [PitchAccentResults],
+        termTags: [Tag],
+        deinflectionInfo: String?,
+        audioResults: TermAudioResults? = nil
+    ) {
+        self.termKey = termKey
+        self.expression = expression
+        self.reading = reading
+        self.dictionariesResults = dictionariesResults
+        self.pitchAccentResults = pitchAccentResults
+        self.termTags = termTags
+        self.deinflectionInfo = deinflectionInfo
+        self.audioResults = audioResults
     }
 }

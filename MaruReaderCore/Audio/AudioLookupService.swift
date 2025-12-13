@@ -158,7 +158,8 @@ public actor AudioLookupService {
             url: url,
             sourceName: provider.name,
             sourceType: provider.type,
-            isLocal: provider.isLocal
+            isLocal: provider.isLocal,
+            pitchNumber: nil // URL pattern sources don't have pitch info
         )]
     }
 
@@ -225,16 +226,21 @@ public actor AudioLookupService {
                     continue // No base URL for remote source
                 }
 
+                // Extract pitch number from the audio file, converting empty string to nil
+                let filePitchNumber = audioFile.value(forKey: "pitchNumber") as? String
+                let normalizedPitchNumber = filePitchNumber.flatMap { $0.isEmpty ? nil : $0 }
+
                 let result = AudioSourceResult(
                     url: url,
                     sourceName: provider.name,
                     sourceType: provider.type,
-                    isLocal: provider.isLocal
+                    isLocal: provider.isLocal,
+                    pitchNumber: normalizedPitchNumber
                 )
 
-                // Check if pitch matches
-                if let pitchNumber = audioFile.value(forKey: "pitchNumber") as? String,
-                   pitchNumber == request.downstepPosition
+                // Check if pitch matches the request's downstep position
+                if let requestedPitch = request.downstepPosition,
+                   normalizedPitchNumber == requestedPitch
                 {
                     matchingPitch.append(result)
                 } else {

@@ -31,14 +31,19 @@ public actor DictionarySearchService {
     private let persistenceController: DictionaryPersistenceController
     private var candidateGenerator: DictionaryCandidateGenerator
     private let backgroundContext: NSManagedObjectContext
+    private let audioLookupService: AudioLookupService?
 
     /// Cached dictionary metadata, refreshed before each search
     private var dictionaryMetadataCache: [UUID: DictionaryMetadata] = [:]
 
-    public init(persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared) {
+    public init(
+        persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared,
+        audioLookupService: AudioLookupService? = nil
+    ) {
         self.persistenceController = persistenceController
         self.backgroundContext = persistenceController.container.newBackgroundContext()
         self.candidateGenerator = DictionaryCandidateGenerator()
+        self.audioLookupService = audioLookupService
     }
 
     public func performSearch(query: String) async throws -> [SearchResult] {
@@ -157,10 +162,16 @@ public actor DictionarySearchService {
         logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
         let results = try await performSearch(query: queryText)
-        let groupedResults = DictionarySearchService.groupResults(results)
+        var groupedResults = DictionarySearchService.groupResults(results)
         guard !groupedResults.isEmpty else {
             return nil
         }
+
+        // Enrich results with audio data if audio service is available
+        if let audioService = audioLookupService {
+            groupedResults = await enrichWithAudioResults(groupedResults, audioService: audioService)
+        }
+
         let styles = try await getDisplayStyles()
         // Get the top ranked result
         let topResult = groupedResults.first?.dictionariesResults.first?.results.first
@@ -277,6 +288,58 @@ public actor DictionarySearchService {
                     continuation.resume(throwing: error)
                 }
             }
+        }
+    }
+
+    // MARK: - Audio Enrichment
+
+    /// Enrich grouped results with audio data
+    private func enrichWithAudioResults(
+        _ results: [GroupedSearchResults],
+        audioService: AudioLookupService
+    ) async -> [GroupedSearchResults] {
+        // Create audio requests for each unique term+reading (without pitch filter to get all audio)
+        let audioRequests = results.map { group in
+            AudioLookupRequest(
+                term: group.expression,
+                reading: group.reading,
+                downstepPosition: nil // Get all audio, filter client-side by pitch
+            )
+        }
+
+        // Batch lookup all audio
+        let audioResults = await audioService.lookupAudio(for: audioRequests)
+
+        // Map audio results by term+reading key for efficient lookup
+        var audioMap: [String: AudioLookupResult] = [:]
+        for audioResult in audioResults {
+            let key = "\(audioResult.request.term)|\(audioResult.request.reading ?? "")"
+            audioMap[key] = audioResult
+        }
+
+        // Create new grouped results with audio attached
+        return results.map { group in
+            let key = "\(group.expression)|\(group.reading ?? "")"
+            let audio = audioMap[key]
+
+            let termAudio: TermAudioResults? = audio.map { result in
+                TermAudioResults(
+                    expression: group.expression,
+                    reading: group.reading,
+                    sources: result.sources
+                )
+            }
+
+            return GroupedSearchResults(
+                termKey: group.termKey,
+                expression: group.expression,
+                reading: group.reading,
+                dictionariesResults: group.dictionariesResults,
+                pitchAccentResults: group.pitchAccentResults,
+                termTags: group.termTags,
+                deinflectionInfo: group.deinflectionInfo,
+                audioResults: termAudio
+            )
         }
     }
 

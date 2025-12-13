@@ -25,11 +25,14 @@ public struct AudioSourceResult: Sendable {
     public let sourceName: String
     public let sourceType: AudioSourceType
     public let isLocal: Bool
+    /// The pitch accent downstep position this audio represents (e.g., "0", "1", "2-1"), or nil if unknown
+    public let pitchNumber: String?
 
-    public init(url: URL, sourceName: String, sourceType: AudioSourceType, isLocal: Bool) {
+    public init(url: URL, sourceName: String, sourceType: AudioSourceType, isLocal: Bool, pitchNumber: String? = nil) {
         self.url = url
         self.sourceName = sourceName
         self.sourceType = sourceType
         self.isLocal = isLocal
+        self.pitchNumber = pitchNumber
     }
 }

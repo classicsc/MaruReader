@@ -224,6 +224,33 @@ public struct PitchAccent: Codable, Sendable {
     }
 }
 
+public extension PitchAccent {
+    /// Converts the pitch position to a downstep string for audio lookup matching
+    /// - Returns: String representation suitable for matching audio files
+    ///   - For `.mora(n)`: returns the number as a string (e.g., "0", "1", "3")
+    ///   - For `.pattern(p)`: returns the position where pitch drops (e.g., "2" for "HHLL"), or "0" for heiban
+    var downstepString: String? {
+        switch position {
+        case let .mora(n):
+            return String(n)
+        case let .pattern(pattern):
+            // Find where H transitions to L (downstep position)
+            let chars = Array(pattern.uppercased())
+            for i in 0 ..< (chars.count - 1) {
+                if chars[i] == "H", chars[i + 1] == "L" {
+                    return String(i + 1)
+                }
+            }
+            // If pattern is all H (heiban), return "0"
+            if chars.allSatisfy({ $0 == "H" }) {
+                return "0"
+            }
+            // Unable to determine downstep position
+            return nil
+        }
+    }
+}
+
 struct IPAData: Codable {
     let reading: String
     let transcriptions: [IPATranscription]
