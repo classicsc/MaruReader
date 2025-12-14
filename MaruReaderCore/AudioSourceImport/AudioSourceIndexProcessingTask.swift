@@ -104,6 +104,28 @@ struct AudioSourceIndexProcessingTask {
             return indexJSON
         }
 
+        // Descend one level to check for index.json in subdirectories
+        for item in contents {
+            let isDirectory = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
+            if isDirectory {
+                if let subContents = try? fileManager.contentsOfDirectory(at: item, includingPropertiesForKeys: nil) {
+                    let subIndexJSON = item.appendingPathComponent("index.json")
+                    if subContents.contains(subIndexJSON) {
+                        // Update the workingDir to the subdirectory
+                        let context = persistentContainer.newBackgroundContext()
+                        try context.performAndWait {
+                            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+                                throw AudioSourceImportError.importNotFound
+                            }
+                            job.workingDirectory = item
+                            try context.save()
+                        }
+                        return subIndexJSON
+                    }
+                }
+            }
+        }
+
         // For online sources, find any JSON file at root level
         let jsonFiles = contents.filter { $0.pathExtension.lowercased() == "json" }
 
