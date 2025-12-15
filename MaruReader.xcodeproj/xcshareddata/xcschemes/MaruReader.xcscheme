@@ -93,6 +93,17 @@
                ReferencedContainer = "container:MaruReader.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DBEF7A072EEF9423002DBFFC"
+               BuildableName = "MaruAnkiTests.xctest"
+               BlueprintName = "MaruAnkiTests"
+               ReferencedContainer = "container:MaruReader.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
