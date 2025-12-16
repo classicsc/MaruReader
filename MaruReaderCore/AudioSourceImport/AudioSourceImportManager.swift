@@ -73,12 +73,12 @@ public actor AudioSourceImportManager {
         } else {
             queue.removeAll { $0 == jobID }
             // Also mark as cancelled in Core Data
-            await MainActor.run {
-                let context = DictionaryPersistenceController.shared.container.viewContext
-                if let job = try? context.existingObject(with: jobID) as? AudioSourceImport {
+            let viewContext = container.viewContext
+            await viewContext.perform {
+                if let job = try? viewContext.existingObject(with: jobID) as? AudioSourceImport {
                     job.isCancelled = true
                     job.timeCancelled = Date()
-                    try? context.save()
+                    try? viewContext.save()
                 }
             }
         }
@@ -208,9 +208,18 @@ public actor AudioSourceImportManager {
                 }
                 job.isCancelled = true
                 job.timeCancelled = Date()
-                if let audioSource = job.audioSource {
+
+                if let id = capturedSourceID {
+                    let fetchRequest = NSFetchRequest<AudioSource>(entityName: "AudioSource")
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+                    if let audioSource = (try? context.fetch(fetchRequest))?.first {
+                        context.delete(audioSource)
+                    }
+                } else if let audioSource = job.audioSource {
                     context.delete(audioSource)
                 }
+
                 try? context.save()
                 if let id = capturedSourceID {
                     AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
@@ -225,9 +234,18 @@ public actor AudioSourceImportManager {
                 job.isFailed = true
                 job.displayProgressMessage = error.localizedDescription
                 job.timeFailed = Date()
-                if let audioSource = job.audioSource {
+
+                if let id = capturedSourceID {
+                    let fetchRequest = NSFetchRequest<AudioSource>(entityName: "AudioSource")
+                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+                    fetchRequest.fetchLimit = 1
+                    if let audioSource = (try? context.fetch(fetchRequest))?.first {
+                        context.delete(audioSource)
+                    }
+                } else if let audioSource = job.audioSource {
                     context.delete(audioSource)
                 }
+
                 try? context.save()
                 if let id = capturedSourceID {
                     AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
