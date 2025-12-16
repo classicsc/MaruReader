@@ -1,2 +1,57 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier=""/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+    <entity name="AnkiAPI" representedClassName="AnkiAPI" syncable="YES" codeGenerationType="class">
+        <attribute name="connectEndpoint" optional="YES" attributeType="String"/>
+        <attribute name="connectPort" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="profiles" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiProfile" inverseName="api" inverseEntity="AnkiProfile"/>
+    </entity>
+    <entity name="AnkiDeck" representedClassName="AnkiDeck" syncable="YES" codeGenerationType="class">
+        <attribute name="ankiID" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="maruDefaultSetting" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="defaultTermCardDeck" inverseEntity="MaruAnkiSettings"/>
+        <relationship name="notes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiNote" inverseName="deck" inverseEntity="AnkiNote"/>
+        <relationship name="profile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiProfile" inverseName="decks" inverseEntity="AnkiProfile"/>
+    </entity>
+    <entity name="AnkiModel" representedClassName="AnkiModel" syncable="YES" codeGenerationType="class">
+        <attribute name="ankiID" optional="YES" attributeType="String"/>
+        <attribute name="id" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <relationship name="maruDefaultSetting" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="defaultTermCardModel" inverseEntity="MaruAnkiSettings"/>
+        <relationship name="maruSettings" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MaruModelSettings" inverseName="models" inverseEntity="MaruModelSettings"/>
+        <relationship name="notes" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AnkiNote" inverseName="model" inverseEntity="AnkiNote"/>
+        <relationship name="profile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiProfile" inverseName="models" inverseEntity="AnkiProfile"/>
+    </entity>
+    <entity name="AnkiNote" representedClassName="AnkiNote" syncable="YES" codeGenerationType="class">
+        <attribute name="ankiID" optional="YES" attributeType="String"/>
+        <attribute name="fields" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="pendingSync" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="tags" attributeType="String"/>
+        <relationship name="deck" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiDeck" inverseName="notes" inverseEntity="AnkiDeck"/>
+        <relationship name="model" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiModel" inverseName="notes" inverseEntity="AnkiModel"/>
+        <relationship name="profile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiProfile" inverseName="notes" inverseEntity="AnkiProfile"/>
+    </entity>
+    <entity name="AnkiProfile" representedClassName="AnkiProfile" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <relationship name="api" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiAPI" inverseName="profiles" inverseEntity="AnkiAPI"/>
+        <relationship name="decks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiDeck" inverseName="profile" inverseEntity="AnkiDeck"/>
+        <relationship name="models" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiModel" inverseName="profile" inverseEntity="AnkiModel"/>
+        <relationship name="notes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiNote" inverseName="profile" inverseEntity="AnkiNote"/>
+    </entity>
+    <entity name="MaruAnkiSettings" representedClassName="MaruAnkiSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <relationship name="defaultTermCardDeck" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiDeck" inverseName="maruDefaultSetting" inverseEntity="AnkiDeck"/>
+        <relationship name="defaultTermCardModel" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiModel" inverseName="maruDefaultSetting" inverseEntity="AnkiModel"/>
+    </entity>
+    <entity name="MaruModelSettings" representedClassName="MaruModelSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="displayName" attributeType="String"/>
+        <attribute name="fieldMap" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isSystemProfile" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="models" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="AnkiModel" inverseName="maruSettings" inverseEntity="AnkiModel"/>
+    </entity>
+</model>
