@@ -135,8 +135,13 @@ actor BookImportManager {
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? BookEPUBImport else {
+            // Important: tasks run in their own contexts, so use a fresh context here to avoid stale relationships.
+            let finalizeContext = container.newBackgroundContext()
+            finalizeContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            finalizeContext.undoManager = nil
+
+            try await finalizeContext.perform {
+                guard let job = try? finalizeContext.existingObject(with: jobID) as? BookEPUBImport else {
                     throw BookImportError.databaseError
                 }
                 job.isComplete = true
@@ -144,33 +149,61 @@ actor BookImportManager {
                 job.timeCompleted = Date()
                 job.displayProgressMessage = "Import complete."
 
-                try context.save()
+                try finalizeContext.save()
             }
         } catch is CancellationError {
-            await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? BookEPUBImport else {
-                    return
+            let cleanupContext = container.newBackgroundContext()
+            cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            cleanupContext.undoManager = nil
+
+            let cleanupInfo: (UUID, String?, String?)? = await cleanupContext.perform {
+                guard let job = try? cleanupContext.existingObject(with: jobID) as? BookEPUBImport else {
+                    return nil
                 }
                 job.isCancelled = true
                 job.timeCancelled = Date()
-                if let book = job.book {
-                    context.delete(book)
-                    Self.cleanupBookFiles(book: book)
+
+                guard let book = job.book, let uuid = book.id else {
+                    try? cleanupContext.save()
+                    return nil
                 }
-                try? context.save()
+
+                let fileName = book.fileName
+                let coverFileName = book.coverFileName
+                cleanupContext.delete(book)
+                try? cleanupContext.save()
+                return (uuid, fileName, coverFileName)
+            }
+
+            if let (uuid, fileName, coverFileName) = cleanupInfo {
+                Self.cleanupBookFilesByUUID(bookUUID: uuid, fileName: fileName, coverFileName: coverFileName)
             }
         } catch {
-            await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? BookEPUBImport else {
-                    return
+            let cleanupContext = container.newBackgroundContext()
+            cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            cleanupContext.undoManager = nil
+
+            let cleanupInfo: (UUID, String?, String?)? = await cleanupContext.perform {
+                guard let job = try? cleanupContext.existingObject(with: jobID) as? BookEPUBImport else {
+                    return nil
                 }
                 job.displayProgressMessage = error.localizedDescription
-                if let book = job.book {
-                    book.errorMessage = error.localizedDescription
-                    context.delete(book)
-                    Self.cleanupBookFiles(book: book)
+
+                guard let book = job.book, let uuid = book.id else {
+                    try? cleanupContext.save()
+                    return nil
                 }
-                try? context.save()
+
+                book.errorMessage = error.localizedDescription
+                let fileName = book.fileName
+                let coverFileName = book.coverFileName
+                cleanupContext.delete(book)
+                try? cleanupContext.save()
+                return (uuid, fileName, coverFileName)
+            }
+
+            if let (uuid, fileName, coverFileName) = cleanupInfo {
+                Self.cleanupBookFilesByUUID(bookUUID: uuid, fileName: fileName, coverFileName: coverFileName)
             }
         }
     }
