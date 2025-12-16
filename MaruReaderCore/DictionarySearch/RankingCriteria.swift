@@ -8,7 +8,7 @@
 import Foundation
 
 /// Encapsulates the 9-tier ranking criteria for search results
-struct RankingCriteria: Comparable {
+public struct RankingCriteria: Comparable, Sendable {
     // MARK: - Ranking Criteria (in order of precedence)
 
     /// 1. Source term length - longer originalSubstring wins
@@ -114,7 +114,7 @@ struct RankingCriteria: Comparable {
 
     // MARK: - Comparable Implementation
 
-    static func < (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
+    public static func < (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
         // 1. Source term length - longer wins (reverse comparison)
         if lhs.sourceTermLength != rhs.sourceTermLength {
             return lhs.sourceTermLength < rhs.sourceTermLength
@@ -197,7 +197,7 @@ struct RankingCriteria: Comparable {
         return lhs.term > rhs.term
     }
 
-    static func == (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
+    public static func == (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
         // Check criteria in the same order as the < comparison
 
         // 1-6: Check all criteria before term score

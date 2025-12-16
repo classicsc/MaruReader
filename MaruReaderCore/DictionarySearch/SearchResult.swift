@@ -8,22 +8,22 @@
 import Foundation
 
 public struct SearchResult: Identifiable, Comparable, Sendable {
-    let candidate: LookupCandidate
-    let term: String
-    let reading: String?
-    let definitions: [Definition]
-    let frequency: Double?
-    let frequencies: [FrequencyInfo]
-    let pitchAccents: [PitchAccentResults]
-    let dictionaryTitle: String
-    let dictionaryUUID: UUID
-    let displayPriority: Int
-    let rankingCriteria: RankingCriteria
-    let termTags: [Tag]
-    let definitionTags: [Tag]
-    let deinflectionRules: [[String]]
-    let sequence: Int64
-    let score: Double
+    public let candidate: LookupCandidate
+    public let term: String
+    public let reading: String?
+    public let definitions: [Definition]
+    public let frequency: Double?
+    public let frequencies: [FrequencyInfo]
+    public let pitchAccents: [PitchAccentResults]
+    public let dictionaryTitle: String
+    public let dictionaryUUID: UUID
+    public let displayPriority: Int
+    public let rankingCriteria: RankingCriteria
+    public let termTags: [Tag]
+    public let definitionTags: [Tag]
+    public let deinflectionRules: [[String]]
+    public let sequence: Int64
+    public let score: Double
 
     public var html: String {
         definitions.toHTML()

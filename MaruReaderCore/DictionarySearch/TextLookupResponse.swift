@@ -59,13 +59,20 @@ private extension String {
 }
 
 public struct TextLookupResponse: Sendable {
-    public let requestID: UUID
+    public let request: TextLookupRequest
     public let results: [GroupedSearchResults] // Dictionary content
     public let primaryResult: String // The matched term
     public let primaryResultSourceRange: Range<String.Index> // Range in context
-    public let contextStartOffset: Int // Where context starts in full element text
-    public let context: String // The original context string
     public let styles: DisplayStyles
+
+    /// The original request ID (for backward compatibility).
+    public var requestID: UUID { request.id }
+
+    /// Where context starts in full element text (convenience accessor).
+    public var contextStartOffset: Int { request.contextStartOffset }
+
+    /// The original context string (convenience accessor).
+    public var context: String { request.context }
 
     /// Start offset of the matched text within the context (UTF-16 code units for JS compatibility)
     public var matchStartInContext: Int {

@@ -183,12 +183,10 @@ public actor DictionarySearchService {
         logger.debug("Top term: \(topTerm), Matched range: \(matchedRange)")
 
         return TextLookupResponse(
-            requestID: query.id,
+            request: query,
             results: groupedResults,
             primaryResult: topTerm,
             primaryResultSourceRange: matchedRange,
-            contextStartOffset: query.contextStartOffset,
-            context: query.context,
             styles: styles
         )
     }

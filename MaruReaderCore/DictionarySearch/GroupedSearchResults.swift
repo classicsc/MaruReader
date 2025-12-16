@@ -6,14 +6,14 @@
 //
 
 public struct GroupedSearchResults: Identifiable, Sendable {
-    let termKey: String
-    let expression: String
-    let reading: String?
-    let dictionariesResults: [DictionaryResults]
-    let pitchAccentResults: [PitchAccentResults]
-    let termTags: [Tag]
-    let deinflectionInfo: String?
-    let audioResults: TermAudioResults?
+    public let termKey: String
+    public let expression: String
+    public let reading: String?
+    public let dictionariesResults: [DictionaryResults]
+    public let pitchAccentResults: [PitchAccentResults]
+    public let termTags: [Tag]
+    public let deinflectionInfo: String?
+    public let audioResults: TermAudioResults?
 
     public var id: String { termKey }
 

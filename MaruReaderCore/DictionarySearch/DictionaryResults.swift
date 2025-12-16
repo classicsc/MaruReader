@@ -7,13 +7,13 @@
 
 import Foundation
 
-struct DictionaryResults: Identifiable, Sendable {
-    let dictionaryTitle: String
-    let dictionaryUUID: UUID
-    let sequence: Int64
-    let score: Double
-    let results: [SearchResult]
-    let combinedHTML: String
+public struct DictionaryResults: Identifiable, Sendable {
+    public let dictionaryTitle: String
+    public let dictionaryUUID: UUID
+    public let sequence: Int64
+    public let score: Double
+    public let results: [SearchResult]
+    public let combinedHTML: String
 
-    var id: String { "\(dictionaryUUID)|\(sequence)" }
+    public var id: String { "\(dictionaryUUID)|\(sequence)" }
 }

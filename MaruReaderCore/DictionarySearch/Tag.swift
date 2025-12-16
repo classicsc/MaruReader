@@ -9,14 +9,14 @@ import CoreData
 import Foundation
 
 /// Represents a dictionary tag with metadata
-struct Tag: Codable, Sendable, Identifiable, Hashable {
-    let name: String
-    let category: String
-    let notes: String
-    let order: Double
-    let score: Double
+public struct Tag: Codable, Sendable, Identifiable, Hashable {
+    public let name: String
+    public let category: String
+    public let notes: String
+    public let order: Double
+    public let score: Double
 
-    var id: String { name }
+    public var id: String { name }
 
     /// Initialize from Core Data DictionaryTagMeta entity
     init(from tagMeta: DictionaryTagMeta) {

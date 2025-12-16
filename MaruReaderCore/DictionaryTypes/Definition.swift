@@ -8,12 +8,12 @@
 import Foundation
 
 /// A definition can take several shapes per schema.
-enum Definition: Codable, Sendable {
+public enum Definition: Codable, Sendable {
     case text(String)
     case detailed(DefinitionDetailed)
     case deinflection(uninflected: String, rules: [String])
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         if let single = try? decoder.singleValueContainer().decode(String.self) {
             self = .text(single)
             return
@@ -37,7 +37,7 @@ enum Definition: Codable, Sendable {
         )
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         switch self {
         case let .text(str):
             var c = encoder.singleValueContainer()
@@ -54,7 +54,7 @@ enum Definition: Codable, Sendable {
 }
 
 /// Detailed definition object (text, structured-content, or image).
-enum DefinitionDetailed: Codable, Sendable {
+public enum DefinitionDetailed: Codable, Sendable {
     case text(TextDef)
     case structured(StructuredContentDef)
     case image(ImageDef)
@@ -63,7 +63,7 @@ enum DefinitionDetailed: Codable, Sendable {
         case type
     }
 
-    init(from decoder: Decoder) throws {
+    public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let type = try container.decode(String.self, forKey: .type)
         switch type {
@@ -79,7 +79,7 @@ enum DefinitionDetailed: Codable, Sendable {
         }
     }
 
-    func encode(to encoder: Encoder) throws {
+    public func encode(to encoder: Encoder) throws {
         switch self {
         case let .text(t): try t.encode(to: encoder)
         case let .structured(s): try s.encode(to: encoder)
@@ -164,19 +164,19 @@ private extension Definition {
 }
 
 /// Text definition
-struct TextDef: Codable, Sendable {
+public struct TextDef: Codable, Sendable {
     let type: String // always "text"
     let text: String
 }
 
 /// Structured-content definition
-struct StructuredContentDef: Codable, Sendable {
+public struct StructuredContentDef: Codable, Sendable {
     let type: String // always "structured-content"
     let content: StructuredContent
 }
 
 /// Image definition
-struct ImageDef: Codable, Sendable {
+public struct ImageDef: Codable, Sendable {
     let type: String // always "image"
     let path: String
     let width: Int?

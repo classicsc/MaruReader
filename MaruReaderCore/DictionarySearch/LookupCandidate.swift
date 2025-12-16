@@ -6,17 +6,17 @@
 //
 
 /// A string candidate for dictionary lookup, along with metadata about its origin.
-struct LookupCandidate {
+public struct LookupCandidate: Sendable {
     /// The candidate string to look up.
-    let text: String
+    public let text: String
     /// The original text from which this candidate was derived.
-    let originalSubstring: String
+    public let originalSubstring: String
     /// The preprocessing rule chains that produced this candidate.
-    let preprocessorRules: [[String]]
+    public let preprocessorRules: [[String]]
     /// The deinflection rule chains that produced this candidate.
-    let deinflectionInputRules: [[String]]
+    public let deinflectionInputRules: [[String]]
     /// The deinflection output rules for matching the `rules` attribute of dictionary entries.
-    let deinflectionOutputRules: [String]
+    public let deinflectionOutputRules: [String]
 
     init(from text: String) {
         self.text = text
