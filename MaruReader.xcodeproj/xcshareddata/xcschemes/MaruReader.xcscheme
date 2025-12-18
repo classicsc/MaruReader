@@ -36,6 +36,9 @@
          <TestPlanReference
             reference = "container:MaruReaderCoreTests.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:MaruAnkiTests.xctestplan">
+         </TestPlanReference>
       </TestPlans>
       <Testables>
          <TestableReference

@@ -35,6 +35,7 @@
 		DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
 		DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB7D634C2EF48144005A60B8 /* MaruAnkiTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -334,6 +335,7 @@
 		DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruDictionaryUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruDictionaryUICommonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MaruShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruAnkiTests.xctestplan; sourceTree = "<group>"; };
 		DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruReaderCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBCFB16A2EAAAE8B00B4F27D /* MaruReaderCoreTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderCoreTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderTests.xctestplan; sourceTree = "<group>"; };
@@ -547,6 +549,7 @@
 		DB2B69832E660F8B00EDA656 = {
 			isa = PBXGroup;
 			children = (
+				DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */,
 				DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */,
 				DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */,
 				DB2B698E2E660F8B00EDA656 /* MaruReader */,
@@ -1075,6 +1078,7 @@
 			files = (
 				DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */,
 				DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */,
+				DB7D634C2EF48144005A60B8 /* MaruAnkiTests.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

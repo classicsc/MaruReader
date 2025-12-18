@@ -8,7 +8,7 @@
 import Foundation
 
 /// Errors that can occur when communicating with Anki-Connect.
-enum AnkiConnectError: Error, Sendable {
+enum AnkiConnectError: Error, Sendable, Equatable {
     /// The Anki-Connect API returned an error.
     case apiError(String)
     /// Failed to connect to Anki-Connect.
@@ -23,6 +23,26 @@ enum AnkiConnectError: Error, Sendable {
     case duplicateNote
     /// Failed to read a local media file.
     case mediaReadFailed(URL)
+
+    static func == (lhs: AnkiConnectError, rhs: AnkiConnectError) -> Bool {
+        switch (lhs, rhs) {
+        case let (.apiError(lhsString), .apiError(rhsString)):
+            return lhsString == rhsString
+        case let (.connectionFailed(lhsError), .connectionFailed(rhsError)):
+            let lhsNsError = lhsError as NSError
+            let rhsNsError = rhsError as NSError
+            return lhsNsError.domain == rhsNsError.domain && lhsNsError.code == rhsNsError.code
+        case (.invalidResponse, .invalidResponse),
+             (.permissionDenied, .permissionDenied),
+             (.apiKeyRequired, .apiKeyRequired),
+             (.duplicateNote, .duplicateNote):
+            return true
+        case let (.mediaReadFailed(lhsUrl), .mediaReadFailed(rhsUrl)):
+            return lhsUrl == rhsUrl
+        default:
+            return false
+        }
+    }
 }
 
 /// An implementation of `AnkiProvider` that communicates with Anki via Anki-Connect.
@@ -30,7 +50,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
     private let host: String
     private let port: Int
     private let apiKey: String?
-    private let session: URLSession
+    private let network: any NetworkProviding
 
     /// The API version to use for requests.
     private static let apiVersion = 6
@@ -41,17 +61,17 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
     ///   - host: The hostname where Anki-Connect is running (e.g., "localhost").
     ///   - port: The port number (default: 8765).
     ///   - apiKey: Optional API key for authentication.
-    ///   - session: The URL session to use for requests (injectable for testing).
+    ///   - network: The network provider to use for requests (injectable for testing).
     init(
         host: String,
         port: Int = 8765,
         apiKey: String? = nil,
-        session: URLSession = .shared
+        network: any NetworkProviding = URLSession.shared
     ) async throws {
         self.host = host
         self.port = port
         self.apiKey = apiKey
-        self.session = session
+        self.network = network
         let permissionResponse = try await requestPermission() // Ensure permission is granted at initialization
         if permissionResponse.requiresApiKey, apiKey == nil {
             throw AnkiConnectError.apiKeyRequired
@@ -196,7 +216,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
 
         let data: Data
         do {
-            (data, _) = try await session.data(for: urlRequest)
+            (data, _) = try await network.data(for: urlRequest)
         } catch {
             throw AnkiConnectError.connectionFailed(error)
         }

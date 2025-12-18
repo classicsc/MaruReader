@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "67764D52-CC04-4FF5-A766-188E9B568303",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+      }
+    ],
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DBEF7A072EEF9423002DBFFC",
+        "name" : "MaruAnkiTests"
+      }
+    }
+  ],
+  "version" : 1
+}
