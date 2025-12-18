@@ -10,7 +10,6 @@
     <entity name="AnkiDeck" representedClassName="AnkiDeck" syncable="YES" codeGenerationType="class">
         <attribute name="ankiID" optional="YES" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="maruDuplicateNoteSettings" optional="YES" attributeType="String"/>
         <attribute name="name" attributeType="String"/>
         <relationship name="maruDefaultSetting" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="defaultTermCardDeck" inverseEntity="MaruAnkiSettings"/>
         <relationship name="notes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiNote" inverseName="deck" inverseEntity="AnkiNote"/>
@@ -45,6 +44,7 @@
         <relationship name="notes" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="AnkiNote" inverseName="profile" inverseEntity="AnkiNote"/>
     </entity>
     <entity name="MaruAnkiSettings" representedClassName="MaruAnkiSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="duplicateNoteSettings" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <relationship name="defaultTermCardDeck" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiDeck" inverseName="maruDefaultSetting" inverseEntity="AnkiDeck"/>
         <relationship name="defaultTermCardModel" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AnkiModel" inverseName="maruDefaultSetting" inverseEntity="AnkiModel"/>
