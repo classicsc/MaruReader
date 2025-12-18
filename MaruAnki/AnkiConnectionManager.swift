@@ -18,6 +18,7 @@ public enum AnkiConnectionManagerError: Error {
 @MainActor
 public final class AnkiConnectionManager {
     public private(set) var isReady: Bool = false
+    public private(set) var error: Error?
 
     private let persistence: AnkiPersistenceController
 
@@ -31,9 +32,9 @@ public final class AnkiConnectionManager {
 
     private var didSaveObserver: NSObjectProtocol?
 
-    public init(persistence: AnkiPersistenceController = .shared) {
+    public init(persistence: AnkiPersistenceController = .shared) async {
         self.persistence = persistence
-        reload()
+        await reload()
         startObservingSaves()
     }
 
@@ -85,7 +86,7 @@ public final class AnkiConnectionManager {
             guard containsNonNote else { return }
 
             Task { @MainActor in
-                self.reload()
+                await self.reload()
             }
         }
     }
@@ -102,7 +103,7 @@ public final class AnkiConnectionManager {
         return objects
     }
 
-    private func reload() {
+    private func reload() async {
         isReady = false
         provider = nil
         duplicateOptions = nil
@@ -150,7 +151,11 @@ public final class AnkiConnectionManager {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
-            self.provider = makeProvider(api: api)
+            guard let provider = await makeProvider(api: api) else {
+                throw AnkiConnectionManagerError.providerUnavailable
+            }
+
+            self.provider = provider
             self.duplicateOptions = duplicateOptions
             self.fieldMap = fieldMap
             self.profileName = profileName
@@ -180,10 +185,24 @@ public final class AnkiConnectionManager {
         return (settings, deck, model)
     }
 
-    private func makeProvider(api: AnkiAPI) -> any AnkiProvider {
-        // Placeholder until concrete providers (e.g. AnkiConnect/AnkiMobile) are implemented.
-        _ = api
-        return UnimplementedAnkiProvider()
+    private func makeProvider(api: AnkiAPI) async -> (any AnkiProvider)? {
+        guard let host = api.connectHost, !host.isEmpty else {
+            return nil
+        }
+        let port = Int(api.connectPort)
+        let apiKey = api.connectAPIKey
+
+        do {
+            let provider = try await AnkiConnectProvider(
+                host: host,
+                port: port > 0 ? port : 8765,
+                apiKey: apiKey
+            )
+            return provider
+        } catch {
+            self.error = error
+            return UnimplementedAnkiProvider()
+        }
     }
 }
 
