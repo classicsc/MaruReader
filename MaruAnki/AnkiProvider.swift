@@ -5,7 +5,7 @@
 //  Created by Sam Smoker on 12/17/25.
 
 /// The interface for Anki note creation.
-protocol AnkiProvider {
+protocol AnkiProvider: Sendable {
     /// Mapping of note field names to their resolved values. Each field is constructed by concatenating the resolved values together.
     /// Types that implement this protocol may handle or ignore media values according to API constraints.
     func addNote(fields: [String: [TemplateResolvedValue]],
