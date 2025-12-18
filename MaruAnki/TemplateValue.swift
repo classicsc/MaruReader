@@ -8,7 +8,7 @@
 import Foundation
 
 /// The values that can be used to populate note fields.
-public enum TemplateValue: Sendable, Codable {
+public enum TemplateValue: Sendable, Codable, Hashable {
     case singleDictionaryGlossary(dictionaryID: UUID)
     case multiDictionaryGlossary
     case pronunciationAudio
