@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import os.log
 
 public enum AnkiConnectionManagerError: Error {
     case notReady
@@ -15,8 +16,7 @@ public enum AnkiConnectionManagerError: Error {
 }
 
 /// Converts resolved `TemplateValue`s into note fields based on persisted Anki settings.
-@MainActor
-public final class AnkiConnectionManager {
+public actor AnkiConnectionManager {
     public private(set) var isReady: Bool = false
     public private(set) var error: Error?
 
@@ -30,7 +30,10 @@ public final class AnkiConnectionManager {
     private var deckName: String?
     private var modelName: String?
 
-    private var didSaveObserver: NSObjectProtocol?
+    private var observationTask: Task<Void, Never>?
+    private var reloadDebounceTask: Task<Void, Error>?
+
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AnkiConnectionManager")
 
     public init(persistence: AnkiPersistenceController = .shared) async {
         self.persistence = persistence
@@ -66,28 +69,44 @@ public final class AnkiConnectionManager {
     }
 
     private func startObservingSaves() {
-        guard didSaveObserver == nil else { return }
+        observationTask?.cancel()
 
-        didSaveObserver = NotificationCenter.default.addObserver(
-            forName: .NSManagedObjectContextDidSave,
-            object: nil,
-            queue: nil
-        ) { [weak self] notification in
-            guard let self else { return }
-            guard let context = notification.object as? NSManagedObjectContext,
-                  context.persistentStoreCoordinator === self.persistence.container.persistentStoreCoordinator
-            else { return }
+        observationTask = Task {
+            let notificationSequence = NotificationCenter.default.notifications(
+                named: NSNotification.Name.NSManagedObjectContextDidSave
+            )
 
-            let changedObjects = Self.changedObjects(from: notification)
-            guard !changedObjects.isEmpty else { return }
-
-            // Reload on any saved entity other than AnkiNote.
-            let containsNonNote = changedObjects.contains { $0.entity.name != "AnkiNote" }
-            guard containsNonNote else { return }
-
-            Task { @MainActor in
-                await self.reload()
+            for await notification in notificationSequence {
+                if containsAnkiChanges(notification) {
+                    logger.debug("Anki changes detected, scheduling reload")
+                    scheduleReload()
+                }
             }
+        }
+    }
+
+    /// Check if a Core Data save notification contains Anki entity changes that should trigger a reload
+    private func containsAnkiChanges(_ notification: Notification) -> Bool {
+        guard let userInfo = notification.userInfo else { return false }
+
+        let inserted = userInfo[NSInsertedObjectsKey] as? Set<NSManagedObject> ?? []
+        let updated = userInfo[NSUpdatedObjectsKey] as? Set<NSManagedObject> ?? []
+        let deleted = userInfo[NSDeletedObjectsKey] as? Set<NSManagedObject> ?? []
+
+        let allChangedObjects = inserted.union(updated).union(deleted)
+
+        return allChangedObjects.contains { object in
+            object.entity.name != "AnkiNote" // Currently all entities other than notes should trigger a reload
+        }
+    }
+
+    /// Schedule a provider reload with debouncing to handle rapid changes
+    private func scheduleReload() {
+        reloadDebounceTask?.cancel()
+        reloadDebounceTask = Task {
+            try await Task.sleep(nanoseconds: 250_000_000) // 250ms debounce
+            try Task.checkCancellation()
+            await self.reload()
         }
     }
 
