@@ -13,6 +13,9 @@ protocol AnkiProvider: Sendable {
                  deckName: String,
                  modelName: String,
                  duplicateOptions: DuplicateDetectionOptions) async throws
+    func getAnkiProfiles() async -> AnkiProfileListingResponse
+    func getAnkiDecks(forProfile profileName: String) async -> AnkiDeckListingResponse
+    func getAnkiModels(forProfile profileName: String) async -> AnkiModelListingResponse
 }
 
 struct DuplicateDetectionOptions: Sendable, Codable {
@@ -31,4 +34,40 @@ enum DuplicateNoteScope: Sendable, Codable {
     case deck
     case collection
     case none
+}
+
+struct AnkiDeckMeta: Sendable {
+    let id: String
+    let name: String
+    let profileName: String
+}
+
+struct AnkiModelMeta: Sendable {
+    let id: String
+    let name: String
+    let profileName: String
+    let fields: [String]
+}
+
+struct AnkiProfileMeta: Sendable {
+    let id: String
+    let isActiveProfile: Bool
+}
+
+enum AnkiProfileListingResponse {
+    case success([AnkiProfileMeta])
+    case failure(Error)
+    case apiCapabilityMissing
+}
+
+enum AnkiDeckListingResponse {
+    case success([AnkiDeckMeta])
+    case failure(Error)
+    case apiCapabilityMissing
+}
+
+enum AnkiModelListingResponse {
+    case success([AnkiModelMeta])
+    case failure(Error)
+    case apiCapabilityMissing
 }
