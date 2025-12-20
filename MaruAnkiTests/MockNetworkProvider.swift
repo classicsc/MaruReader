@@ -79,6 +79,22 @@ final class MockNetworkProvider: NetworkProviding, @unchecked Sendable {
         responseQueue.append((data, response))
     }
 
+    /// Convenience method to queue a generic success response with a result object.
+    func queueResultResponse(_ result: Any) {
+        let json: [String: Any] = [
+            "result": result,
+            "error": NSNull(),
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: json)
+        let response = HTTPURLResponse(
+            url: URL(string: "http://localhost:8765")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        responseQueue.append((data, response))
+    }
+
     /// Convenience method to queue an error response.
     func queueErrorResponse(_ errorMessage: String) {
         let json: [String: Any] = [

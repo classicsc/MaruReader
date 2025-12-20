@@ -398,4 +398,93 @@ struct AnkiConnectProviderTests {
             )
         }
     }
+
+    // MARK: - Profile/Deck/Model Tests
+
+    @Test func getAnkiProfiles_returnsCorrectProfiles() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse(["User 1", "User 2"]) // getProfiles
+        mock.queueResultResponse("User 1") // getActiveProfile
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let response = await provider.getAnkiProfiles()
+
+        guard case let .success(profiles) = response else {
+            Issue.record("Expected success response")
+            return
+        }
+
+        #expect(profiles.count == 2)
+        #expect(profiles.first { $0.id == "User 1" }?.isActiveProfile == true)
+        #expect(profiles.first { $0.id == "User 2" }?.isActiveProfile == false)
+    }
+
+    @Test func getAnkiDecks_returnsCorrectDecks() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse("User 1") // getActiveProfile
+        mock.queueResultResponse(["Default": 1, "Japanese": 2]) // deckNamesAndIds
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let response = await provider.getAnkiDecks(forProfile: "User 1")
+
+        guard case let .success(decks) = response else {
+            Issue.record("Expected success response")
+            return
+        }
+
+        #expect(decks.count == 2)
+        #expect(decks.contains { $0.name == "Default" && $0.id == "1" })
+        #expect(decks.contains { $0.name == "Japanese" && $0.id == "2" })
+    }
+
+    @Test func getAnkiDecks_wrongProfile_returnsFailure() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse("User 2") // getActiveProfile (different from requested)
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let response = await provider.getAnkiDecks(forProfile: "User 1")
+
+        guard case let .failure(error) = response else {
+            Issue.record("Expected failure response")
+            return
+        }
+
+        #expect(error as? AnkiConnectError == .profileMismatch(expected: "User 1", actual: "User 2"))
+    }
+
+    @Test func getAnkiModels_returnsCorrectModels() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse("User 1") // getActiveProfile
+        mock.queueResultResponse(["Basic": 100, "Cloze": 200]) // modelNamesAndIds
+
+        // multi response for modelFieldNames
+        // Order depends on sorted keys: Basic, Cloze
+        let multiResult: [Any] = [
+            ["result": ["Front", "Back"], "error": NSNull()], // Basic
+            ["result": ["Text", "Extra"], "error": NSNull()], // Cloze
+        ]
+        mock.queueResultResponse(multiResult)
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let response = await provider.getAnkiModels(forProfile: "User 1")
+
+        guard case let .success(models) = response else {
+            Issue.record("Expected success response")
+            return
+        }
+
+        #expect(models.count == 2)
+
+        let basic = try #require(models.first { $0.name == "Basic" })
+        #expect(basic.id == "100")
+        #expect(basic.fields == ["Front", "Back"])
+
+        let cloze = try #require(models.first { $0.name == "Cloze" })
+        #expect(cloze.id == "200")
+        #expect(cloze.fields == ["Text", "Extra"])
+    }
 }

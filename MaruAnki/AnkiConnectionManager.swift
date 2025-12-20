@@ -235,4 +235,16 @@ private struct UnimplementedAnkiProvider: AnkiProvider {
     ) async throws {
         throw AnkiConnectionManagerError.providerUnavailable
     }
+
+    func getAnkiProfiles() async -> AnkiProfileListingResponse {
+        .apiCapabilityMissing
+    }
+
+    func getAnkiDecks(forProfile _: String) async -> AnkiDeckListingResponse {
+        .apiCapabilityMissing
+    }
+
+    func getAnkiModels(forProfile _: String) async -> AnkiModelListingResponse {
+        .apiCapabilityMissing
+    }
 }
