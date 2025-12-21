@@ -180,6 +180,8 @@ public actor AnkiConnectionManager {
             isReady = true
         } catch {
             isReady = false
+            self.error = error
+            logger.info("Failed to reload AnkiConnectionManager: \(error.localizedDescription)")
         }
     }
 
