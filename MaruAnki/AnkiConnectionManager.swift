@@ -132,15 +132,9 @@ public actor AnkiConnectionManager {
         modelName = nil
 
         do {
-            let (settings, deck, model) = try fetchSettings()
+            let config = try await fetchSettings()
 
-            guard let profile = deck.profile,
-                  let api = profile.api
-            else {
-                throw AnkiConnectionManagerError.missingRequiredSettings
-            }
-
-            guard let duplicateNoteSettingsJSON = settings.duplicateNoteSettings else {
+            guard let duplicateNoteSettingsJSON = config.duplicateNoteSettingsJSON else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
@@ -149,9 +143,7 @@ public actor AnkiConnectionManager {
                 from: Data(duplicateNoteSettingsJSON.utf8)
             )
 
-            guard let modelSettings = model.maruSettings,
-                  let fieldMapJSON = modelSettings.fieldMap
-            else {
+            guard let fieldMapJSON = config.fieldMapJSON else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
@@ -160,17 +152,21 @@ public actor AnkiConnectionManager {
                 from: Data(fieldMapJSON.utf8)
             )
 
-            guard let deckName = deck.name,
+            guard let deckName = config.deckName,
                   !deckName.isEmpty,
-                  let modelName = model.name,
+                  let modelName = config.modelName,
                   !modelName.isEmpty,
-                  let profileName = profile.name,
+                  let profileName = config.profileName,
                   !profileName.isEmpty
             else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
-            guard let provider = await makeProvider(api: api) else {
+            guard let provider = await makeProvider(
+                host: config.apiHost,
+                port: config.apiPort,
+                apiKey: config.apiKey
+            ) else {
                 throw AnkiConnectionManagerError.providerUnavailable
             }
 
@@ -187,29 +183,50 @@ public actor AnkiConnectionManager {
         }
     }
 
-    private func fetchSettings() throws -> (MaruAnkiSettings, AnkiDeck, AnkiModel) {
-        let context = persistence.container.viewContext
-
-        let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-        request.fetchLimit = 1
-        let settings = try context.fetch(request).first
-
-        guard let settings,
-              let deck = settings.defaultTermCardDeck,
-              let model = settings.defaultTermCardModel
-        else {
-            throw AnkiConnectionManagerError.missingRequiredSettings
-        }
-
-        return (settings, deck, model)
+    private struct AnkiConfiguration {
+        let duplicateNoteSettingsJSON: String?
+        let fieldMapJSON: String?
+        let deckName: String?
+        let modelName: String?
+        let profileName: String?
+        let apiHost: String?
+        let apiPort: Int
+        let apiKey: String?
     }
 
-    private func makeProvider(api: AnkiAPI) async -> (any AnkiProvider)? {
-        guard let host = api.connectHost, !host.isEmpty else {
+    private func fetchSettings() async throws -> AnkiConfiguration {
+        let context = persistence.container.newBackgroundContext()
+        return try await context.perform {
+            let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
+            request.fetchLimit = 1
+            let settings = try context.fetch(request).first
+
+            guard let settings,
+                  let deck = settings.defaultTermCardDeck,
+                  let model = settings.defaultTermCardModel,
+                  let profile = deck.profile,
+                  let api = profile.api
+            else {
+                throw AnkiConnectionManagerError.missingRequiredSettings
+            }
+
+            return AnkiConfiguration(
+                duplicateNoteSettingsJSON: settings.duplicateNoteSettings,
+                fieldMapJSON: model.maruSettings?.fieldMap,
+                deckName: deck.name,
+                modelName: model.name,
+                profileName: profile.name,
+                apiHost: api.connectHost,
+                apiPort: Int(api.connectPort),
+                apiKey: api.connectAPIKey
+            )
+        }
+    }
+
+    private func makeProvider(host: String?, port: Int, apiKey: String?) async -> (any AnkiProvider)? {
+        guard let host, !host.isEmpty else {
             return nil
         }
-        let port = Int(api.connectPort)
-        let apiKey = api.connectAPIKey
 
         do {
             let provider = try await AnkiConnectProvider(
