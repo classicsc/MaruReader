@@ -192,7 +192,7 @@ public actor AnkiConnectionManager {
         let modelName: String?
         let profileName: String?
         let apiHost: String?
-        let apiPort: Int
+        let apiPort: Int?
         let apiKey: String?
     }
 
@@ -203,37 +203,32 @@ public actor AnkiConnectionManager {
             request.fetchLimit = 1
             let settings = try context.fetch(request).first
 
-            guard let settings,
-                  let deck = settings.defaultTermCardDeck,
-                  let model = settings.defaultTermCardModel,
-                  let profile = deck.profile,
-                  let api = profile.api
-            else {
+            guard let settings else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
             return AnkiConfiguration(
                 duplicateNoteSettingsJSON: settings.duplicateNoteSettings,
-                fieldMapJSON: model.maruSettings?.fieldMap,
-                deckName: deck.name,
-                modelName: model.name,
-                profileName: profile.name,
-                apiHost: api.connectHost,
-                apiPort: Int(api.connectPort),
-                apiKey: api.connectAPIKey
+                fieldMapJSON: settings.modelConfiguration?.fieldMap,
+                deckName: settings.defaultDeckName,
+                modelName: settings.defaultModelName,
+                profileName: settings.defaultProfileName,
+                apiHost: settings.connectConfiguration?["hostname"] as? String,
+                apiPort: settings.connectConfiguration?["port"] as? Int,
+                apiKey: settings.connectConfiguration?["apiKey"] as? String
             )
         }
     }
 
-    private func makeProvider(host: String?, port: Int, apiKey: String?) async -> (any AnkiProvider)? {
-        guard let host, !host.isEmpty else {
+    private func makeProvider(host: String?, port: Int?, apiKey: String?) async -> (any AnkiProvider)? {
+        guard let host, port != nil, (port ?? 0) > 0, !host.isEmpty else {
             return nil
         }
 
         do {
             let provider = try await AnkiConnectProvider(
                 host: host,
-                port: port > 0 ? port : 8765,
+                port: port!,
                 apiKey: apiKey
             )
             return provider
