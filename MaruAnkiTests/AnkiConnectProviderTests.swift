@@ -235,8 +235,9 @@ struct AnkiConnectProviderTests {
         #expect(audioItem["filename"] as? String == "audio.mp3")
         #expect(audioItem["url"] as? String == "https://example.com/audio.mp3")
 
+        // fields should be empty since media is already embedded inline in the HTML
         let audioFields = try #require(audioItem["fields"] as? [String])
-        #expect(audioFields.contains("Front"))
+        #expect(audioFields.isEmpty)
     }
 
     @Test func addNote_withLocalMediaFile_includesBase64Data() async throws {
@@ -293,8 +294,9 @@ struct AnkiConnectProviderTests {
         let base64Data = try #require(pictureItem["data"] as? String)
         #expect(base64Data == testData.base64EncodedString())
 
+        // fields should be empty since media is already embedded inline in the HTML
         let pictureFields = try #require(pictureItem["fields"] as? [String])
-        #expect(pictureFields.contains("Front"))
+        #expect(pictureFields.isEmpty)
     }
 
     @Test func addNote_combinesMultipleValuesPerField() async throws {

@@ -126,8 +126,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
                 for (filename, url) in value.mediaFiles {
                     let mediaItem = try await prepareMediaItem(
                         filename: filename,
-                        url: url,
-                        fieldName: fieldName
+                        url: url
                     )
                     mediaItems.append(mediaItem)
                 }
@@ -359,8 +358,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
 
     private func prepareMediaItem(
         filename: String,
-        url: URL,
-        fieldName: String
+        url: URL
     ) async throws -> MediaItem {
         let mediaType = MediaType.from(filename: filename)
 
@@ -377,7 +375,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             return MediaItem(
                 filename: filename,
                 source: .data(base64),
-                fields: [fieldName],
+                fields: [],
                 type: mediaType
             )
         } else {
@@ -385,7 +383,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             return MediaItem(
                 filename: filename,
                 source: .url(url.absoluteString),
-                fields: [fieldName],
+                fields: [],
                 type: mediaType
             )
         }
