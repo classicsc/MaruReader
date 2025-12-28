@@ -14,6 +14,7 @@ struct AnkiSettingsView: View {
 
     @State private var currentSettings: MaruAnkiSettings?
     @State private var showingConfigurationFlow = false
+    @State private var showingFieldMappingManagement = false
     @State private var isLoading = true
 
     var body: some View {
@@ -33,6 +34,9 @@ struct AnkiSettingsView: View {
                     Section {
                         Button("Edit Configuration") {
                             showingConfigurationFlow = true
+                        }
+                        Button("Manage Field Mappings") {
+                            showingFieldMappingManagement = true
                         }
                     }
                 } else if currentSettings == nil {
@@ -58,6 +62,15 @@ struct AnkiSettingsView: View {
         }) {
             NavigationStack {
                 AnkiConfigurationFlowView()
+            }
+        }
+        .sheet(isPresented: $showingFieldMappingManagement, onDismiss: {
+            Task {
+                await loadSettings()
+            }
+        }) {
+            NavigationStack {
+                FieldMappingManagementView()
             }
         }
     }

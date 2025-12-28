@@ -14,6 +14,7 @@ struct FieldMappingProfileInfo: Identifiable, Sendable {
     let id: UUID
     let displayName: String
     let isSystemProfile: Bool
+    let fieldMap: AnkiFieldMap?
 }
 
 @MainActor
@@ -234,12 +235,20 @@ final class AnkiConfigurationViewModel {
                 return []
             }
 
+            let decoder = JSONDecoder()
             return profiles.compactMap { profile in
                 guard let id = profile.id else { return nil }
+                var fieldMap: AnkiFieldMap?
+                if let fieldMapString = profile.fieldMap,
+                   let data = fieldMapString.data(using: .utf8)
+                {
+                    fieldMap = try? decoder.decode(AnkiFieldMap.self, from: data)
+                }
                 return FieldMappingProfileInfo(
                     id: id,
                     displayName: profile.displayName ?? "Unnamed",
-                    isSystemProfile: profile.isSystemProfile
+                    isSystemProfile: profile.isSystemProfile,
+                    fieldMap: fieldMap
                 )
             }
         }
@@ -325,6 +334,136 @@ final class AnkiConfigurationViewModel {
         } catch {
             self.error = error
             self.showError = true
+        }
+    }
+
+    // MARK: - Field Mapping Management
+
+    func refreshFieldMappingProfiles() async {
+        let context = persistence.newBackgroundContext()
+
+        let profileInfos: [FieldMappingProfileInfo] = await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.sortDescriptors = [
+                NSSortDescriptor(key: "isSystemProfile", ascending: false),
+                NSSortDescriptor(key: "displayName", ascending: true),
+            ]
+
+            guard let profiles = try? context.fetch(request) else {
+                return []
+            }
+
+            let decoder = JSONDecoder()
+            return profiles.compactMap { profile in
+                guard let id = profile.id else { return nil }
+                var fieldMap: AnkiFieldMap?
+                if let fieldMapString = profile.fieldMap,
+                   let data = fieldMapString.data(using: .utf8)
+                {
+                    fieldMap = try? decoder.decode(AnkiFieldMap.self, from: data)
+                }
+                return FieldMappingProfileInfo(
+                    id: id,
+                    displayName: profile.displayName ?? "Unnamed",
+                    isSystemProfile: profile.isSystemProfile,
+                    fieldMap: fieldMap
+                )
+            }
+        }
+
+        fieldMappingProfiles = profileInfos
+    }
+
+    func createFieldMappingProfile(name: String, fieldMap: AnkiFieldMap) async throws -> UUID {
+        let context = persistence.newBackgroundContext()
+        let newID = UUID()
+
+        try await context.perform {
+            let profile = MaruModelSettings(context: context)
+            profile.id = newID
+            profile.displayName = name
+            profile.isSystemProfile = false
+
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(fieldMap)
+            profile.fieldMap = String(data: data, encoding: .utf8)
+
+            try context.save()
+        }
+
+        await refreshFieldMappingProfiles()
+        return newID
+    }
+
+    func updateFieldMappingProfile(id: UUID, name: String, fieldMap: AnkiFieldMap) async throws {
+        let context = persistence.newBackgroundContext()
+
+        try await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+
+            guard let profile = try context.fetch(request).first else {
+                throw FieldMappingError.profileNotFound
+            }
+
+            if profile.isSystemProfile {
+                throw FieldMappingError.cannotModifySystemProfile
+            }
+
+            profile.displayName = name
+
+            let encoder = JSONEncoder()
+            let data = try encoder.encode(fieldMap)
+            profile.fieldMap = String(data: data, encoding: .utf8)
+
+            try context.save()
+        }
+
+        await refreshFieldMappingProfiles()
+    }
+
+    func deleteFieldMappingProfile(id: UUID) async throws {
+        let context = persistence.newBackgroundContext()
+
+        try await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+
+            guard let profile = try context.fetch(request).first else {
+                throw FieldMappingError.profileNotFound
+            }
+
+            if profile.isSystemProfile {
+                throw FieldMappingError.cannotDeleteSystemProfile
+            }
+
+            context.delete(profile)
+            try context.save()
+        }
+
+        await refreshFieldMappingProfiles()
+
+        if selectedFieldMappingProfileID == id {
+            selectedFieldMappingProfileID = fieldMappingProfiles.first?.id
+        }
+    }
+}
+
+enum FieldMappingError: LocalizedError {
+    case profileNotFound
+    case cannotModifySystemProfile
+    case cannotDeleteSystemProfile
+
+    var errorDescription: String? {
+        switch self {
+        case .profileNotFound:
+            "Field mapping profile not found."
+        case .cannotModifySystemProfile:
+            "System profiles cannot be modified."
+        case .cannotDeleteSystemProfile:
+            "System profiles cannot be deleted."
         }
     }
 }
