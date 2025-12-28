@@ -920,4 +920,113 @@ struct DictionaryContentMarkupTests {
         }
         return string
     }
+
+    // MARK: - Anki HTML Generation Tests
+
+    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnits() throws {
+        // Test that em-based images produce em-based CSS dimensions for Anki
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "svg-accent/平板.svg",
+            width: 0.7,
+            height: 1,
+            title: nil,
+            alt: nil,
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        #expect(html.contains("src=\"平板.svg\""))
+        #expect(html.contains("width: 0.7em"))
+        #expect(html.contains("height: 1em"))
+        // Should NOT have pixel-based width/height attributes
+        #expect(!html.contains("width=\"0\""))
+        #expect(!html.contains("height=\"1\""))
+    }
+
+    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnitsAndPreferredDimensions() throws {
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "test.svg",
+            width: 1,
+            height: 2,
+            preferredWidth: 0.5,
+            title: nil,
+            alt: nil,
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        // preferredWidth is 0.5, aspect ratio is 2:1, so height should be 1.0
+        #expect(html.contains("width: 0.5em"))
+        #expect(html.contains("height: 1em"))
+    }
+
+    @Test func structuredElement_toAnkiHTML_ImageWithPixelDimensions() throws {
+        // Test that pixel-based images still use width/height attributes
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "test.png",
+            width: 100,
+            height: 50,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        #expect(html.contains("width=\"100\""))
+        #expect(html.contains("height=\"50\""))
+        #expect(!html.contains("width:"))
+        #expect(!html.contains("height:"))
+    }
+
+    @Test func structuredElement_toAnkiHTML_ImageWithVerticalAlign() throws {
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "test.svg",
+            width: 0.7,
+            height: 1,
+            title: nil,
+            alt: nil,
+            verticalAlign: "text-bottom",
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        #expect(html.contains("vertical-align: text-bottom"))
+        #expect(html.contains("width: 0.7em"))
+        #expect(html.contains("height: 1em"))
+    }
 }

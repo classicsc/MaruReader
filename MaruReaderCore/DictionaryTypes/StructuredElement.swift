@@ -380,15 +380,7 @@ extension StructuredElement {
         // The actual file will be uploaded separately via the picture/audio/video arrays.
         let filename = (path as NSString).lastPathComponent
 
-        // Calculate dimensions
-        let effectiveWidth = preferredWidth ?? width ?? 200.0
-        let effectiveHeight = preferredHeight ?? height ?? 200.0
-
         var imageAttributes = ["src=\"\(escapeHTML(filename))\""]
-
-        // Add dimensions
-        imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
-        imageAttributes.append("height=\"\(Int(effectiveHeight))\"")
 
         if let alt {
             imageAttributes.append("alt=\"\(escapeHTML(alt))\"")
@@ -416,6 +408,49 @@ extension StructuredElement {
         let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : nil)
         if let imageRenderingValue {
             styles.append("image-rendering: \(imageRenderingValue)")
+        }
+
+        // Handle em-based sizing for Anki
+        if sizeUnits == "em" {
+            // For em-based images, use em units in CSS rather than pixel dimensions.
+            // This preserves the intended sizing relative to font size.
+            let originalWidth = width ?? 1.0
+            let originalHeight = height ?? 1.0
+
+            let effectiveWidth: Double
+            let effectiveHeight: Double
+
+            if let preferredWidth, let preferredHeight {
+                effectiveWidth = preferredWidth
+                effectiveHeight = preferredHeight
+            } else if let preferredWidth {
+                effectiveWidth = preferredWidth
+                effectiveHeight = preferredWidth * (originalHeight / originalWidth)
+            } else if let preferredHeight {
+                effectiveHeight = preferredHeight
+                effectiveWidth = preferredHeight / (originalHeight / originalWidth)
+            } else if width != nil, height != nil {
+                effectiveWidth = originalWidth
+                effectiveHeight = originalHeight
+            } else if width != nil {
+                effectiveWidth = originalWidth
+                effectiveHeight = originalWidth
+            } else if height != nil {
+                effectiveWidth = originalHeight
+                effectiveHeight = originalHeight
+            } else {
+                effectiveWidth = 1.0
+                effectiveHeight = 1.0
+            }
+
+            styles.append("width: \(formatNumber(effectiveWidth))em")
+            styles.append("height: \(formatNumber(effectiveHeight))em")
+        } else {
+            // For pixel-based images, include width/height attributes
+            let effectiveWidth = preferredWidth ?? width ?? 200.0
+            let effectiveHeight = preferredHeight ?? height ?? 200.0
+            imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
+            imageAttributes.append("height=\"\(Int(effectiveHeight))\"")
         }
 
         if !styles.isEmpty {
