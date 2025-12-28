@@ -11,6 +11,7 @@ import os.log
 
 public enum AnkiConnectionManagerError: Error {
     case notReady
+    case ankiDisabled
     case providerUnavailable
     case missingRequiredSettings
 }
@@ -205,6 +206,10 @@ public actor AnkiConnectionManager {
 
             guard let settings else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
+            }
+
+            guard settings.ankiEnabled else {
+                throw AnkiConnectionManagerError.ankiDisabled
             }
 
             return AnkiConfiguration(
