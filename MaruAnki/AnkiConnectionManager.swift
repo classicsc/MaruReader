@@ -55,9 +55,11 @@ public actor AnkiConnectionManager {
         }
 
         var fields: [String: [TemplateResolvedValue]] = [:]
-        for (templateValue, fieldName) in fieldMap.map {
-            let resolvedValue = await resolver.resolve(templateValue)
-            fields[fieldName, default: []].append(resolvedValue)
+        for (fieldName, templateValues) in fieldMap.map {
+            for templateValue in templateValues {
+                let resolvedValue = await resolver.resolve(templateValue)
+                fields[fieldName, default: []].append(resolvedValue)
+            }
         }
 
         try await provider.addNote(

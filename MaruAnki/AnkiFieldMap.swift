@@ -6,5 +6,5 @@
 //
 
 struct AnkiFieldMap: Sendable, Codable {
-    let map: [TemplateValue: String]
+    let map: [String: [TemplateValue]]
 }
