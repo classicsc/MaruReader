@@ -20,6 +20,9 @@ struct FieldMappingEditorView: View {
     @State private var isSaving = false
     @State private var error: Error?
     @State private var showError = false
+    @State private var showCustomHTMLInput = false
+    @State private var customHTMLText = ""
+    @State private var customHTMLTargetIndex: Int?
 
     private var isEditing: Bool { editingProfile != nil }
 
@@ -82,6 +85,22 @@ struct FieldMappingEditorView: View {
             if let error {
                 Text(error.localizedDescription)
             }
+        }
+        .alert("Custom HTML", isPresented: $showCustomHTMLInput) {
+            TextField("HTML content", text: $customHTMLText)
+            Button("Cancel", role: .cancel) {
+                customHTMLText = ""
+                customHTMLTargetIndex = nil
+            }
+            Button("Add") {
+                if let index = customHTMLTargetIndex, !customHTMLText.isEmpty {
+                    fieldMappings[index].values.append(.customHTMLValue(value: customHTMLText))
+                }
+                customHTMLText = ""
+                customHTMLTargetIndex = nil
+            }
+        } message: {
+            Text("Enter the HTML content to insert into this field.")
         }
         .overlay {
             if isSaving {
@@ -151,6 +170,13 @@ struct FieldMappingEditorView: View {
                     }
                 }
             }
+        }
+
+        Divider()
+
+        Button("Custom HTML...") {
+            customHTMLTargetIndex = index
+            showCustomHTMLInput = true
         }
     }
 
@@ -230,41 +256,43 @@ private enum TemplateValueCategory: CaseIterable {
 extension TemplateValue {
     var displayName: String {
         switch self {
-        case .singleDictionaryGlossary: "Single Dictionary Glossary"
-        case .multiDictionaryGlossary: "Multi-Dictionary Glossary"
-        case .pronunciationAudio: "Pronunciation Audio"
-        case .character: "Character"
-        case .expression: "Expression"
-        case .customHTMLValue: "Custom HTML"
-        case .dictionaryTitle: "Dictionary Title"
-        case .furigana: "Furigana"
-        case .glossaryNoDictionary: "Glossary (No Dictionary)"
-        case .kunyomi: "Kunyomi"
-        case .onyomi: "Onyomi"
-        case .onyomiAsHiragana: "Onyomi (Hiragana)"
-        case .reading: "Reading"
-        case .sentence: "Sentence"
-        case .clozePrefix: "Cloze Prefix"
-        case .clozeBody: "Cloze Body"
-        case .clozeSuffix: "Cloze Suffix"
-        case .tags: "Tags"
-        case .documentURL: "Document URL"
-        case .screenshot: "Screenshot"
-        case .documentCoverImage: "Document Cover"
-        case .documentTitle: "Document Title"
-        case .singlePitchAccent: "Single Pitch Accent"
-        case .singlePitchAccentDictionary: "Pitch Accent (Dictionary)"
-        case .pitchAccentList: "Pitch Accent List"
-        case .pitchAccentDisambiguation: "Pitch Disambiguation"
-        case .conjugation: "Conjugation"
-        case .frequencyList: "Frequency List"
-        case .singleFrequency: "Single Frequency"
-        case .singleFrequencyDictionary: "Frequency (Dictionary)"
-        case .frequencySortField: "Frequency Sort Field"
-        case .strokeCount: "Stroke Count"
-        case .partOfSpeech: "Part of Speech"
-        case .sentenceFurigana: "Sentence (Furigana)"
-        @unknown default: "Unknown"
+        case .singleDictionaryGlossary: return "Single Dictionary Glossary"
+        case .multiDictionaryGlossary: return "Multi-Dictionary Glossary"
+        case .pronunciationAudio: return "Pronunciation Audio"
+        case .character: return "Character"
+        case .expression: return "Expression"
+        case let .customHTMLValue(value):
+            let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
+            return "HTML: \(truncated)"
+        case .dictionaryTitle: return "Dictionary Title"
+        case .furigana: return "Furigana"
+        case .glossaryNoDictionary: return "Glossary (No Dictionary)"
+        case .kunyomi: return "Kunyomi"
+        case .onyomi: return "Onyomi"
+        case .onyomiAsHiragana: return "Onyomi (Hiragana)"
+        case .reading: return "Reading"
+        case .sentence: return "Sentence"
+        case .clozePrefix: return "Cloze Prefix"
+        case .clozeBody: return "Cloze Body"
+        case .clozeSuffix: return "Cloze Suffix"
+        case .tags: return "Tags"
+        case .documentURL: return "Document URL"
+        case .screenshot: return "Screenshot"
+        case .documentCoverImage: return "Document Cover"
+        case .documentTitle: return "Document Title"
+        case .singlePitchAccent: return "Single Pitch Accent"
+        case .singlePitchAccentDictionary: return "Pitch Accent (Dictionary)"
+        case .pitchAccentList: return "Pitch Accent List"
+        case .pitchAccentDisambiguation: return "Pitch Disambiguation"
+        case .conjugation: return "Conjugation"
+        case .frequencyList: return "Frequency List"
+        case .singleFrequency: return "Single Frequency"
+        case .singleFrequencyDictionary: return "Frequency (Dictionary)"
+        case .frequencySortField: return "Frequency Sort Field"
+        case .strokeCount: return "Stroke Count"
+        case .partOfSpeech: return "Part of Speech"
+        case .sentenceFurigana: return "Sentence (Furigana)"
+        @unknown default: return "Unknown"
         }
     }
 }
