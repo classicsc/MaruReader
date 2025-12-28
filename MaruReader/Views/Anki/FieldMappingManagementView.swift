@@ -11,7 +11,7 @@ import SwiftUI
 struct FieldMappingManagementView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = AnkiConfigurationViewModel()
-    @State private var showingEditor = false
+    @State private var showingNewEditor = false
     @State private var editingProfile: FieldMappingProfileInfo?
     @State private var profileToDelete: FieldMappingProfileInfo?
     @State private var showDeleteConfirmation = false
@@ -42,8 +42,7 @@ struct FieldMappingManagementView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
-                    editingProfile = nil
-                    showingEditor = true
+                    showingNewEditor = true
                 } label: {
                     Image(systemName: "plus")
                 }
@@ -55,7 +54,7 @@ struct FieldMappingManagementView: View {
         .refreshable {
             await loadProfiles()
         }
-        .sheet(isPresented: $showingEditor, onDismiss: {
+        .sheet(isPresented: $showingNewEditor, onDismiss: {
             Task {
                 await loadProfiles()
             }
@@ -63,7 +62,19 @@ struct FieldMappingManagementView: View {
             NavigationStack {
                 FieldMappingEditorView(
                     viewModel: viewModel,
-                    editingProfile: editingProfile
+                    editingProfile: nil
+                )
+            }
+        }
+        .sheet(item: $editingProfile, onDismiss: {
+            Task {
+                await loadProfiles()
+            }
+        }) { profile in
+            NavigationStack {
+                FieldMappingEditorView(
+                    viewModel: viewModel,
+                    editingProfile: profile
                 )
             }
         }
@@ -94,7 +105,6 @@ struct FieldMappingManagementView: View {
         Button {
             if !profile.isSystemProfile {
                 editingProfile = profile
-                showingEditor = true
             }
         } label: {
             HStack {
