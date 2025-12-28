@@ -58,6 +58,18 @@ extension StructuredContent {
         }
     }
 
+    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
+    func toAnkiHTML(mediaBaseURL: URL? = nil) -> String {
+        switch self {
+        case let .text(string):
+            escapeAnkiHTML(string)
+        case let .array(contents):
+            contents.map { $0.toAnkiHTML(mediaBaseURL: mediaBaseURL) }.joined()
+        case let .element(element):
+            element.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+        }
+    }
+
     private func escapeHTML(_ string: String) -> String {
         string
             .replacingOccurrences(of: "&", with: "&amp;")
@@ -66,5 +78,15 @@ extension StructuredContent {
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&#39;")
             .replacingOccurrences(of: "\n", with: "<br class=\"gloss-sc-br\">")
+    }
+
+    private func escapeAnkiHTML(_ string: String) -> String {
+        string
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
+            .replacingOccurrences(of: "\n", with: "<br>")
     }
 }

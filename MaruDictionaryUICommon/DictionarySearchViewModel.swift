@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MaruAnki
 import MaruReaderCore
 import Observation
 import os.log
@@ -58,6 +59,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private let audioLookupService = AudioLookupService(persistenceController: .shared)
     private let searchService: DictionarySearchService
 
+    // Anki services - lazily initialized
+    private var ankiConnectionManager: AnkiConnectionManager?
+    private let ankiNoteService = AnkiNoteService()
+
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
@@ -78,6 +83,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         // Load audio providers asynchronously
         Task {
             try? await audioLookupService.loadProviders()
+        }
+
+        // Initialize Anki connection manager asynchronously
+        Task { @MainActor in
+            self.ankiConnectionManager = await AnkiConnectionManager()
         }
     }
 
@@ -107,6 +117,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             try? await audioLookupService.loadProviders()
         }
 
+        // Initialize Anki connection manager asynchronously
+        Task { @MainActor in
+            self.ankiConnectionManager = await AnkiConnectionManager()
+        }
+
         // Load the HTML and push to navigation history
         Task {
             let loadSequence = page.load(html: response.toResultsHTML())
@@ -129,6 +144,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "textScanning")
+        userContentController.add(self, name: "ankiAdd")
         config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
@@ -142,6 +158,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "navigateToTerm")
+        userContentController.add(self, name: "ankiAdd")
         config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
@@ -173,7 +190,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 self.resultState = .searching
             }
             do {
-                guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+                guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                     await MainActor.run {
                         self.currentRequest = lookupRequest
                         self.currentResponse = nil
@@ -181,6 +198,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     }
                     return
                 }
+
+                // Check for existing Anki notes and update response
+                searchResults = await prepareResponseWithAnkiState(searchResults)
+
                 await updateTask.value
                 await MainActor.run {
                     self.currentRequest = lookupRequest
@@ -263,9 +284,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         let lookupRequest = TextLookupRequest(context: context, offset: offset, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
         popupSearchTask?.cancel()
         popupSearchTask = Task {
-            guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+            guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 return
             }
+
+            // Check for existing Anki notes and update response
+            searchResults = await prepareResponseWithAnkiState(searchResults)
+
             // Store the response so we can preserve context when navigating
             await MainActor.run {
                 self.currentPopupResponse = searchResults
@@ -370,6 +395,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             } else {
                 logger.warning("navigateToTerm message body is not a string")
             }
+        } else if message.name == "ankiAdd" {
+            logger.debug("Received ankiAdd message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let termKey = messageObject["termKey"] as? String,
+                  let expression = messageObject["expression"] as? String
+            else {
+                logger.error("Invalid message body for ankiAdd")
+                return
+            }
+            let reading = messageObject["reading"] as? String
+            // Determine source based on whether popup is showing
+            let isFromPopup = showPopup && currentPopupResponse != nil
+            handleAnkiAdd(termKey: termKey, expression: expression, reading: reading, isFromPopup: isFromPopup)
         }
     }
 
@@ -382,15 +420,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Cancel any pending searches
         searchTask?.cancel()
-
-        // Restore state from history entry
-        currentRequest = entry.request
-        currentResponse = entry.response
         hidePopup()
 
         // Load the HTML and update result state
         Task {
-            let loadSequence = page.load(html: entry.response.toResultsHTML())
+            // Prepare response with current Anki state
+            let updatedResponse = await prepareResponseWithAnkiState(entry.response)
+
+            await MainActor.run {
+                self.currentRequest = entry.request
+                self.currentResponse = updatedResponse
+            }
+
+            let loadSequence = page.load(html: updatedResponse.toResultsHTML())
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     await MainActor.run {
@@ -411,15 +453,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Cancel any pending searches
         searchTask?.cancel()
-
-        // Restore state from history entry
-        currentRequest = entry.request
-        currentResponse = entry.response
         hidePopup()
 
         // Load the HTML and update result state
         Task {
-            let loadSequence = page.load(html: entry.response.toResultsHTML())
+            // Prepare response with current Anki state
+            let updatedResponse = await prepareResponseWithAnkiState(entry.response)
+
+            await MainActor.run {
+                self.currentRequest = entry.request
+                self.currentResponse = updatedResponse
+            }
+
+            let loadSequence = page.load(html: updatedResponse.toResultsHTML())
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     await MainActor.run {
@@ -428,6 +474,125 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     return
                 }
             }
+        }
+    }
+
+    // MARK: - Anki Integration
+
+    /// Prepare a response with Anki state (enabled status and existing notes)
+    private func prepareResponseWithAnkiState(_ response: TextLookupResponse) async -> TextLookupResponse {
+        var updatedResponse = response
+
+        guard let ankiConnectionManager else {
+            return updatedResponse
+        }
+
+        let isReady = await ankiConnectionManager.isReady
+        guard isReady else {
+            return updatedResponse
+        }
+
+        // Mark Anki as enabled
+        updatedResponse.setAnkiEnabled(true)
+
+        // Get current profile name for note existence check
+        guard let profileName = await ankiConnectionManager.profileName else {
+            return updatedResponse
+        }
+
+        // Build list of terms to check
+        let terms = response.results.map { group in
+            (expression: group.expression, reading: group.reading)
+        }
+
+        // Check for existing notes
+        let existingTermKeys = await ankiNoteService.getExistingNoteTermKeys(
+            for: terms,
+            profileName: profileName
+        )
+
+        updatedResponse.markExistingNotes(existingTermKeys)
+        return updatedResponse
+    }
+
+    /// Handle Anki add note request from JavaScript
+    private func handleAnkiAdd(termKey: String, expression: String, reading: String?, isFromPopup: Bool) {
+        Task {
+            // Set button state to loading
+            await setAnkiButtonState(termKey: termKey, state: "loading", isFromPopup: isFromPopup)
+
+            do {
+                guard let ankiConnectionManager, await ankiConnectionManager.isReady else {
+                    logger.warning("AnkiConnectionManager not ready")
+                    await setAnkiButtonState(termKey: termKey, state: "error", isFromPopup: isFromPopup)
+                    return
+                }
+
+                // Find the matching term group from current response
+                let response: TextLookupResponse? = if isFromPopup, let popup = currentPopupResponse {
+                    popup
+                } else {
+                    currentResponse
+                }
+
+                guard let response,
+                      let termGroup = response.results.first(where: { $0.termKey == termKey })
+                else {
+                    logger.error("Could not find term group for key: \(termKey)")
+                    await setAnkiButtonState(termKey: termKey, state: "error", isFromPopup: isFromPopup)
+                    return
+                }
+
+                // Create the template resolver
+                let resolver = TextLookupResponseTemplateResolver(
+                    response: response,
+                    selectedGroup: termGroup
+                )
+
+                // Add the note via AnkiConnectionManager
+                let result = try await ankiConnectionManager.addNote(resolver: resolver)
+
+                // Record the note locally
+                try await ankiNoteService.recordNote(
+                    expression: expression,
+                    reading: reading,
+                    profileName: result.profileName,
+                    deckName: result.deckName,
+                    modelName: result.modelName,
+                    fields: [:], // Fields are managed by the connection manager
+                    ankiID: result.ankiNoteID
+                )
+
+                logger.info("Successfully added Anki note for '\(expression)'")
+                await setAnkiButtonState(termKey: termKey, state: "success", isFromPopup: isFromPopup)
+
+            } catch {
+                logger.error("Failed to add Anki note: \(error.localizedDescription)")
+
+                // Check if it's a duplicate error - if so, mark as exists
+                let errorDescription = error.localizedDescription.lowercased()
+                if errorDescription.contains("duplicate") || errorDescription.contains("exists") {
+                    await setAnkiButtonState(termKey: termKey, state: "exists", isFromPopup: isFromPopup)
+                } else {
+                    await setAnkiButtonState(termKey: termKey, state: "error", isFromPopup: isFromPopup)
+                }
+            }
+        }
+    }
+
+    /// Set the Anki button state via JavaScript
+    private func setAnkiButtonState(termKey: String, state: String, isFromPopup: Bool) async {
+        let escapedTermKey = termKey.replacingOccurrences(of: "'", with: "\\'")
+        let js = "window.MaruReader?.ankiDisplay?.setButtonState('\(escapedTermKey)', '\(state)');"
+
+        do {
+            if isFromPopup {
+                _ = try await popupPage.callJavaScript(js)
+            } else {
+                _ = try await page.callJavaScript(js)
+            }
+        } catch {
+            logger.error("Failed to set button state: \(error.localizedDescription)")
         }
     }
 }

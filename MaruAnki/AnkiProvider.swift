@@ -4,15 +4,26 @@
 //
 //  Created by Sam Smoker on 12/17/25.
 
+/// Result of adding a note to Anki.
+public struct AddNoteResult: Sendable {
+    /// The Anki note ID, if returned by the API.
+    public let ankiNoteID: Int64?
+
+    public init(ankiNoteID: Int64?) {
+        self.ankiNoteID = ankiNoteID
+    }
+}
+
 /// The interface for Anki note creation.
 protocol AnkiProvider: Sendable {
     /// Mapping of note field names to their resolved values. Each field is constructed by concatenating the resolved values together.
     /// Types that implement this protocol may handle or ignore media values according to API constraints.
+    /// - Returns: The result containing the Anki note ID if available.
     func addNote(fields: [String: [TemplateResolvedValue]],
                  profileName: String,
                  deckName: String,
                  modelName: String,
-                 duplicateOptions: DuplicateDetectionOptions) async throws
+                 duplicateOptions: DuplicateDetectionOptions) async throws -> AddNoteResult
     func getAnkiProfiles() async -> AnkiProfileListingResponse
     func getAnkiDecks(forProfile profileName: String) async -> AnkiDeckListingResponse
     func getAnkiModels(forProfile profileName: String) async -> AnkiModelListingResponse

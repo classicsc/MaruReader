@@ -1158,6 +1158,70 @@ body {
     margin-left: 4px;
 }
 
+/* Anki Button Styles */
+
+.anki-button {
+    background: var(--anki-color, #4caf50);
+    color: white;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    flex-shrink: 0;
+    vertical-align: middle;
+    margin-left: 4px;
+    font-family: 'Material Symbols Outlined';
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+}
+
+.anki-button:hover {
+    background: color-mix(in srgb, var(--anki-color, #4caf50) 80%, black);
+    transform: scale(1.05);
+}
+
+.anki-button:active {
+    transform: scale(0.95);
+}
+
+/* Anki button icon states */
+.anki-button::before {
+    content: 'add';
+}
+
+.anki-button[data-state="loading"]::before {
+    content: 'hourglass_empty';
+}
+
+.anki-button[data-state="success"]::before {
+    content: 'check';
+}
+
+.anki-button[data-state="exists"]::before {
+    content: 'check';
+}
+
+.anki-button[data-state="error"]::before {
+    content: 'error';
+}
+
+.anki-button[data-state="exists"],
+.anki-button[data-state="success"] {
+    background: var(--anki-exists-color, #8bc34a);
+}
+
+.anki-button[data-state="error"] {
+    background: var(--error-color, #f44336);
+}
+
 /* Print styles */
 @media print {
     .gloss-image-link[data-collapsed=true] .gloss-image-container,

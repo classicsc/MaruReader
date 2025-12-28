@@ -14,4 +14,15 @@ extension [SearchResult] {
         }
         return allDefinitionsHTML
     }
+
+    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
+    public func generateCombinedAnkiHTML(dictionaryUUID: UUID? = nil) -> String {
+        let allDefinitions = flatMap(\.definitions)
+        let mediaBaseURL: URL? = if let dictUUID = dictionaryUUID {
+            URL(string: "marureader-media://\(dictUUID.uuidString)/")
+        } else {
+            nil
+        }
+        return allDefinitions.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+    }
 }

@@ -364,6 +364,168 @@ extension StructuredElement {
         return createElementByType(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
     }
 
+    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
+    /// Images use absolute URLs, links are rendered as plain text, and styles are inlined.
+    func toAnkiHTML(mediaBaseURL: URL? = nil) -> String {
+        if tag == "img" {
+            return createAnkiImageElement(mediaBaseURL: mediaBaseURL)
+        }
+        return createAnkiElementByType(mediaBaseURL: mediaBaseURL)
+    }
+
+    private func createAnkiImageElement(mediaBaseURL: URL? = nil) -> String {
+        guard let path else { return "" }
+
+        // Resolve the image URL
+        let resolvedPath: String = if let url = URL(string: path), url.scheme == nil {
+            if let mediaBaseURL {
+                mediaBaseURL.appendingPathComponent(path).absoluteString
+            } else {
+                path
+            }
+        } else {
+            path
+        }
+
+        // Calculate dimensions
+        let effectiveWidth = preferredWidth ?? width ?? 200.0
+        let effectiveHeight = preferredHeight ?? height ?? 200.0
+
+        var imageAttributes = ["src=\"\(escapeHTML(resolvedPath))\""]
+
+        // Add dimensions
+        imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
+        imageAttributes.append("height=\"\(Int(effectiveHeight))\"")
+
+        if let alt {
+            imageAttributes.append("alt=\"\(escapeHTML(alt))\"")
+        }
+
+        if let title {
+            imageAttributes.append("title=\"\(escapeHTML(title))\"")
+        }
+
+        // Add inline styles
+        var styles: [String] = []
+
+        if let verticalAlign {
+            styles.append("vertical-align: \(verticalAlign)")
+        }
+
+        if let border {
+            styles.append("border: \(border)")
+        }
+
+        if let borderRadius {
+            styles.append("border-radius: \(borderRadius)")
+        }
+
+        let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : nil)
+        if let imageRenderingValue {
+            styles.append("image-rendering: \(imageRenderingValue)")
+        }
+
+        if !styles.isEmpty {
+            imageAttributes.append("style=\"\(styles.joined(separator: "; "))\"")
+        }
+
+        return "<img \(imageAttributes.joined(separator: " "))>"
+    }
+
+    private func createAnkiElementByType(mediaBaseURL: URL?) -> String {
+        let isSelfClosing = Self.selfClosingTags.contains(tag)
+
+        var attributes: [String] = []
+
+        // Add language attribute
+        if let lang {
+            attributes.append("lang=\"\(escapeHTML(lang))\"")
+        }
+
+        // Add inline styles instead of classes
+        var inlineStyles: [String] = []
+
+        // Include styles from ContentStyle if present
+        if let style {
+            let css = style.toCSSString()
+            if !css.isEmpty {
+                inlineStyles.append(css)
+            }
+        }
+
+        // Specialized handling
+        switch tag {
+        case "br":
+            return "<br>"
+        case "ruby", "rt", "rp":
+            // Keep ruby elements simple
+            break
+        case "div":
+            inlineStyles.append("display: block")
+        case "span":
+            // No additional styles needed for span
+            break
+        case "ol":
+            inlineStyles.append("list-style-type: decimal; margin: 0; padding-left: 1.5em")
+        case "ul":
+            inlineStyles.append("list-style-type: disc; margin: 0; padding-left: 1.5em")
+        case "li":
+            inlineStyles.append("display: list-item")
+        case "table":
+            inlineStyles.append("border-collapse: collapse")
+        case "th", "td":
+            inlineStyles.append("border: 1px solid #ccc; padding: 4px 8px")
+            if let colSpan, colSpan > 1 {
+                attributes.append("colspan=\"\(colSpan)\"")
+            }
+            if let rowSpan, rowSpan > 1 {
+                attributes.append("rowspan=\"\(rowSpan)\"")
+            }
+        case "thead":
+            inlineStyles.append("font-weight: bold")
+        case "a":
+            // For Anki, render links as underlined text without the href
+            inlineStyles.append("text-decoration: underline; color: #0066cc")
+        case "summary", "details":
+            // Render details as simple content for Anki
+            break
+        case "img":
+            return createAnkiImageElement(mediaBaseURL: mediaBaseURL)
+        default:
+            break
+        }
+
+        if let title {
+            attributes.append("title=\"\(escapeHTML(title))\"")
+        }
+
+        // Build style attribute
+        if !inlineStyles.isEmpty {
+            let styleString = inlineStyles.joined(separator: "; ")
+            attributes.append("style=\"\(escapeHTML(styleString))\"")
+        }
+
+        let attributeString = attributes.isEmpty ? "" : " " + attributes.joined(separator: " ")
+
+        if isSelfClosing {
+            return "<\(tag)\(attributeString)>"
+        }
+
+        let contentHTML = content?.toAnkiHTML(mediaBaseURL: mediaBaseURL) ?? ""
+
+        // For 'details' tag, just render the content without the details wrapper
+        if tag == "details" {
+            return contentHTML
+        }
+
+        // For 'a' tag, just render the content text styled as a link
+        if tag == "a" {
+            return "<span\(attributeString)>\(contentHTML)</span>"
+        }
+
+        return "<\(tag)\(attributeString)>\(contentHTML)</\(tag)>"
+    }
+
     private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
         guard let content else { return "" }
         return content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)

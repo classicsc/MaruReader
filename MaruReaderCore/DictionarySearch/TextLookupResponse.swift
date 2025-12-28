@@ -65,6 +65,22 @@ public struct TextLookupResponse: Sendable {
     public let primaryResultSourceRange: Range<String.Index> // Range in context
     public let styles: DisplayStyles
 
+    /// Term keys for which Anki notes already exist. Used to change button appearance.
+    public var existingNoteTermKeys: Set<String> = []
+
+    /// Whether Anki integration is enabled. When false, Anki buttons are not shown.
+    public var ankiEnabled: Bool = false
+
+    /// Mark term keys that already have notes in Anki.
+    public mutating func markExistingNotes(_ termKeys: Set<String>) {
+        existingNoteTermKeys = termKeys
+    }
+
+    /// Enable Anki button display.
+    public mutating func setAnkiEnabled(_ enabled: Bool) {
+        ankiEnabled = enabled
+    }
+
     /// The original request ID (for backward compatibility).
     public var requestID: UUID { request.id }
 
@@ -317,6 +333,20 @@ public struct TextLookupResponse: Sendable {
         """
     }
 
+    /// Generates an Anki button HTML element for the given term group.
+    private func ankiButtonHTML(for termGroup: GroupedSearchResults) -> String {
+        guard ankiEnabled else { return "" }
+
+        let state = existingNoteTermKeys.contains(termGroup.termKey) ? "exists" : "ready"
+        let termKey = termGroup.termKey.escapeHTML()
+        let expression = termGroup.expression.escapeHTML()
+        let reading = (termGroup.reading ?? "").escapeHTML()
+
+        return """
+        <button type="button" class="anki-button" data-term-key="\(termKey)" data-expression="\(expression)" data-reading="\(reading)" data-state="\(state)" aria-label="Add to Anki"></button>
+        """
+    }
+
     /// Gets the primary pitch position string from pitch accent results.
     private func primaryPitchPositionString(for termGroup: GroupedSearchResults) -> String? {
         guard let firstPitchResult = termGroup.pitchAccentResults.first,
@@ -426,8 +456,8 @@ public struct TextLookupResponse: Sendable {
         return html
     }
 
-    /// Generates the term header with optional pitch notation and audio button.
-    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String, includeAudio: Bool = false) -> String {
+    /// Generates the term header with optional pitch notation, audio button, and Anki button.
+    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String, includeAudio: Bool = false, includeAnki: Bool = false) -> String {
         let expression = termGroup.expression.escapeHTML()
 
         // Generate audio button if requested and audio is available
@@ -439,8 +469,11 @@ public struct TextLookupResponse: Sendable {
             audioHTML = ""
         }
 
+        // Generate Anki button if requested and enabled
+        let ankiHTML = includeAnki ? ankiButtonHTML(for: termGroup) : ""
+
         guard let reading = termGroup.reading, !reading.isEmpty else {
-            return "<h2 class=\"\(cssClass)\">\(expression)\(audioHTML)</h2>"
+            return "<h2 class=\"\(cssClass)\">\(expression)\(audioHTML)\(ankiHTML)</h2>"
         }
 
         let readingHTML: String
@@ -455,7 +488,7 @@ public struct TextLookupResponse: Sendable {
             reading.escapeHTML()
         }
 
-        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]\(audioHTML)</h2>"
+        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]\(audioHTML)\(ankiHTML)</h2>"
     }
 
     public func toPopupHTML() -> String {
@@ -472,12 +505,16 @@ public struct TextLookupResponse: Sendable {
                 audioButtonHTML = ""
             }
 
-            // Wrap header with audio button if audio is available
-            let headerSectionHTML: String = if !audioButtonHTML.isEmpty {
+            // Generate Anki button for popup header
+            let ankiButtonHTML = self.ankiButtonHTML(for: termGroup)
+
+            // Wrap header with audio and Anki buttons if available
+            let hasButtons = !audioButtonHTML.isEmpty || !ankiButtonHTML.isEmpty
+            let headerSectionHTML: String = if hasButtons {
                 """
                 <div class="popup-term-header-wrapper">
                     \(headerHTML)
-                    \(audioButtonHTML)
+                    \(audioButtonHTML)\(ankiButtonHTML)
                 </div>
                 """
             } else {
@@ -538,6 +575,7 @@ public struct TextLookupResponse: Sendable {
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
             <link rel="stylesheet" href="marureader-resource://popup.css">
             <script src="marureader-resource://audioDisplay.js"></script>
+            <script src="marureader-resource://ankiDisplay.js"></script>
             <script>
                 function navigateToTerm(term) {
                     if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.navigateToTerm) {
@@ -547,6 +585,9 @@ public struct TextLookupResponse: Sendable {
                 document.addEventListener('DOMContentLoaded', function() {
                     if (window.MaruReader && window.MaruReader.audioDisplay) {
                         window.MaruReader.audioDisplay.initialize();
+                    }
+                    if (window.MaruReader && window.MaruReader.ankiDisplay) {
+                        window.MaruReader.ankiDisplay.initialize();
                     }
                 });
             </script>
@@ -561,8 +602,8 @@ public struct TextLookupResponse: Sendable {
 
     public func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
-            // Generate term header with optional pitch notation and audio
-            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true)
+            // Generate term header with optional pitch notation, audio, and Anki button
+            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true, includeAnki: true)
 
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
@@ -622,6 +663,7 @@ public struct TextLookupResponse: Sendable {
             <script src="marureader-resource://frequencyDisplay.js"></script>
             <script src="marureader-resource://pitchDisplay.js"></script>
             <script src="marureader-resource://audioDisplay.js"></script>
+            <script src="marureader-resource://ankiDisplay.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     if (window.MaruReader && window.MaruReader.frequencyDisplay) {
@@ -632,6 +674,9 @@ public struct TextLookupResponse: Sendable {
                     }
                     if (window.MaruReader && window.MaruReader.audioDisplay) {
                         window.MaruReader.audioDisplay.initialize();
+                    }
+                    if (window.MaruReader && window.MaruReader.ankiDisplay) {
+                        window.MaruReader.ankiDisplay.initialize();
                     }
                 });
             </script>

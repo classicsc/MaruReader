@@ -16,6 +16,18 @@ public enum AnkiConnectionManagerError: Error {
     case missingRequiredSettings
 }
 
+/// Result of creating a note via the connection manager.
+public struct NoteCreationResult: Sendable {
+    /// The Anki note ID, if returned by the API.
+    public let ankiNoteID: Int64?
+    /// The profile name the note was added to.
+    public let profileName: String
+    /// The deck name the note was added to.
+    public let deckName: String
+    /// The model name used for the note.
+    public let modelName: String
+}
+
 /// Converts resolved `TemplateValue`s into note fields based on persisted Anki settings.
 public actor AnkiConnectionManager {
     public private(set) var isReady: Bool = false
@@ -27,9 +39,9 @@ public actor AnkiConnectionManager {
     private var duplicateOptions: DuplicateDetectionOptions?
     private var fieldMap: AnkiFieldMap?
 
-    private var profileName: String?
-    private var deckName: String?
-    private var modelName: String?
+    public private(set) var profileName: String?
+    public private(set) var deckName: String?
+    public private(set) var modelName: String?
 
     private var observationTask: Task<Void, Never>?
     private var reloadDebounceTask: Task<Void, Error>?
@@ -93,7 +105,10 @@ public actor AnkiConnectionManager {
         }
     }
 
-    public func addNote(resolver: any TemplateValueResolver) async throws {
+    /// Add a note using the provided template resolver.
+    /// - Returns: The result containing Anki note ID and configuration used.
+    @discardableResult
+    public func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult {
         guard isReady,
               let provider,
               let duplicateOptions,
@@ -113,12 +128,19 @@ public actor AnkiConnectionManager {
             }
         }
 
-        try await provider.addNote(
+        let result = try await provider.addNote(
             fields: fields,
             profileName: profileName,
             deckName: deckName,
             modelName: modelName,
             duplicateOptions: duplicateOptions
+        )
+
+        return NoteCreationResult(
+            ankiNoteID: result.ankiNoteID,
+            profileName: profileName,
+            deckName: deckName,
+            modelName: modelName
         )
     }
 
@@ -304,7 +326,7 @@ private struct UnimplementedAnkiProvider: AnkiProvider {
         deckName _: String,
         modelName _: String,
         duplicateOptions _: DuplicateDetectionOptions
-    ) async throws {
+    ) async throws -> AddNoteResult {
         throw AnkiConnectionManagerError.providerUnavailable
     }
 

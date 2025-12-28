@@ -110,7 +110,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
         deckName: String,
         modelName: String,
         duplicateOptions: DuplicateDetectionOptions
-    ) async throws {
+    ) async throws -> AddNoteResult {
         // Combine resolved values into field content and collect media
         var fieldContent: [String: String] = [:]
         var mediaItems: [MediaItem] = []
@@ -199,6 +199,8 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             }
             throw AnkiConnectError.apiError(error)
         }
+
+        return AddNoteResult(ankiNoteID: response.result ?? nil)
     }
 
     func getAnkiProfiles() async -> AnkiProfileListingResponse {

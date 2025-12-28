@@ -26,6 +26,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
         "frequencyDisplay.js",
         "pitchDisplay.js",
         "audioDisplay.js",
+        "ankiDisplay.js",
     ]
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

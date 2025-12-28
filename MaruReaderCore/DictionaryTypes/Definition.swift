@@ -123,9 +123,42 @@ extension Definition {
         }
     }
 
+    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
+    func toAnkiHTML(mediaBaseURL: URL? = nil) -> String {
+        switch self {
+        case let .text(text):
+            return wrapAnkiDefinitionText(text)
+        case let .detailed(detail):
+            switch detail {
+            case let .text(textDef):
+                return wrapAnkiDefinitionText(textDef.text)
+            case let .structured(structuredDef):
+                return structuredDef.content.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+            case let .image(imageDef):
+                let imageElement = imageDef.toStructuredElement()
+                let html = imageElement.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+
+                if let description = imageDef.description {
+                    return "<div style=\"display: block; margin: 0.5em 0;\"><div>\(html)</div><span style=\"font-size: 0.9em; color: #666;\">\(escapeHTML(description))</span></div>"
+                }
+
+                return "<div style=\"display: block; margin: 0.5em 0;\">\(html)</div>"
+            }
+        case let .deinflection(uninflected, rules):
+            let escapedUninflected = escapeHTML(uninflected)
+            let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
+            return "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
+        }
+    }
+
     private func wrapDefinitionText(_ text: String) -> String {
         let escapedText = escapeHTML(text).replacingOccurrences(of: "\n", with: "<br>")
         return "<p class=\"gloss-definition-text\">\(escapedText)</p>"
+    }
+
+    private func wrapAnkiDefinitionText(_ text: String) -> String {
+        let escapedText = escapeHTML(text).replacingOccurrences(of: "\n", with: "<br>")
+        return "<p style=\"margin: 0.25em 0;\">\(escapedText)</p>"
     }
 }
 
@@ -141,6 +174,15 @@ extension [Definition] {
             return "<li class=\"gloss-item click-scannable\" data-index=\"\(index)\"><span class=\"\(contentClass)\">\(definitionHTML)</span></li>"
         }.joined(separator: "<span class=\"gloss-separator\"> </span>")
         return "<ul class=\"gloss-glossary-list\" data-count=\"\(self.count)\">\(itemsHTML)</ul>"
+    }
+
+    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
+    func toAnkiHTML(mediaBaseURL: URL? = nil) -> String {
+        let itemsHTML = enumerated().map { index, definition in
+            let definitionHTML = definition.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+            return "<li style=\"margin: 0.25em 0;\" data-index=\"\(index)\">\(definitionHTML)</li>"
+        }.joined()
+        return "<ol style=\"margin: 0; padding-left: 1.5em; list-style-type: decimal;\">\(itemsHTML)</ol>"
     }
 }
 

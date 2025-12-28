@@ -213,15 +213,19 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         guard let dictResult = selectedGroup.dictionariesResults.first(where: { $0.dictionaryUUID == dictionaryID }) else {
             return .empty
         }
-        return .text(dictResult.combinedHTML)
+        // Use Anki-compatible HTML with inline styles
+        let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
+        return .text(ankiHTML)
     }
 
     private func resolveMultiDictionaryGlossary() -> TemplateResolvedValue {
         let html = selectedGroup.dictionariesResults.map { dictResult in
-            """
-            <div class="dictionary-entry">
-                <h3>\(dictResult.dictionaryTitle.escapingHTML())</h3>
-                \(dictResult.combinedHTML)
+            // Use Anki-compatible HTML with inline styles
+            let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
+            return """
+            <div style="margin-bottom: 1em;">
+                <h3 style="margin: 0 0 0.5em 0; font-size: 1.1em; font-weight: bold;">\(dictResult.dictionaryTitle.escapingHTML())</h3>
+                \(ankiHTML)
             </div>
             """
         }.joined(separator: "\n")
@@ -232,7 +236,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         guard let firstDict = selectedGroup.dictionariesResults.first else {
             return .empty
         }
-        return .text(firstDict.combinedHTML)
+        // Use Anki-compatible HTML with inline styles
+        let ankiHTML = firstDict.results.generateCombinedAnkiHTML(dictionaryUUID: firstDict.dictionaryUUID)
+        return .text(ankiHTML)
     }
 
     private func resolveDictionaryTitle() -> TemplateResolvedValue {

@@ -17,6 +17,8 @@
 		DB1C343F2EB85BFB00315E79 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB1C34442EB8685200315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
+		DB4A77342F01407400DBCAD9 /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
 		DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */; };
@@ -53,7 +55,7 @@
 		DBEF7A092EEF9423002DBFFC /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DBEF7A132EEF9423002DBFFC /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DBEF7A142EEF9423002DBFFC /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; platformFilter = ios; };
+		DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBEF7A1C2EEF945C002DBFFC /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
@@ -106,6 +108,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = DB2B698B2E660F8B00EDA656;
 			remoteInfo = MaruReader;
+		};
+		DB4A77352F01407400DBCAD9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DBEF79FF2EEF9422002DBFFC;
+			remoteInfo = MaruAnki;
 		};
 		DB58C90E2EAB173700CE59FD /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -258,6 +267,7 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
+				DB4A77342F01407400DBCAD9 /* MaruAnki.framework in Embed Frameworks */,
 				DB58C9262EAB186800CE59FD /* MaruReaderCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
@@ -470,6 +480,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */,
 				DB58C9252EAB186800CE59FD /* MaruReaderCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -763,6 +774,7 @@
 			);
 			dependencies = (
 				DB58C92D2EAB18CA00CE59FD /* PBXTargetDependency */,
+				DB4A77362F01407400DBCAD9 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB58C9032EAB173700CE59FD /* MaruDictionaryUICommon */,
@@ -1291,6 +1303,11 @@
 			target = DB2B698B2E660F8B00EDA656 /* MaruReader */;
 			targetProxy = DB2B69A92E660F8D00EDA656 /* PBXContainerItemProxy */;
 		};
+		DB4A77362F01407400DBCAD9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DBEF79FF2EEF9422002DBFFC /* MaruAnki */;
+			targetProxy = DB4A77352F01407400DBCAD9 /* PBXContainerItemProxy */;
+		};
 		DB58C90F2EAB173700CE59FD /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DB58C9012EAB173700CE59FD /* MaruDictionaryUICommon */;
@@ -1373,7 +1390,6 @@
 		};
 		DBEF7A1E2EEF945C002DBFFC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			platformFilter = ios;
 			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
 			targetProxy = DBEF7A1D2EEF945C002DBFFC /* PBXContainerItemProxy */;
 		};
@@ -2195,7 +2211,9 @@
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_INSTALL_MODULE = YES;
@@ -2245,7 +2263,9 @@
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MACCATALYST = YES;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_INSTALL_MODULE = YES;
