@@ -215,13 +215,26 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
         // Use Anki-compatible HTML with inline styles
         let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
-        return .text(ankiHTML)
+
+        // Extract and resolve image paths
+        let imagePaths = dictResult.results.extractImagePaths()
+        let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
+
+        return TemplateResolvedValue(text: ankiHTML, mediaFiles: mediaFiles)
     }
 
     private func resolveMultiDictionaryGlossary() -> TemplateResolvedValue {
+        var allMediaFiles: [String: URL] = [:]
+
         let html = selectedGroup.dictionariesResults.map { dictResult in
             // Use Anki-compatible HTML with inline styles
             let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
+
+            // Extract and resolve image paths for this dictionary
+            let imagePaths = dictResult.results.extractImagePaths()
+            let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
+            allMediaFiles.merge(mediaFiles) { _, new in new }
+
             return """
             <div style="margin-bottom: 1em;">
                 <h3 style="margin: 0 0 0.5em 0; font-size: 1.1em; font-weight: bold;">\(dictResult.dictionaryTitle.escapingHTML())</h3>
@@ -229,7 +242,8 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             </div>
             """
         }.joined(separator: "\n")
-        return .text(html)
+
+        return TemplateResolvedValue(text: html, mediaFiles: allMediaFiles)
     }
 
     private func resolveGlossaryNoDictionary() -> TemplateResolvedValue {
@@ -238,7 +252,40 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
         // Use Anki-compatible HTML with inline styles
         let ankiHTML = firstDict.results.generateCombinedAnkiHTML(dictionaryUUID: firstDict.dictionaryUUID)
-        return .text(ankiHTML)
+
+        // Extract and resolve image paths
+        let imagePaths = firstDict.results.extractImagePaths()
+        let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: firstDict.dictionaryUUID)
+
+        return TemplateResolvedValue(text: ankiHTML, mediaFiles: mediaFiles)
+    }
+
+    /// Resolves image paths to actual file URLs in the Media directory.
+    private func resolveMediaFiles(imagePaths: [String], dictionaryUUID: UUID) -> [String: URL] {
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            return [:]
+        }
+
+        let mediaBaseDir = appGroupDir
+            .appendingPathComponent("Media", isDirectory: true)
+            .appendingPathComponent(dictionaryUUID.uuidString, isDirectory: true)
+
+        var mediaFiles: [String: URL] = [:]
+
+        for imagePath in imagePaths {
+            // Build the full file URL
+            let fileURL = imagePath.split(separator: "/").reduce(mediaBaseDir) {
+                $0.appendingPathComponent(String($1), isDirectory: false)
+            }
+
+            // Use just the filename as the key (Anki stores media flat)
+            let filename = (imagePath as NSString).lastPathComponent
+            mediaFiles[filename] = fileURL
+        }
+
+        return mediaFiles
     }
 
     private func resolveDictionaryTitle() -> TemplateResolvedValue {

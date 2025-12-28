@@ -373,25 +373,18 @@ extension StructuredElement {
         return createAnkiElementByType(mediaBaseURL: mediaBaseURL)
     }
 
-    private func createAnkiImageElement(mediaBaseURL: URL? = nil) -> String {
+    private func createAnkiImageElement(mediaBaseURL _: URL? = nil) -> String {
         guard let path else { return "" }
 
-        // Resolve the image URL
-        let resolvedPath: String = if let url = URL(string: path), url.scheme == nil {
-            if let mediaBaseURL {
-                mediaBaseURL.appendingPathComponent(path).absoluteString
-            } else {
-                path
-            }
-        } else {
-            path
-        }
+        // For Anki, use just the filename since Anki stores media files flat.
+        // The actual file will be uploaded separately via the picture/audio/video arrays.
+        let filename = (path as NSString).lastPathComponent
 
         // Calculate dimensions
         let effectiveWidth = preferredWidth ?? width ?? 200.0
         let effectiveHeight = preferredHeight ?? height ?? 200.0
 
-        var imageAttributes = ["src=\"\(escapeHTML(resolvedPath))\""]
+        var imageAttributes = ["src=\"\(escapeHTML(filename))\""]
 
         // Add dimensions
         imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
@@ -584,5 +577,20 @@ extension StructuredElement {
             }
         }
         return attrs
+    }
+
+    /// Extracts all image paths from this element and its children.
+    func extractImagePaths() -> [String] {
+        var paths: [String] = []
+
+        if tag == "img", let path {
+            paths.append(path)
+        }
+
+        if let content {
+            paths.append(contentsOf: content.extractImagePaths())
+        }
+
+        return paths
     }
 }

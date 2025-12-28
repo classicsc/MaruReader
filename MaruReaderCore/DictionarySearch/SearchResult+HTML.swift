@@ -2,8 +2,8 @@
 
 import Foundation
 
-extension [SearchResult] {
-    func generateCombinedHTML(dictionaryUUID: UUID? = nil) -> String {
+public extension [SearchResult] {
+    internal func generateCombinedHTML(dictionaryUUID: UUID? = nil) -> String {
         let allDefinitions = self.flatMap(\.definitions)
         let allDefinitionsHTML: String
         if let dictUUID = dictionaryUUID {
@@ -16,7 +16,7 @@ extension [SearchResult] {
     }
 
     /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
-    public func generateCombinedAnkiHTML(dictionaryUUID: UUID? = nil) -> String {
+    func generateCombinedAnkiHTML(dictionaryUUID: UUID? = nil) -> String {
         let allDefinitions = flatMap(\.definitions)
         let mediaBaseURL: URL? = if let dictUUID = dictionaryUUID {
             URL(string: "marureader-media://\(dictUUID.uuidString)/")
@@ -24,5 +24,10 @@ extension [SearchResult] {
             nil
         }
         return allDefinitions.toAnkiHTML(mediaBaseURL: mediaBaseURL)
+    }
+
+    /// Extracts all image paths from the search results' definitions.
+    func extractImagePaths() -> [String] {
+        flatMap(\.definitions).extractImagePaths()
     }
 }

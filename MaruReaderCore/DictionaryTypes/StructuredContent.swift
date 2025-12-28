@@ -89,4 +89,16 @@ extension StructuredContent {
             .replacingOccurrences(of: "'", with: "&#39;")
             .replacingOccurrences(of: "\n", with: "<br>")
     }
+
+    /// Extracts all image paths from this structured content.
+    func extractImagePaths() -> [String] {
+        switch self {
+        case .text:
+            []
+        case let .array(contents):
+            contents.flatMap { $0.extractImagePaths() }
+        case let .element(element):
+            element.extractImagePaths()
+        }
+    }
 }

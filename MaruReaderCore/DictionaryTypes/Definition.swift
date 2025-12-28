@@ -151,6 +151,25 @@ extension Definition {
         }
     }
 
+    /// Extracts all image paths from this definition.
+    func extractImagePaths() -> [String] {
+        switch self {
+        case .text:
+            []
+        case let .detailed(detail):
+            switch detail {
+            case .text:
+                []
+            case let .structured(structuredDef):
+                structuredDef.content.extractImagePaths()
+            case let .image(imageDef):
+                [imageDef.path]
+            }
+        case .deinflection:
+            []
+        }
+    }
+
     private func wrapDefinitionText(_ text: String) -> String {
         let escapedText = escapeHTML(text).replacingOccurrences(of: "\n", with: "<br>")
         return "<p class=\"gloss-definition-text\">\(escapedText)</p>"
@@ -183,6 +202,11 @@ extension [Definition] {
             return "<li style=\"margin: 0.25em 0;\" data-index=\"\(index)\">\(definitionHTML)</li>"
         }.joined()
         return "<ol style=\"margin: 0; padding-left: 1.5em; list-style-type: decimal;\">\(itemsHTML)</ol>"
+    }
+
+    /// Extracts all image paths from the definitions.
+    func extractImagePaths() -> [String] {
+        flatMap { $0.extractImagePaths() }
     }
 }
 
