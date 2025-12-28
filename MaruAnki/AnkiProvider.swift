@@ -18,40 +18,47 @@ protocol AnkiProvider: Sendable {
     func getAnkiModels(forProfile profileName: String) async -> AnkiModelListingResponse
 }
 
-struct DuplicateDetectionOptions: Sendable, Codable {
+public struct DuplicateDetectionOptions: Sendable, Codable {
     /// The scope for duplicate checking. `none` to disable duplicate checking.
-    let scope: DuplicateNoteScope
+    public let scope: DuplicateNoteScope
     /// The deck to check for duplicates in, if `scope` is `.deck`. `nil` to check in the target deck.
-    let deckName: String?
+    public let deckName: String?
     /// Whether to check in child decks when `scope` is `.deck`.
-    let includeChildDecks: Bool
+    public let includeChildDecks: Bool
     /// Whether to check across all note types.
     /// If `false`, only notes of the same type as the note being added are checked.
-    let checkAllModels: Bool
+    public let checkAllModels: Bool
+
+    public init(scope: DuplicateNoteScope, deckName: String?, includeChildDecks: Bool, checkAllModels: Bool) {
+        self.scope = scope
+        self.deckName = deckName
+        self.includeChildDecks = includeChildDecks
+        self.checkAllModels = checkAllModels
+    }
 }
 
-enum DuplicateNoteScope: Sendable, Codable {
+public enum DuplicateNoteScope: Sendable, Codable {
     case deck
     case collection
     case none
 }
 
-struct AnkiDeckMeta: Sendable {
-    let id: String
-    let name: String
-    let profileName: String
+public struct AnkiDeckMeta: Sendable {
+    public let id: String
+    public let name: String
+    public let profileName: String
 }
 
-struct AnkiModelMeta: Sendable {
-    let id: String
-    let name: String
-    let profileName: String
-    let fields: [String]
+public struct AnkiModelMeta: Sendable {
+    public let id: String
+    public let name: String
+    public let profileName: String
+    public let fields: [String]
 }
 
-struct AnkiProfileMeta: Sendable {
-    let id: String
-    let isActiveProfile: Bool
+public struct AnkiProfileMeta: Sendable {
+    public let id: String
+    public let isActiveProfile: Bool
 }
 
 enum AnkiProfileListingResponse {

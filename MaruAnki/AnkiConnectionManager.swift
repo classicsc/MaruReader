@@ -38,8 +38,59 @@ public actor AnkiConnectionManager {
 
     public init(persistence: AnkiPersistenceController = .shared) async {
         self.persistence = persistence
+        await SystemProfileManager.ensureSystemProfilesExist(in: persistence.newBackgroundContext())
         await reload()
         startObservingSaves()
+    }
+
+    // MARK: - Temporary Connection Methods
+
+    /// Tests connection to Anki-Connect with temporary settings (not persisted).
+    /// Throws on failure.
+    public func testConnection(host: String, port: Int, apiKey: String?) async throws {
+        _ = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
+    }
+
+    /// Fetches profiles using temporary connection settings.
+    public func getProfiles(host: String, port: Int, apiKey: String?) async throws -> [AnkiProfileMeta] {
+        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
+        let response = await provider.getAnkiProfiles()
+        switch response {
+        case let .success(profiles):
+            return profiles
+        case let .failure(error):
+            throw error
+        case .apiCapabilityMissing:
+            throw AnkiConnectionManagerError.providerUnavailable
+        }
+    }
+
+    /// Fetches decks for a profile using temporary connection settings.
+    public func getDecks(host: String, port: Int, apiKey: String?, forProfile profileName: String) async throws -> [AnkiDeckMeta] {
+        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
+        let response = await provider.getAnkiDecks(forProfile: profileName)
+        switch response {
+        case let .success(decks):
+            return decks
+        case let .failure(error):
+            throw error
+        case .apiCapabilityMissing:
+            throw AnkiConnectionManagerError.providerUnavailable
+        }
+    }
+
+    /// Fetches models for a profile using temporary connection settings.
+    public func getModels(host: String, port: Int, apiKey: String?, forProfile profileName: String) async throws -> [AnkiModelMeta] {
+        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
+        let response = await provider.getAnkiModels(forProfile: profileName)
+        switch response {
+        case let .success(models):
+            return models
+        case let .failure(error):
+            throw error
+        case .apiCapabilityMissing:
+            throw AnkiConnectionManagerError.providerUnavailable
+        }
     }
 
     public func addNote(resolver: any TemplateValueResolver) async throws {

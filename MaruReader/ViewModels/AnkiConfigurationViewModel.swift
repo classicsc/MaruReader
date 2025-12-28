@@ -1,0 +1,330 @@
+//
+//  AnkiConfigurationViewModel.swift
+//  MaruReader
+//
+//  Manages state for the Anki configuration flow.
+//
+
+import CoreData
+import Foundation
+import MaruAnki
+import Observation
+
+struct FieldMappingProfileInfo: Identifiable, Sendable {
+    let id: UUID
+    let displayName: String
+    let isSystemProfile: Bool
+}
+
+@MainActor
+@Observable
+final class AnkiConfigurationViewModel {
+    enum ConfigurationStep: Int, CaseIterable {
+        case connectionType = 0
+        case connectionDetails = 1
+        case profileSelection = 2
+        case deckSelection = 3
+        case modelSelection = 4
+        case fieldMappingSelection = 5
+    }
+
+    enum ConnectionType: String, CaseIterable, Identifiable {
+        case ankiConnect = "Anki-Connect"
+
+        var id: String { rawValue }
+    }
+
+    // Current step
+    var currentStep: ConfigurationStep = .connectionType
+
+    // Connection type
+    var connectionType: ConnectionType = .ankiConnect
+
+    // Connection settings (temporary, not saved until completion)
+    var host: String = "localhost"
+    var port: String = "8765"
+    var apiKey: String = ""
+
+    // Fetched data
+    var profiles: [AnkiProfileMeta] = []
+    var decks: [AnkiDeckMeta] = []
+    var models: [AnkiModelMeta] = []
+    var fieldMappingProfiles: [FieldMappingProfileInfo] = []
+
+    // Selections
+    var selectedProfileID: String?
+    var selectedDeckName: String?
+    var selectedModelName: String?
+    var selectedFieldMappingProfileID: UUID?
+
+    // Loading/Error state
+    var isLoading: Bool = false
+    var error: Error?
+    var showError: Bool = false
+
+    // Completion callback
+    var onComplete: (() -> Void)?
+
+    // Dependencies
+    private let persistence: AnkiPersistenceController
+
+    init(persistence: AnkiPersistenceController = .shared) {
+        self.persistence = persistence
+    }
+
+    // MARK: - Computed Properties
+
+    var selectedProfile: AnkiProfileMeta? {
+        profiles.first { $0.id == selectedProfileID }
+    }
+
+    var selectedDeck: AnkiDeckMeta? {
+        decks.first { $0.name == selectedDeckName }
+    }
+
+    var selectedModel: AnkiModelMeta? {
+        models.first { $0.name == selectedModelName }
+    }
+
+    var selectedFieldMappingProfile: FieldMappingProfileInfo? {
+        fieldMappingProfiles.first { $0.id == selectedFieldMappingProfileID }
+    }
+
+    var portInt: Int? {
+        Int(port)
+    }
+
+    var apiKeyOrNil: String? {
+        apiKey.isEmpty ? nil : apiKey
+    }
+
+    var canProceed: Bool {
+        switch currentStep {
+        case .connectionType:
+            true
+        case .connectionDetails:
+            !host.isEmpty && portInt != nil && portInt! > 0
+        case .profileSelection:
+            selectedProfileID != nil
+        case .deckSelection:
+            selectedDeckName != nil
+        case .modelSelection:
+            selectedModelName != nil
+        case .fieldMappingSelection:
+            selectedFieldMappingProfileID != nil
+        }
+    }
+
+    // MARK: - Step Navigation
+
+    func proceed() async {
+        guard canProceed else { return }
+
+        switch currentStep {
+        case .connectionType:
+            currentStep = .connectionDetails
+
+        case .connectionDetails:
+            await testConnectionAndProceed()
+
+        case .profileSelection:
+            await fetchDecksAndModels()
+
+        case .deckSelection:
+            currentStep = .modelSelection
+
+        case .modelSelection:
+            await fetchFieldMappingProfiles()
+
+        case .fieldMappingSelection:
+            await saveConfiguration()
+        }
+    }
+
+    func goBack() {
+        switch currentStep {
+        case .connectionType:
+            break
+        case .connectionDetails:
+            currentStep = .connectionType
+        case .profileSelection:
+            currentStep = .connectionDetails
+        case .deckSelection:
+            currentStep = .profileSelection
+        case .modelSelection:
+            currentStep = .deckSelection
+        case .fieldMappingSelection:
+            currentStep = .modelSelection
+        }
+    }
+
+    // MARK: - Connection Testing
+
+    private func testConnectionAndProceed() async {
+        guard let portInt else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let manager = await AnkiConnectionManager(persistence: persistence)
+            try await manager.testConnection(host: host, port: portInt, apiKey: apiKeyOrNil)
+
+            // Connection successful, fetch profiles
+            profiles = try await manager.getProfiles(host: host, port: portInt, apiKey: apiKeyOrNil)
+
+            // Auto-select active profile if there is one
+            if let activeProfile = profiles.first(where: { $0.isActiveProfile }) {
+                selectedProfileID = activeProfile.id
+            }
+
+            currentStep = .profileSelection
+        } catch {
+            self.error = error
+            self.showError = true
+        }
+    }
+
+    // MARK: - Data Fetching
+
+    private func fetchDecksAndModels() async {
+        guard let profileID = selectedProfileID,
+              let portInt
+        else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let manager = await AnkiConnectionManager(persistence: persistence)
+
+            decks = try await manager.getDecks(
+                host: host,
+                port: portInt,
+                apiKey: apiKeyOrNil,
+                forProfile: profileID
+            )
+
+            models = try await manager.getModels(
+                host: host,
+                port: portInt,
+                apiKey: apiKeyOrNil,
+                forProfile: profileID
+            )
+
+            currentStep = .deckSelection
+        } catch {
+            self.error = error
+            self.showError = true
+        }
+    }
+
+    private func fetchFieldMappingProfiles() async {
+        let context = persistence.newBackgroundContext()
+
+        // Fetch and extract data within the context to avoid cross-context access
+        let profileInfos: [FieldMappingProfileInfo] = await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.sortDescriptors = [
+                NSSortDescriptor(key: "isSystemProfile", ascending: false),
+                NSSortDescriptor(key: "displayName", ascending: true),
+            ]
+
+            guard let profiles = try? context.fetch(request) else {
+                return []
+            }
+
+            return profiles.compactMap { profile in
+                guard let id = profile.id else { return nil }
+                return FieldMappingProfileInfo(
+                    id: id,
+                    displayName: profile.displayName ?? "Unnamed",
+                    isSystemProfile: profile.isSystemProfile
+                )
+            }
+        }
+
+        fieldMappingProfiles = profileInfos
+
+        // Auto-select Basic if it exists
+        if let basicProfile = fieldMappingProfiles.first(where: { $0.id == SystemProfileManager.basicProfileUUID }) {
+            selectedFieldMappingProfileID = basicProfile.id
+        } else if let firstProfile = fieldMappingProfiles.first {
+            selectedFieldMappingProfileID = firstProfile.id
+        }
+
+        currentStep = .fieldMappingSelection
+    }
+
+    // MARK: - Save Configuration
+
+    private func saveConfiguration() async {
+        guard let profileID = selectedProfileID,
+              let deckName = selectedDeckName,
+              let modelName = selectedModelName,
+              let fieldMappingID = selectedFieldMappingProfileID,
+              let portInt
+        else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let context = persistence.newBackgroundContext()
+
+        do {
+            try await context.perform {
+                // Fetch or create settings
+                let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
+                request.fetchLimit = 1
+
+                let settings: MaruAnkiSettings
+                if let existing = try context.fetch(request).first {
+                    settings = existing
+                } else {
+                    settings = MaruAnkiSettings(context: context)
+                    settings.id = UUID()
+                }
+
+                // Update settings
+                settings.ankiEnabled = true
+                settings.isAnkiConnect = true
+                settings.defaultProfileName = profileID
+                settings.defaultDeckName = deckName
+                settings.defaultModelName = modelName
+
+                // Set connect configuration
+                settings.connectConfiguration = [
+                    "hostname": self.host,
+                    "port": portInt,
+                    "apiKey": self.apiKeyOrNil as Any,
+                ]
+
+                // Link to field mapping profile
+                let profileRequest = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+                profileRequest.predicate = NSPredicate(format: "id == %@", fieldMappingID as CVarArg)
+                profileRequest.fetchLimit = 1
+                if let profile = try context.fetch(profileRequest).first {
+                    settings.modelConfiguration = profile
+                }
+
+                // Set default duplicate detection options
+                let duplicateOptions = DuplicateDetectionOptions(
+                    scope: .deck,
+                    deckName: nil,
+                    includeChildDecks: false,
+                    checkAllModels: false
+                )
+                let encoder = JSONEncoder()
+                let duplicateData = try encoder.encode(duplicateOptions)
+                settings.duplicateNoteSettings = String(data: duplicateData, encoding: .utf8)
+
+                try context.save()
+            }
+
+            onComplete?()
+        } catch {
+            self.error = error
+            self.showError = true
+        }
+    }
+}

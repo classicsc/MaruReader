@@ -22,6 +22,11 @@ struct SettingsView: View {
                         Label("Dictionary Display", systemImage: "textformat")
                     }
                 }
+                Section("Integrations") {
+                    NavigationLink(destination: AnkiSettingsView()) {
+                        Label("Anki", systemImage: "rectangle.stack.badge.plus")
+                    }
+                }
                 Section("About") {
                     LabeledContent("App Version", value: appVersion)
                     LabeledContent("Build", value: appBuild)
