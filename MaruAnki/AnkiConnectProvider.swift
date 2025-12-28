@@ -8,7 +8,7 @@
 import Foundation
 
 /// Errors that can occur when communicating with Anki-Connect.
-enum AnkiConnectError: Error, Sendable, Equatable {
+enum AnkiConnectError: Error, Sendable, Equatable, LocalizedError {
     /// The Anki-Connect API returned an error.
     case apiError(String)
     /// Failed to connect to Anki-Connect.
@@ -25,6 +25,27 @@ enum AnkiConnectError: Error, Sendable, Equatable {
     case profileMismatch(expected: String, actual: String)
     /// Failed to read a local media file.
     case mediaReadFailed(URL)
+
+    var errorDescription: String? {
+        switch self {
+        case let .apiError(message):
+            "Anki-Connect error: \(message)"
+        case let .connectionFailed(error):
+            "Failed to connect to Anki-Connect: \(error.localizedDescription)"
+        case .invalidResponse:
+            "Received an invalid response from Anki-Connect."
+        case .permissionDenied:
+            "Permission denied by Anki-Connect. Please allow access when prompted in Anki."
+        case .apiKeyRequired:
+            "An API key is required. Please enter your Anki-Connect API key."
+        case .duplicateNote:
+            "A note with this content already exists."
+        case let .profileMismatch(expected, actual):
+            "Profile mismatch: expected \"\(expected)\" but \"\(actual)\" is active. Please switch profiles in Anki."
+        case let .mediaReadFailed(url):
+            "Failed to read media file: \(url.lastPathComponent)"
+        }
+    }
 
     static func == (lhs: AnkiConnectError, rhs: AnkiConnectError) -> Bool {
         switch (lhs, rhs) {
