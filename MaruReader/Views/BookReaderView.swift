@@ -74,7 +74,7 @@ struct BookReaderView: View {
                     attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                 ) {
                     WebView(viewModel.popupPage)
-                        .frame(width: 200, height: 200)
+                        .frame(width: 300, height: 200)
                         .presentationCompactAdaptation(.popover)
                 }
                 .navigationBarTitleDisplayMode(.inline)
