@@ -158,6 +158,12 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case let .frequencyOccurrenceSortField(dictionaryID):
             return resolveFrequencyOccurrenceSortField(forDictionary: dictionaryID)
 
+        case .frequencyRankHarmonicMeanSortField:
+            return resolveFrequencyRankHarmonicMeanSortField()
+
+        case .frequencyOccurrenceHarmonicMeanSortField:
+            return resolveFrequencyOccurrenceHarmonicMeanSortField()
+
         // MARK: - Kanji-specific (not implemented for term lookups)
 
         case .kunyomi, .onyomi, .onyomiAsHiragana, .strokeCount:
@@ -429,6 +435,41 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return .text("0")
         }
         return .text(String(Int(freq.value)))
+    }
+
+    private func resolveFrequencyRankHarmonicMeanSortField() -> TemplateResolvedValue {
+        guard let firstDict = selectedGroup.dictionariesResults.first,
+              let firstResult = firstDict.results.first
+        else {
+            return .text("9999999")
+        }
+        let rankFrequencies = firstResult.frequencies.filter { $0.mode == "rank-based" }
+        guard !rankFrequencies.isEmpty else {
+            return .text("9999999")
+        }
+        let harmonicMean = calculateHarmonicMean(rankFrequencies.map(\.value))
+        return .text(String(Int(harmonicMean)))
+    }
+
+    private func resolveFrequencyOccurrenceHarmonicMeanSortField() -> TemplateResolvedValue {
+        guard let firstDict = selectedGroup.dictionariesResults.first,
+              let firstResult = firstDict.results.first
+        else {
+            return .text("0")
+        }
+        let occurrenceFrequencies = firstResult.frequencies.filter { $0.mode == nil || $0.mode == "occurrence-based" }
+        guard !occurrenceFrequencies.isEmpty else {
+            return .text("0")
+        }
+        let harmonicMean = calculateHarmonicMean(occurrenceFrequencies.map(\.value))
+        return .text(String(Int(harmonicMean)))
+    }
+
+    private func calculateHarmonicMean(_ values: [Double]) -> Double {
+        let positiveValues = values.filter { $0 > 0 }
+        guard !positiveValues.isEmpty else { return 0 }
+        let reciprocalSum = positiveValues.reduce(0.0) { $0 + 1.0 / $1 }
+        return Double(positiveValues.count) / reciprocalSum
     }
 }
 

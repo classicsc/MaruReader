@@ -404,7 +404,7 @@ private enum TemplateValueCategory: CaseIterable {
         case .context:
             [.sentence, .sentenceFurigana, .clozePrefix, .clozeBody, .clozeSuffix, .documentTitle, .documentURL, .documentCoverImage, .screenshot]
         case .frequency:
-            [.frequencyList, .singleFrequency]
+            [.frequencyList, .singleFrequency, .frequencyRankHarmonicMeanSortField, .frequencyOccurrenceHarmonicMeanSortField]
         case .pitch:
             [.pitchAccentList, .singlePitchAccent, .pitchAccentDisambiguation, .pronunciationAudio]
         case .kanji:
@@ -453,6 +453,8 @@ extension TemplateValue {
         case .singleFrequencyDictionary: return "Frequency (Dictionary)"
         case .frequencyRankSortField: return "Frequency Sort (Rank)"
         case .frequencyOccurrenceSortField: return "Frequency Sort (Occurrence)"
+        case .frequencyRankHarmonicMeanSortField: return "Frequency Sort (Rank HM)"
+        case .frequencyOccurrenceHarmonicMeanSortField: return "Frequency Sort (Occ HM)"
         case .strokeCount: return "Stroke Count"
         case .partOfSpeech: return "Part of Speech"
         case .sentenceFurigana: return "Sentence (Furigana)"
