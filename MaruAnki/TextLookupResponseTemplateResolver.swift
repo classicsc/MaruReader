@@ -60,14 +60,17 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
         case .documentCoverImage:
             if let url = response.request.contextValues?.documentCoverImageURL {
-                let fileID = "cover_\(UUID().uuidString)"
+                // Use a shorter, simpler filename to avoid potential issues
+                let shortID = UUID().uuidString.prefix(8)
+                let fileID = "maru_cover_\(shortID)"
                 return TemplateResolvedValue(mediaFiles: [fileID: url])
             }
             return .empty
 
         case .screenshot:
             if let url = response.request.contextValues?.screenshotURL {
-                let fileID = "screenshot_\(UUID().uuidString)"
+                let shortID = UUID().uuidString.prefix(8)
+                let fileID = "maru_screenshot_\(shortID)"
                 return TemplateResolvedValue(mediaFiles: [fileID: url])
             }
             return .empty

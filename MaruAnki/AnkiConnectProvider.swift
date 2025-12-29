@@ -144,10 +144,15 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
                     combinedText += text
                 }
 
+                // If the value has text, media files are already referenced inline (e.g., glossary images).
+                // Only specify the field name when there's no text, so Anki-Connect inserts the img tag.
+                let targetField: String? = value.text == nil ? fieldName : nil
+
                 for (filename, url) in value.mediaFiles {
                     let mediaItem = try await prepareMediaItem(
                         filename: filename,
-                        url: url
+                        url: url,
+                        fieldName: targetField
                     )
                     mediaItems.append(mediaItem)
                 }
@@ -379,9 +384,21 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
 
     private func prepareMediaItem(
         filename: String,
-        url: URL
+        url: URL,
+        fieldName: String?
     ) async throws -> MediaItem {
-        let mediaType = MediaType.from(filename: filename)
+        // Derive extension from the URL if the filename doesn't have one
+        var finalFilename = filename
+        let filenameExtension = (filename as NSString).pathExtension
+        if filenameExtension.isEmpty {
+            let urlExtension = url.pathExtension
+            if !urlExtension.isEmpty {
+                finalFilename = "\(filename).\(urlExtension)"
+            }
+        }
+
+        let mediaType = MediaType.from(filename: finalFilename)
+        let targetFields: [String] = fieldName.map { [$0] } ?? []
 
         if url.isFileURL {
             // Base64 encode local files
@@ -394,17 +411,17 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             let base64 = data.base64EncodedString()
 
             return MediaItem(
-                filename: filename,
+                filename: finalFilename,
                 source: .data(base64),
-                fields: [],
+                fields: targetFields,
                 type: mediaType
             )
         } else {
             // Use URL for remote files
             return MediaItem(
-                filename: filename,
+                filename: finalFilename,
                 source: .url(url.absoluteString),
-                fields: [],
+                fields: targetFields,
                 type: mediaType
             )
         }
