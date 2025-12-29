@@ -7,6 +7,7 @@
 
 import CoreData
 import Foundation
+import MaruAnki
 import MaruReaderCore
 import Observation
 import os.log
@@ -86,11 +87,41 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
 
+    // Anki services
+    private var ankiConnectionManager: AnkiConnectionManager?
+    private let ankiNoteService = AnkiNoteService()
+
     let highlightStyles = [
         "background-color": "inherit",
     ]
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderViewModel")
+
+    /// URL to the book's cover image file, if available.
+    private var bookCoverURL: URL? {
+        guard let coverFileName = book.coverFileName else { return nil }
+
+        guard let appSupportDir = try? FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        ) else { return nil }
+
+        return appSupportDir
+            .appendingPathComponent("Covers")
+            .appendingPathComponent(coverFileName)
+    }
+
+    /// Context values for dictionary lookups, populated with book metadata.
+    private var lookupContextValues: LookupContextValues {
+        LookupContextValues(
+            documentTitle: book.title,
+            documentURL: nil,
+            documentCoverImageURL: bookCoverURL,
+            screenshotURL: nil
+        )
+    }
 
     init(book: Book) {
         self.book = book
@@ -101,6 +132,11 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         // Load audio providers asynchronously
         Task {
             try? await audioLookupService.loadProviders()
+        }
+
+        // Initialize Anki connection manager asynchronously
+        Task { @MainActor in
+            self.ankiConnectionManager = await AnkiConnectionManager()
         }
 
         Task {
@@ -193,6 +229,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "navigateToTerm")
+        userContentController.add(self, name: "ankiAdd")
         config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
@@ -217,12 +254,22 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             return
         }
 
-        let lookupRequest = TextLookupRequest(context: context, offset: offset, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
+        let lookupRequest = TextLookupRequest(
+            context: context,
+            offset: offset,
+            contextStartOffset: contextStartOffset,
+            cssSelector: cssSelector,
+            contextValues: lookupContextValues
+        )
         popupSearchTask?.cancel()
         popupSearchTask = Task {
-            guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+            guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 return
             }
+
+            // Check for existing Anki notes and update response
+            searchResults = await prepareResponseWithAnkiState(searchResults)
+
             // Store the response so we can pass it when opening the dictionary sheet
             await MainActor.run {
                 self.currentPopupResponse = searchResults
@@ -354,6 +401,126 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             } else {
                 logger.warning("navigateToTerm message body is not a string")
             }
+        } else if message.name == "ankiAdd" {
+            logger.debug("Received ankiAdd message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let termKey = messageObject["termKey"] as? String,
+                  let expression = messageObject["expression"] as? String
+            else {
+                logger.error("Invalid message body for ankiAdd")
+                return
+            }
+            let reading = messageObject["reading"] as? String
+            handleAnkiAdd(termKey: termKey, expression: expression, reading: reading)
+        }
+    }
+
+    // MARK: - Anki Integration
+
+    /// Prepare a response with Anki state (enabled status and existing notes)
+    private func prepareResponseWithAnkiState(_ response: TextLookupResponse) async -> TextLookupResponse {
+        var updatedResponse = response
+
+        guard let ankiConnectionManager else {
+            return updatedResponse
+        }
+
+        let isReady = await ankiConnectionManager.isReady
+        guard isReady else {
+            return updatedResponse
+        }
+
+        // Mark Anki as enabled
+        updatedResponse.setAnkiEnabled(true)
+
+        // Get current profile name for note existence check
+        guard let profileName = await ankiConnectionManager.profileName else {
+            return updatedResponse
+        }
+
+        // Build list of terms to check
+        let terms = response.results.map { group in
+            (expression: group.expression, reading: group.reading)
+        }
+
+        // Check for existing notes
+        let existingTermKeys = await ankiNoteService.getExistingNoteTermKeys(
+            for: terms,
+            profileName: profileName
+        )
+
+        updatedResponse.markExistingNotes(existingTermKeys)
+        return updatedResponse
+    }
+
+    /// Handle Anki add note request from JavaScript
+    private func handleAnkiAdd(termKey: String, expression: String, reading: String?) {
+        Task {
+            // Set button state to loading
+            await setAnkiButtonState(termKey: termKey, state: "loading")
+
+            do {
+                guard let ankiConnectionManager, await ankiConnectionManager.isReady else {
+                    logger.warning("AnkiConnectionManager not ready")
+                    await setAnkiButtonState(termKey: termKey, state: "error")
+                    return
+                }
+
+                // Find the matching term group from current response
+                guard let response = currentPopupResponse,
+                      let termGroup = response.results.first(where: { $0.termKey == termKey })
+                else {
+                    logger.error("Could not find term group for key: \(termKey)")
+                    await setAnkiButtonState(termKey: termKey, state: "error")
+                    return
+                }
+
+                // Create the template resolver
+                let resolver = TextLookupResponseTemplateResolver(
+                    response: response,
+                    selectedGroup: termGroup
+                )
+
+                // Add the note via AnkiConnectionManager
+                let result = try await ankiConnectionManager.addNote(resolver: resolver)
+
+                // Record the note locally
+                try await ankiNoteService.recordNote(
+                    expression: expression,
+                    reading: reading,
+                    profileName: result.profileName,
+                    deckName: result.deckName,
+                    modelName: result.modelName,
+                    fields: [:],
+                    ankiID: result.ankiNoteID
+                )
+
+                logger.info("Successfully added Anki note for '\(expression)'")
+                await setAnkiButtonState(termKey: termKey, state: "success")
+
+            } catch {
+                logger.error("Failed to add Anki note: \(error.localizedDescription)")
+
+                // Check if it's a duplicate error - if so, mark as exists
+                let errorDescription = error.localizedDescription.lowercased()
+                if errorDescription.contains("duplicate") || errorDescription.contains("exists") {
+                    await setAnkiButtonState(termKey: termKey, state: "exists")
+                } else {
+                    await setAnkiButtonState(termKey: termKey, state: "error")
+                }
+            }
+        }
+    }
+
+    /// Set the Anki button state via JavaScript
+    private func setAnkiButtonState(termKey: String, state: String) async {
+        let escapedTermKey = termKey.replacingOccurrences(of: "'", with: "\\'")
+        let js = "window.MaruReader?.ankiDisplay?.setButtonState('\(escapedTermKey)', '\(state)');"
+
+        do {
+            _ = try await popupPage.callJavaScript(js)
+        } catch {
+            logger.error("Failed to set button state: \(error.localizedDescription)")
         }
     }
 }

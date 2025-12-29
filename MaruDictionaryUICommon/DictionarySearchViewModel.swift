@@ -95,14 +95,15 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     public init(response: TextLookupResponse) {
         self.resultState = .ready
 
-        // Reconstruct the request from the response data
+        // Reconstruct the request from the response data, preserving contextValues
         // Use the start of the match as the offset
         let reconstructedRequest = TextLookupRequest(
             context: response.context,
             offset: response.matchStartInContext,
             contextStartOffset: response.contextStartOffset,
             rubyContext: nil,
-            cssSelector: nil
+            cssSelector: nil,
+            contextValues: response.request.contextValues
         )
 
         self.currentRequest = reconstructedRequest
@@ -172,7 +173,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             offset: offset,
             contextStartOffset: currentRequest.contextStartOffset,
             rubyContext: currentRequest.rubyContext,
-            cssSelector: currentRequest.cssSelector
+            cssSelector: currentRequest.cssSelector,
+            contextValues: currentRequest.contextValues
         )
         performSearchWithRequest(newRequest)
     }
@@ -379,13 +381,14 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 logger.debug("Received navigateToTerm message for term: \(term)")
                 // If we have a popup response with context, use it to preserve context
                 if let popupResponse = currentPopupResponse {
-                    // Reconstruct request from the popup response to preserve context
+                    // Reconstruct request from the popup response to preserve context (including contextValues)
                     let request = TextLookupRequest(
                         context: popupResponse.context,
                         offset: popupResponse.matchStartInContext,
                         contextStartOffset: popupResponse.contextStartOffset,
                         rubyContext: nil,
-                        cssSelector: nil
+                        cssSelector: nil,
+                        contextValues: popupResponse.request.contextValues
                     )
                     performSearchWithRequest(request)
                 } else {

@@ -352,7 +352,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
     }
 
     private func send<T: Decodable>(_ request: AnkiConnectRequest) async throws -> AnkiConnectResponse<T> {
-        let url = URL(string: "http://\(host):\(port)")!
+        let url = URL(string: "https://\(host):\(port)")!
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
