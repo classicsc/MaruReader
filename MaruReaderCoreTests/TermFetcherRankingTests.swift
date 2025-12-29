@@ -5,6 +5,7 @@
 //  Created by Claude on 9/23/25.
 //
 
+import Foundation
 @testable import MaruReaderCore
 import Testing
 
@@ -370,12 +371,14 @@ extension TermFetcherRankingTests {
 
     @Test func frequencyInfoPrioritySorting() {
         let highPriorityInfo = FrequencyInfo(
+            dictionaryID: UUID(),
             dictionaryTitle: "HighPriorityDict",
             value: 1000.0,
             mode: "occurrence-based",
             priority: 1
         )
         let lowPriorityInfo = FrequencyInfo(
+            dictionaryID: UUID(),
             dictionaryTitle: "LowPriorityDict",
             value: 100.0,
             mode: "occurrence-based",

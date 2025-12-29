@@ -258,6 +258,7 @@ enum TermFetcher {
                 }
                 let value = entry.value
                 let info = FrequencyInfo(
+                    dictionaryID: dictionaryID,
                     dictionaryTitle: dictMetadata.title,
                     value: value,
                     mode: dictMetadata.frequencyMode,

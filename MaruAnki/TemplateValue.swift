@@ -39,7 +39,8 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case frequencyList
     case singleFrequency
     case singleFrequencyDictionary(dictionaryID: UUID)
-    case frequencySortField(dictionaryID: UUID)
+    case frequencyRankSortField(dictionaryID: UUID)
+    case frequencyOccurrenceSortField(dictionaryID: UUID)
     case strokeCount
     case partOfSpeech
     case sentenceFurigana

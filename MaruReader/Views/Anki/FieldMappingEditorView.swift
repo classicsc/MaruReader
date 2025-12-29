@@ -32,9 +32,22 @@ struct FieldMappingEditorView: View {
     @State private var showCustomHTMLInput = false
     @State private var customHTMLText = ""
     @State private var customHTMLTargetIndex: Int?
-    @State private var showDictionaryPicker = false
-    @State private var dictionaryPickerTargetIndex: Int?
-    @State private var availableDictionaries: [DictionaryPickerInfo] = []
+    @State private var dictionaryPickerContext: DictionaryPickerContext?
+    @State private var availableTermDictionaries: [DictionaryPickerInfo] = []
+    @State private var availableFrequencyDictionaries: [DictionaryPickerInfo] = []
+
+    private struct DictionaryPickerContext: Identifiable {
+        let id = UUID()
+        let targetIndex: Int
+        let purpose: DictionaryPickerPurpose
+    }
+
+    private enum DictionaryPickerPurpose {
+        case glossary
+        case frequency
+        case frequencyRankSort
+        case frequencyOccurrenceSort
+    }
 
     private var isEditing: Bool { editingProfile != nil }
 
@@ -114,17 +127,25 @@ struct FieldMappingEditorView: View {
         } message: {
             Text("Enter the HTML content to insert into this field.")
         }
-        .sheet(isPresented: $showDictionaryPicker) {
+        .sheet(item: $dictionaryPickerContext) { context in
             DictionaryPickerSheet(
-                dictionaries: availableDictionaries,
+                dictionaries: context.purpose == .glossary ? availableTermDictionaries : availableFrequencyDictionaries,
                 onSelect: { dictionary in
-                    if let index = dictionaryPickerTargetIndex {
-                        fieldMappings[index].values.append(.singleDictionaryGlossary(dictionaryID: dictionary.id))
+                    let templateValue: TemplateValue = switch context.purpose {
+                    case .glossary:
+                        .singleDictionaryGlossary(dictionaryID: dictionary.id)
+                    case .frequency:
+                        .singleFrequencyDictionary(dictionaryID: dictionary.id)
+                    case .frequencyRankSort:
+                        .frequencyRankSortField(dictionaryID: dictionary.id)
+                    case .frequencyOccurrenceSort:
+                        .frequencyOccurrenceSortField(dictionaryID: dictionary.id)
                     }
-                    dictionaryPickerTargetIndex = nil
+                    fieldMappings[context.targetIndex].values.append(templateValue)
+                    dictionaryPickerContext = nil
                 },
                 onCancel: {
-                    dictionaryPickerTargetIndex = nil
+                    dictionaryPickerContext = nil
                 }
             )
         }
@@ -140,28 +161,47 @@ struct FieldMappingEditorView: View {
 
     private func loadAvailableDictionaries() async {
         let context = DictionaryPersistenceController.shared.newBackgroundContext()
-        let dictionaries = await context.perform {
+        let (termDicts, freqDicts) = await context.perform {
             let request = NSFetchRequest<Dictionary>(entityName: "Dictionary")
-            request.predicate = NSPredicate(format: "isComplete == YES AND termCount > 0")
+            request.predicate = NSPredicate(format: "isComplete == YES")
             request.sortDescriptors = [
                 NSSortDescriptor(key: "termDisplayPriority", ascending: true),
                 NSSortDescriptor(key: "title", ascending: true),
             ]
 
-            guard let results = try? context.fetch(request) else { return [DictionaryPickerInfo]() }
-
-            return results.compactMap { dict -> DictionaryPickerInfo? in
-                guard let id = dict.id, let title = dict.title else { return nil }
-                return DictionaryPickerInfo(
-                    id: id,
-                    title: title,
-                    priority: Int(dict.termDisplayPriority)
-                )
+            guard let results = try? context.fetch(request) else {
+                return ([DictionaryPickerInfo](), [DictionaryPickerInfo]())
             }
+
+            var termDictionaries = [DictionaryPickerInfo]()
+            var frequencyDictionaries = [DictionaryPickerInfo]()
+
+            for dict in results {
+                guard let id = dict.id, let title = dict.title else { continue }
+
+                if dict.termCount > 0 {
+                    termDictionaries.append(DictionaryPickerInfo(
+                        id: id,
+                        title: title,
+                        priority: Int(dict.termDisplayPriority)
+                    ))
+                }
+
+                if dict.termFrequencyCount > 0 {
+                    frequencyDictionaries.append(DictionaryPickerInfo(
+                        id: id,
+                        title: title,
+                        priority: Int(dict.termFrequencyDisplayPriority)
+                    ))
+                }
+            }
+
+            return (termDictionaries, frequencyDictionaries)
         }
 
         await MainActor.run {
-            availableDictionaries = dictionaries
+            availableTermDictionaries = termDicts
+            availableFrequencyDictionaries = freqDicts
         }
     }
 
@@ -217,10 +257,25 @@ struct FieldMappingEditorView: View {
     }
 
     private func displayNameForValue(_ value: TemplateValue) -> String {
-        if case let .singleDictionaryGlossary(dictionaryID) = value,
-           let dictionary = availableDictionaries.first(where: { $0.id == dictionaryID })
-        {
-            return "Glossary: \(dictionary.title)"
+        switch value {
+        case let .singleDictionaryGlossary(dictionaryID):
+            if let dictionary = availableTermDictionaries.first(where: { $0.id == dictionaryID }) {
+                return "Glossary: \(dictionary.title)"
+            }
+        case let .singleFrequencyDictionary(dictionaryID):
+            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
+                return "Frequency: \(dictionary.title)"
+            }
+        case let .frequencyRankSortField(dictionaryID):
+            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
+                return "Freq Sort (Rank): \(dictionary.title)"
+            }
+        case let .frequencyOccurrenceSortField(dictionaryID):
+            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
+                return "Freq Sort (Occ): \(dictionary.title)"
+            }
+        default:
+            break
         }
         return value.displayName
     }
@@ -238,10 +293,25 @@ struct FieldMappingEditorView: View {
                 if category == .glossary {
                     Divider()
                     Button("Single Dictionary Glossary...") {
-                        dictionaryPickerTargetIndex = index
-                        showDictionaryPicker = true
+                        dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary)
                     }
-                    .disabled(availableDictionaries.isEmpty)
+                    .disabled(availableTermDictionaries.isEmpty)
+                }
+
+                if category == .frequency {
+                    Divider()
+                    Button("Frequency (Dictionary)...") {
+                        dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .frequency)
+                    }
+                    .disabled(availableFrequencyDictionaries.isEmpty)
+                    Button("Frequency Sort (Rank)...") {
+                        dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .frequencyRankSort)
+                    }
+                    .disabled(availableFrequencyDictionaries.isEmpty)
+                    Button("Frequency Sort (Occurrence)...") {
+                        dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .frequencyOccurrenceSort)
+                    }
+                    .disabled(availableFrequencyDictionaries.isEmpty)
                 }
             }
         }
@@ -365,7 +435,8 @@ extension TemplateValue {
         case .frequencyList: return "Frequency List"
         case .singleFrequency: return "Single Frequency"
         case .singleFrequencyDictionary: return "Frequency (Dictionary)"
-        case .frequencySortField: return "Frequency Sort Field"
+        case .frequencyRankSortField: return "Frequency Sort (Rank)"
+        case .frequencyOccurrenceSortField: return "Frequency Sort (Occurrence)"
         case .strokeCount: return "Stroke Count"
         case .partOfSpeech: return "Part of Speech"
         case .sentenceFurigana: return "Sentence (Furigana)"

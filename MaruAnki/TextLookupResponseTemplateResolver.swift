@@ -152,8 +152,11 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case let .singleFrequencyDictionary(dictionaryID):
             return resolveFrequency(forDictionary: dictionaryID)
 
-        case let .frequencySortField(dictionaryID):
-            return resolveFrequencySortField(forDictionary: dictionaryID)
+        case let .frequencyRankSortField(dictionaryID):
+            return resolveFrequencyRankSortField(forDictionary: dictionaryID)
+
+        case let .frequencyOccurrenceSortField(dictionaryID):
+            return resolveFrequencyOccurrenceSortField(forDictionary: dictionaryID)
 
         // MARK: - Kanji-specific (not implemented for term lookups)
 
@@ -381,26 +384,51 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         return .text(String(Int(frequency)))
     }
 
-    private func resolveFrequency(forDictionary _: UUID) -> TemplateResolvedValue {
-        // Note: FrequencyInfo doesn't currently have dictionary ID, so we use the first frequency
+    private func resolveFrequency(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
         guard let firstDict = selectedGroup.dictionariesResults.first,
-              let firstResult = firstDict.results.first,
-              let freq = firstResult.frequencies.first
+              let firstResult = firstDict.results.first
         else {
+            return .empty
+        }
+        // Try to find the specified dictionary, fallback to first frequency if not found
+        let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
+            ?? firstResult.frequencies.first
+        guard let freq else {
             return .empty
         }
         return .text(String(Int(freq.value)))
     }
 
-    private func resolveFrequencySortField(forDictionary _: UUID) -> TemplateResolvedValue {
-        // Return raw numeric value for sorting
+    private func resolveFrequencyRankSortField(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
         guard let firstDict = selectedGroup.dictionariesResults.first,
-              let firstResult = firstDict.results.first,
-              let frequency = firstResult.frequency
+              let firstResult = firstDict.results.first
         else {
+            // No frequency data: use high default for rank (rare word)
+            return .text("9999999")
+        }
+        // Try to find the specified dictionary, fallback to first frequency if not found
+        let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
+            ?? firstResult.frequencies.first
+        guard let freq else {
+            return .text("9999999")
+        }
+        return .text(String(Int(freq.value)))
+    }
+
+    private func resolveFrequencyOccurrenceSortField(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
+        guard let firstDict = selectedGroup.dictionariesResults.first,
+              let firstResult = firstDict.results.first
+        else {
+            // No frequency data: use 0 for occurrence (no occurrences)
             return .text("0")
         }
-        return .text(String(Int(frequency)))
+        // Try to find the specified dictionary, fallback to first frequency if not found
+        let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
+            ?? firstResult.frequencies.first
+        guard let freq else {
+            return .text("0")
+        }
+        return .text(String(Int(freq.value)))
     }
 }
 
