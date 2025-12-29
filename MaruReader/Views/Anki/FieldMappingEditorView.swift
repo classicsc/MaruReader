@@ -15,6 +15,7 @@ struct DictionaryPickerInfo: Identifiable, Hashable {
     let id: UUID
     let title: String
     let priority: Int
+    let frequencyMode: String?
 }
 
 struct FieldMappingEditorView: View {
@@ -129,7 +130,7 @@ struct FieldMappingEditorView: View {
         }
         .sheet(item: $dictionaryPickerContext) { context in
             DictionaryPickerSheet(
-                dictionaries: context.purpose == .glossary ? availableTermDictionaries : availableFrequencyDictionaries,
+                dictionaries: dictionariesForPurpose(context.purpose),
                 onSelect: { dictionary in
                     let templateValue: TemplateValue = switch context.purpose {
                     case .glossary:
@@ -183,7 +184,8 @@ struct FieldMappingEditorView: View {
                     termDictionaries.append(DictionaryPickerInfo(
                         id: id,
                         title: title,
-                        priority: Int(dict.termDisplayPriority)
+                        priority: Int(dict.termDisplayPriority),
+                        frequencyMode: nil
                     ))
                 }
 
@@ -191,7 +193,8 @@ struct FieldMappingEditorView: View {
                     frequencyDictionaries.append(DictionaryPickerInfo(
                         id: id,
                         title: title,
-                        priority: Int(dict.termFrequencyDisplayPriority)
+                        priority: Int(dict.termFrequencyDisplayPriority),
+                        frequencyMode: dict.frequencyMode
                     ))
                 }
             }
@@ -202,6 +205,19 @@ struct FieldMappingEditorView: View {
         await MainActor.run {
             availableTermDictionaries = termDicts
             availableFrequencyDictionaries = freqDicts
+        }
+    }
+
+    private func dictionariesForPurpose(_ purpose: DictionaryPickerPurpose) -> [DictionaryPickerInfo] {
+        switch purpose {
+        case .glossary:
+            availableTermDictionaries
+        case .frequency:
+            availableFrequencyDictionaries
+        case .frequencyRankSort:
+            availableFrequencyDictionaries.filter { $0.frequencyMode == "rank-based" }
+        case .frequencyOccurrenceSort:
+            availableFrequencyDictionaries.filter { $0.frequencyMode == nil || $0.frequencyMode == "occurrence-based" }
         }
     }
 
@@ -307,11 +323,11 @@ struct FieldMappingEditorView: View {
                     Button("Frequency Sort (Rank)...") {
                         dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .frequencyRankSort)
                     }
-                    .disabled(availableFrequencyDictionaries.isEmpty)
+                    .disabled(dictionariesForPurpose(.frequencyRankSort).isEmpty)
                     Button("Frequency Sort (Occurrence)...") {
                         dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .frequencyOccurrenceSort)
                     }
-                    .disabled(availableFrequencyDictionaries.isEmpty)
+                    .disabled(dictionariesForPurpose(.frequencyOccurrenceSort).isEmpty)
                 }
             }
         }

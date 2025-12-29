@@ -406,9 +406,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             // No frequency data: use high default for rank (rare word)
             return .text("9999999")
         }
-        // Try to find the specified dictionary, fallback to first frequency if not found
+        // Try to find the specified dictionary, fallback to first rank-based frequency if not found
         let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
-            ?? firstResult.frequencies.first
+            ?? firstResult.frequencies.first(where: { $0.mode == "rank-based" })
         guard let freq else {
             return .text("9999999")
         }
@@ -422,9 +422,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             // No frequency data: use 0 for occurrence (no occurrences)
             return .text("0")
         }
-        // Try to find the specified dictionary, fallback to first frequency if not found
+        // Try to find the specified dictionary, fallback to first occurrence-based frequency if not found
         let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
-            ?? firstResult.frequencies.first
+            ?? firstResult.frequencies.first(where: { $0.mode == nil || $0.mode == "occurrence-based" })
         guard let freq else {
             return .text("0")
         }
