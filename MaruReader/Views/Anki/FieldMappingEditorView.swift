@@ -5,8 +5,17 @@
 //  Editor for creating and editing field mapping profiles.
 //
 
+import CoreData
 import MaruAnki
+import MaruReaderCore
 import SwiftUI
+
+/// Lightweight dictionary info for picker selection
+struct DictionaryPickerInfo: Identifiable, Hashable {
+    let id: UUID
+    let title: String
+    let priority: Int
+}
 
 struct FieldMappingEditorView: View {
     @Environment(\.dismiss) private var dismiss
@@ -23,6 +32,9 @@ struct FieldMappingEditorView: View {
     @State private var showCustomHTMLInput = false
     @State private var customHTMLText = ""
     @State private var customHTMLTargetIndex: Int?
+    @State private var showDictionaryPicker = false
+    @State private var dictionaryPickerTargetIndex: Int?
+    @State private var availableDictionaries: [DictionaryPickerInfo] = []
 
     private var isEditing: Bool { editingProfile != nil }
 
@@ -102,10 +114,54 @@ struct FieldMappingEditorView: View {
         } message: {
             Text("Enter the HTML content to insert into this field.")
         }
+        .sheet(isPresented: $showDictionaryPicker) {
+            DictionaryPickerSheet(
+                dictionaries: availableDictionaries,
+                onSelect: { dictionary in
+                    if let index = dictionaryPickerTargetIndex {
+                        fieldMappings[index].values.append(.singleDictionaryGlossary(dictionaryID: dictionary.id))
+                    }
+                    dictionaryPickerTargetIndex = nil
+                },
+                onCancel: {
+                    dictionaryPickerTargetIndex = nil
+                }
+            )
+        }
+        .task {
+            await loadAvailableDictionaries()
+        }
         .overlay {
             if isSaving {
                 LoadingOverlay(message: "Saving...")
             }
+        }
+    }
+
+    private func loadAvailableDictionaries() async {
+        let context = DictionaryPersistenceController.shared.newBackgroundContext()
+        let dictionaries = await context.perform {
+            let request = NSFetchRequest<Dictionary>(entityName: "Dictionary")
+            request.predicate = NSPredicate(format: "isComplete == YES AND termCount > 0")
+            request.sortDescriptors = [
+                NSSortDescriptor(key: "termDisplayPriority", ascending: true),
+                NSSortDescriptor(key: "title", ascending: true),
+            ]
+
+            guard let results = try? context.fetch(request) else { return [DictionaryPickerInfo]() }
+
+            return results.compactMap { dict -> DictionaryPickerInfo? in
+                guard let id = dict.id, let title = dict.title else { return nil }
+                return DictionaryPickerInfo(
+                    id: id,
+                    title: title,
+                    priority: Int(dict.termDisplayPriority)
+                )
+            }
+        }
+
+        await MainActor.run {
+            availableDictionaries = dictionaries
         }
     }
 
@@ -145,7 +201,7 @@ struct FieldMappingEditorView: View {
     @ViewBuilder
     private func templateValueTag(_ value: TemplateValue, at index: Int) -> some View {
         HStack(spacing: 4) {
-            Text(value.displayName)
+            Text(displayNameForValue(value))
                 .font(.caption)
             Button {
                 fieldMappings[index].values.removeAll { $0 == value }
@@ -160,6 +216,15 @@ struct FieldMappingEditorView: View {
         .cornerRadius(12)
     }
 
+    private func displayNameForValue(_ value: TemplateValue) -> String {
+        if case let .singleDictionaryGlossary(dictionaryID) = value,
+           let dictionary = availableDictionaries.first(where: { $0.id == dictionaryID })
+        {
+            return "Glossary: \(dictionary.title)"
+        }
+        return value.displayName
+    }
+
     @ViewBuilder
     private func templateValueMenu(at index: Int) -> some View {
         ForEach(TemplateValueCategory.allCases, id: \.self) { category in
@@ -168,6 +233,15 @@ struct FieldMappingEditorView: View {
                     Button(value.displayName) {
                         fieldMappings[index].values.append(value)
                     }
+                }
+
+                if category == .glossary {
+                    Divider()
+                    Button("Single Dictionary Glossary...") {
+                        dictionaryPickerTargetIndex = index
+                        showDictionaryPicker = true
+                    }
+                    .disabled(availableDictionaries.isEmpty)
                 }
             }
         }
@@ -256,7 +330,10 @@ private enum TemplateValueCategory: CaseIterable {
 extension TemplateValue {
     var displayName: String {
         switch self {
-        case .singleDictionaryGlossary: return "Single Dictionary Glossary"
+        case let .singleDictionaryGlossary(dictionaryID):
+            // Show shortened UUID for identification
+            let shortID = String(dictionaryID.uuidString.prefix(8))
+            return "Glossary (\(shortID)…)"
         case .multiDictionaryGlossary: return "Multi-Dictionary Glossary"
         case .pronunciationAudio: return "Pronunciation Audio"
         case .character: return "Character"
@@ -293,6 +370,62 @@ extension TemplateValue {
         case .partOfSpeech: return "Part of Speech"
         case .sentenceFurigana: return "Sentence (Furigana)"
         @unknown default: return "Unknown"
+        }
+    }
+}
+
+// MARK: - Dictionary Picker Sheet
+
+private struct DictionaryPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    let dictionaries: [DictionaryPickerInfo]
+    let onSelect: (DictionaryPickerInfo) -> Void
+    let onCancel: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                if dictionaries.isEmpty {
+                    ContentUnavailableView(
+                        "No Dictionaries",
+                        systemImage: "book.closed",
+                        description: Text("Import term dictionaries to use single dictionary glossary")
+                    )
+                } else {
+                    Section {
+                        ForEach(dictionaries) { dictionary in
+                            Button {
+                                onSelect(dictionary)
+                                dismiss()
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading) {
+                                        Text(dictionary.title)
+                                            .foregroundStyle(.primary)
+                                        Text("Priority: \(dictionary.priority)")
+                                            .font(.caption)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Spacer()
+                                }
+                            }
+                        }
+                    } footer: {
+                        Text("Select a dictionary for the glossary. If this dictionary has no result for a term, the highest priority dictionary will be used as a fallback.")
+                    }
+                }
+            }
+            .navigationTitle("Select Dictionary")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        onCancel()
+                        dismiss()
+                    }
+                }
+            }
         }
     }
 }

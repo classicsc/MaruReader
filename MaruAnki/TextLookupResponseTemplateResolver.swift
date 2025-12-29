@@ -213,9 +213,14 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     }
 
     private func resolveGlossary(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
-        guard let dictResult = selectedGroup.dictionariesResults.first(where: { $0.dictionaryUUID == dictionaryID }) else {
+        // Try to find the specified dictionary, fallback to highest priority (first) if not found
+        let dictResult = selectedGroup.dictionariesResults.first(where: { $0.dictionaryUUID == dictionaryID })
+            ?? selectedGroup.dictionariesResults.first
+
+        guard let dictResult else {
             return .empty
         }
+
         // Use Anki-compatible HTML with inline styles
         let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
 
