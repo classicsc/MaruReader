@@ -374,6 +374,7 @@ extension TermFetcherRankingTests {
             dictionaryID: UUID(),
             dictionaryTitle: "HighPriorityDict",
             value: 1000.0,
+            displayValue: nil,
             mode: "occurrence-based",
             priority: 1
         )
@@ -381,6 +382,7 @@ extension TermFetcherRankingTests {
             dictionaryID: UUID(),
             dictionaryTitle: "LowPriorityDict",
             value: 100.0,
+            displayValue: nil,
             mode: "occurrence-based",
             priority: 10
         )

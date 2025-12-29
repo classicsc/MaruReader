@@ -257,10 +257,12 @@ enum TermFetcher {
                     continue
                 }
                 let value = entry.value
+                let displayValue = entry.displayValue?.isEmpty == false ? entry.displayValue : nil
                 let info = FrequencyInfo(
                     dictionaryID: dictionaryID,
                     dictionaryTitle: dictMetadata.title,
                     value: value,
+                    displayValue: displayValue,
                     mode: dictMetadata.frequencyMode,
                     priority: dictMetadata.termFrequencyDisplayPriority
                 )

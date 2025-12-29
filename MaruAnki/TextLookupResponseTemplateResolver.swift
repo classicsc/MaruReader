@@ -375,7 +375,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return .empty
         }
         let freqStrings = firstResult.frequencies.map { freq in
-            "\(freq.dictionaryTitle): \(Int(freq.value))"
+            "\(freq.dictionaryTitle): \(freq.displayString)"
         }
         return .text(freqStrings.isEmpty ? nil : freqStrings.joined(separator: ", "))
     }
@@ -383,11 +383,11 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private func resolveSingleFrequency() -> TemplateResolvedValue {
         guard let firstDict = selectedGroup.dictionariesResults.first,
               let firstResult = firstDict.results.first,
-              let frequency = firstResult.frequency
+              let firstFreq = firstResult.frequencies.first
         else {
             return .empty
         }
-        return .text(String(Int(frequency)))
+        return .text(firstFreq.displayString)
     }
 
     private func resolveFrequency(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
@@ -402,7 +402,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         guard let freq else {
             return .empty
         }
-        return .text(String(Int(freq.value)))
+        return .text(freq.displayString)
     }
 
     private func resolveFrequencyRankSortField(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {

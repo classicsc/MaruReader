@@ -123,14 +123,12 @@ public struct TextLookupResponse: Sendable {
     private func termFrequencyHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
         guard let firstDict = termGroup.dictionariesResults.first,
               let firstResult = firstDict.results.first,
-              let frequency = firstResult.frequency,
               !firstResult.frequencies.isEmpty
         else {
             return ""
         }
 
         let sortedFrequencies = firstResult.frequencies.sorted { $0.priority < $1.priority }
-        let formattedFreq = String(Int(round(frequency)))
 
         guard let firstFreq = sortedFrequencies.first else { return "" }
 
@@ -138,7 +136,7 @@ public struct TextLookupResponse: Sendable {
         if let mode = firstFreq.mode {
             compactTitle += ": \(mode.escapeHTML())"
         }
-        let compactHTML = "<span class=\"freq-compact\" title=\"\(compactTitle)\">\(formattedFreq)</span>"
+        let compactHTML = "<span class=\"freq-compact\" title=\"\(compactTitle)\">\(firstFreq.displayString.escapeHTML())</span>"
 
         if compactOnly {
             return """
@@ -150,11 +148,10 @@ public struct TextLookupResponse: Sendable {
 
         // Expanded
         let freqItemsHTML = sortedFrequencies.map { freq in
-            let itemFormatted = String(Int(round(freq.value)))
             let itemTitle = freq.dictionaryTitle.escapeHTML()
             let itemMode = freq.mode ?? "N/A"
             let itemTitleWithMode = itemTitle + ": \(itemMode.escapeHTML())"
-            return "<span class=\"freq-item\" title=\"\(itemTitleWithMode)\">\(itemTitle): \(itemFormatted)</span>"
+            return "<span class=\"freq-item\" title=\"\(itemTitleWithMode)\">\(itemTitle): \(freq.displayString.escapeHTML())</span>"
         }.joined(separator: "<span class=\"freq-separator\">·</span>")
 
         return """
