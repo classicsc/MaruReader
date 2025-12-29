@@ -80,12 +80,13 @@ public actor AudioLookupService {
                 let baseRemoteURL = source.value(forKey: "baseRemoteURL") as? String
                 let indexedByHeadword = source.value(forKey: "indexedByHeadword") as? Bool ?? false
                 let urlPattern = source.value(forKey: "urlPattern") as? String
+                let urlPatternReturnsJSON = source.value(forKey: "urlPatternReturnsJSON") as? Bool ?? false
 
                 let type: AudioSourceType
                 if indexedByHeadword {
                     type = .indexed(id)
                 } else if let pattern = urlPattern {
-                    type = .urlPattern(pattern)
+                    type = urlPatternReturnsJSON ? .jsonListPattern(pattern) : .urlPattern(pattern)
                 } else {
                     return nil // Invalid source configuration
                 }
@@ -214,6 +215,9 @@ public actor AudioLookupService {
         case let .urlPattern(pattern):
             getURLPatternResults(for: request, from: provider, pattern: pattern)
 
+        case let .jsonListPattern(pattern):
+            try await getJSONListPatternResults(for: request, from: provider, pattern: pattern)
+
         case let .indexed(sourceID):
             try await getIndexedResults(for: request, from: provider, sourceID: sourceID)
         }
@@ -236,6 +240,51 @@ public actor AudioLookupService {
             sourceType: provider.type,
             isLocal: provider.isLocal,
             pitchNumber: nil // URL pattern sources don't have pitch info
+        )]
+    }
+
+    /// Get results from a URL pattern source that returns a JSON audio source list
+    private func getJSONListPatternResults(for request: AudioLookupRequest, from provider: AudioProvider, pattern: String) async throws -> [AudioSourceResult] {
+        var urlString = pattern
+        urlString = urlString.replacingOccurrences(of: "{term}", with: request.term.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? request.term)
+        urlString = urlString.replacingOccurrences(of: "{reading}", with: (request.reading ?? "").addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")
+        urlString = urlString.replacingOccurrences(of: "{language}", with: request.language)
+
+        guard let url = URL(string: urlString) else {
+            return []
+        }
+
+        let (data, response) = try await URLSession.shared.data(from: url)
+
+        // Check for HTTP success status
+        if let httpResponse = response as? HTTPURLResponse {
+            guard (200 ... 299).contains(httpResponse.statusCode) else {
+                logger.warning("JSON list source returned HTTP \(httpResponse.statusCode) for \(urlString)")
+                return []
+            }
+        }
+
+        let listResponse = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
+
+        // Validate the type field
+        guard listResponse.type == "audioSourceList" else {
+            logger.warning("JSON list source returned unexpected type '\(listResponse.type)' for \(urlString)")
+            return []
+        }
+
+        // Convert audio sources to results, using only the first item for now
+        guard let firstSource = listResponse.audioSources.first,
+              let audioURL = URL(string: firstSource.url)
+        else {
+            return []
+        }
+
+        return [AudioSourceResult(
+            url: audioURL,
+            sourceName: firstSource.name ?? provider.name,
+            sourceType: provider.type,
+            isLocal: false,
+            pitchNumber: nil
         )]
     }
 

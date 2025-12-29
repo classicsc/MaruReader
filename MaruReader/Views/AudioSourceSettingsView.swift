@@ -244,6 +244,9 @@ private struct AudioSourceRow: View {
             }
             return "Indexed (Online)"
         }
+        if source.urlPatternReturnsJSON {
+            return "URL Pattern (JSON)"
+        }
         return "URL Pattern"
     }
 
@@ -354,6 +357,7 @@ private struct AddURLPatternAudioSourceView: View {
 
     @State private var name: String = ""
     @State private var urlPattern: String = ""
+    @State private var returnsJSONList: Bool = false
 
     @State private var errorMessage: String?
     @State private var showingError = false
@@ -370,6 +374,13 @@ private struct AddURLPatternAudioSourceView: View {
                     .autocorrectionDisabled()
 
                 Text("Use {term}, {reading}, {language} as placeholders")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Section("Source Type") {
+                Toggle("JSON", isOn: $returnsJSONList)
+                Text("Enable if the URL returns a JSON object, disable if it returns audio data directly.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -418,6 +429,7 @@ private struct AddURLPatternAudioSourceView: View {
         source.enabled = true
         source.indexedByHeadword = false
         source.urlPattern = trimmedPattern
+        source.urlPatternReturnsJSON = returnsJSONList
         source.isLocal = false
         source.baseRemoteURL = nil
         source.audioFileExtensions = ""

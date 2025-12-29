@@ -26,6 +26,7 @@
         <attribute name="name" attributeType="String"/>
         <attribute name="priority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="urlPattern" optional="YES" attributeType="String"/>
+        <attribute name="urlPatternReturnsJSON" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="version" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="year" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <relationship name="importJob" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="AudioSourceImport" inverseName="audioSource" inverseEntity="AudioSourceImport"/>
