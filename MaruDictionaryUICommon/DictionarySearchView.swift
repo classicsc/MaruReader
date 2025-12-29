@@ -41,7 +41,7 @@ public struct DictionarySearchView: View {
                                 attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                             ) {
                                 WebView(viewModel.popupPage)
-                                    .frame(width: 300, height: 200)
+                                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                                     .presentationCompactAdaptation(.popover)
                             }
                     case let .noResults(query):
