@@ -16,4 +16,20 @@ public struct DictionaryResults: Identifiable, Sendable {
     public let combinedHTML: String
 
     public var id: String { "\(dictionaryUUID)|\(sequence)" }
+
+    public init(
+        dictionaryTitle: String,
+        dictionaryUUID: UUID,
+        sequence: Int64,
+        score: Double,
+        results: [SearchResult],
+        combinedHTML: String
+    ) {
+        self.dictionaryTitle = dictionaryTitle
+        self.dictionaryUUID = dictionaryUUID
+        self.sequence = sequence
+        self.score = score
+        self.results = results
+        self.combinedHTML = combinedHTML
+    }
 }

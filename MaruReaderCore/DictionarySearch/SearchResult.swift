@@ -25,6 +25,42 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
     public let sequence: Int64
     public let score: Double
 
+    public init(
+        candidate: LookupCandidate,
+        term: String,
+        reading: String?,
+        definitions: [Definition],
+        frequency: Double?,
+        frequencies: [FrequencyInfo],
+        pitchAccents: [PitchAccentResults],
+        dictionaryTitle: String,
+        dictionaryUUID: UUID,
+        displayPriority: Int,
+        rankingCriteria: RankingCriteria,
+        termTags: [Tag],
+        definitionTags: [Tag],
+        deinflectionRules: [[String]],
+        sequence: Int64,
+        score: Double
+    ) {
+        self.candidate = candidate
+        self.term = term
+        self.reading = reading
+        self.definitions = definitions
+        self.frequency = frequency
+        self.frequencies = frequencies
+        self.pitchAccents = pitchAccents
+        self.dictionaryTitle = dictionaryTitle
+        self.dictionaryUUID = dictionaryUUID
+        self.displayPriority = displayPriority
+        self.rankingCriteria = rankingCriteria
+        self.termTags = termTags
+        self.definitionTags = definitionTags
+        self.deinflectionRules = deinflectionRules
+        self.sequence = sequence
+        self.score = score
+    }
+
     public var html: String {
         definitions.toHTML()
     }

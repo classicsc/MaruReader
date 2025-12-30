@@ -24,7 +24,7 @@ public struct GroupedSearchResults: Identifiable, Sendable {
         return expression
     }
 
-    init(
+    public init(
         termKey: String,
         expression: String,
         reading: String?,

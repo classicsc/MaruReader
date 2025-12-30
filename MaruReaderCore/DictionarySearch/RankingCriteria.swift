@@ -86,7 +86,7 @@ public struct RankingCriteria: Comparable, Sendable {
     }
 
     /// Direct initializer for testing purposes
-    init(
+    public init(
         sourceTermLength: Int,
         textProcessingChainLength: Int,
         inflectionChainLength: Int,

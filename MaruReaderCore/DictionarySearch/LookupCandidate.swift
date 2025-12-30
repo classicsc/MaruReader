@@ -18,7 +18,7 @@ public struct LookupCandidate: Sendable {
     /// The deinflection output rules for matching the `rules` attribute of dictionary entries.
     public let deinflectionOutputRules: [String]
 
-    init(from text: String) {
+    public init(from text: String) {
         self.text = text
         self.originalSubstring = text
         self.preprocessorRules = []
@@ -26,7 +26,7 @@ public struct LookupCandidate: Sendable {
         self.deinflectionOutputRules = []
     }
 
-    init(text: String, originalSubstring: String, preprocessorRules: [[String]], deinflectionInputRules: [[String]], deinflectionOutputRules: [String]) {
+    public init(text: String, originalSubstring: String, preprocessorRules: [[String]], deinflectionInputRules: [[String]], deinflectionOutputRules: [String]) {
         self.text = text
         self.originalSubstring = originalSubstring
         self.preprocessorRules = preprocessorRules
