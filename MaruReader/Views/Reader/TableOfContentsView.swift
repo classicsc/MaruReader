@@ -205,7 +205,7 @@ private struct TOCItemView: View {
                         Spacer()
 
                         if isCurrent {
-                            Image(systemName: "bookmark.fill")
+                            Image(systemName: "book.fill")
                                 .font(.caption)
                                 .foregroundStyle(Color.accentColor)
                         }
