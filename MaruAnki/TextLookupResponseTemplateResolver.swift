@@ -97,8 +97,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return resolveFurigana()
 
         case .sentenceFurigana:
-            // For now, return plain context - full furigana support requires sentence parsing
-            return .text(response.context)
+            return .text(generateSentenceFurigana(response.context))
 
         // MARK: - Tags and part of speech
 
@@ -470,6 +469,98 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         guard !positiveValues.isEmpty else { return 0 }
         let reciprocalSum = positiveValues.reduce(0.0) { $0 + 1.0 / $1 }
         return Double(positiveValues.count) / reciprocalSum
+    }
+
+    // MARK: - Sentence Furigana
+
+    private func generateSentenceFurigana(_ sentence: String?) -> String? {
+        guard let sentence, !sentence.isEmpty else { return nil }
+        return SentenceFuriganaGenerator.generate(from: sentence)
+    }
+}
+
+// MARK: - Sentence Furigana Generator
+
+enum SentenceFuriganaGenerator {
+    /// Generates Anki-style furigana for an entire sentence.
+    ///
+    /// Uses `CFStringTokenizer` to tokenize Japanese text, retrieve latin transcriptions,
+    /// and convert them to hiragana. Tokens containing kanji are formatted as `kanji[reading]`.
+    ///
+    /// - Parameter sentence: The Japanese sentence to annotate.
+    /// - Returns: The sentence with Anki-style furigana annotations.
+    static func generate(from sentence: String) -> String {
+        guard !sentence.isEmpty else { return "" }
+
+        let tokenizer = CFStringTokenizerCreate(
+            kCFAllocatorDefault,
+            sentence as CFString,
+            CFRangeMake(0, sentence.utf16.count),
+            kCFStringTokenizerUnitWordBoundary, // Changed from UnitWord for better segmentation
+            Locale(identifier: "ja_JP") as CFLocale
+        )
+
+        var result = ""
+        var lastIndex = sentence.startIndex
+
+        var tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
+        while tokenType != [] {
+            let cfRange = CFStringTokenizerGetCurrentTokenRange(tokenizer)
+            let utf16Start = sentence.utf16.index(sentence.utf16.startIndex, offsetBy: cfRange.location)
+            let utf16End = sentence.utf16.index(utf16Start, offsetBy: cfRange.length)
+
+            guard let tokenStart = utf16Start.samePosition(in: sentence),
+                  let tokenEnd = utf16End.samePosition(in: sentence)
+            else {
+                tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
+                continue
+            }
+
+            // Append any text between the last token and this one (punctuation, spaces, etc.)
+            if lastIndex < tokenStart {
+                result += String(sentence[lastIndex ..< tokenStart])
+            }
+
+            let token = String(sentence[tokenStart ..< tokenEnd])
+
+            if containsKanji(token) {
+                if let latin = CFStringTokenizerCopyCurrentTokenAttribute(tokenizer, kCFStringTokenizerAttributeLatinTranscription) as? String {
+                    let hiragana = latinToHiragana(latin)
+                    result += " \(token)[\(hiragana)]"
+                } else {
+                    result += token
+                }
+            } else {
+                result += token
+            }
+
+            lastIndex = tokenEnd
+            tokenType = CFStringTokenizerAdvanceToNextToken(tokenizer)
+        }
+
+        // Append any remaining text after the last token
+        if lastIndex < sentence.endIndex {
+            result += String(sentence[lastIndex...])
+        }
+
+        return result.trimmingCharacters(in: .whitespaces)
+    }
+
+    private static func containsKanji(_ string: String) -> Bool {
+        string.unicodeScalars.contains { scalar in
+            // CJK Unified Ideographs and extensions
+            (0x4E00 ... 0x9FFF).contains(scalar.value) ||
+                (0x3400 ... 0x4DBF).contains(scalar.value) ||
+                (0x20000 ... 0x2A6DF).contains(scalar.value) ||
+                (0xF900 ... 0xFAFF).contains(scalar.value) ||
+                (0x2F800 ... 0x2FA1F).contains(scalar.value)
+        }
+    }
+
+    private static func latinToHiragana(_ latin: String) -> String {
+        let mutableString = NSMutableString(string: latin)
+        CFStringTransform(mutableString, nil, kCFStringTransformLatinHiragana, false)
+        return mutableString as String
     }
 }
 
