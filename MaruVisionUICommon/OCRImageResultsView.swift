@@ -15,10 +15,13 @@ import Vision
 /// When a text region is tapped, presents a dictionary search sheet.
 public struct OCRImageResultsView: View {
     let image: UIImage
-    let observations: [TextObservationData]
+    let clusters: [TextCluster]
     let isProcessing: Bool
 
-    @State private var selectedObservation: TextObservationData?
+    /// Whether to show individual observation boxes (for debugging)
+    var showObservationBoxes: Bool = false
+
+    @State private var selectedCluster: TextCluster?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
 
     // Pan-zoom state
@@ -32,15 +35,37 @@ public struct OCRImageResultsView: View {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRImageResultsView")
 
-    /// Initialize the OCR results view
+    /// Initialize the OCR results view with clusters
     /// - Parameters:
     ///   - image: The image to display
-    ///   - observations: Array of text observations detected by OCR
+    ///   - clusters: Array of text clusters detected by OCR
     ///   - isProcessing: Whether OCR is currently processing
+    ///   - showObservationBoxes: Whether to show individual observation boxes (debug mode)
+    public init(
+        image: UIImage,
+        clusters: [TextCluster],
+        isProcessing: Bool = false,
+        showObservationBoxes: Bool = false
+    ) {
+        self.image = image
+        self.clusters = clusters
+        self.isProcessing = isProcessing
+        self.showObservationBoxes = showObservationBoxes
+    }
+
+    /// Legacy initializer for backward compatibility with TextObservationData
+    @available(*, deprecated, message: "Use init(image:clusters:isProcessing:) instead")
     public init(image: UIImage, observations: [TextObservationData], isProcessing: Bool = false) {
         self.image = image
-        self.observations = observations
+        // Convert legacy observations to clusters (one observation per cluster)
+        self.clusters = observations.map { data in
+            TextCluster(
+                observations: [data.observation],
+                direction: ObservationFeatures(observation: data.observation).direction
+            )
+        }
         self.isProcessing = isProcessing
+        self.showObservationBoxes = false
     }
 
     public var body: some View {
@@ -56,7 +81,7 @@ public struct OCRImageResultsView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height)
 
                     // Bounding box overlay
-                    if !isProcessing, !observations.isEmpty {
+                    if !isProcessing, !clusters.isEmpty {
                         boundingBoxOverlay(imageRect: imageRect)
                     }
                 }
@@ -72,7 +97,7 @@ public struct OCRImageResultsView: View {
                 }
 
                 // Empty state overlay (doesn't transform)
-                if !isProcessing, observations.isEmpty {
+                if !isProcessing, clusters.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "doc.text.magnifyingglass")
                             .font(.system(size: 50))
@@ -100,7 +125,7 @@ public struct OCRImageResultsView: View {
                 }
             }
         }
-        .sheet(item: $selectedObservation) { _ in
+        .sheet(item: $selectedCluster) { cluster in
             NavigationStack {
                 DictionarySearchView()
                     .environment(searchSheetViewModel)
@@ -110,14 +135,14 @@ public struct OCRImageResultsView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Done") {
-                                selectedObservation = nil
+                                selectedCluster = nil
                             }
                         }
                     }
             }
             .onAppear {
-                // Initialize the view model with the transcript
-                searchSheetViewModel.performSearch(selectedObservation?.observation.transcript ?? "")
+                // Initialize the view model with the cluster's transcript
+                searchSheetViewModel.performSearch(cluster.transcript)
             }
             .presentationDetents([.medium, .large])
         }
@@ -146,6 +171,22 @@ public struct OCRImageResultsView: View {
         return imageRect
     }
 
+    /// Calculate the actual rect for a cluster's bounding box within the image rect
+    private func calculateClusterRect(cluster: TextCluster, in imageRect: CGRect) -> CGRect {
+        // Convert normalized coordinates to image coordinates (with upper-left origin)
+        // cluster.boundingBox is in normalized coords with lower-left origin
+        let normalizedBox = cluster.boundingBox
+        let boxInImage = CGRect(
+            x: normalizedBox.minX * imageRect.width,
+            y: (1 - normalizedBox.maxY) * imageRect.height, // Flip Y for upper-left origin
+            width: normalizedBox.width * imageRect.width,
+            height: normalizedBox.height * imageRect.height
+        )
+
+        // Offset by the image rect's position within the container
+        return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
+    }
+
     /// Calculate the actual rect for an observation's bounding box within the image rect
     private func calculateBoxRect(observation: RecognizedTextObservation, in imageRect: CGRect) -> CGRect {
         // Convert normalized coordinates to image coordinates (with upper-left origin)
@@ -161,10 +202,25 @@ public struct OCRImageResultsView: View {
     @ViewBuilder
     private func boundingBoxOverlay(imageRect: CGRect) -> some View {
         Canvas { context, _ in
-            for observation in observations {
-                let boxRect = calculateBoxRect(observation: observation.observation, in: imageRect)
-                let path = Path(boxRect)
-                context.stroke(path, with: .color(.blue), lineWidth: 2)
+            // Draw cluster boxes (primary hit targets)
+            for cluster in clusters {
+                let clusterRect = calculateClusterRect(cluster: cluster, in: imageRect)
+                let path = Path(clusterRect)
+
+                // Use different colors for different directions
+                let color: Color = cluster.direction == .vertical ? .blue : .green
+                context.stroke(path, with: .color(color), lineWidth: 2)
+            }
+
+            // Optionally draw individual observation boxes (debug mode)
+            if showObservationBoxes {
+                for cluster in clusters {
+                    for observation in cluster.observations {
+                        let boxRect = calculateBoxRect(observation: observation, in: imageRect)
+                        let path = Path(boxRect)
+                        context.stroke(path, with: .color(.orange.opacity(0.5)), lineWidth: 1)
+                    }
+                }
             }
         }
         .allowsHitTesting(false)
@@ -220,7 +276,7 @@ public struct OCRImageResultsView: View {
 
     // MARK: - Hit Testing
 
-    /// Handles tap by performing hit-testing against observation bounding boxes
+    /// Handles tap by performing hit-testing against cluster bounding boxes
     private func handleTap(at tapPoint: CGPoint, containerSize: CGSize, imageRect: CGRect) {
         // Apply inverse transform to get the untransformed tap point
         // Transform is: scale around center, then offset
@@ -241,27 +297,27 @@ public struct OCRImageResultsView: View {
         let normalizedX = (untransformed.x - imageRect.minX) / imageRect.width
         let normalizedY = 1.0 - (untransformed.y - imageRect.minY) / imageRect.height
 
-        // Find the observation whose bounding box contains this point
+        // Find the cluster whose bounding box contains this point
         // If multiple match, prefer the smallest (most specific)
-        var bestMatch: TextObservationData?
+        var bestMatch: TextCluster?
         var bestArea: CGFloat = .infinity
 
-        for observation in observations {
-            let bbox = observation.observation.boundingBox.cgRect
+        for cluster in clusters {
+            let bbox = cluster.boundingBox
             if normalizedX >= bbox.minX, normalizedX <= bbox.maxX,
                normalizedY >= bbox.minY, normalizedY <= bbox.maxY
             {
                 let area = bbox.width * bbox.height
                 if area < bestArea {
                     bestArea = area
-                    bestMatch = observation
+                    bestMatch = cluster
                 }
             }
         }
 
         if let match = bestMatch {
-            logger.debug("Tapped observation: \(match.observation.transcript)")
-            selectedObservation = match
+            logger.debug("Tapped cluster with \(match.observations.count) observations: \(match.transcript.prefix(50))...")
+            selectedCluster = match
         }
     }
 }

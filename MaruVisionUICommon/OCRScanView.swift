@@ -29,7 +29,7 @@ public struct OCRScanView: View {
                 if let image = selectedImage {
                     OCRImageResultsView(
                         image: image,
-                        observations: ocr.observations,
+                        clusters: ocr.clusters,
                         isProcessing: isProcessing
                     )
                 } else {
