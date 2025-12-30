@@ -109,6 +109,7 @@ struct BookReaderView: View {
                 }
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar(.hidden, for: .tabBar)
+                .toolbar(.hidden, for: .bottomBar)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
                         Button {
@@ -135,33 +136,48 @@ struct BookReaderView: View {
                             .frame(maxWidth: geometry.size.width * 0.7)
                         }
                     }
-
-                    ToolbarItemGroup(placement: .bottomBar) {
-                        Group {
-                            Button {
-                                viewModel.overlayState = .showingTableOfContents
-                            } label: {
-                                Image(systemName: "list.bullet")
-                            }
-
-                            Button {
-                                viewModel.bookmarkCurrentLocation()
-                            } label: {
-                                Image(systemName: "bookmark")
-                            }
-
-                            QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
-                                viewModel.overlayState = .showingQuickSettings
-                            }
-                        }
-                        .opacity(viewModel.overlayState.shouldShowToolbars ? 1 : 0)
-                        .allowsHitTesting(viewModel.overlayState.shouldShowToolbars)
-                    }
                 }
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
                 .applyThemeColors(preferences: viewModel.readerPreferences)
+
+                if viewModel.overlayState.shouldShowToolbars {
+                    bottomToolbarOverlay
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                }
             }
         }
+    }
+
+    private var bottomToolbarOverlay: some View {
+        HStack(spacing: 32) {
+            Button {
+                viewModel.overlayState = .showingTableOfContents
+            } label: {
+                Image(systemName: "list.bullet")
+            }
+
+            Button {
+                viewModel.bookmarkCurrentLocation()
+            } label: {
+                Image(systemName: "bookmark")
+            }
+
+            QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
+                viewModel.overlayState = .showingQuickSettings
+            }
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 12)
+        .buttonStyle(.plain)
+        .background(
+            Capsule()
+                .fill(viewModel.readerPreferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground))
+                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                .glassEffect()
+        )
+        .tint(viewModel.readerPreferences.currentInterfaceForegroundColor ?? .primary)
+        .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.bottom, 20)
     }
 
     private func errorView(error: Error) -> some View {
@@ -201,7 +217,6 @@ private extension View {
     func applyThemeColors(preferences: ReaderPreferences) -> some View {
         self
             .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .navigationBar)
-            .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .bottomBar)
             .tint(preferences.currentInterfaceForegroundColor ?? .primary)
     }
 }
