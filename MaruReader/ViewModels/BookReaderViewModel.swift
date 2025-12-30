@@ -113,6 +113,14 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             .appendingPathComponent(coverFileName)
     }
 
+    /// Book cover image, if available.
+    var coverImage: UIImage? {
+        guard let url = bookCoverURL,
+              let data = try? Data(contentsOf: url)
+        else { return nil }
+        return UIImage(data: data)
+    }
+
     /// Context values for dictionary lookups, populated with book metadata.
     private var lookupContextValues: LookupContextValues {
         LookupContextValues(
@@ -384,6 +392,30 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     func readingProgression() -> ReadiumNavigator.ReadingProgression {
         guard let navigator else { return .ltr }
         return navigator.settings.readingProgression
+    }
+
+    /// Current reading location, if available.
+    var currentLocator: Locator? {
+        navigator?.currentLocation
+    }
+
+    /// Navigate to a table of contents link.
+    func navigateToLink(_ link: ReadiumShared.Link) {
+        guard let publication, let navigator else {
+            logger.warning("Cannot navigate: publication or navigator not ready")
+            return
+        }
+
+        Task {
+            if let locator = await publication.locate(link) {
+                _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
+                await MainActor.run {
+                    overlayState = .none
+                }
+            } else {
+                logger.warning("Could not locate link: \(link.href)")
+            }
+        }
     }
 
     // MARK: - WKScriptMessageHandler

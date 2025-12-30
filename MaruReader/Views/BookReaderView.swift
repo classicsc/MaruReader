@@ -22,6 +22,19 @@ struct BookReaderView: View {
         _viewModel = State(wrappedValue: BookReaderViewModel(book: book))
     }
 
+    private var showingTableOfContents: Binding<Bool> {
+        Binding(
+            get: { viewModel.overlayState == .showingTableOfContents },
+            set: { newValue in
+                if newValue {
+                    viewModel.overlayState = .showingTableOfContents
+                } else if viewModel.overlayState == .showingTableOfContents {
+                    viewModel.overlayState = .showingToolbars
+                }
+            }
+        )
+    }
+
     var body: some View {
         switch viewModel.readerState {
         case .loading:
@@ -55,6 +68,23 @@ struct BookReaderView: View {
                         }
                     }
                     .presentationDetents([.medium, .large])
+                }
+                .sheet(isPresented: showingTableOfContents) {
+                    if let publication = viewModel.publication {
+                        TableOfContentsView(
+                            publication: publication,
+                            bookTitle: viewModel.book.title,
+                            coverImage: viewModel.coverImage,
+                            currentLocator: viewModel.currentLocator,
+                            onNavigate: { link in
+                                viewModel.navigateToLink(link)
+                            },
+                            onDismiss: {
+                                viewModel.overlayState = .showingToolbars
+                            }
+                        )
+                        .presentationDetents([.medium, .large])
+                    }
                 }
                 .onChange(of: colorScheme) {
                     viewModel.readerPreferences.submitToNavigator()
