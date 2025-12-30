@@ -273,6 +273,53 @@ enum MergeRejectionReason: CustomStringConvertible {
     }
 }
 
+// MARK: - Union-Find for Graph-Based Clustering
+
+/// A simple union-find (disjoint set) data structure for clustering.
+private struct UnionFind {
+    private var parent: [Int]
+    private var rank: [Int]
+
+    init(count: Int) {
+        parent = Array(0 ..< count)
+        rank = Array(repeating: 0, count: count)
+    }
+
+    mutating func find(_ x: Int) -> Int {
+        if parent[x] != x {
+            parent[x] = find(parent[x]) // Path compression
+        }
+        return parent[x]
+    }
+
+    mutating func union(_ x: Int, _ y: Int) {
+        let rootX = find(x)
+        let rootY = find(y)
+
+        if rootX != rootY {
+            // Union by rank
+            if rank[rootX] < rank[rootY] {
+                parent[rootX] = rootY
+            } else if rank[rootX] > rank[rootY] {
+                parent[rootY] = rootX
+            } else {
+                parent[rootY] = rootX
+                rank[rootX] += 1
+            }
+        }
+    }
+
+    /// Returns all elements grouped by their root.
+    mutating func groups() -> [[Int]] {
+        var groupMap: [Int: [Int]] = [:]
+        for i in 0 ..< parent.count {
+            let root = find(i)
+            groupMap[root, default: []].append(i)
+        }
+        return Array(groupMap.values)
+    }
+}
+
 // MARK: - Text Clusterer
 
 /// Clusters related text observations based on spatial relationships and visual features.
@@ -285,6 +332,8 @@ public struct TextClusterer: Sendable {
     }
 
     /// Clusters the given observations into related groups.
+    /// Uses graph-based clustering: observations that pass merge criteria are connected,
+    /// and connected components form clusters.
     /// - Parameter observations: Array of recognized text observations
     /// - Returns: Array of text clusters, each containing related observations
     public func cluster(_ observations: [RecognizedTextObservation]) -> [TextCluster] {
@@ -303,7 +352,7 @@ public struct TextClusterer: Sendable {
         }
 
         // Group by direction first
-        let byDirection = Dictionary(grouping: features) { $0.direction }
+        let byDirection = Dictionary(grouping: features.enumerated().map(\.self)) { $0.element.direction }
 
         if configuration.verboseLogging {
             let verticalCount = byDirection[.vertical]?.count ?? 0
@@ -313,68 +362,53 @@ public struct TextClusterer: Sendable {
 
         var clusters: [TextCluster] = []
 
-        for (direction, directionFeatures) in byDirection {
+        for (direction, indexedFeatures) in byDirection {
             if configuration.verboseLogging {
-                logger.debug("--- PROCESSING \(direction) GROUP (\(directionFeatures.count) obs) ---")
+                logger.debug("--- PROCESSING \(direction) GROUP (\(indexedFeatures.count) obs) ---")
             }
 
-            // Sort by reading order
-            let sorted = directionFeatures.sorted { a, b in
-                if a.readingOrderKey.primary != b.readingOrderKey.primary {
-                    return a.readingOrderKey.primary < b.readingOrderKey.primary
-                }
-                return a.readingOrderKey.secondary < b.readingOrderKey.secondary
-            }
+            // Build graph using union-find
+            var uf = UnionFind(count: indexedFeatures.count)
+            let localFeatures = indexedFeatures.map(\.element)
 
-            if configuration.verboseLogging {
-                logger.debug("Reading order:")
-                for (idx, feature) in sorted.enumerated() {
-                    logger.debug("  \(idx): \(feature.debugID) key=(\(String(format: "%.3f", feature.readingOrderKey.primary)), \(String(format: "%.3f", feature.readingOrderKey.secondary)))")
-                }
-            }
-
-            // Build clusters by merging adjacent compatible observations
-            var currentCluster: [ObservationFeatures] = []
-            var clusterIndex = 0
-
-            for (idx, feature) in sorted.enumerated() {
-                if currentCluster.isEmpty {
-                    currentCluster = [feature]
-                    if configuration.verboseLogging {
-                        logger.debug("Cluster \(clusterIndex): Starting with \(feature.debugID)")
-                    }
-                } else {
-                    let mergeResult = shouldMergeWithReason(currentCluster: currentCluster, candidate: feature)
-                    if mergeResult.shouldMerge {
-                        currentCluster.append(feature)
+            // Check all pairs for merge eligibility
+            for i in 0 ..< localFeatures.count {
+                for j in (i + 1) ..< localFeatures.count {
+                    let result = shouldMergePair(localFeatures[i], localFeatures[j])
+                    if result.shouldMerge {
+                        uf.union(i, j)
                         if configuration.verboseLogging {
-                            logger.debug("Cluster \(clusterIndex): + \(feature.debugID) (merged)")
+                            logger.debug("EDGE: \(localFeatures[i].debugID) <-> \(localFeatures[j].debugID)")
                         }
-                    } else {
-                        if configuration.verboseLogging {
-                            let last = currentCluster.last!
-                            logger.debug("Cluster \(clusterIndex): ✗ \(feature.debugID) REJECTED: \(mergeResult.reason?.description ?? "unknown")")
-                            logger.debug("  Comparing: \(last.debugID) → \(feature.debugID)")
-                            logDetailedComparison(last: last, candidate: feature)
-                        }
-                        // Finalize current cluster and start new one
-                        clusters.append(TextCluster(
-                            observations: currentCluster.map(\.observation),
-                            direction: direction
-                        ))
-                        clusterIndex += 1
-                        currentCluster = [feature]
-                        if configuration.verboseLogging {
-                            logger.debug("Cluster \(clusterIndex): Starting with \(feature.debugID)")
+                    } else if configuration.verboseLogging {
+                        // Only log rejections between spatially close observations to reduce noise
+                        if areSpatiallyClose(localFeatures[i], localFeatures[j]) {
+                            logger.debug("NO EDGE: \(localFeatures[i].debugID) <-> \(localFeatures[j].debugID): \(result.reason?.description ?? "unknown")")
+                            logDetailedComparison(last: localFeatures[i], candidate: localFeatures[j])
                         }
                     }
                 }
             }
 
-            // Don't forget the last cluster
-            if !currentCluster.isEmpty {
+            // Extract connected components
+            let groups = uf.groups()
+
+            if configuration.verboseLogging {
+                logger.debug("Found \(groups.count) connected components")
+            }
+
+            for group in groups {
+                // Get features for this group and sort by reading order
+                let groupFeatures = group.map { localFeatures[$0] }
+                let sorted = groupFeatures.sorted { a, b in
+                    if a.readingOrderKey.primary != b.readingOrderKey.primary {
+                        return a.readingOrderKey.primary < b.readingOrderKey.primary
+                    }
+                    return a.readingOrderKey.secondary < b.readingOrderKey.secondary
+                }
+
                 clusters.append(TextCluster(
-                    observations: currentCluster.map(\.observation),
+                    observations: sorted.map(\.observation),
                     direction: direction
                 ))
             }
@@ -391,6 +425,127 @@ public struct TextClusterer: Sendable {
         }
 
         return clusters
+    }
+
+    /// Checks if two observations are spatially close enough to be worth logging.
+    /// Used to reduce noise in debug output.
+    private func areSpatiallyClose(_ a: ObservationFeatures, _ b: ObservationFeatures) -> Bool {
+        let maxDistance: CGFloat = 0.15 // 15% of image dimension
+        let dx = abs(a.centroid.x - b.centroid.x)
+        let dy = abs(a.centroid.y - b.centroid.y)
+        return dx < maxDistance && dy < maxDistance
+    }
+
+    /// Determines whether two observations should be merged (symmetric check).
+    /// Unlike the sequential approach, this doesn't depend on reading order.
+    private func shouldMergePair(
+        _ a: ObservationFeatures,
+        _ b: ObservationFeatures
+    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
+        // Must have same direction
+        guard a.direction == b.direction else {
+            return (false, .directionMismatch)
+        }
+
+        // Check line height similarity (font size proxy)
+        let heightRatio = min(a.lineHeight, b.lineHeight) / max(a.lineHeight, b.lineHeight)
+        guard heightRatio >= configuration.lineHeightTolerance else {
+            return (false, .lineHeightMismatch(ratio: heightRatio, threshold: configuration.lineHeightTolerance))
+        }
+
+        // Check spatial proximity and alignment based on direction
+        switch a.direction {
+        case .horizontal:
+            return checkHorizontalMergePair(a, b)
+        case .vertical:
+            return checkVerticalMergePair(a, b)
+        }
+    }
+
+    /// Check merge criteria for two horizontal text observations (symmetric).
+    private func checkHorizontalMergePair(
+        _ a: ObservationFeatures,
+        _ b: ObservationFeatures
+    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
+        let aBox = a.boundingBox.cgRect
+        let bBox = b.boundingBox.cgRect
+
+        // Calculate vertical gap (absolute distance between boxes)
+        let verticalGap: CGFloat = if aBox.minY > bBox.maxY {
+            aBox.minY - bBox.maxY // a is above b
+        } else if bBox.minY > aBox.maxY {
+            bBox.minY - aBox.maxY // b is above a
+        } else {
+            0 // overlapping vertically
+        }
+
+        let maxGap = max(a.lineHeight, b.lineHeight) * configuration.maxGapMultiplier
+
+        // Check if gap is within bounds
+        if verticalGap > maxGap {
+            return (false, .gapTooLarge(gap: verticalGap, maxGap: maxGap))
+        }
+
+        // Check horizontal alignment (significant overlap in X axis)
+        let overlapStart = max(aBox.minX, bBox.minX)
+        let overlapEnd = min(aBox.maxX, bBox.maxX)
+        let overlapWidth = overlapEnd - overlapStart
+
+        if overlapWidth <= 0 {
+            return (false, .noOverlap)
+        }
+
+        let minWidth = min(aBox.width, bBox.width)
+        let overlapRatio = overlapWidth / minWidth
+
+        if overlapRatio < configuration.minAlignmentOverlap {
+            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
+        }
+
+        return (true, nil)
+    }
+
+    /// Check merge criteria for two vertical text observations (symmetric).
+    private func checkVerticalMergePair(
+        _ a: ObservationFeatures,
+        _ b: ObservationFeatures
+    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
+        let aBox = a.boundingBox.cgRect
+        let bBox = b.boundingBox.cgRect
+
+        // Calculate horizontal gap (absolute distance between boxes)
+        let horizontalGap: CGFloat = if aBox.minX > bBox.maxX {
+            aBox.minX - bBox.maxX // a is to the right of b
+        } else if bBox.minX > aBox.maxX {
+            bBox.minX - aBox.maxX // b is to the right of a
+        } else {
+            0 // overlapping horizontally
+        }
+
+        let maxGap = max(a.lineHeight, b.lineHeight) * configuration.maxGapMultiplier
+
+        // Check if gap is within bounds
+        if horizontalGap > maxGap {
+            return (false, .gapTooLarge(gap: horizontalGap, maxGap: maxGap))
+        }
+
+        // Check vertical alignment (significant overlap in Y axis)
+        let overlapStart = max(aBox.minY, bBox.minY)
+        let overlapEnd = min(aBox.maxY, bBox.maxY)
+        let overlapHeight = overlapEnd - overlapStart
+
+        if overlapHeight <= 0 {
+            return (false, .noOverlap)
+        }
+
+        let minHeight = min(aBox.height, bBox.height)
+        let overlapRatio = overlapHeight / minHeight
+
+        if overlapRatio < configuration.minAlignmentOverlap {
+            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
+        }
+
+        return (true, nil)
     }
 
     /// Logs detailed comparison data for debugging merge failures
@@ -430,124 +585,6 @@ public struct TextClusterer: Sendable {
             logger.debug("  HorizOverlap: \(String(format: "%.4f", overlapWidth)) ratio=\(String(format: "%.2f", overlapRatio)) (need ≥\(String(format: "%.2f", configuration.minAlignmentOverlap)))")
             logger.debug("  X ranges: last=[\(String(format: "%.3f", lastBox.minX))-\(String(format: "%.3f", lastBox.maxX))] cand=[\(String(format: "%.3f", candidateBox.minX))-\(String(format: "%.3f", candidateBox.maxX))]")
         }
-    }
-
-    /// Determines whether a candidate observation should be merged into the current cluster.
-    /// Returns the result along with the rejection reason if not merging.
-    private func shouldMergeWithReason(
-        currentCluster: [ObservationFeatures],
-        candidate: ObservationFeatures
-    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
-        // Compare with the last observation in the cluster (most recent in reading order)
-        guard let last = currentCluster.last else { return (true, nil) }
-
-        // Must have same direction (already guaranteed by grouping, but defensive)
-        guard last.direction == candidate.direction else {
-            return (false, .directionMismatch)
-        }
-
-        // Check line height similarity (font size proxy)
-        let heightRatio = min(last.lineHeight, candidate.lineHeight) / max(last.lineHeight, candidate.lineHeight)
-        guard heightRatio >= configuration.lineHeightTolerance else {
-            return (false, .lineHeightMismatch(ratio: heightRatio, threshold: configuration.lineHeightTolerance))
-        }
-
-        // Check spatial proximity and alignment based on direction
-        switch last.direction {
-        case .horizontal:
-            return checkHorizontalMergeWithReason(last: last, candidate: candidate)
-        case .vertical:
-            return checkVerticalMergeWithReason(last: last, candidate: candidate)
-        }
-    }
-
-    /// Legacy method for backward compatibility
-    private func shouldMerge(currentCluster: [ObservationFeatures], candidate: ObservationFeatures) -> Bool {
-        shouldMergeWithReason(currentCluster: currentCluster, candidate: candidate).shouldMerge
-    }
-
-    /// Check merge criteria for horizontal text (lines stacked vertically)
-    private func checkHorizontalMergeWithReason(
-        last: ObservationFeatures,
-        candidate: ObservationFeatures
-    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
-        let lastBox = last.boundingBox.cgRect
-        let candidateBox = candidate.boundingBox.cgRect
-
-        // Calculate vertical gap (candidate should be below last in reading order)
-        // In normalized coords (lower-left origin), "below" means smaller Y
-        let verticalGap = lastBox.minY - candidateBox.maxY
-
-        // Gap should be positive (candidate below) and within threshold
-        let maxGap = max(last.lineHeight, candidate.lineHeight) * configuration.maxGapMultiplier
-        let minGap = -last.lineHeight * 0.3
-
-        if verticalGap < minGap {
-            return (false, .gapTooNegative(gap: verticalGap, minGap: minGap))
-        }
-        if verticalGap > maxGap {
-            return (false, .gapTooLarge(gap: verticalGap, maxGap: maxGap))
-        }
-
-        // Check horizontal alignment (significant overlap in X axis)
-        let overlapStart = max(lastBox.minX, candidateBox.minX)
-        let overlapEnd = min(lastBox.maxX, candidateBox.maxX)
-        let overlapWidth = overlapEnd - overlapStart
-
-        if overlapWidth <= 0 {
-            return (false, .noOverlap)
-        }
-
-        let minWidth = min(lastBox.width, candidateBox.width)
-        let overlapRatio = overlapWidth / minWidth
-
-        if overlapRatio < configuration.minAlignmentOverlap {
-            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
-        }
-
-        return (true, nil)
-    }
-
-    /// Check merge criteria for vertical text (columns arranged horizontally, right-to-left)
-    private func checkVerticalMergeWithReason(
-        last: ObservationFeatures,
-        candidate: ObservationFeatures
-    ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
-        let lastBox = last.boundingBox.cgRect
-        let candidateBox = candidate.boundingBox.cgRect
-
-        // For vertical text, columns flow right-to-left
-        // "Next" column is to the left (smaller X)
-        let horizontalGap = lastBox.minX - candidateBox.maxX
-
-        // Gap should be positive (candidate to the left) and within threshold
-        let maxGap = max(last.lineHeight, candidate.lineHeight) * configuration.maxGapMultiplier
-        let minGap = -last.lineHeight * 0.3
-
-        if horizontalGap < minGap {
-            return (false, .gapTooNegative(gap: horizontalGap, minGap: minGap))
-        }
-        if horizontalGap > maxGap {
-            return (false, .gapTooLarge(gap: horizontalGap, maxGap: maxGap))
-        }
-
-        // Check vertical alignment (significant overlap in Y axis)
-        let overlapStart = max(lastBox.minY, candidateBox.minY)
-        let overlapEnd = min(lastBox.maxY, candidateBox.maxY)
-        let overlapHeight = overlapEnd - overlapStart
-
-        if overlapHeight <= 0 {
-            return (false, .noOverlap)
-        }
-
-        let minHeight = min(lastBox.height, candidateBox.height)
-        let overlapRatio = overlapHeight / minHeight
-
-        if overlapRatio < configuration.minAlignmentOverlap {
-            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
-        }
-
-        return (true, nil)
     }
 }
 

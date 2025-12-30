@@ -131,7 +131,14 @@ struct SearchView: View {
     }
 
     @State private var viewModel = DictionarySearchViewModel(resultState: .searching)
-    @State private var ocr = OCR()
+    @State private var ocr = {
+        #if DEBUG
+            OCR(clusteringConfiguration: .debug)
+        #else
+            OCR()
+        #endif
+    }()
+
     @State private var isProcessing = false
     @State private var errorMessage: String?
 
