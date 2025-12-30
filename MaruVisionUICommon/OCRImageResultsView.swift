@@ -53,21 +53,6 @@ public struct OCRImageResultsView: View {
         self.showObservationBoxes = showObservationBoxes
     }
 
-    /// Legacy initializer for backward compatibility with TextObservationData
-    @available(*, deprecated, message: "Use init(image:clusters:isProcessing:) instead")
-    public init(image: UIImage, observations: [TextObservationData], isProcessing: Bool = false) {
-        self.image = image
-        // Convert legacy observations to clusters (one observation per cluster)
-        self.clusters = observations.map { data in
-            TextCluster(
-                observations: [data.observation],
-                direction: ObservationFeatures(observation: data.observation).direction
-            )
-        }
-        self.isProcessing = isProcessing
-        self.showObservationBoxes = false
-    }
-
     public var body: some View {
         GeometryReader { geometry in
             let imageRect = calculateImageRect(image: image, in: geometry.size)

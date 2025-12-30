@@ -11,7 +11,7 @@ import Vision
 
 public actor OCR {
     /// The array of the request's results.
-    @MainActor public var observations = [RecognizedTextObservation]()
+    private var observations = [RecognizedTextObservation]()
 
     /// Clustered observations for UI interaction.
     @MainActor public var clusters = [TextCluster]()
@@ -36,8 +36,8 @@ public actor OCR {
 
     public func performOCR(imageData: Data) async throws {
         /// Clear the arrays for photo recapture.
+        observations.removeAll()
         await MainActor.run {
-            observations.removeAll()
             clusters.removeAll()
         }
 
@@ -53,8 +53,8 @@ public actor OCR {
         logger.debug("Clustered into \(clusteredResults.count) clusters.")
 
         /// Update the published arrays on main actor.
+        observations = results
         await MainActor.run {
-            observations = results
             clusters = clusteredResults
         }
     }
@@ -62,7 +62,7 @@ public actor OCR {
     /// Re-cluster existing observations with a new configuration.
     /// Useful for adjusting clustering parameters without re-running OCR.
     public func recluster(with configuration: ClusteringConfiguration) async {
-        let currentObservations = await MainActor.run { observations }
+        let currentObservations = observations
         guard !currentObservations.isEmpty else { return }
 
         let clusterer = TextClusterer(configuration: configuration)
@@ -74,18 +74,5 @@ public actor OCR {
         }
 
         logger.debug("Re-clustered \(currentObservations.count) observations into \(clusteredResults.count) clusters.")
-    }
-}
-
-// MARK: - Legacy Support
-
-/// Legacy wrapper for backward compatibility.
-/// Prefer using `TextCluster` directly for new code.
-public struct TextObservationData: Identifiable {
-    public let id = UUID()
-    public let observation: RecognizedTextObservation
-
-    public init(observation: RecognizedTextObservation) {
-        self.observation = observation
     }
 }

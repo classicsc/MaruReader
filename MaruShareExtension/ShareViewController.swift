@@ -157,7 +157,7 @@ struct SearchView: View {
                 case let .image(image, imageData):
                     OCRImageResultsView(
                         image: image,
-                        clusters:ocr.clusters,
+                        clusters: ocr.clusters,
                         isProcessing: isProcessing
                     )
                     .task {
