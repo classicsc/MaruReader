@@ -10,6 +10,17 @@ import Foundation
 import os.log
 import Vision
 
+// MARK: - Debug Formatting Helpers
+
+private extension CGFloat {
+    /// Format with 2 decimal places (e.g., ratios)
+    func f2() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(2))) }
+    /// Format with 3 decimal places (e.g., coordinates)
+    func f3() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(3))) }
+    /// Format with 4 decimal places (e.g., line heights, gaps)
+    func f4() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(4))) }
+}
+
 // MARK: - Text Direction
 
 /// Inferred text direction based on spatial analysis of the observation.
@@ -80,11 +91,11 @@ public struct ObservationFeatures: Sendable {
         let box = boundingBox.cgRect
         return """
         \(debugID) chars=\(observation.transcript.count) \
-        ar=\(String(format: "%.2f", aspectRatio)) \
-        lh=\(String(format: "%.4f", lineHeight)) \
-        box=(x:\(String(format: "%.3f", box.minX))-\(String(format: "%.3f", box.maxX)), \
-        y:\(String(format: "%.3f", box.minY))-\(String(format: "%.3f", box.maxY))) \
-        center=(\(String(format: "%.3f", centroid.x)),\(String(format: "%.3f", centroid.y)))
+        ar=\(aspectRatio.f2()) \
+        lh=\(lineHeight.f4()) \
+        box=(x:\(box.minX.f3())-\(box.maxX.f3()), \
+        y:\(box.minY.f3())-\(box.maxY.f3())) \
+        center=(\(centroid.x.f3()),\(centroid.y.f3()))
         """
     }
 
@@ -260,15 +271,15 @@ enum MergeRejectionReason: CustomStringConvertible {
         case .directionMismatch:
             "direction mismatch"
         case let .lineHeightMismatch(ratio, threshold):
-            "lineHeight ratio \(String(format: "%.2f", ratio)) < threshold \(String(format: "%.2f", threshold))"
+            "lineHeight ratio \(ratio.f2()) < threshold \(threshold.f2())"
         case let .gapTooLarge(gap, maxGap):
-            "gap \(String(format: "%.4f", gap)) > maxGap \(String(format: "%.4f", maxGap))"
+            "gap \(gap.f4()) > maxGap \(maxGap.f4())"
         case let .gapTooNegative(gap, minGap):
-            "gap \(String(format: "%.4f", gap)) < minGap \(String(format: "%.4f", minGap))"
+            "gap \(gap.f4()) < minGap \(minGap.f4())"
         case .noOverlap:
             "no overlap"
         case let .insufficientOverlap(ratio, threshold):
-            "overlap ratio \(String(format: "%.2f", ratio)) < threshold \(String(format: "%.2f", threshold))"
+            "overlap ratio \(ratio.f2()) < threshold \(threshold.f2())"
         }
     }
 }
@@ -554,36 +565,36 @@ public struct TextClusterer: Sendable {
         let candidateBox = candidate.boundingBox.cgRect
 
         let heightRatio = min(last.lineHeight, candidate.lineHeight) / max(last.lineHeight, candidate.lineHeight)
-        logger.debug("  LineHeight: last=\(String(format: "%.4f", last.lineHeight)) cand=\(String(format: "%.4f", candidate.lineHeight)) ratio=\(String(format: "%.2f", heightRatio)) (need ≥\(String(format: "%.2f", configuration.lineHeightTolerance)))")
+        logger.debug("  LineHeight: last=\(last.lineHeight.f4()) cand=\(candidate.lineHeight.f4()) ratio=\(heightRatio.f2()) (need ≥\(configuration.lineHeightTolerance.f2()))")
 
         switch last.direction {
         case .vertical:
             let horizontalGap = lastBox.minX - candidateBox.maxX
             let maxGap = max(last.lineHeight, candidate.lineHeight) * configuration.maxGapMultiplier
             let minGap = -last.lineHeight * 0.3
-            logger.debug("  HorizGap: \(String(format: "%.4f", horizontalGap)) (need \(String(format: "%.4f", minGap)) to \(String(format: "%.4f", maxGap)))")
+            logger.debug("  HorizGap: \(horizontalGap.f4()) (need \(minGap.f4()) to \(maxGap.f4()))")
 
             let overlapStart = max(lastBox.minY, candidateBox.minY)
             let overlapEnd = min(lastBox.maxY, candidateBox.maxY)
             let overlapHeight = overlapEnd - overlapStart
             let minHeight = min(lastBox.height, candidateBox.height)
             let overlapRatio = overlapHeight > 0 ? overlapHeight / minHeight : 0
-            logger.debug("  VertOverlap: \(String(format: "%.4f", overlapHeight)) ratio=\(String(format: "%.2f", overlapRatio)) (need ≥\(String(format: "%.2f", configuration.minAlignmentOverlap)))")
-            logger.debug("  Y ranges: last=[\(String(format: "%.3f", lastBox.minY))-\(String(format: "%.3f", lastBox.maxY))] cand=[\(String(format: "%.3f", candidateBox.minY))-\(String(format: "%.3f", candidateBox.maxY))]")
+            logger.debug("  VertOverlap: \(overlapHeight.f4()) ratio=\(overlapRatio.f2()) (need ≥\(configuration.minAlignmentOverlap.f2()))")
+            logger.debug("  Y ranges: last=[\(lastBox.minY.f3())-\(lastBox.maxY.f3())] cand=[\(candidateBox.minY.f3())-\(candidateBox.maxY.f3())]")
 
         case .horizontal:
             let verticalGap = lastBox.minY - candidateBox.maxY
             let maxGap = max(last.lineHeight, candidate.lineHeight) * configuration.maxGapMultiplier
             let minGap = -last.lineHeight * 0.3
-            logger.debug("  VertGap: \(String(format: "%.4f", verticalGap)) (need \(String(format: "%.4f", minGap)) to \(String(format: "%.4f", maxGap)))")
+            logger.debug("  VertGap: \(verticalGap.f4()) (need \(minGap.f4()) to \(maxGap.f4()))")
 
             let overlapStart = max(lastBox.minX, candidateBox.minX)
             let overlapEnd = min(lastBox.maxX, candidateBox.maxX)
             let overlapWidth = overlapEnd - overlapStart
             let minWidth = min(lastBox.width, candidateBox.width)
             let overlapRatio = overlapWidth > 0 ? overlapWidth / minWidth : 0
-            logger.debug("  HorizOverlap: \(String(format: "%.4f", overlapWidth)) ratio=\(String(format: "%.2f", overlapRatio)) (need ≥\(String(format: "%.2f", configuration.minAlignmentOverlap)))")
-            logger.debug("  X ranges: last=[\(String(format: "%.3f", lastBox.minX))-\(String(format: "%.3f", lastBox.maxX))] cand=[\(String(format: "%.3f", candidateBox.minX))-\(String(format: "%.3f", candidateBox.maxX))]")
+            logger.debug("  HorizOverlap: \(overlapWidth.f4()) ratio=\(overlapRatio.f2()) (need ≥\(configuration.minAlignmentOverlap.f2()))")
+            logger.debug("  X ranges: last=[\(lastBox.minX.f3())-\(lastBox.maxX.f3())] cand=[\(candidateBox.minX.f3())-\(candidateBox.maxX.f3())]")
         }
     }
 }
