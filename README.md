@@ -18,6 +18,7 @@ Tools to help you understand Japanese on iOS and iPadOS. Integrates a powerful Y
   - Tap any word to see the definitions in a compact popup. Tap inside the popup to open the full search page.
 - **Supports Anki Sentence Mining Workflows**
   - Use Anki-Connect (needs to be proxied with HTTPS) on your PC to add notes direct to your mining deck. Customize field mapping to work with your favorite note type.
+  - Sentence furigana generated using MeCab for accuracy.
 
 ## Roadmap
 
@@ -28,11 +29,8 @@ Maru is still in the early stages. Before moving to publish it on the App Store 
   - **Font Customization**: Choose your favorite system font or add your own.
 - **Dictionary Improvements**
   - Support tapping **kanji** in definition headers to view data from kanji dictionaries and a stroke order diagram.
-  - Frequency harmonic mean.
   - Add a toggle in the UI for whether to activate **links** on tap or just scan the text (the current behavior).
   - Polish the rough edges of the **styles** for dictionary content, including support for dictionary stylesheets.
-- **Furigana support**
-  - Prerequiste for full Anki support, we need to run segmentation on sentences and retrieve the likely furigana which can be passed to the Anki field when needed. When provided in an epub, use the book's furigana.
 - **Anki Support**
   - **AnkiMobile**: Send cards straight to the Anki iOS app, subject to URL limitations.
   - **APKG**: Look into queueing and exporting notes to a file for more flexibility.
