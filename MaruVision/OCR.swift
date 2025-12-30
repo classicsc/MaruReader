@@ -34,6 +34,12 @@ public actor OCR {
         request.recognitionLanguages = [.init(identifier: "ja-JP")]
     }
 
+    /// Enable or disable verbose clustering debug logs.
+    /// When enabled, detailed information about merge decisions is logged.
+    public func setVerboseLogging(_ enabled: Bool) {
+        clusteringConfiguration.verboseLogging = enabled
+    }
+
     public func performOCR(imageData: Data) async throws {
         /// Clear the arrays for photo recapture.
         observations.removeAll()

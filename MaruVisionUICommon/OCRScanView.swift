@@ -17,7 +17,7 @@ public struct OCRScanView: View {
     @State private var selectedImage: UIImage?
     @State private var isProcessing = false
     @State private var errorMessage: String?
-    @State private var ocr = OCR()
+    @State private var ocr = OCR(clusteringConfiguration: .debug)
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
 
