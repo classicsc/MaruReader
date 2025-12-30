@@ -19,6 +19,10 @@
 		DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DB4A77342F01407400DBCAD9 /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB4A7A062F03629700DBCAD9 /* CharacterFilter in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A052F03629700DBCAD9 /* CharacterFilter */; };
+		DB4A7A082F03629700DBCAD9 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A072F03629700DBCAD9 /* IPADic */; };
+		DB4A7A0A2F03629700DBCAD9 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A092F03629700DBCAD9 /* Mecab-Swift */; };
+		DB4A7A0C2F03629700DBCAD9 /* StringTools in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A0B2F03629700DBCAD9 /* StringTools */; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
 		DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */; };
@@ -542,7 +546,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB4A7A062F03629700DBCAD9 /* CharacterFilter in Frameworks */,
+				DB4A7A0A2F03629700DBCAD9 /* Mecab-Swift in Frameworks */,
 				DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */,
+				DB4A7A0C2F03629700DBCAD9 /* StringTools in Frameworks */,
+				DB4A7A082F03629700DBCAD9 /* IPADic in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -953,6 +961,10 @@
 			);
 			name = MaruAnki;
 			packageProductDependencies = (
+				DB4A7A052F03629700DBCAD9 /* CharacterFilter */,
+				DB4A7A072F03629700DBCAD9 /* IPADic */,
+				DB4A7A092F03629700DBCAD9 /* Mecab-Swift */,
+				DB4A7A0B2F03629700DBCAD9 /* StringTools */,
 			);
 			productName = MaruAnki;
 			productReference = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */;
@@ -1053,6 +1065,7 @@
 				DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */,
 				DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */,
 				DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2B698D2E660F8B00EDA656 /* Products */;
@@ -2465,6 +2478,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/shinjukunian/Mecab-Swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.8.0;
+			};
+		};
 		DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Topolyte/json-stream.git";
@@ -2500,6 +2521,26 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DB4A7A052F03629700DBCAD9 /* CharacterFilter */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = CharacterFilter;
+		};
+		DB4A7A072F03629700DBCAD9 /* IPADic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = IPADic;
+		};
+		DB4A7A092F03629700DBCAD9 /* Mecab-Swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = "Mecab-Swift";
+		};
+		DB4A7A0B2F03629700DBCAD9 /* StringTools */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = StringTools;
+		};
 		DB58C8F92EAB137600CE59FD /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
