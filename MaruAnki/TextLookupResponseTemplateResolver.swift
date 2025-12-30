@@ -236,13 +236,19 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         let imagePaths = dictResult.results.extractImagePaths()
         let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
 
-        return TemplateResolvedValue(text: ankiHTML, mediaFiles: mediaFiles)
+        // Wrap in yomitan-glossary div with data-dictionary for Lapis compatibility
+        let wrappedHTML = """
+        <div style="text-align: left;" class="yomitan-glossary"><ol><li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())">\(ankiHTML)</li></ol></div>
+        """
+
+        return TemplateResolvedValue(text: wrappedHTML, mediaFiles: mediaFiles)
     }
 
     private func resolveMultiDictionaryGlossary() -> TemplateResolvedValue {
         var allMediaFiles: [String: URL] = [:]
 
-        let html = selectedGroup.dictionariesResults.map { dictResult in
+        // Build list items with data-dictionary attributes for Lapis compatibility
+        let listItems = selectedGroup.dictionariesResults.map { dictResult in
             // Use Anki-compatible HTML with inline styles
             let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
 
@@ -251,13 +257,16 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
             allMediaFiles.merge(mediaFiles) { _, new in new }
 
+            // Yomitan format: <li data-dictionary="..."><i>(dict name)</i> content</li>
             return """
-            <div style="margin-bottom: 1em;">
-                <h3 style="margin: 0 0 0.5em 0; font-size: 1.1em; font-weight: bold;">\(dictResult.dictionaryTitle.escapingHTML())</h3>
-                \(ankiHTML)
-            </div>
+            <li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())"><i>(\(dictResult.dictionaryTitle.escapingHTML()))</i> \(ankiHTML)</li>
             """
-        }.joined(separator: "\n")
+        }.joined()
+
+        // Wrap in yomitan-glossary div for Lapis compatibility
+        let html = """
+        <div style="text-align: left;" class="yomitan-glossary"><ol>\(listItems)</ol></div>
+        """
 
         return TemplateResolvedValue(text: html, mediaFiles: allMediaFiles)
     }
