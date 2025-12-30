@@ -107,24 +107,27 @@ struct BookReaderView: View {
                     }
 
                     ToolbarItemGroup(placement: .bottomBar) {
-                        Button {
-                            viewModel.overlayState = .showingTableOfContents
-                        } label: {
-                            Image(systemName: "list.bullet")
-                        }
+                        Group {
+                            Button {
+                                viewModel.overlayState = .showingTableOfContents
+                            } label: {
+                                Image(systemName: "list.bullet")
+                            }
 
-                        Button {
-                            viewModel.bookmarkCurrentLocation()
-                        } label: {
-                            Image(systemName: "bookmark")
-                        }
+                            Button {
+                                viewModel.bookmarkCurrentLocation()
+                            } label: {
+                                Image(systemName: "bookmark")
+                            }
 
-                        QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
-                            viewModel.overlayState = .showingQuickSettings
+                            QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
+                                viewModel.overlayState = .showingQuickSettings
+                            }
                         }
+                        .opacity(viewModel.overlayState.shouldShowToolbars ? 1 : 0)
+                        .allowsHitTesting(viewModel.overlayState.shouldShowToolbars)
                     }
                 }
-                .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .bottomBar)
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
                 .applyThemeColors(preferences: viewModel.readerPreferences)
             }
