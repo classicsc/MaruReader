@@ -66,19 +66,43 @@ public struct ObservationFeatures: Sendable {
         let box = boundingBox.cgRect
         centroid = CGPoint(x: box.midX, y: box.midY)
 
-        // Infer direction from aspect ratio
-        // Vertical Japanese text lines are typically tall and narrow
-        // Horizontal text lines are typically wide and short
+        // Infer direction using character-count-aware heuristic
+        direction = Self.inferDirection(boundingBox: box, transcript: observation.transcript)
+        lineHeight = direction == .vertical ? box.width : box.height
+    }
+
+    /// Infers text direction by comparing actual aspect ratio to expected ratios
+    /// for both vertical and horizontal orientations given the character count.
+    private static func inferDirection(boundingBox box: CGRect, transcript: String) -> InferredTextDirection {
         let aspectRatio = box.width / box.height
-        if aspectRatio < 0.5 {
-            // Tall and narrow -> vertical text
-            direction = .vertical
-            lineHeight = box.width
-        } else {
-            // Wide or square -> horizontal text
-            direction = .horizontal
-            lineHeight = box.height
+
+        // Strong priors for extreme aspect ratios (unambiguous cases)
+        if aspectRatio < 0.25 {
+            return .vertical // Definitely tall and narrow
         }
+        if aspectRatio > 4.0 {
+            return .horizontal // Definitely wide and short
+        }
+
+        // For ambiguous cases, use character count to determine best fit
+        // Japanese characters are roughly square, so:
+        // - Vertical text with N chars → expected aspect ratio ≈ 1/N
+        // - Horizontal text with N chars → expected aspect ratio ≈ N
+        let charCount = CGFloat(max(1, transcript.count))
+
+        let expectedVerticalRatio = 1.0 / charCount
+        let expectedHorizontalRatio = charCount
+
+        // Compare using log scale for symmetric comparison of ratios
+        // (being 2x too wide is as bad as being 2x too narrow)
+        let verticalFit = abs(log(aspectRatio) - log(expectedVerticalRatio))
+        let horizontalFit = abs(log(aspectRatio) - log(expectedHorizontalRatio))
+
+        // Add a small bias toward vertical for Japanese content (manga/books)
+        // This helps borderline cases where both fits are similar
+        let verticalBias: CGFloat = 0.3
+
+        return (verticalFit - verticalBias) < horizontalFit ? .vertical : .horizontal
     }
 }
 
