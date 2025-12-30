@@ -527,6 +527,9 @@ extension StructuredElement {
             attributes.append("title=\"\(escapeHTML(title))\"")
         }
 
+        // Add data attributes (important for Lapis/Yomitan compatibility)
+        attributes.append(contentsOf: transformedDataAttrs(data: data))
+
         // Build style attribute
         if !inlineStyles.isEmpty {
             let styleString = inlineStyles.joined(separator: "; ")
