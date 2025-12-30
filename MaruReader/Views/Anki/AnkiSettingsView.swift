@@ -77,12 +77,13 @@ struct AnkiSettingsView: View {
 
     private func loadSettings() async {
         let context = persistence.container.viewContext
-        await context.perform {
+        let fetchedSettings: MaruAnkiSettings? = await context.perform {
             let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
             request.fetchLimit = 1
-            self.currentSettings = try? context.fetch(request).first
-            self.isLoading = false
+            return try? context.fetch(request).first
         }
+        currentSettings = fetchedSettings
+        isLoading = false
     }
 
     @ViewBuilder

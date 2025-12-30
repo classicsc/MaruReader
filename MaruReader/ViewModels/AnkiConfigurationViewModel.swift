@@ -280,6 +280,10 @@ final class AnkiConfigurationViewModel {
 
         let context = persistence.newBackgroundContext()
 
+        // Capture MainActor-isolated properties before entering background context
+        let hostValue = host
+        let apiKeyValue = apiKeyOrNil
+
         do {
             try await context.perform {
                 // Fetch or create settings
@@ -303,9 +307,9 @@ final class AnkiConfigurationViewModel {
 
                 // Set connect configuration
                 settings.connectConfiguration = [
-                    "hostname": self.host,
+                    "hostname": hostValue,
                     "port": portInt,
-                    "apiKey": self.apiKeyOrNil as Any,
+                    "apiKey": apiKeyValue as Any,
                 ]
 
                 // Link to field mapping profile
