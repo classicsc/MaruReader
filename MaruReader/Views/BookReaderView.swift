@@ -99,6 +99,17 @@ struct BookReaderView: View {
                     viewModel: viewModel
                 )
                 .padding(viewModel.readerPreferences.horizontalMargin)
+                .overlay {
+                    MarginSwipeOverlay(
+                        marginWidth: viewModel.readerPreferences.horizontalMargin,
+                        onSwipeLeft: {
+                            Task { await viewModel.navigator?.goRight(options: .init()) }
+                        },
+                        onSwipeRight: {
+                            Task { await viewModel.navigator?.goLeft(options: .init()) }
+                        }
+                    )
+                }
                 .popover(
                     isPresented: $viewModel.showPopup,
                     attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
@@ -218,5 +229,47 @@ private extension View {
         self
             .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .navigationBar)
             .tint(preferences.currentInterfaceForegroundColor ?? .primary)
+    }
+}
+
+// MARK: - Margin Swipe Overlay
+
+private struct MarginSwipeOverlay: View {
+    let marginWidth: Double
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Color.clear
+                .frame(width: marginWidth)
+                .contentShape(Rectangle())
+                .gesture(swipeGesture)
+
+            Spacer()
+
+            Color.clear
+                .frame(width: marginWidth)
+                .contentShape(Rectangle())
+                .gesture(swipeGesture)
+        }
+        .allowsHitTesting(true)
+    }
+
+    private var swipeGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                let horizontalDistance = value.translation.width
+                let verticalDistance = abs(value.translation.height)
+
+                // Only trigger if horizontal movement is dominant
+                guard abs(horizontalDistance) > verticalDistance else { return }
+
+                if horizontalDistance < 0 {
+                    onSwipeLeft()
+                } else {
+                    onSwipeRight()
+                }
+            }
     }
 }
