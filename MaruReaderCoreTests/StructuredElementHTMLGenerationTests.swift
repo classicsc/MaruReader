@@ -921,6 +921,40 @@ struct DictionaryContentMarkupTests {
         return string
     }
 
+    @Test func structuredElement_toHTML_ImageWithNilDimensions() throws {
+        // Test that images without width/height default to 380px (converted to ~27.14em)
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "test.png",
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toHTML()
+
+        // Default dimensions: 380px / 14px (default em size) ≈ 27.1429em
+        let expectedWidthEm = 380.0 / 14.0
+        let formattedWidth = formatNumber(expectedWidthEm)
+        #expect(html.contains("width: \(formattedWidth)em"))
+
+        // Aspect ratio should be 100% (square 380:380)
+        #expect(html.contains("padding-top: 100%"))
+
+        // Image attributes should use the 380px default
+        #expect(html.contains("width=\"380\""))
+        #expect(html.contains("height=\"380\""))
+    }
+
     // MARK: - Anki HTML Generation Tests
 
     @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnits() throws {

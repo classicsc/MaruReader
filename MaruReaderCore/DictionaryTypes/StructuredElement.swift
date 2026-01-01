@@ -76,8 +76,8 @@ extension StructuredElement {
         guard let path else { return "" }
 
         // Get original dimensions with defaults
-        let originalWidth = self.width ?? 1.0
-        let originalHeight = self.height ?? 1.0
+        let originalWidth = self.width ?? 380.0
+        let originalHeight = self.height ?? 380.0
 
         let hasPreferredWidth = preferredWidth != nil
         let hasPreferredHeight = preferredHeight != nil
