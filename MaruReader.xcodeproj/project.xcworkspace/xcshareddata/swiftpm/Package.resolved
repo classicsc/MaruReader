@@ -1,5 +1,5 @@
 {
-  "originHash" : "07a5ec19c297a7f2410c1c90593e4a98dcaf141d97b5cb28384822a0e9831b68",
+  "originHash" : "f63a3c3277dac9a50afc8f6fd84429fa3d0396955f7d7e71085f3da9fa158b9b",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -114,8 +114,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/readium/swift-toolkit.git",
       "state" : {
-        "revision" : "806ece1f5ebfab028a221105346f7706d4761f3f",
-        "version" : "3.4.0"
+        "revision" : "5634c871368177694fec224a492a2191da3f67e0",
+        "version" : "3.6.0"
       }
     },
     {
@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/readium/ZIPFoundation.git",
       "state" : {
-        "revision" : "175c389832d90cb0e992b2cb9d5d7878eccfe725",
-        "version" : "3.0.0"
+        "revision" : "adb49c8bfe060cc187370b12fa081012a6440b86",
+        "version" : "3.0.1"
       }
     }
   ],
