@@ -8,7 +8,6 @@
 import CoreData
 import MaruDictionaryUICommon
 import MaruReaderCore
-import MaruVisionUICommon
 import SwiftUI
 
 struct ContentView: View {

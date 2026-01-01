@@ -7,16 +7,19 @@
 
 import MaruDictionaryUICommon
 import MaruVision
+import MaruVisionUICommon
 import os.log
 import PhotosUI
 import SwiftUI
+import UIKit
 import Vision
 
-public struct OCRScanView: View {
+struct OCRScanView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var isProcessing = false
     @State private var errorMessage: String?
+    @State private var showCamera = false
     @State private var ocr = {
         #if DEBUG
             OCR(clusteringConfiguration: .debug)
@@ -27,9 +30,11 @@ public struct OCRScanView: View {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
 
-    public init() {}
+    private var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
 
-    public var body: some View {
+    var body: some View {
         NavigationStack {
             VStack {
                 if let image = selectedImage {
@@ -46,8 +51,19 @@ public struct OCRScanView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    PhotosPicker(selection: $selectedItem, matching: .images) {
-                        Label("Select Photo", systemImage: "photo.on.rectangle")
+                    Menu {
+                        if isCameraAvailable {
+                            Button {
+                                showCamera = true
+                            } label: {
+                                Label("Take Photo", systemImage: "camera")
+                            }
+                        }
+                        PhotosPicker(selection: $selectedItem, matching: .images) {
+                            Label("Choose from Library", systemImage: "photo.on.rectangle")
+                        }
+                    } label: {
+                        Image(systemName: "plus")
                     }
                 }
             }
@@ -55,6 +71,14 @@ public struct OCRScanView: View {
                 Task {
                     await loadImage(from: newItem)
                 }
+            }
+            .fullScreenCover(isPresented: $showCamera) {
+                ImagePickerController { image, data in
+                    Task {
+                        await processImage(image, data: data)
+                    }
+                }
+                .ignoresSafeArea()
             }
             .alert("Error", isPresented: .init(
                 get: { errorMessage != nil },
@@ -100,11 +124,20 @@ public struct OCRScanView: View {
                 return
             }
 
-            selectedImage = image
+            await processImage(image, data: data)
+        } catch {
+            errorMessage = "OCR failed: \(error.localizedDescription)"
+            isProcessing = false
+        }
+    }
 
-            // Perform OCR
+    private func processImage(_ image: UIImage, data: Data) async {
+        selectedImage = image
+        isProcessing = true
+        errorMessage = nil
+
+        do {
             try await ocr.performOCR(imageData: data)
-
             isProcessing = false
         } catch {
             errorMessage = "OCR failed: \(error.localizedDescription)"
