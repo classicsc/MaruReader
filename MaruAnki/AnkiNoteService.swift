@@ -89,7 +89,8 @@ public actor AnkiNoteService {
         modelName: String,
         fields: [String: String],
         tags: [String] = [],
-        ankiID: Int64?
+        ankiID: Int64?,
+        pendingSync: Bool = false
     ) async throws -> UUID {
         let context = persistence.newBackgroundContext()
         return try await context.perform {
@@ -101,7 +102,7 @@ public actor AnkiNoteService {
             note.deckName = deckName
             note.modelName = modelName
             note.createdAt = Date()
-            note.pendingSync = false
+            note.pendingSync = pendingSync
 
             // Serialize fields to JSON
             let fieldsJSON = try JSONEncoder().encode(fields)
@@ -120,6 +121,91 @@ public actor AnkiNoteService {
             self.logger.debug("Recorded note for '\(expression)' with ID \(note.id?.uuidString ?? "nil")")
 
             return note.id!
+        }
+    }
+
+    // MARK: - Pending Notes
+
+    public struct PendingAnkiNote: Identifiable, Sendable {
+        public let id: UUID
+        public let expression: String
+        public let reading: String?
+        public let profileName: String
+        public let deckName: String
+        public let modelName: String
+        public let fields: [String: String]
+        public let tags: [String]
+        public let createdAt: Date
+    }
+
+    public func pendingNoteCount() async -> Int {
+        let context = persistence.newBackgroundContext()
+        return await context.perform {
+            let request = NSFetchRequest<AnkiNote>(entityName: "AnkiNote")
+            request.predicate = NSPredicate(format: "pendingSync == YES")
+            request.fetchLimit = 1
+            do {
+                let count = try context.count(for: request)
+                return count
+            } catch {
+                self.logger.error("Failed to fetch pending note count: \(error.localizedDescription)")
+                return 0
+            }
+        }
+    }
+
+    public func fetchPendingNotes() async -> [PendingAnkiNote] {
+        let context = persistence.newBackgroundContext()
+        return await context.perform {
+            let request = NSFetchRequest<AnkiNote>(entityName: "AnkiNote")
+            request.predicate = NSPredicate(format: "pendingSync == YES")
+            request.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
+
+            do {
+                let notes = try context.fetch(request)
+                return notes.compactMap { note in
+                    guard let id = note.id,
+                          let expression = note.expression,
+                          let deckName = note.deckName,
+                          let modelName = note.modelName,
+                          let profileName = note.profileName,
+                          let createdAt = note.createdAt
+                    else {
+                        return nil
+                    }
+
+                    let fields = Self.decodeJSON(note.fields, defaultValue: [String: String]())
+                    let tags = Self.decodeJSON(note.tags, defaultValue: [String]())
+
+                    return PendingAnkiNote(
+                        id: id,
+                        expression: expression,
+                        reading: note.reading,
+                        profileName: profileName,
+                        deckName: deckName,
+                        modelName: modelName,
+                        fields: fields,
+                        tags: tags,
+                        createdAt: createdAt
+                    )
+                }
+            } catch {
+                self.logger.error("Failed to fetch pending notes: \(error.localizedDescription)")
+                return []
+            }
+        }
+    }
+
+    public func markNoteSynced(id: UUID) async throws {
+        let context = persistence.newBackgroundContext()
+        try await context.perform {
+            let request = NSFetchRequest<AnkiNote>(entityName: "AnkiNote")
+            request.predicate = NSPredicate(format: "id == %@", id as CVarArg)
+            request.fetchLimit = 1
+
+            guard let note = try context.fetch(request).first else { return }
+            note.pendingSync = false
+            try context.save()
         }
     }
 
@@ -185,5 +271,14 @@ public actor AnkiNoteService {
     /// Build term key matching the format used in GroupedSearchResults.
     public static func termKey(expression: String, reading: String?) -> String {
         "\(expression)|\(reading ?? "")"
+    }
+
+    private static func decodeJSON<T: Decodable>(_ string: String?, defaultValue: T) -> T {
+        guard let string,
+              let data = string.data(using: .utf8)
+        else {
+            return defaultValue
+        }
+        return (try? JSONDecoder().decode(T.self, from: data)) ?? defaultValue
     }
 }

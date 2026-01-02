@@ -601,8 +601,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                     profileName: result.profileName,
                     deckName: result.deckName,
                     modelName: result.modelName,
-                    fields: [:],
-                    ankiID: result.ankiNoteID
+                    fields: result.resolvedFields,
+                    ankiID: result.ankiNoteID,
+                    pendingSync: result.pendingSync
                 )
 
                 logger.info("Successfully added Anki note for '\(expression)'")

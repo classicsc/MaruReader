@@ -11,11 +11,13 @@ import SwiftUI
 
 struct AnkiSettingsView: View {
     private let persistence = AnkiPersistenceController.shared
+    private let noteService = AnkiNoteService()
 
     @State private var currentSettings: MaruAnkiSettings?
     @State private var showingConfigurationFlow = false
     @State private var showingFieldMappingManagement = false
     @State private var isLoading = true
+    @State private var pendingCount = 0
 
     var body: some View {
         Form {
@@ -46,11 +48,29 @@ struct AnkiSettingsView: View {
                         }
                     }
                 }
+
+                Section("Pending Notes") {
+                    if pendingCount > 0 {
+                        NavigationLink(destination: PendingNotesView()) {
+                            Label("Pending Notes", systemImage: "tray")
+                        }
+                        .badge(pendingCount)
+                    } else {
+                        NavigationLink(destination: PendingNotesView()) {
+                            Label("Pending Notes", systemImage: "tray")
+                        }
+                    }
+                }
             }
         }
         .navigationTitle("Anki")
         .task {
             await loadSettings()
+        }
+        .onAppear {
+            Task {
+                await loadSettings()
+            }
         }
         .refreshable {
             await loadSettings()
@@ -83,6 +103,7 @@ struct AnkiSettingsView: View {
             return try? context.fetch(request).first
         }
         currentSettings = fetchedSettings
+        pendingCount = await noteService.pendingNoteCount()
         isLoading = false
     }
 

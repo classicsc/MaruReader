@@ -225,7 +225,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             throw AnkiConnectError.apiError(error)
         }
 
-        return AddNoteResult(ankiNoteID: response.result ?? nil)
+        return AddNoteResult(ankiNoteID: response.result ?? nil, pendingSync: false)
     }
 
     func getAnkiProfiles() async -> AnkiProfileListingResponse {

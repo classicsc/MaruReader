@@ -8,9 +8,12 @@
 public struct AddNoteResult: Sendable {
     /// The Anki note ID, if returned by the API.
     public let ankiNoteID: Int64?
+    /// Whether the note should be marked as pending sync locally.
+    public let pendingSync: Bool
 
-    public init(ankiNoteID: Int64?) {
+    public init(ankiNoteID: Int64?, pendingSync: Bool = false) {
         self.ankiNoteID = ankiNoteID
+        self.pendingSync = pendingSync
     }
 }
 

@@ -126,4 +126,29 @@ struct AnkiMobileProviderTests {
         #expect(frontValue == "Text<br>https://example.com/image.jpg")
         #expect(!(frontValue?.contains("file://") ?? false))
     }
+
+    @Test func addNote_withoutOpener_marksPending() async throws {
+        let provider = AnkiMobileProvider(urlOpener: nil)
+
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Front": [.text("Test")],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        let result = try await provider.addNote(
+            fields: fields,
+            profileName: "",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        #expect(result.pendingSync == true)
+    }
 }

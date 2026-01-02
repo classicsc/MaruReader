@@ -43,10 +43,10 @@ enum AnkiMobileError: Error, LocalizedError, Sendable {
 }
 
 struct AnkiMobileProvider: AnkiProvider {
-    private let urlOpener: any AnkiMobileURLOpening
+    private let urlOpener: (any AnkiMobileURLOpening)?
     private let returnURL: URL?
 
-    init(urlOpener: any AnkiMobileURLOpening, returnURL: URL? = nil) {
+    init(urlOpener: (any AnkiMobileURLOpening)?, returnURL: URL? = nil) {
         self.urlOpener = urlOpener
         self.returnURL = returnURL
     }
@@ -58,7 +58,7 @@ struct AnkiMobileProvider: AnkiProvider {
         modelName: String,
         duplicateOptions: DuplicateDetectionOptions
     ) async throws -> AddNoteResult {
-        let fieldValues = buildFieldValues(from: fields)
+        let fieldValues = AnkiFieldValueFormatter.buildFieldValues(from: fields)
         let trimmedProfile = profileName.trimmingCharacters(in: .whitespacesAndNewlines)
         let profileValue = trimmedProfile.isEmpty ? nil : trimmedProfile
 
@@ -72,12 +72,16 @@ struct AnkiMobileProvider: AnkiProvider {
             xSuccess: returnURL
         )
 
-        let opened = await urlOpener.open(url)
-        guard opened else {
-            throw AnkiMobileError.openFailed
+        if let urlOpener {
+            let opened = await urlOpener.open(url)
+            guard opened else {
+                throw AnkiMobileError.openFailed
+            }
+
+            return AddNoteResult(ankiNoteID: nil, pendingSync: false)
         }
 
-        return AddNoteResult(ankiNoteID: nil)
+        return AddNoteResult(ankiNoteID: nil, pendingSync: true)
     }
 
     func getAnkiProfiles() async -> AnkiProfileListingResponse {
@@ -92,34 +96,6 @@ struct AnkiMobileProvider: AnkiProvider {
         .apiCapabilityMissing
     }
 
-    private func buildFieldValues(from fields: [String: [TemplateResolvedValue]]) -> [String: String] {
-        var output: [String: String] = [:]
-
-        for (fieldName, values) in fields {
-            var pieces: [String] = []
-
-            for value in values {
-                if let text = value.text, !text.isEmpty {
-                    pieces.append(text)
-                }
-
-                let remoteMedia = value.mediaFiles.values.compactMap { url -> String? in
-                    guard let scheme = url.scheme?.lowercased(),
-                          scheme == "http" || scheme == "https"
-                    else {
-                        return nil
-                    }
-                    return url.absoluteString
-                }
-
-                pieces.append(contentsOf: remoteMedia)
-            }
-
-            output[fieldName] = pieces.joined(separator: "<br>")
-        }
-
-        return output
-    }
 }
 
 enum AnkiMobileURLBuilder {

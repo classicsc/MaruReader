@@ -3,9 +3,13 @@
 //
 //  Stub settings screen.
 //
+import MaruAnki
 import SwiftUI
 
 struct SettingsView: View {
+    @State private var pendingCount = 0
+    private let noteService = AnkiNoteService()
+
     var body: some View {
         NavigationStack {
             Form {
@@ -23,8 +27,15 @@ struct SettingsView: View {
                     }
                 }
                 Section("Integrations") {
-                    NavigationLink(destination: AnkiSettingsView()) {
-                        Label("Anki", systemImage: "rectangle.stack.badge.plus")
+                    if pendingCount > 0 {
+                        NavigationLink(destination: AnkiSettingsView()) {
+                            Label("Anki", systemImage: "rectangle.stack.badge.plus")
+                        }
+                        .badge(pendingCount)
+                    } else {
+                        NavigationLink(destination: AnkiSettingsView()) {
+                            Label("Anki", systemImage: "rectangle.stack.badge.plus")
+                        }
                     }
                 }
                 Section("About") {
@@ -33,11 +44,20 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .onAppear {
+                Task {
+                    await loadPendingCount()
+                }
+            }
         }
     }
 
     private var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—" }
     private var appBuild: String { Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—" }
+
+    private func loadPendingCount() async {
+        pendingCount = await noteService.pendingNoteCount()
+    }
 }
 
 #Preview {

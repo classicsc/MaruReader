@@ -20,12 +20,16 @@ public enum AnkiConnectionManagerError: Error {
 public struct NoteCreationResult: Sendable {
     /// The Anki note ID, if returned by the API.
     public let ankiNoteID: Int64?
+    /// Whether the note should be marked as pending sync locally.
+    public let pendingSync: Bool
     /// The profile name the note was added to.
     public let profileName: String
     /// The deck name the note was added to.
     public let deckName: String
     /// The model name used for the note.
     public let modelName: String
+    /// The resolved fields stored for pending sync.
+    public let resolvedFields: [String: String]
 }
 
 /// Converts resolved `TemplateValue`s into note fields based on persisted Anki settings.
@@ -38,6 +42,7 @@ public actor AnkiConnectionManager {
     private var provider: (any AnkiProvider)?
     private var duplicateOptions: DuplicateDetectionOptions?
     private var fieldMap: AnkiFieldMap?
+    private var isAnkiConnect: Bool = false
 
     public private(set) var profileName: String?
     public private(set) var deckName: String?
@@ -113,7 +118,6 @@ public actor AnkiConnectionManager {
               let provider,
               let duplicateOptions,
               let fieldMap,
-              let profileName,
               let deckName,
               let modelName
         else {
@@ -128,9 +132,10 @@ public actor AnkiConnectionManager {
             }
         }
 
+        let resolvedFields = AnkiFieldValueFormatter.buildFieldValues(from: fields)
         let result = try await provider.addNote(
             fields: fields,
-            profileName: profileName,
+            profileName: profileName ?? "",
             deckName: deckName,
             modelName: modelName,
             duplicateOptions: duplicateOptions
@@ -138,9 +143,64 @@ public actor AnkiConnectionManager {
 
         return NoteCreationResult(
             ankiNoteID: result.ankiNoteID,
-            profileName: profileName,
+            pendingSync: result.pendingSync,
+            profileName: profileName ?? "",
             deckName: deckName,
-            modelName: modelName
+            modelName: modelName,
+            resolvedFields: resolvedFields
+        )
+    }
+
+    /// Add a note using pre-resolved fields (e.g., from pending sync).
+    @discardableResult
+    public func addNote(
+        resolvedFields: [String: String],
+        profileName: String?,
+        deckName: String?,
+        modelName: String?
+    ) async throws -> NoteCreationResult {
+        guard isReady,
+              let provider,
+              let duplicateOptions
+        else {
+            throw AnkiConnectionManagerError.notReady
+        }
+
+        let resolvedProfile = profileName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let fallbackProfile = self.profileName?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let targetProfile = (resolvedProfile?.isEmpty == false ? resolvedProfile : fallbackProfile) ?? ""
+
+        if isAnkiConnect, targetProfile.isEmpty {
+            throw AnkiConnectionManagerError.missingRequiredSettings
+        }
+
+        let targetDeck = deckName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? self.deckName
+        let targetModel = modelName?.trimmingCharacters(in: .whitespacesAndNewlines)
+            ?? self.modelName
+
+        guard let targetDeck, !targetDeck.isEmpty,
+              let targetModel, !targetModel.isEmpty
+        else {
+            throw AnkiConnectionManagerError.missingRequiredSettings
+        }
+
+        let resolvedValues = resolvedFields.mapValues { [TemplateResolvedValue.text($0)] }
+        let result = try await provider.addNote(
+            fields: resolvedValues,
+            profileName: targetProfile,
+            deckName: targetDeck,
+            modelName: targetModel,
+            duplicateOptions: duplicateOptions
+        )
+
+        return NoteCreationResult(
+            ankiNoteID: result.ankiNoteID,
+            pendingSync: result.pendingSync,
+            profileName: targetProfile,
+            deckName: targetDeck,
+            modelName: targetModel,
+            resolvedFields: resolvedFields
         )
     }
 
@@ -206,6 +266,7 @@ public actor AnkiConnectionManager {
         profileName = nil
         deckName = nil
         modelName = nil
+        isAnkiConnect = false
 
         do {
             let config = try await fetchSettings()
@@ -256,6 +317,7 @@ public actor AnkiConnectionManager {
             self.profileName = trimmedProfileName
             self.deckName = deckName
             self.modelName = modelName
+            self.isAnkiConnect = config.isAnkiConnect
 
             isReady = true
         } catch {
@@ -327,10 +389,7 @@ public actor AnkiConnectionManager {
             }
         }
 
-        guard let opener = await AnkiMobileURLOpenerStore.shared.get() else {
-            return nil
-        }
-
+        let opener = await AnkiMobileURLOpenerStore.shared.get()
         return AnkiMobileProvider(urlOpener: opener)
     }
 }
