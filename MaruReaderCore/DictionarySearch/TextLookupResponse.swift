@@ -663,6 +663,9 @@ public struct TextLookupResponse: Sendable {
             <script src="marureader-resource://ankiDisplay.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
+                    if (window.MaruReader && window.MaruReader.textScanning) {
+                        window.MaruReader.textScanning.initialize();
+                    }
                     if (window.MaruReader && window.MaruReader.frequencyDisplay) {
                         window.MaruReader.frequencyDisplay.initialize();
                     }

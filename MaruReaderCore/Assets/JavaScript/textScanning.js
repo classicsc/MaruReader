@@ -7,7 +7,9 @@ window.MaruReader = window.MaruReader || {};
 window.MaruReader.textScanning = {
 
     /**
-     * Initializes text scanning by adding tap event listeners
+     * Initializes text scanning by adding tap event listeners.
+     * Only call this for contexts where the click listener should be active
+     * (e.g., dictionary views). Book reader uses native gesture handling instead.
      */
     initialize: function() {
         document.addEventListener('click', this.handleTap.bind(this), true);
@@ -513,11 +515,6 @@ window.MaruReader.textScanning = {
     }
 };
 
-// Initialize text scanning when the DOM is ready
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', function() {
-        window.MaruReader.textScanning.initialize();
-    });
-} else {
-    window.MaruReader.textScanning.initialize();
-}
+// Note: Auto-initialization removed. Book reader uses native gesture overlay
+// and calls extractTextAtPoint directly. Dictionary views that need click
+// handling should call window.MaruReader.textScanning.initialize() explicitly.

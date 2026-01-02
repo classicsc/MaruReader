@@ -100,15 +100,30 @@ struct BookReaderView: View {
                 )
                 .padding(viewModel.readerPreferences.horizontalMargin)
                 .overlay {
-                    MarginSwipeOverlay(
-                        marginWidth: viewModel.readerPreferences.horizontalMargin,
-                        onSwipeLeft: {
-                            Task { await viewModel.navigator?.goRight(options: .init()) }
-                        },
-                        onSwipeRight: {
-                            Task { await viewModel.navigator?.goLeft(options: .init()) }
-                        }
-                    )
+                    if viewModel.isDictionaryActive {
+                        DictionaryGestureOverlay(
+                            marginWidth: viewModel.readerPreferences.horizontalMargin,
+                            onTap: { globalPoint in
+                                viewModel.triggerTextScan(atGlobalPoint: globalPoint)
+                            },
+                            onSwipeLeft: {
+                                Task { await viewModel.navigator?.goRight(options: .init()) }
+                            },
+                            onSwipeRight: {
+                                Task { await viewModel.navigator?.goLeft(options: .init()) }
+                            }
+                        )
+                    } else {
+                        MarginSwipeOverlay(
+                            marginWidth: viewModel.readerPreferences.horizontalMargin,
+                            onSwipeLeft: {
+                                Task { await viewModel.navigator?.goRight(options: .init()) }
+                            },
+                            onSwipeRight: {
+                                Task { await viewModel.navigator?.goLeft(options: .init()) }
+                            }
+                        )
+                    }
                 }
                 .popover(
                     isPresented: $viewModel.showPopup,
@@ -165,6 +180,12 @@ struct BookReaderView: View {
                 viewModel.overlayState = .showingTableOfContents
             } label: {
                 Image(systemName: "list.bullet")
+            }
+
+            Button {
+                viewModel.isDictionaryActive.toggle()
+            } label: {
+                Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill" : "character.book.closed")
             }
 
             Button {
@@ -271,5 +292,47 @@ private struct MarginSwipeOverlay: View {
                     onSwipeRight()
                 }
             }
+    }
+}
+
+// MARK: - Dictionary Gesture Overlay
+
+/// Overlay that captures all gestures when dictionary mode is active.
+/// Taps trigger dictionary lookup, drags flip pages.
+private struct DictionaryGestureOverlay: View {
+    let marginWidth: Double
+    let onTap: (CGPoint) -> Void
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
+
+    var body: some View {
+        GeometryReader { _ in
+            Color.clear
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 30)
+                        .onEnded { value in
+                            let horizontalDistance = value.translation.width
+                            let verticalDistance = abs(value.translation.height)
+
+                            guard abs(horizontalDistance) > verticalDistance else { return }
+
+                            if horizontalDistance < 0 {
+                                onSwipeLeft()
+                            } else {
+                                onSwipeRight()
+                            }
+                        }
+                )
+                .simultaneousGesture(
+                    TapGesture()
+                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+                        .onEnded { value in
+                            if case let .second(_, drag) = value, let location = drag?.location {
+                                onTap(location)
+                            }
+                        }
+                )
+        }
     }
 }

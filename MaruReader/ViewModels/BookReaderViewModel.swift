@@ -56,6 +56,9 @@ enum BookReaderOverlayState {
 final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var readerState: BookReaderState = .loading
     var overlayState: BookReaderOverlayState = .showingToolbars
+    /// When true, dictionary tap gestures are active and navigator gestures are blocked.
+    /// When false, navigator receives all gestures (text selection, links).
+    var isDictionaryActive: Bool = true
     private var showingPopup: Bool = false
     var showPopup: Bool {
         get { showingPopup }
@@ -80,6 +83,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var currentPopupResponse: TextLookupResponse?
 
     private var popupSearchTask: Task<Void, Error>?
+    private weak var activeNavigatorWebView: WKWebView?
 
     private let audioLookupService = AudioLookupService(persistenceController: .shared)
     private let searchService: DictionarySearchService
@@ -318,11 +322,49 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             else {
                 return nil
             }
-            return CGRect(x: x + readerPreferences.horizontalMargin,
-                          y: y + readerPreferences.horizontalMargin,
-                          width: width,
-                          height: height)
+            let rect = CGRect(x: x, y: y, width: width, height: height)
+            return convertWebViewRectToReaderView(rect)
         }
+    }
+
+    private func navigatorWebView(containingNavigatorPoint point: CGPoint) -> WKWebView? {
+        guard let navigatorView = navigator?.view else {
+            return nil
+        }
+
+        let webViews = navigatorView.descendants(ofType: WKWebView.self)
+        if let matchingWebView = webViews.first(where: { webView in
+            guard webView.window != nil else { return false }
+            let pointInWebView = webView.convert(point, from: navigatorView)
+            return webView.bounds.contains(pointInWebView)
+        }) {
+            return matchingWebView
+        }
+
+        return webViews.first(where: { $0.window != nil })
+    }
+
+    private func currentNavigatorWebView() -> WKWebView? {
+        if let activeNavigatorWebView, activeNavigatorWebView.window != nil {
+            return activeNavigatorWebView
+        }
+
+        guard let navigatorView = navigator?.view else {
+            return nil
+        }
+
+        return navigatorView.descendants(ofType: WKWebView.self).first(where: { $0.window != nil })
+    }
+
+    private func convertWebViewRectToReaderView(_ rect: CGRect) -> CGRect? {
+        guard let navigator,
+              let webView = currentNavigatorWebView()
+        else {
+            return nil
+        }
+
+        let rectInNavigator = webView.convert(rect, to: navigator.view)
+        return rectInNavigator.offsetBy(dx: readerPreferences.horizontalMargin, dy: readerPreferences.horizontalMargin)
     }
 
     func hidePopup() {
@@ -381,6 +423,42 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             overlayState = .showingToolbars
         } else {
             overlayState = .none
+        }
+    }
+
+    /// Triggers text scanning at the given point (in window/global coordinates).
+    func triggerTextScan(atGlobalPoint point: CGPoint) {
+        guard let navigator,
+              let navigatorView = navigator.view,
+              let window = navigatorView.window
+        else {
+            logger.warning("Navigator web view not ready for text scan")
+            return
+        }
+
+        let pointInNavigator = navigatorView.convert(point, from: window)
+        guard let webView = navigatorWebView(containingNavigatorPoint: pointInNavigator) else {
+            logger.warning("Navigator web view not found for text scan")
+            return
+        }
+
+        let pointInWebView = webView.convert(pointInNavigator, from: navigatorView)
+        guard webView.bounds.contains(pointInWebView) else {
+            logger.debug("Tap outside navigator web view bounds: \(String(describing: pointInWebView))")
+            return
+        }
+
+        activeNavigatorWebView = webView
+        let script = "window.MaruReader.textScanning.extractTextAtPoint(\(pointInWebView.x), \(pointInWebView.y), 0, 50);"
+        Task {
+            let result = await navigator.evaluateJavaScript(script)
+            switch result {
+            case .success:
+                // Response is handled via WKScriptMessageHandler
+                break
+            case let .failure(error):
+                logger.error("Text scan failed: \(error.localizedDescription)")
+            }
         }
     }
 
@@ -583,5 +661,21 @@ extension EPUBNavigatorViewController {
         case let .failure(error):
             throw error
         }
+    }
+}
+
+private extension UIView {
+    func descendants<T: UIView>(ofType type: T.Type) -> [T] {
+        var results: [T] = []
+
+        if let view = self as? T {
+            results.append(view)
+        }
+
+        for subview in subviews {
+            results.append(contentsOf: subview.descendants(ofType: type))
+        }
+
+        return results
     }
 }
