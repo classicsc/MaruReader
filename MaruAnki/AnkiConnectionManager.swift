@@ -172,7 +172,7 @@ public actor AnkiConnectionManager {
         let allChangedObjects = inserted.union(updated).union(deleted)
 
         return allChangedObjects.contains { object in
-            object.entity.name != "AnkiNote" // Currently all entities other than notes should trigger a reload
+            object.entity.name == "MaruAnkiSettings" || object.entity.name == "MaruModelSettings"
         }
     }
 
