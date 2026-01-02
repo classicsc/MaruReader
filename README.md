@@ -35,9 +35,7 @@ Maru is still in the early stages. Before moving to publish it on the App Store 
   - **AnkiMobile**: Send cards straight to the Anki iOS app, subject to URL limitations.
   - **APKG**: Look into queueing and exporting notes to a file for more flexibility.
 - **Improved image OCR views**
-  - Merge neighboring rects to keep sentence context together. Needs a heuristic to determine the probable text direction and exclude mismatches (signs in manga, shouldn't combine with neighboring speech, etc)
   - Try to guess tap location based on character level bounding.
-  - Add a camera interface to capture directly.
 
 While the above features are essential, I have some further ideas in mind that I may choose to complete before or after wide release:
 
