@@ -231,14 +231,18 @@ public actor AnkiConnectionManager {
             guard let deckName = config.deckName,
                   !deckName.isEmpty,
                   let modelName = config.modelName,
-                  !modelName.isEmpty,
-                  let profileName = config.profileName,
-                  !profileName.isEmpty
+                  !modelName.isEmpty
             else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 
+            let trimmedProfileName = config.profileName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if config.isAnkiConnect, trimmedProfileName.isEmpty {
+                throw AnkiConnectionManagerError.missingRequiredSettings
+            }
+
             guard let provider = await makeProvider(
+                isAnkiConnect: config.isAnkiConnect,
                 host: config.apiHost,
                 port: config.apiPort,
                 apiKey: config.apiKey
@@ -249,7 +253,7 @@ public actor AnkiConnectionManager {
             self.provider = provider
             self.duplicateOptions = duplicateOptions
             self.fieldMap = fieldMap
-            self.profileName = profileName
+            self.profileName = trimmedProfileName
             self.deckName = deckName
             self.modelName = modelName
 
@@ -270,6 +274,7 @@ public actor AnkiConnectionManager {
         let apiHost: String?
         let apiPort: Int?
         let apiKey: String?
+        let isAnkiConnect: Bool
     }
 
     private func fetchSettings() async throws -> AnkiConfiguration {
@@ -287,35 +292,46 @@ public actor AnkiConnectionManager {
                 throw AnkiConnectionManagerError.ankiDisabled
             }
 
+            let connectConfig = settings.isAnkiConnect ? settings.connectConfiguration : nil
+
             return AnkiConfiguration(
                 duplicateNoteSettingsJSON: settings.duplicateNoteSettings,
                 fieldMapJSON: settings.modelConfiguration?.fieldMap,
                 deckName: settings.defaultDeckName,
                 modelName: settings.defaultModelName,
                 profileName: settings.defaultProfileName,
-                apiHost: settings.connectConfiguration?["hostname"] as? String,
-                apiPort: settings.connectConfiguration?["port"] as? Int,
-                apiKey: settings.connectConfiguration?["apiKey"] as? String
+                apiHost: connectConfig?["hostname"] as? String,
+                apiPort: connectConfig?["port"] as? Int,
+                apiKey: connectConfig?["apiKey"] as? String,
+                isAnkiConnect: settings.isAnkiConnect
             )
         }
     }
 
-    private func makeProvider(host: String?, port: Int?, apiKey: String?) async -> (any AnkiProvider)? {
-        guard let host, port != nil, (port ?? 0) > 0, !host.isEmpty else {
+    private func makeProvider(isAnkiConnect: Bool, host: String?, port: Int?, apiKey: String?) async -> (any AnkiProvider)? {
+        if isAnkiConnect {
+            guard let host, port != nil, (port ?? 0) > 0, !host.isEmpty else {
+                return nil
+            }
+
+            do {
+                let provider = try await AnkiConnectProvider(
+                    host: host,
+                    port: port!,
+                    apiKey: apiKey
+                )
+                return provider
+            } catch {
+                self.error = error
+                return UnimplementedAnkiProvider()
+            }
+        }
+
+        guard let opener = await AnkiMobileURLOpenerStore.shared.get() else {
             return nil
         }
 
-        do {
-            let provider = try await AnkiConnectProvider(
-                host: host,
-                port: port!,
-                apiKey: apiKey
-            )
-            return provider
-        } catch {
-            self.error = error
-            return UnimplementedAnkiProvider()
-        }
+        return AnkiMobileProvider(urlOpener: opener)
     }
 }
 

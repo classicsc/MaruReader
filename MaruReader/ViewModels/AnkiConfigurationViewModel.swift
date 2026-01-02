@@ -20,17 +20,19 @@ struct FieldMappingProfileInfo: Identifiable, Sendable {
 @MainActor
 @Observable
 final class AnkiConfigurationViewModel {
-    enum ConfigurationStep: Int, CaseIterable {
+    enum ConfigurationStep: Int, CaseIterable, Sendable {
         case connectionType = 0
         case connectionDetails = 1
-        case profileSelection = 2
-        case deckSelection = 3
-        case modelSelection = 4
-        case fieldMappingSelection = 5
+        case mobileDetails = 2
+        case profileSelection = 3
+        case deckSelection = 4
+        case modelSelection = 5
+        case fieldMappingSelection = 6
     }
 
-    enum ConnectionType: String, CaseIterable, Identifiable {
+    enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
         case ankiConnect = "Anki-Connect"
+        case ankiMobile = "AnkiMobile"
 
         var id: String { rawValue }
     }
@@ -45,6 +47,11 @@ final class AnkiConfigurationViewModel {
     var host: String = "localhost"
     var port: String = "8765"
     var apiKey: String = ""
+
+    // AnkiMobile settings
+    var mobileProfileName: String = ""
+    var mobileDeckName: String = ""
+    var mobileModelName: String = ""
 
     // Fetched data
     var profiles: [AnkiProfileMeta] = []
@@ -105,6 +112,9 @@ final class AnkiConfigurationViewModel {
             true
         case .connectionDetails:
             !host.isEmpty && portInt != nil && portInt! > 0
+        case .mobileDetails:
+            !mobileDeckName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                && !mobileModelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         case .profileSelection:
             selectedProfileID != nil
         case .deckSelection:
@@ -123,10 +133,18 @@ final class AnkiConfigurationViewModel {
 
         switch currentStep {
         case .connectionType:
-            currentStep = .connectionDetails
+            switch connectionType {
+            case .ankiConnect:
+                currentStep = .connectionDetails
+            case .ankiMobile:
+                currentStep = .mobileDetails
+            }
 
         case .connectionDetails:
             await testConnectionAndProceed()
+
+        case .mobileDetails:
+            await fetchFieldMappingProfiles()
 
         case .profileSelection:
             await fetchDecksAndModels()
@@ -148,6 +166,8 @@ final class AnkiConfigurationViewModel {
             break
         case .connectionDetails:
             currentStep = .connectionType
+        case .mobileDetails:
+            currentStep = .connectionType
         case .profileSelection:
             currentStep = .connectionDetails
         case .deckSelection:
@@ -155,7 +175,12 @@ final class AnkiConfigurationViewModel {
         case .modelSelection:
             currentStep = .deckSelection
         case .fieldMappingSelection:
-            currentStep = .modelSelection
+            switch connectionType {
+            case .ankiConnect:
+                currentStep = .modelSelection
+            case .ankiMobile:
+                currentStep = .mobileDetails
+            }
         }
     }
 
@@ -268,12 +293,7 @@ final class AnkiConfigurationViewModel {
     // MARK: - Save Configuration
 
     private func saveConfiguration() async {
-        guard let profileID = selectedProfileID,
-              let deckName = selectedDeckName,
-              let modelName = selectedModelName,
-              let fieldMappingID = selectedFieldMappingProfileID,
-              let portInt
-        else { return }
+        guard let fieldMappingID = selectedFieldMappingProfileID else { return }
 
         isLoading = true
         defer { isLoading = false }
@@ -283,6 +303,14 @@ final class AnkiConfigurationViewModel {
         // Capture MainActor-isolated properties before entering background context
         let hostValue = host
         let apiKeyValue = apiKeyOrNil
+        let connectionType = connectionType
+        let selectedProfileID = selectedProfileID
+        let selectedDeckName = selectedDeckName
+        let selectedModelName = selectedModelName
+        let portValue = portInt
+        let mobileProfileName = mobileProfileName
+        let mobileDeckName = mobileDeckName
+        let mobileModelName = mobileModelName
 
         do {
             try await context.perform {
@@ -300,17 +328,41 @@ final class AnkiConfigurationViewModel {
 
                 // Update settings
                 settings.ankiEnabled = true
-                settings.isAnkiConnect = true
-                settings.defaultProfileName = profileID
-                settings.defaultDeckName = deckName
-                settings.defaultModelName = modelName
 
-                // Set connect configuration
-                settings.connectConfiguration = [
-                    "hostname": hostValue,
-                    "port": portInt,
-                    "apiKey": apiKeyValue as Any,
-                ]
+                switch connectionType {
+                case .ankiConnect:
+                    guard let profileID = selectedProfileID,
+                          let deckName = selectedDeckName,
+                          let modelName = selectedModelName,
+                          let portInt = portValue
+                    else {
+                        throw AnkiConfigurationError.invalidConfiguration
+                    }
+
+                    settings.isAnkiConnect = true
+                    settings.defaultProfileName = profileID
+                    settings.defaultDeckName = deckName
+                    settings.defaultModelName = modelName
+
+                    // Set connect configuration
+                    settings.connectConfiguration = [
+                        "hostname": hostValue,
+                        "port": portInt,
+                        "apiKey": apiKeyValue as Any,
+                    ]
+                case .ankiMobile:
+                    let trimmedDeck = mobileDeckName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let trimmedModel = mobileModelName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard !trimmedDeck.isEmpty, !trimmedModel.isEmpty else {
+                        throw AnkiConfigurationError.invalidConfiguration
+                    }
+
+                    settings.isAnkiConnect = false
+                    settings.defaultProfileName = mobileProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    settings.defaultDeckName = trimmedDeck
+                    settings.defaultModelName = trimmedModel
+                    settings.connectConfiguration = nil
+                }
 
                 // Link to field mapping profile
                 let profileRequest = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
@@ -455,7 +507,7 @@ final class AnkiConfigurationViewModel {
     }
 }
 
-enum FieldMappingError: LocalizedError {
+enum FieldMappingError: LocalizedError, Sendable {
     case profileNotFound
     case cannotModifySystemProfile
     case cannotDeleteSystemProfile
@@ -468,6 +520,17 @@ enum FieldMappingError: LocalizedError {
             "System profiles cannot be modified."
         case .cannotDeleteSystemProfile:
             "System profiles cannot be deleted."
+        }
+    }
+}
+
+enum AnkiConfigurationError: LocalizedError, Sendable {
+    case invalidConfiguration
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidConfiguration:
+            "Missing required configuration values."
         }
     }
 }

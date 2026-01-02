@@ -32,8 +32,8 @@
         <relationship name="settings" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="modelConfiguration" inverseEntity="MaruAnkiSettings"/>
     </entity>
     <composite name="AnkiConnectConfiguration">
-        <attribute name="hostname" attributeType="String"/>
-        <attribute name="port" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="hostname" optional="YES" attributeType="String"/>
+        <attribute name="port" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="apiKey" optional="YES" attributeType="String"/>
     </composite>
 </model>

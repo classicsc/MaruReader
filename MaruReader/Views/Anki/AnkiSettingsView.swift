@@ -97,6 +97,8 @@ struct AnkiSettingsView: View {
                 {
                     LabeledContent("Server", value: "\(host):\(port)")
                 }
+            } else {
+                LabeledContent("Connection", value: "AnkiMobile")
             }
 
             if let profile = settings.defaultProfileName, !profile.isEmpty {

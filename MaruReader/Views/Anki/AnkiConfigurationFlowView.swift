@@ -19,6 +19,8 @@ struct AnkiConfigurationFlowView: View {
                 ConnectionTypeSelectionView(viewModel: viewModel)
             case .connectionDetails:
                 AnkiConnectSetupView(viewModel: viewModel)
+            case .mobileDetails:
+                AnkiMobileSetupView(viewModel: viewModel)
             case .profileSelection:
                 ProfileSelectionView(viewModel: viewModel)
             case .deckSelection:

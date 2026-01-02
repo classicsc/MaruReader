@@ -1,3 +1,4 @@
+import MaruAnki
 import MaruDictionaryUICommon
 import MaruVision
 import MaruVisionUICommon
@@ -9,6 +10,10 @@ import UniformTypeIdentifiers
 final class ShareViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
+
+        Task { @MainActor in
+            await AnkiMobileURLOpenerStore.shared.set(ExtensionContextURLOpener(context: extensionContext))
+        }
 
         guard let extensionItem = extensionContext?.inputItems.first as? NSExtensionItem,
               let itemProvider = extensionItem.attachments?.first

@@ -38,7 +38,7 @@ struct ConnectionTypeSelectionView: View {
             } header: {
                 Text("Connection Type")
             } footer: {
-                Text("Choose how to connect to Anki. Anki-Connect requires the Anki-Connect add-on installed in Anki.")
+                Text("Choose how to connect to Anki. Anki-Connect requires the Anki-Connect add-on, while AnkiMobile uses the iOS URL scheme.")
             }
         }
         .navigationTitle("Connect to Anki")
@@ -57,6 +57,8 @@ struct ConnectionTypeSelectionView: View {
         switch type {
         case .ankiConnect:
             "Connect to Anki running on your computer via the Anki-Connect add-on"
+        case .ankiMobile:
+            "Add notes directly to AnkiMobile using the URL scheme on this device"
         }
     }
 }
