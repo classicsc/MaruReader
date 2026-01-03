@@ -367,6 +367,13 @@
 			);
 			target = DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */;
 		};
+		DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DB2B698B2E660F8B00EDA656 /* MaruReader */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -377,6 +384,9 @@
 		};
 		DB2B698E2E660F8B00EDA656 /* MaruReader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */,
+			);
 			path = MaruReader;
 			sourceTree = "<group>";
 		};
@@ -1629,7 +1639,9 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Maru;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"$(PRODUCT_BUNDLE_IDENTIFIER)\";\n    CFBundleURLSchemes =     (\n        marureader\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Maru uses the camera to capture images for Japanese text recognition.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1662,7 +1674,9 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Maru;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"$(PRODUCT_BUNDLE_IDENTIFIER)\";\n    CFBundleURLSchemes =     (\n        marureader\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Maru uses the camera to capture images for Japanese text recognition.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

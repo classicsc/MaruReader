@@ -89,6 +89,36 @@ struct AnkiMobileProviderTests {
         #expect(!urlString.contains("profile="))
     }
 
+    @Test func addNote_includesReturnURL() async throws {
+        let opener = TestURLOpener()
+        let returnURL = try #require(URL(string: "marureader://anki/x-success"))
+        let provider = AnkiMobileProvider(urlOpener: opener, returnURL: returnURL)
+
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Front": [.text("Test")],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let url = try #require(await opener.lastURL)
+        let urlString = url.absoluteString
+
+        #expect(urlString.contains("x-success=marureader%3A%2F%2Fanki%2Fx-success"))
+    }
+
     @Test func addNote_includesRemoteMediaURLs() async throws {
         let opener = TestURLOpener()
         let provider = AnkiMobileProvider(urlOpener: opener)

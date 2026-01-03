@@ -390,7 +390,8 @@ public actor AnkiConnectionManager {
         }
 
         let opener = await AnkiMobileURLOpenerStore.shared.get()
-        return AnkiMobileProvider(urlOpener: opener)
+        let returnURL = await AnkiMobileURLOpenerStore.shared.getReturnURL()
+        return AnkiMobileProvider(urlOpener: opener, returnURL: returnURL)
     }
 }
 

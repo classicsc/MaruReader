@@ -15,6 +15,7 @@ public actor AnkiMobileURLOpenerStore {
     public static let shared = AnkiMobileURLOpenerStore()
 
     private var opener: (any AnkiMobileURLOpening)?
+    private var returnURL: URL?
 
     public func set(_ opener: (any AnkiMobileURLOpening)?) {
         self.opener = opener
@@ -22,6 +23,19 @@ public actor AnkiMobileURLOpenerStore {
 
     public func get() -> (any AnkiMobileURLOpening)? {
         opener
+    }
+
+    public func setReturnURL(_ returnURL: URL?) {
+        self.returnURL = returnURL
+    }
+
+    public func getReturnURL() -> URL? {
+        returnURL
+    }
+
+    public func configure(opener: (any AnkiMobileURLOpening)?, returnURL: URL?) {
+        self.opener = opener
+        self.returnURL = returnURL
     }
 }
 
@@ -95,7 +109,6 @@ struct AnkiMobileProvider: AnkiProvider {
     func getAnkiModels(forProfile _: String) async -> AnkiModelListingResponse {
         .apiCapabilityMissing
     }
-
 }
 
 enum AnkiMobileURLBuilder {

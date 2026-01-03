@@ -13,7 +13,11 @@ import SwiftUI
 struct MaruReaderApp: App {
     init() {
         Task { @MainActor in
-            await AnkiMobileURLOpenerStore.shared.set(UIApplicationURLOpener())
+            let returnURL = URL(string: "marureader://anki/x-success")
+            await AnkiMobileURLOpenerStore.shared.configure(
+                opener: UIApplicationURLOpener(),
+                returnURL: returnURL
+            )
         }
     }
 
