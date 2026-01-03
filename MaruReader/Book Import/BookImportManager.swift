@@ -30,37 +30,43 @@ actor BookImportManager {
     /// Enqueue a new book import from the given EPUB file URL.
     /// - Parameter epubURL: The file URL of the EPUB file to import.
     func enqueueImport(from epubURL: URL) async throws -> NSManagedObjectID {
-        // Create BookEPUBImport in Core Data
+        // Create Book import record in Core Data
         let context = container.newBackgroundContext()
-        let importJob = try await context.perform {
-            let job = BookEPUBImport(context: context)
-            let jobID = UUID()
-            job.id = jobID
-            job.file = epubURL
-            job.timeQueued = Date()
+        let importBookID = try await context.perform {
+            let book = Book(context: context)
+            book.id = UUID()
+            book.importFile = epubURL
+            book.originalFileName = epubURL.lastPathComponent
+            let now = Date()
+            book.timeQueued = now
+            book.added = now
+            book.displayProgressMessage = "Queued for import."
             try context.save()
-            let importJob = job.objectID
-
-            return importJob
+            return book.objectID
         }
-        queue.append(importJob)
+        queue.append(importBookID)
         processNextIfIdle()
-        return importJob
+        return importBookID
     }
 
     /// Cancel an ongoing or queued import job.
-    /// - Parameter jobID: The NSManagedObjectID of the BookEPUBImport to cancel.
+    /// - Parameter jobID: The NSManagedObjectID of the Book to cancel.
     func cancelImport(jobID: NSManagedObjectID) async {
         if currentJobID == jobID {
             currentTask?.cancel()
         } else {
             queue.removeAll { $0 == jobID }
             // Also mark as cancelled in Core Data
-            await MainActor.run {
-                let context = BookDataPersistenceController.shared.container.viewContext
-                if let job = try? context.existingObject(with: jobID) as? BookEPUBImport {
-                    job.isCancelled = true
-                    job.timeCancelled = Date()
+            let context = container.newBackgroundContext()
+            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            context.undoManager = nil
+            context.shouldDeleteInaccessibleFaults = true
+            await context.perform {
+                if let book = try? context.existingObject(with: jobID) as? Book {
+                    book.isCancelled = true
+                    book.timeCancelled = Date()
+                    book.displayProgressMessage = "Import cancelled."
+                    book.importFile = nil
                     try? context.save()
                 }
             }
@@ -68,7 +74,7 @@ actor BookImportManager {
     }
 
     /// Wait for a given import job to complete.
-    /// - Parameter jobID: The NSManagedObjectID of the BookEPUBImport to wait for.
+    /// - Parameter jobID: The NSManagedObjectID of the Book to wait for.
     func waitForCompletion(jobID: NSManagedObjectID) async {
         while true {
             if currentJobID == jobID {
@@ -106,30 +112,30 @@ actor BookImportManager {
         context.shouldDeleteInaccessibleFaults = true
         do {
             try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? BookEPUBImport else {
+                guard let book = try? context.existingObject(with: jobID) as? Book else {
                     throw BookImportError.databaseError
                 }
-                job.isStarted = true
-                job.timeStarted = Date()
-                job.displayProgressMessage = "Starting import..."
+                book.isStarted = true
+                book.timeStarted = Date()
+                book.displayProgressMessage = "Starting import..."
                 try context.save()
             }
             try Task.checkCancellation()
             try testErrorInjection?()
 
-            let metadataTask = MetadataProcessingTask(jobID: jobID, container: container)
+            let metadataTask = MetadataProcessingTask(bookID: jobID, container: container)
             try await metadataTask.start()
             logger.debug("Import job \(jobID) metadata processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let fileCopyTask = FileCopyTask(jobID: jobID, container: container)
+            let fileCopyTask = FileCopyTask(bookID: jobID, container: container)
             try await fileCopyTask.start()
             logger.debug("Import job \(jobID) file copied")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let coverExtractionTask = CoverExtractionTask(jobID: jobID, container: container)
+            let coverExtractionTask = CoverExtractionTask(bookID: jobID, container: container)
             try await coverExtractionTask.start()
             logger.debug("Import job \(jobID) cover extracted")
             try Task.checkCancellation()
@@ -141,13 +147,14 @@ actor BookImportManager {
             finalizeContext.undoManager = nil
 
             try await finalizeContext.perform {
-                guard let job = try? finalizeContext.existingObject(with: jobID) as? BookEPUBImport else {
+                guard let book = try? finalizeContext.existingObject(with: jobID) as? Book else {
                     throw BookImportError.databaseError
                 }
-                job.isComplete = true
-                job.book?.isComplete = true
-                job.timeCompleted = Date()
-                job.displayProgressMessage = "Import complete."
+                book.isComplete = true
+                book.timeCompleted = Date()
+                book.displayProgressMessage = "Import complete."
+                book.errorMessage = nil
+                book.importFile = nil
 
                 try finalizeContext.save()
             }
@@ -157,22 +164,22 @@ actor BookImportManager {
             cleanupContext.undoManager = nil
 
             let cleanupInfo: (UUID, String?, String?)? = await cleanupContext.perform {
-                guard let job = try? cleanupContext.existingObject(with: jobID) as? BookEPUBImport else {
+                guard let book = try? cleanupContext.existingObject(with: jobID) as? Book else {
                     return nil
                 }
-                job.isCancelled = true
-                job.timeCancelled = Date()
-
-                guard let book = job.book, let uuid = book.id else {
-                    try? cleanupContext.save()
-                    return nil
-                }
+                book.isCancelled = true
+                book.timeCancelled = Date()
+                book.displayProgressMessage = "Import cancelled."
+                book.importFile = nil
 
                 let fileName = book.fileName
                 let coverFileName = book.coverFileName
-                cleanupContext.delete(book)
+                book.fileName = nil
+                book.coverFileName = nil
+                book.fileCopied = false
+                book.coverExtracted = false
                 try? cleanupContext.save()
-                return (uuid, fileName, coverFileName)
+                return (book.id ?? UUID(), fileName, coverFileName)
             }
 
             if let (uuid, fileName, coverFileName) = cleanupInfo {
@@ -184,22 +191,20 @@ actor BookImportManager {
             cleanupContext.undoManager = nil
 
             let cleanupInfo: (UUID, String?, String?)? = await cleanupContext.perform {
-                guard let job = try? cleanupContext.existingObject(with: jobID) as? BookEPUBImport else {
+                guard let book = try? cleanupContext.existingObject(with: jobID) as? Book else {
                     return nil
                 }
-                job.displayProgressMessage = error.localizedDescription
-
-                guard let book = job.book, let uuid = book.id else {
-                    try? cleanupContext.save()
-                    return nil
-                }
-
+                book.displayProgressMessage = error.localizedDescription
                 book.errorMessage = error.localizedDescription
+                book.importFile = nil
                 let fileName = book.fileName
                 let coverFileName = book.coverFileName
-                cleanupContext.delete(book)
+                book.fileName = nil
+                book.coverFileName = nil
+                book.fileCopied = false
+                book.coverExtracted = false
                 try? cleanupContext.save()
-                return (uuid, fileName, coverFileName)
+                return (book.id ?? UUID(), fileName, coverFileName)
             }
 
             if let (uuid, fileName, coverFileName) = cleanupInfo {

@@ -11,38 +11,38 @@ import MaruReaderCore
 import os.log
 
 struct FileCopyTask {
-    let jobID: NSManagedObjectID
+    let bookID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
-        self.jobID = jobID
+    init(bookID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
+        self.bookID = bookID
         self.persistentContainer = container
     }
 
     func start() async throws {
         let container = persistentContainer
-        let jobID = self.jobID
+        let bookID = self.bookID
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (fileURL, bookID) = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+        let (fileURL, bookUUID) = try await context.perform {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
             }
-            guard let fileURL = job.file else {
+            guard let fileURL = book.importFile else {
                 throw BookImportError.missingFile
             }
-            guard let book = job.book, let bookID = book.id else {
+            guard let bookUUID = book.id else {
                 throw BookImportError.bookCreationFailed
             }
 
             // Update progress message
-            job.displayProgressMessage = "Copying book file..."
+            book.displayProgressMessage = "Copying book file..."
             try context.save()
-            return (fileURL, bookID)
+            return (fileURL, bookUUID)
         }
 
         try Task.checkCancellation()
@@ -84,7 +84,7 @@ struct FileCopyTask {
 
         // Determine file extension
         let fileExtension = fileURL.pathExtension
-        let destinationFileName = "\(bookID.uuidString).\(fileExtension)"
+        let destinationFileName = "\(bookUUID.uuidString).\(fileExtension)"
         let destinationURL = booksDir.appendingPathComponent(destinationFileName)
 
         // Copy file
@@ -102,16 +102,13 @@ struct FileCopyTask {
 
         // Update Book entity with file name
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
-            }
-            guard let book = job.book else {
-                throw BookImportError.bookCreationFailed
             }
 
             book.fileName = destinationFileName
-            job.fileCopied = true
-            job.displayProgressMessage = "Book file copied."
+            book.fileCopied = true
+            book.displayProgressMessage = "Book file copied."
 
             try context.save()
         }
