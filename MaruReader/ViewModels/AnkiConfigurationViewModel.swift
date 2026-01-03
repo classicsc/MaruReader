@@ -51,8 +51,8 @@ final class AnkiConfigurationViewModel {
     }
 
     enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
-        case ankiConnect = "Anki-Connect"
         case ankiMobile = "AnkiMobile"
+        case ankiConnect = "Anki-Connect"
 
         var id: String { rawValue }
     }
@@ -61,7 +61,7 @@ final class AnkiConfigurationViewModel {
     var currentStep: ConfigurationStep = .connectionType
 
     // Connection type
-    var connectionType: ConnectionType = .ankiConnect
+    var connectionType: ConnectionType = .ankiMobile
 
     // Connection settings (temporary, not saved until completion)
     var host: String = "localhost"

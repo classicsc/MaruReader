@@ -38,7 +38,7 @@ struct ConnectionTypeSelectionView: View {
             } header: {
                 Text("Connection Type")
             } footer: {
-                Text("Choose how to connect to Anki. Anki-Connect requires the Anki-Connect add-on, while AnkiMobile uses the iOS URL scheme.")
+                Text("Choose how to connect to Anki. AnkiMobile works with the Anki app on your device; Anki-Connect works with the addon on your computer.")
             }
         }
         .navigationTitle("Connect to Anki")
@@ -56,9 +56,9 @@ struct ConnectionTypeSelectionView: View {
     private func connectionTypeDescription(_ type: AnkiConfigurationViewModel.ConnectionType) -> String {
         switch type {
         case .ankiConnect:
-            "Connect to Anki running on your computer via the Anki-Connect add-on"
+            "Advanced: Connect to Anki running on your computer via the Anki-Connect add-on. Requires Anki open with the addon installed, and a valid SSL certificate."
         case .ankiMobile:
-            "Add notes directly to AnkiMobile using the URL scheme on this device"
+            "Add notes to AnkiMobile on this device. Easy to set up, but notes will not contain images embedded in dictionary definitions, local audio, or context media like book cover images and content screenshots."
         }
     }
 }
