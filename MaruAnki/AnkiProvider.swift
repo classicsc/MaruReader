@@ -61,6 +61,12 @@ public struct AnkiDeckMeta: Sendable {
     public let id: String
     public let name: String
     public let profileName: String
+
+    public init(id: String, name: String, profileName: String) {
+        self.id = id
+        self.name = name
+        self.profileName = profileName
+    }
 }
 
 public struct AnkiModelMeta: Sendable {
@@ -68,11 +74,23 @@ public struct AnkiModelMeta: Sendable {
     public let name: String
     public let profileName: String
     public let fields: [String]
+
+    public init(id: String, name: String, profileName: String, fields: [String]) {
+        self.id = id
+        self.name = name
+        self.profileName = profileName
+        self.fields = fields
+    }
 }
 
 public struct AnkiProfileMeta: Sendable {
     public let id: String
     public let isActiveProfile: Bool
+
+    public init(id: String, isActiveProfile: Bool) {
+        self.id = id
+        self.isActiveProfile = isActiveProfile
+    }
 }
 
 enum AnkiProfileListingResponse {

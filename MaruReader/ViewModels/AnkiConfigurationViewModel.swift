@@ -17,6 +17,26 @@ struct FieldMappingProfileInfo: Identifiable, Sendable {
     let fieldMap: AnkiFieldMap?
 }
 
+private struct AnkiMobileInfoForAdding: Decodable {
+    struct NamedItem: Decodable {
+        let name: String
+    }
+
+    struct NoteType: Decodable {
+        struct Field: Decodable {
+            let name: String
+        }
+
+        let fields: [Field]
+        let name: String
+        let kind: String?
+    }
+
+    let decks: [NamedItem]
+    let notetypes: [NoteType]
+    let profiles: [NamedItem]?
+}
+
 @MainActor
 @Observable
 final class AnkiConfigurationViewModel {
@@ -48,16 +68,12 @@ final class AnkiConfigurationViewModel {
     var port: String = "8765"
     var apiKey: String = ""
 
-    // AnkiMobile settings
-    var mobileProfileName: String = ""
-    var mobileDeckName: String = ""
-    var mobileModelName: String = ""
-
     // Fetched data
     var profiles: [AnkiProfileMeta] = []
     var decks: [AnkiDeckMeta] = []
     var models: [AnkiModelMeta] = []
     var fieldMappingProfiles: [FieldMappingProfileInfo] = []
+    var isAnkiMobileInfoLoaded: Bool = false
 
     // Selections
     var selectedProfileID: String?
@@ -113,8 +129,7 @@ final class AnkiConfigurationViewModel {
         case .connectionDetails:
             !host.isEmpty && portInt != nil && portInt! > 0
         case .mobileDetails:
-            !mobileDeckName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && !mobileModelName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            isAnkiMobileInfoLoaded
         case .profileSelection:
             selectedProfileID != nil
         case .deckSelection:
@@ -144,10 +159,17 @@ final class AnkiConfigurationViewModel {
             await testConnectionAndProceed()
 
         case .mobileDetails:
-            await fetchFieldMappingProfiles()
+            if isAnkiMobileInfoLoaded {
+                currentStep = .profileSelection
+            }
 
         case .profileSelection:
-            await fetchDecksAndModels()
+            switch connectionType {
+            case .ankiConnect:
+                await fetchDecksAndModels()
+            case .ankiMobile:
+                currentStep = .deckSelection
+            }
 
         case .deckSelection:
             currentStep = .modelSelection
@@ -169,7 +191,12 @@ final class AnkiConfigurationViewModel {
         case .mobileDetails:
             currentStep = .connectionType
         case .profileSelection:
-            currentStep = .connectionDetails
+            switch connectionType {
+            case .ankiConnect:
+                currentStep = .connectionDetails
+            case .ankiMobile:
+                currentStep = .mobileDetails
+            }
         case .deckSelection:
             currentStep = .profileSelection
         case .modelSelection:
@@ -207,7 +234,7 @@ final class AnkiConfigurationViewModel {
             currentStep = .profileSelection
         } catch {
             self.error = error
-            self.showError = true
+            showError = true
         }
     }
 
@@ -241,7 +268,36 @@ final class AnkiConfigurationViewModel {
             currentStep = .deckSelection
         } catch {
             self.error = error
-            self.showError = true
+            showError = true
+        }
+    }
+
+    func applyAnkiMobileInfoForAddingData(_ data: Data) {
+        do {
+            let info = try JSONDecoder().decode(AnkiMobileInfoForAdding.self, from: data)
+            let profileNames = info.profiles?.map(\.name) ?? []
+            let loadedProfiles = profileNames.map { AnkiProfileMeta(id: $0, isActiveProfile: false) }
+            let defaultProfileID = loadedProfiles.first?.id ?? ""
+            profiles = loadedProfiles
+            decks = info.decks.map { deck in
+                AnkiDeckMeta(id: deck.name, name: deck.name, profileName: defaultProfileID)
+            }
+            models = info.notetypes.map { noteType in
+                AnkiModelMeta(
+                    id: noteType.name,
+                    name: noteType.name,
+                    profileName: defaultProfileID,
+                    fields: noteType.fields.map(\.name)
+                )
+            }
+            selectedProfileID = loadedProfiles.first?.id
+            selectedDeckName = nil
+            selectedModelName = nil
+            isAnkiMobileInfoLoaded = true
+            currentStep = loadedProfiles.isEmpty ? .deckSelection : .profileSelection
+        } catch {
+            self.error = error
+            showError = true
         }
     }
 
@@ -308,9 +364,6 @@ final class AnkiConfigurationViewModel {
         let selectedDeckName = selectedDeckName
         let selectedModelName = selectedModelName
         let portValue = portInt
-        let mobileProfileName = mobileProfileName
-        let mobileDeckName = mobileDeckName
-        let mobileModelName = mobileModelName
 
         do {
             try await context.perform {
@@ -351,14 +404,17 @@ final class AnkiConfigurationViewModel {
                         "apiKey": apiKeyValue as Any,
                     ]
                 case .ankiMobile:
-                    let trimmedDeck = mobileDeckName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    let trimmedModel = mobileModelName.trimmingCharacters(in: .whitespacesAndNewlines)
-                    guard !trimmedDeck.isEmpty, !trimmedModel.isEmpty else {
+                    let trimmedDeck = selectedDeckName?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let trimmedModel = selectedModelName?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard let trimmedDeck, !trimmedDeck.isEmpty,
+                          let trimmedModel, !trimmedModel.isEmpty
+                    else {
                         throw AnkiConfigurationError.invalidConfiguration
                     }
 
                     settings.isAnkiConnect = false
-                    settings.defaultProfileName = mobileProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let trimmedProfile = selectedProfileID?.trimmingCharacters(in: .whitespacesAndNewlines)
+                    settings.defaultProfileName = trimmedProfile?.isEmpty == false ? trimmedProfile! : ""
                     settings.defaultDeckName = trimmedDeck
                     settings.defaultModelName = trimmedModel
                     settings.connectConfiguration = nil
@@ -389,7 +445,7 @@ final class AnkiConfigurationViewModel {
             onComplete?()
         } catch {
             self.error = error
-            self.showError = true
+            showError = true
         }
     }
 
