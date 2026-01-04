@@ -80,8 +80,8 @@
         <attribute name="kanjiFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="kanjiResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="kanjiBanks" optional="YES" attributeType="Transformable" valueTransformerName="URLArrayTransformer"/>
-        <attribute name="kanjiMetaBanks" optional="YES" attributeType="Transformable" valueTransformerName="URLArrayTransformer"/>
+        <attribute name="kanjiBanks" optional="YES" attributeType="String"/>
+        <attribute name="kanjiMetaBanks" optional="YES" attributeType="String"/>
         <attribute name="mediaImported" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
         <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -91,16 +91,16 @@
         <attribute name="revision" optional="YES" attributeType="String"/>
         <attribute name="sequenced" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="sourceLanguage" optional="YES" attributeType="String"/>
-        <attribute name="tagBanks" optional="YES" attributeType="Transformable" valueTransformerName="URLArrayTransformer"/>
+        <attribute name="tagBanks" optional="YES" attributeType="String"/>
         <attribute name="tagCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="targetLanguage" optional="YES" attributeType="String"/>
-        <attribute name="termBanks" optional="YES" attributeType="Transformable" valueTransformerName="URLArrayTransformer"/>
+        <attribute name="termBanks" optional="YES" attributeType="String"/>
         <attribute name="termCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="termMetaBanks" optional="YES" attributeType="Transformable" valueTransformerName="URLArrayTransformer"/>
+        <attribute name="termMetaBanks" optional="YES" attributeType="String"/>
         <attribute name="termResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
