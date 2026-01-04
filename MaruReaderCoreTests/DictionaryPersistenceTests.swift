@@ -171,31 +171,31 @@ struct DictionaryPersistenceTests {
         return zipURL
     }
 
-    // Helper: Verify job is properly cancelled
+    // Helper: Verify dictionary import is properly cancelled
     @MainActor
-    private func verifyJobCancelled(_ job: DictionaryZIPFileImport?) {
-        #expect(job != nil)
-        #expect(job?.isCancelled == true)
-        #expect(job?.isFailed == false)
-        #expect(job?.isComplete == false)
-        #expect(job?.timeCancelled != nil)
+    private func verifyDictionaryCancelled(_ dictionary: Dictionary?) {
+        #expect(dictionary != nil)
+        #expect(dictionary?.isCancelled == true)
+        #expect(dictionary?.isFailed == false)
+        #expect(dictionary?.isComplete == false)
+        #expect(dictionary?.timeCancelled != nil)
     }
 
-    // Helper: Verify job is properly marked as failed
+    // Helper: Verify dictionary import is properly marked as failed
     @MainActor
-    private func verifyJobFailed(_ job: DictionaryZIPFileImport?) {
-        #expect(job != nil)
-        #expect(job?.isFailed == true)
-        #expect(job?.isCancelled == false)
-        #expect(job?.isComplete == false)
-        #expect(job?.timeFailed != nil)
-        #expect(job?.displayProgressMessage?.isEmpty == false)
+    private func verifyDictionaryFailed(_ dictionary: Dictionary?) {
+        #expect(dictionary != nil)
+        #expect(dictionary?.isFailed == true)
+        #expect(dictionary?.isCancelled == false)
+        #expect(dictionary?.isComplete == false)
+        #expect(dictionary?.timeFailed != nil)
+        #expect(dictionary?.errorMessage?.isEmpty == false)
     }
 
-    // Helper: Get job from context safely
+    // Helper: Get dictionary from context safely
     @MainActor
-    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> DictionaryZIPFileImport? {
-        try? context.existingObject(with: importID) as? DictionaryZIPFileImport
+    private func getDictionary(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> Dictionary? {
+        try? context.existingObject(with: importID) as? Dictionary
     }
 
     // Helper: Fetch dictionaries safely
@@ -354,11 +354,11 @@ struct DictionaryPersistenceTests {
 
         // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        #expect(job != nil)
-        #expect(job?.isCancelled == false)
-        #expect(job?.isFailed == false)
-        #expect(job?.displayProgressMessage == "Import complete.")
+        let importRecord = getDictionary(from: context, importID: importID)
+        #expect(importRecord != nil)
+        #expect(importRecord?.isCancelled == false)
+        #expect(importRecord?.isFailed == false)
+        #expect(importRecord?.displayProgressMessage == "Import complete.")
 
         // Assert: Data persisted
         let dictResults = fetchDictionaries(from: context)
@@ -628,11 +628,11 @@ struct DictionaryPersistenceTests {
 
         // Assert: import does not show as failed or cancelled
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        #expect(job != nil)
-        #expect(job?.isCancelled == false)
-        #expect(job?.isFailed == false)
-        #expect(job?.displayProgressMessage == "Import complete.")
+        let importRecord = getDictionary(from: context, importID: importID)
+        #expect(importRecord != nil)
+        #expect(importRecord?.isCancelled == false)
+        #expect(importRecord?.isFailed == false)
+        #expect(importRecord?.displayProgressMessage == "Import complete.")
 
         let dictionaryResults = fetchDictionaries(from: context)
         #expect(dictionaryResults.count == 1)
@@ -794,12 +794,12 @@ struct DictionaryPersistenceTests {
         // Verify job is properly cancelled
         let context = persistenceController.container.viewContext
         await MainActor.run {
-            let job = getJob(from: context, importID: importID)
-            verifyJobCancelled(job)
+            let dictionary = getDictionary(from: context, importID: importID)
+            verifyDictionaryCancelled(dictionary)
 
-            // Verify no Core Data entities were created
+            // Verify dictionary record exists but no entries were created
             let dictResults = fetchDictionaries(from: context)
-            #expect(dictResults.isEmpty)
+            #expect(dictResults.count == 1)
 
             let termResults = fetchTermEntries(from: context)
             #expect(termResults.isEmpty)
@@ -846,14 +846,14 @@ struct DictionaryPersistenceTests {
         // Verify job is properly cancelled
         await MainActor.run {
             let context = persistenceController.container.viewContext
-            let job = getJob(from: context, importID: importID)
-            verifyJobCancelled(job)
+            let dictionary = getDictionary(from: context, importID: importID)
+            verifyDictionaryCancelled(dictionary)
 
-            // Verify dictionary was deleted during cleanup
+            // Verify dictionary record exists but no entries were created
             let dictResults = fetchDictionaries(from: context)
-            #expect(dictResults.isEmpty)
+            #expect(dictResults.count == 1)
         }
-        // Verify cleanup (dictionary should be deleted)
+        // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
@@ -896,11 +896,11 @@ struct DictionaryPersistenceTests {
         // Verify job is properly cancelled
         await MainActor.run {
             let context = persistenceController.container.viewContext
-            let job = getJob(from: context, importID: importID)
-            verifyJobCancelled(job)
-            // Verify dictionary was deleted during cleanup
+            let dictionary = getDictionary(from: context, importID: importID)
+            verifyDictionaryCancelled(dictionary)
+            // Verify dictionary record exists but no entries were created
             let dictResults = fetchDictionaries(from: context)
-            #expect(dictResults.isEmpty)
+            #expect(dictResults.count == 1)
         }
         // Verify cleanup (media directory should be removed despite being created)
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
@@ -937,15 +937,15 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly cancelled
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobCancelled(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryCancelled(dictionary)
 
         // For queued jobs, no directories should be created
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify no Core Data entities were created
+        // Verify dictionary record exists but no entries were created
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 
     // MARK: - Failure Tests
@@ -965,15 +965,15 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobFailed(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryFailed(dictionary)
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify no Core Data entities were created
+        // Verify dictionary record exists
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 
     @Test @MainActor func importDictionary_MissingIndexJSON_FailsAndCleansUp() async throws {
@@ -991,15 +991,15 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobFailed(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryFailed(dictionary)
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify no Core Data entities were created
+        // Verify dictionary record exists
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 
     @Test @MainActor func importDictionary_InvalidJSON_FailsAndCleansUp() async throws {
@@ -1029,15 +1029,15 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobFailed(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryFailed(dictionary)
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify dictionary was deleted during cleanup
+        // Verify dictionary record exists
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 
     @Test @MainActor func importDictionary_UnsupportedFormat_FailsAndCleansUp() async throws {
@@ -1068,15 +1068,15 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobFailed(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryFailed(dictionary)
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify no Core Data entities were created
+        // Verify dictionary record exists
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 
     @Test func importDictionary_FileSystemError_FailsAndCleansUp() async throws {
@@ -1115,12 +1115,12 @@ struct DictionaryPersistenceTests {
         // Verify job is properly marked as failed
         await MainActor.run {
             let context = persistenceController.container.viewContext
-            let job = getJob(from: context, importID: importID)
-            verifyJobFailed(job)
+            let dictionary = getDictionary(from: context, importID: importID)
+            verifyDictionaryFailed(dictionary)
 
-            // Verify no Core Data entities were created
+            // Verify dictionary record exists
             let dictResults = fetchDictionaries(from: context)
-            #expect(dictResults.isEmpty)
+            #expect(dictResults.count == 1)
         }
 
         // Verify cleanup
@@ -1151,14 +1151,14 @@ struct DictionaryPersistenceTests {
 
         // Verify job is properly marked as failed
         let context = persistenceController.container.viewContext
-        let job = getJob(from: context, importID: importID)
-        verifyJobFailed(job)
+        let dictionary = getDictionary(from: context, importID: importID)
+        verifyDictionaryFailed(dictionary)
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
 
-        // Verify no Core Data entities were created
+        // Verify dictionary record exists
         let dictResults = fetchDictionaries(from: context)
-        #expect(dictResults.isEmpty)
+        #expect(dictResults.count == 1)
     }
 }

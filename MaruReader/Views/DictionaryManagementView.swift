@@ -9,16 +9,7 @@ import MaruReaderCore
 import SwiftUI
 import UniformTypeIdentifiers
 
-private enum ImportTiming {
-    // Time after which completed imports are auto-removed from the progress list (5 minutes)
-    static let cleanupDelaySeconds: TimeInterval = 5 * 60
-    // Window during which completed/failed imports are still shown as "recent" (24 hours)
-    static let recentWindowSeconds: TimeInterval = 24 * 60 * 60
-}
-
 struct DictionaryManagementView: View {
-    @Environment(\.managedObjectContext) private var viewContext
-
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
@@ -30,49 +21,47 @@ struct DictionaryManagementView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.title, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@", NSNumber(value: true)),
         animation: .default
     )
-    private var completeDictionaries: FetchedResults<Dictionary>
+    private var dictionaries: FetchedResults<Dictionary>
 
-    @FetchRequest(
-        entity: DictionaryZIPFileImport.entity(),
-        sortDescriptors: [
-            NSSortDescriptor(keyPath: \DictionaryZIPFileImport.timeQueued, ascending: false),
-        ],
-        animation: .default
-    )
-    private var importJobs: FetchedResults<DictionaryZIPFileImport>
+    private var unifiedDictionaries: [Dictionary] {
+        let incomplete = dictionaries
+            .filter { !$0.isComplete }
+            .sorted {
+                let lhsDate = $0.timeQueued ?? .distantPast
+                let rhsDate = $1.timeQueued ?? .distantPast
+                if lhsDate != rhsDate {
+                    return lhsDate > rhsDate
+                }
+                return ($0.title ?? "") < ($1.title ?? "")
+            }
+        let complete = dictionaries
+            .filter(\.isComplete)
+            .sorted { ($0.title ?? "") < ($1.title ?? "") }
+        return incomplete + complete
+    }
 
     var body: some View {
         List {
-            // Import Progress Section
-            if !importJobs.isEmpty {
-                Section("Import Progress") {
-                    ForEach(importJobs, id: \.objectID) { job in
-                        ImportJobRow(
-                            job: job,
-                            onCancel: { cancelImport(job) },
-                            onDismiss: { dismissImport(job) }
-                        )
-                    }
-                }
-            }
-
-            // Dictionaries Section
-            Section(importJobs.isEmpty ? "" : "Dictionaries") {
-                if completeDictionaries.isEmpty {
+            Section("Dictionaries") {
+                if dictionaries.isEmpty {
                     ContentUnavailableView(
                         "No Dictionaries",
                         systemImage: "book.closed",
                         description: Text("Import dictionaries to see them here")
                     )
                 } else {
-                    ForEach(completeDictionaries, id: \.objectID) { dictionary in
-                        DictionaryRow(dictionary: dictionary, onDelete: {
-                            dictionaryToDelete = dictionary
-                            showingDeleteConfirmation = true
-                        })
+                    ForEach(unifiedDictionaries, id: \.objectID) { dictionary in
+                        DictionaryListRow(
+                            dictionary: dictionary,
+                            onCancel: { cancelImport(dictionary) },
+                            onRemove: { removeDictionary(dictionary) },
+                            onDelete: {
+                                dictionaryToDelete = dictionary
+                                showingDeleteConfirmation = true
+                            }
+                        )
                     }
                 }
             }
@@ -140,19 +129,15 @@ struct DictionaryManagementView: View {
         }
     }
 
-    private func cancelImport(_ job: DictionaryZIPFileImport) {
+    private func cancelImport(_ dictionary: Dictionary) {
         Task {
-            await DictionaryImportManager.shared.cancelImport(jobID: job.objectID)
+            await DictionaryImportManager.shared.cancelImport(jobID: dictionary.objectID)
         }
     }
 
-    private func dismissImport(_ job: DictionaryZIPFileImport) {
-        viewContext.delete(job)
-        do {
-            try viewContext.save()
-        } catch {
-            importError = error
-            showingError = true
+    private func removeDictionary(_ dictionary: Dictionary) {
+        Task {
+            await DictionaryImportManager.shared.deleteDictionary(dictionaryID: dictionary.objectID)
         }
     }
 
@@ -163,49 +148,51 @@ struct DictionaryManagementView: View {
     }
 }
 
-struct ImportJobRow: View {
-    let job: DictionaryZIPFileImport
+struct DictionaryListRow: View {
+    let dictionary: Dictionary
     let onCancel: () -> Void
-    let onDismiss: () -> Void
+    let onRemove: () -> Void
+    let onDelete: () -> Void
 
-    private var fileName: String {
-        job.file?.lastPathComponent ?? "Unknown File"
+    var body: some View {
+        if dictionary.isComplete {
+            DictionaryRow(dictionary: dictionary, onDelete: onDelete)
+        } else if dictionary.isFailed || dictionary.isCancelled {
+            FailedDictionaryRow(dictionary: dictionary, onRemove: onRemove)
+        } else {
+            InProgressDictionaryRow(dictionary: dictionary, onCancel: onCancel)
+        }
+    }
+}
+
+struct InProgressDictionaryRow: View {
+    let dictionary: Dictionary
+    let onCancel: () -> Void
+
+    private var title: String {
+        if let title = dictionary.title, !title.isEmpty {
+            return title
+        }
+        return dictionary.file?.deletingPathExtension().lastPathComponent ?? "Unknown Dictionary"
     }
 
     private var statusIcon: String {
-        if job.isCancelled {
-            "xmark.circle.fill"
-        } else if job.isFailed {
-            "exclamationmark.triangle.fill"
-        } else if job.isComplete {
-            "checkmark.circle.fill"
-        } else if job.isStarted {
-            "gear"
-        } else {
-            "clock"
-        }
+        dictionary.isStarted ? "gear" : "clock"
     }
 
     private var statusColor: Color {
-        if job.isCancelled {
-            .secondary
-        } else if job.isFailed {
-            .red
-        } else if job.isComplete {
-            .green
-        } else if job.isStarted {
-            .blue
-        } else {
-            .orange
+        dictionary.isStarted ? .blue : .orange
+    }
+
+    private var statusMessage: String {
+        if let message = dictionary.displayProgressMessage, !message.isEmpty {
+            return message
         }
+        return dictionary.isStarted ? "Importing..." : "Queued for import."
     }
 
     private var canCancel: Bool {
-        !job.isComplete && !job.isFailed && !job.isCancelled
-    }
-
-    private var canDismiss: Bool {
-        job.isComplete || job.isFailed || job.isCancelled
+        !dictionary.isComplete && !dictionary.isFailed && !dictionary.isCancelled && !dictionary.pendingDeletion
     }
 
     var body: some View {
@@ -216,16 +203,14 @@ struct ImportJobRow: View {
                     .imageScale(.small)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(fileName)
+                    Text(title)
                         .font(.headline)
                         .lineLimit(1)
 
-                    if let message = job.displayProgressMessage {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
                 }
 
                 Spacer()
@@ -234,14 +219,85 @@ struct ImportJobRow: View {
                     Button("Cancel", action: onCancel)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                } else if canDismiss {
-                    Button("Dismiss", action: onDismiss)
+                }
+            }
+        }
+        .padding(.vertical, 2)
+        .opacity(dictionary.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if dictionary.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
+        }
+        .disabled(dictionary.pendingDeletion)
+    }
+}
+
+struct FailedDictionaryRow: View {
+    let dictionary: Dictionary
+    let onRemove: () -> Void
+
+    private var title: String {
+        if let title = dictionary.title, !title.isEmpty {
+            return title
+        }
+        return dictionary.file?.deletingPathExtension().lastPathComponent ?? "Unknown Dictionary"
+    }
+
+    private var statusIcon: String {
+        dictionary.isCancelled ? "xmark.circle.fill" : "exclamationmark.triangle.fill"
+    }
+
+    private var statusColor: Color {
+        dictionary.isCancelled ? .secondary : .red
+    }
+
+    private var statusMessage: String {
+        if dictionary.isCancelled {
+            return "Import cancelled."
+        }
+        return dictionary.errorMessage ?? dictionary.displayProgressMessage ?? "Import failed."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusColor)
+                    .imageScale(.small)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(statusColor)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                if !dictionary.pendingDeletion {
+                    Button("Remove", action: onRemove)
                         .buttonStyle(.bordered)
                         .controlSize(.small)
                 }
             }
         }
         .padding(.vertical, 2)
+        .opacity(dictionary.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if dictionary.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
+        }
+        .disabled(dictionary.pendingDeletion)
     }
 }
 

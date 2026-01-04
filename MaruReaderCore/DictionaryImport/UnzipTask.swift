@@ -29,18 +29,18 @@ struct UnzipTask {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
         let (jobURL, jobDirectory) = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.importNotFound
             }
-            guard let jobURL = job.file else {
+            guard let jobURL = dictionary.file else {
                 throw DictionaryImportError.missingFile
             }
-            guard let jobDirectory = job.workingDirectory else {
+            guard let jobDirectory = dictionary.workingDirectory else {
                 throw DictionaryImportError.noWorkingDirectory
             }
 
             // Update progress message
-            job.displayProgressMessage = "Extracting dictionary archive..."
+            dictionary.displayProgressMessage = "Extracting dictionary archive..."
             try context.save()
             return (jobURL, jobDirectory)
         }
@@ -73,11 +73,11 @@ struct UnzipTask {
 
         // Update job status to completed
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.importNotFound
             }
-            job.archiveExtracted = true
-            job.displayProgressMessage = "Extracted dictionary archive."
+            dictionary.archiveExtracted = true
+            dictionary.displayProgressMessage = "Extracted dictionary archive."
             try context.save()
         }
     }

@@ -51,10 +51,10 @@ struct IndexProcessingTask {
         context.shouldDeleteInaccessibleFaults = true
 
         let (indexURL, workingDir) = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.importNotFound
             }
-            guard let workingDir = job.workingDirectory else {
+            guard let workingDir = dictionary.workingDirectory else {
                 throw DictionaryImportError.noWorkingDirectory
             }
             let indexURL = workingDir.appendingPathComponent("index.json")
@@ -89,15 +89,16 @@ struct IndexProcessingTask {
 
         try Task.checkCancellation()
 
-        let dictionaryID = UUID()
-
-        try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+        let dictionaryID = try await context.perform {
+            guard let dictionary = try context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.importNotFound
             }
-            // Create the Dictionary entity and link to job
-            let dictionary = Dictionary(context: context)
-            dictionary.id = dictionaryID
+            if dictionary.id == nil {
+                dictionary.id = UUID()
+            }
+            guard let dictionaryID = dictionary.id else {
+                throw DictionaryImportError.dictionaryCreationFailed
+            }
             dictionary.title = index.title
             dictionary.attribution = index.attribution
             dictionary.downloadURL = index.downloadUrl
@@ -122,8 +123,6 @@ struct IndexProcessingTask {
             dictionary.termFrequencyDisplayPriority = try Self.getNextPriority(for: "termFrequencyDisplayPriority", in: context)
             dictionary.kanjiFrequencyDisplayPriority = try Self.getNextPriority(for: "kanjiFrequencyDisplayPriority", in: context)
 
-            context.insert(dictionary)
-
             // If the index has embedded tags, create DictionaryTagMeta entities
             if let embeddedTags = index.tagMeta {
                 for (name, entry) in embeddedTags {
@@ -140,17 +139,16 @@ struct IndexProcessingTask {
                 }
             }
 
-            job.dictionary = dictionary
-            job.setValue(termBanks, forKey: "termBanks")
-            job.setValue(kanjiBanks, forKey: "kanjiBanks")
-            job.setValue(termMetaBanks, forKey: "termMetaBanks")
-            job.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
-            job.setValue(tagBanks, forKey: "tagBanks")
-
-            job.indexProcessed = true
-            job.displayProgressMessage = "Processed dictionary index."
+            dictionary.setValue(termBanks, forKey: "termBanks")
+            dictionary.setValue(kanjiBanks, forKey: "kanjiBanks")
+            dictionary.setValue(termMetaBanks, forKey: "termMetaBanks")
+            dictionary.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
+            dictionary.setValue(tagBanks, forKey: "tagBanks")
+            dictionary.indexProcessed = true
+            dictionary.displayProgressMessage = "Processed dictionary index."
 
             try context.save()
+            return dictionaryID
         }
         return dictionaryID
     }

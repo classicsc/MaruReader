@@ -30,21 +30,18 @@ struct MediaCopyProcessingTask {
 
         // Get job information from Core Data
         let (workingDirectory, dictionaryID): (URL, UUID) = try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            guard let workingDirectory = job.workingDirectory else {
+            guard let workingDirectory = dictionary.workingDirectory else {
                 throw DictionaryImportError.noWorkingDirectory
-            }
-            guard let dictionary = job.dictionary else {
-                throw DictionaryImportError.databaseError
             }
             guard let dictionaryID = dictionary.id else {
                 throw DictionaryImportError.databaseError
             }
 
             // Update progress message
-            job.displayProgressMessage = "Copying media files..."
+            dictionary.displayProgressMessage = "Copying media files..."
             try context.save()
 
             return (workingDirectory, dictionaryID)
@@ -116,11 +113,11 @@ struct MediaCopyProcessingTask {
 
         // Mark media as imported in Core Data
         try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            job.mediaImported = true
-            job.displayProgressMessage = "Copied media files."
+            dictionary.mediaImported = true
+            dictionary.displayProgressMessage = "Copied media files."
             try context.save()
         }
     }
