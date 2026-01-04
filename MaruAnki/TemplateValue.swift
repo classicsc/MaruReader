@@ -35,6 +35,7 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case singlePitchAccentDictionary(dictionaryID: UUID)
     case pitchAccentList
     case pitchAccentDisambiguation
+    case pitchAccentCategories
     case conjugation
     case frequencyList
     case singleFrequency

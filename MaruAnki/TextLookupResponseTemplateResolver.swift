@@ -140,6 +140,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case .pitchAccentDisambiguation:
             return resolvePitchAccentDisambiguation()
 
+        case .pitchAccentCategories:
+            return resolvePitchAccentCategories()
+
         // MARK: - Frequency
 
         case .frequencyList:
@@ -363,6 +366,12 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return "\(result.dictionaryTitle): \(pitches)"
         }
         return .text(pitchInfo.isEmpty ? nil : pitchInfo.joined(separator: "; "))
+    }
+
+    private func resolvePitchAccentCategories() -> TemplateResolvedValue {
+        let categories = PitchAccentCategoryCalculator.categories(for: selectedGroup)
+        let text = categories.map(\.rawValue).joined(separator: ",")
+        return .text(text.isEmpty ? nil : text)
     }
 
     private func formatPitchAccent(_ pitch: PitchAccent) -> String {

@@ -100,11 +100,10 @@ struct AnkiMobileSetupView: View {
             isAwaitingInfoForAdding = true
 
             let opener = await AnkiMobileURLOpenerStore.shared.get()
-            let opened: Bool
-            if let opener {
-                opened = await opener.open(url)
+            let opened: Bool = if let opener {
+                await opener.open(url)
             } else {
-                opened = await UIApplication.shared.open(url)
+                await UIApplication.shared.open(url)
             }
             guard opened else {
                 handleRequestFailure(AnkiMobileInfoForAddingError.openFailed)
