@@ -8,7 +8,6 @@
 import CoreData
 import Foundation
 @testable import MaruReader
-import MaruReaderCore
 import Testing
 import UIKit
 import Zip
@@ -264,15 +263,6 @@ struct BookImportTests {
 
     // MARK: - DTO Helper Methods
 
-    private func getJobDTO(from context: NSManagedObjectContext, jobID: NSManagedObjectID) async -> BookEPUBImportDTO? {
-        await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? BookEPUBImport else {
-                return nil
-            }
-            return BookEPUBImportDTO(from: job)
-        }
-    }
-
     private func getBookDTO(from context: NSManagedObjectContext, bookID: NSManagedObjectID) async -> BookDTO? {
         await context.perform {
             guard let book = try? context.existingObject(with: bookID) as? Book else {
@@ -292,29 +282,29 @@ struct BookImportTests {
 
     // MARK: - Validation Helper Methods
 
-    private func verifyJobCompleted(_ jobDTO: BookEPUBImportDTO?) {
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isComplete == true)
-        #expect(jobDTO?.isCancelled == false)
-        #expect(jobDTO?.metadataSaved == true)
-        #expect(jobDTO?.fileCopied == true)
-        #expect(jobDTO?.coverExtracted == true)
-        #expect(jobDTO?.timeCompleted != nil)
-        #expect(jobDTO?.displayProgressMessage == "Import complete.")
+    private func verifyImportCompleted(_ bookDTO: BookDTO?) {
+        #expect(bookDTO != nil)
+        #expect(bookDTO?.isComplete == true)
+        #expect(bookDTO?.isCancelled == false)
+        #expect(bookDTO?.metadataSaved == true)
+        #expect(bookDTO?.fileCopied == true)
+        #expect(bookDTO?.coverExtracted == true)
+        #expect(bookDTO?.timeCompleted != nil)
+        #expect(bookDTO?.displayProgressMessage == "Import complete.")
     }
 
-    private func verifyJobCancelled(_ jobDTO: BookEPUBImportDTO?) {
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isCancelled == true)
-        #expect(jobDTO?.isComplete == false)
-        #expect(jobDTO?.timeCancelled != nil)
+    private func verifyImportCancelled(_ bookDTO: BookDTO?) {
+        #expect(bookDTO != nil)
+        #expect(bookDTO?.isCancelled == true)
+        #expect(bookDTO?.isComplete == false)
+        #expect(bookDTO?.timeCancelled != nil)
     }
 
-    private func verifyJobFailed(_ jobDTO: BookEPUBImportDTO?) {
-        #expect(jobDTO != nil)
-        #expect(jobDTO?.isCancelled == false)
-        #expect(jobDTO?.isComplete == false)
-        #expect(jobDTO?.displayProgressMessage?.isEmpty == false)
+    private func verifyImportFailed(_ bookDTO: BookDTO?) {
+        #expect(bookDTO != nil)
+        #expect(bookDTO?.isCancelled == false)
+        #expect(bookDTO?.isComplete == false)
+        #expect(bookDTO?.errorMessage?.isEmpty == false)
     }
 
     private func verifyBookPersisted(_ bookDTO: BookDTO?, expectedTitle: String, expectedAuthor: String) {
@@ -377,7 +367,7 @@ struct BookImportTests {
     }
 
     private func verifyFilesCleanedUp(bookDTO: BookDTO?) throws {
-        guard let bookDTO else { return }
+        guard let bookDTO, let bookID = bookDTO.id else { return }
 
         let fileManager = FileManager.default
         let appSupportDir = try fileManager.url(
@@ -387,19 +377,20 @@ struct BookImportTests {
             create: false
         )
 
-        // Verify EPUB file was deleted
-        if let fileName = bookDTO.fileName {
-            let booksDir = appSupportDir.appendingPathComponent("Books")
-            let bookFile = booksDir.appendingPathComponent(fileName)
+        let booksDir = appSupportDir.appendingPathComponent("Books")
+        let coversDir = appSupportDir.appendingPathComponent("Covers")
+
+        if let originalFileName = bookDTO.originalFileName {
+            let fileExtension = (originalFileName as NSString).pathExtension
+            let bookFileName = fileExtension.isEmpty
+                ? bookID.uuidString
+                : "\(bookID.uuidString).\(fileExtension)"
+            let bookFile = booksDir.appendingPathComponent(bookFileName)
             #expect(!fileManager.fileExists(atPath: bookFile.path), "EPUB file should be deleted after cancellation/failure")
         }
 
-        // Verify cover file was deleted
-        if let coverFileName = bookDTO.coverFileName {
-            let coversDir = appSupportDir.appendingPathComponent("Covers")
-            let coverFile = coversDir.appendingPathComponent(coverFileName)
-            #expect(!fileManager.fileExists(atPath: coverFile.path), "Cover file should be deleted after cancellation/failure")
-        }
+        let coverFile = coversDir.appendingPathComponent("\(bookID.uuidString).png")
+        #expect(!fileManager.fileExists(atPath: coverFile.path), "Cover file should be deleted after cancellation/failure")
     }
 
     // MARK: - Test Cases
@@ -413,22 +404,17 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: epubURL)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
         // Assert: Job completed successfully
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobCompleted(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportCompleted(bookDTO)
 
         // Assert: Book entity created with correct metadata
-        guard let bookID = jobDTO?.bookID else {
-            Issue.record("Book ID is nil")
-            return
-        }
-        let bookDTO = await getBookDTO(from: context, bookID: bookID)
         verifyBookPersisted(bookDTO, expectedTitle: "Alice in Wonderland", expectedAuthor: "Lewis Carroll")
 
         // Assert: EPUB file was copied
@@ -446,22 +432,17 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: epubURL)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
         // Assert: Job completed successfully
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobCompleted(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportCompleted(bookDTO)
 
         // Assert: Book entity created with correct metadata
-        guard let bookID = jobDTO?.bookID else {
-            Issue.record("Book ID is nil")
-            return
-        }
-        let bookDTO = await getBookDTO(from: context, bookID: bookID)
         verifyBookPersisted(bookDTO, expectedTitle: "Book with Cover", expectedAuthor: "Test Author")
 
         // Assert: EPUB file was copied
@@ -480,25 +461,22 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: invalidURL)
+        let bookID = try await importManager.enqueueImport(from: invalidURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
-        // Assert: Job marked as failed
+        // Assert: Import marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobFailed(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportFailed(bookDTO)
 
-        // Assert: No book entities persisted
+        // Assert: Book entity persisted for failed import
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should be persisted after import failure")
+        #expect(books.count == 1, "Failed imports should remain in the library for removal")
 
         // Assert: Files cleaned up
-        if let bookID = jobDTO?.bookID {
-            let bookDTO = await getBookDTO(from: context, bookID: bookID)
-            try verifyFilesCleanedUp(bookDTO: bookDTO)
-        }
+        try verifyFilesCleanedUp(bookDTO: bookDTO)
     }
 
     @Test func importBook_NonEPUBFile_FailsAndCleansUp() async throws {
@@ -510,19 +488,19 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: textURL)
+        let bookID = try await importManager.enqueueImport(from: textURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
-        // Assert: Job marked as failed
+        // Assert: Import marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobFailed(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportFailed(bookDTO)
 
-        // Assert: No book entities persisted
+        // Assert: Book entity persisted for failed import
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should be persisted after import failure")
+        #expect(books.count == 1, "Failed imports should remain in the library for removal")
     }
 
     @Test func importBook_CancelDuringMetadataProcessing_CleansUpProperly() async throws {
@@ -543,25 +521,22 @@ struct BookImportTests {
         }
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: epubURL)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
-        // Assert: Job marked as cancelled
+        // Assert: Import marked as cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobCancelled(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportCancelled(bookDTO)
 
-        // Assert: No complete book entities persisted
+        // Assert: Cancelled book remains in the library
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should be persisted after cancellation")
+        #expect(books.count == 1, "Cancelled imports should remain in the library for removal")
 
         // Assert: Files cleaned up
-        if let bookID = jobDTO?.bookID {
-            let bookDTO = await getBookDTO(from: context, bookID: bookID)
-            try verifyFilesCleanedUp(bookDTO: bookDTO)
-        }
+        try verifyFilesCleanedUp(bookDTO: bookDTO)
     }
 
     @Test func importBook_CancelAfterFileCopy_CleansUpProperly() async throws {
@@ -582,25 +557,22 @@ struct BookImportTests {
         }
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: epubURL)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
-        // Assert: Job marked as cancelled
+        // Assert: Import marked as cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobCancelled(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportCancelled(bookDTO)
 
-        // Assert: Book entity was deleted during cleanup
+        // Assert: Cancelled book remains in the library
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should remain after cancellation")
+        #expect(books.count == 1, "Cancelled imports should remain in the library for removal")
 
         // Assert: Files cleaned up (even though they were copied)
-        if let bookID = jobDTO?.bookID {
-            let bookDTO = await getBookDTO(from: context, bookID: bookID)
-            try verifyFilesCleanedUp(bookDTO: bookDTO)
-        }
+        try verifyFilesCleanedUp(bookDTO: bookDTO)
     }
 
     @Test func importBook_CancelQueuedJob_CleansUpProperly() async throws {
@@ -612,22 +584,22 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: epubURL)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
 
         // Cancel immediately (while still queued)
-        await importManager.cancelImport(jobID: jobID)
+        await importManager.cancelImport(jobID: bookID)
 
         // Wait a bit for cancellation to be processed
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
 
         // Assert: Job marked as cancelled
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobCancelled(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportCancelled(bookDTO)
 
-        // Assert: No book entities persisted
+        // Assert: Cancelled book remains in the library
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should be persisted for cancelled queued jobs")
+        #expect(books.count == 1, "Cancelled queued imports should remain in the library for removal")
     }
 
     @Test func importBook_MissingFile_FailsAndCleansUp() async throws {
@@ -640,19 +612,19 @@ struct BookImportTests {
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
-        let jobID = try await importManager.enqueueImport(from: missingURL)
+        let bookID = try await importManager.enqueueImport(from: missingURL)
 
         // Wait for completion
-        await importManager.waitForCompletion(jobID: jobID)
+        await importManager.waitForCompletion(jobID: bookID)
 
-        // Assert: Job marked as failed
+        // Assert: Import marked as failed
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        verifyJobFailed(jobDTO)
+        let bookDTO = await getBookDTO(from: context, bookID: bookID)
+        verifyImportFailed(bookDTO)
 
-        // Assert: No book entities persisted
+        // Assert: Book entity persisted for failed import
         let books = await fetchAllBooks(from: context)
-        #expect(books.isEmpty, "No books should be persisted when file is missing")
+        #expect(books.count == 1, "Failed imports should remain in the library for removal")
     }
 
     @Test func deleteBook_RemovesBookAndFiles() async throws {
@@ -663,15 +635,10 @@ struct BookImportTests {
         let persistenceController = BookDataPersistenceController(inMemory: true)
         let importManager = BookImportManager(container: persistenceController.container)
 
-        let jobID = try await importManager.enqueueImport(from: epubURL)
-        await importManager.waitForCompletion(jobID: jobID)
+        let bookID = try await importManager.enqueueImport(from: epubURL)
+        await importManager.waitForCompletion(jobID: bookID)
 
         let context = persistenceController.container.viewContext
-        let jobDTO = await getJobDTO(from: context, jobID: jobID)
-        guard let bookID = jobDTO?.bookID else {
-            Issue.record("Book ID is nil")
-            return
-        }
 
         // Verify book was imported
         let bookDTO = await getBookDTO(from: context, bookID: bookID)
@@ -721,40 +688,6 @@ struct BookImportTests {
 
 // MARK: - DTOs for Thread-Safe Data Transfer
 
-struct BookEPUBImportDTO {
-    let id: UUID
-    let file: URL?
-    let isStarted: Bool
-    let isComplete: Bool
-    let isCancelled: Bool
-    let metadataSaved: Bool
-    let fileCopied: Bool
-    let coverExtracted: Bool
-    let displayProgressMessage: String?
-    let timeQueued: Date
-    let timeStarted: Date?
-    let timeCompleted: Date?
-    let timeCancelled: Date?
-    let bookID: NSManagedObjectID?
-
-    init(from job: BookEPUBImport) {
-        id = job.id ?? UUID()
-        file = job.file
-        isStarted = job.isStarted
-        isComplete = job.isComplete
-        isCancelled = job.isCancelled
-        metadataSaved = job.metadataSaved
-        fileCopied = job.fileCopied
-        coverExtracted = job.coverExtracted
-        displayProgressMessage = job.displayProgressMessage
-        timeQueued = job.timeQueued ?? Date()
-        timeStarted = job.timeStarted
-        timeCompleted = job.timeCompleted
-        timeCancelled = job.timeCancelled
-        bookID = job.book?.objectID
-    }
-}
-
 struct BookDTO {
     let id: UUID?
     let title: String?
@@ -765,6 +698,16 @@ struct BookDTO {
     let mediaType: String?
     let added: Date?
     let isComplete: Bool
+    let isStarted: Bool
+    let isCancelled: Bool
+    let metadataSaved: Bool
+    let fileCopied: Bool
+    let coverExtracted: Bool
+    let displayProgressMessage: String?
+    let timeQueued: Date?
+    let timeStarted: Date?
+    let timeCompleted: Date?
+    let timeCancelled: Date?
     let errorMessage: String?
 
     init(from book: Book) {
@@ -777,6 +720,16 @@ struct BookDTO {
         mediaType = book.mediaType
         added = book.added
         isComplete = book.isComplete
+        isStarted = book.isStarted
+        isCancelled = book.isCancelled
+        metadataSaved = book.metadataSaved
+        fileCopied = book.fileCopied
+        coverExtracted = book.coverExtracted
+        displayProgressMessage = book.displayProgressMessage
+        timeQueued = book.timeQueued
+        timeStarted = book.timeStarted
+        timeCompleted = book.timeCompleted
+        timeCancelled = book.timeCancelled
         errorMessage = book.errorMessage
     }
 }

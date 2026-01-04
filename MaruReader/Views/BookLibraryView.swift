@@ -4,7 +4,6 @@
 //  Book library view with import progress and book grid display.
 //
 import CoreData
-import MaruReaderCore
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -64,15 +63,6 @@ struct BookLibraryView: View {
     @State private var bookToDelete: Book?
     @State private var showingDeleteConfirmation = false
 
-    @FetchRequest(
-        entity: BookEPUBImport.entity(),
-        sortDescriptors: [
-            NSSortDescriptor(keyPath: \BookEPUBImport.timeQueued, ascending: false),
-        ],
-        animation: .default
-    )
-    private var importJobs: FetchedResults<BookEPUBImport>
-
     private var books: FetchRequest<Book>
 
     init() {
@@ -80,7 +70,7 @@ struct BookLibraryView: View {
         books = FetchRequest<Book>(
             entity: Book.entity(),
             sortDescriptors: initialSortOption.nsSortDescriptors,
-            predicate: NSPredicate(format: "isComplete == %@", NSNumber(value: true)),
+            predicate: nil,
             animation: .default
         )
     }
@@ -147,10 +137,6 @@ struct BookLibraryView: View {
     private var contentView: some View {
         ScrollView {
             VStack(spacing: 20) {
-                if !importJobs.isEmpty {
-                    importProgressSection
-                }
-
                 if books.wrappedValue.isEmpty {
                     emptyStateView
                 } else {
@@ -158,26 +144,6 @@ struct BookLibraryView: View {
                 }
             }
         }
-    }
-
-    private var importProgressSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Import Progress")
-                .font(.headline)
-                .padding(.horizontal)
-
-            VStack(spacing: 8) {
-                ForEach(importJobs, id: \.objectID) { job in
-                    BookImportJobRow(
-                        job: job,
-                        onCancel: { cancelImport(job) },
-                        onDismiss: { dismissImport(job) }
-                    )
-                    .padding(.horizontal)
-                }
-            }
-        }
-        .padding(.top)
     }
 
     private var emptyStateView: some View {
@@ -197,16 +163,28 @@ struct BookLibraryView: View {
             spacing: 20
         ) {
             ForEach(books.wrappedValue, id: \.objectID) { book in
-                NavigationLink(destination: BookReaderView(book: book)) {
-                    BookGridItem(book: book)
-                }
-                .buttonStyle(.plain)
-                .contextMenu {
-                    Button(role: .destructive) {
-                        bookToDelete = book
-                        showingDeleteConfirmation = true
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                let state = BookImportState(book: book)
+                Group {
+                    if state.isComplete {
+                        NavigationLink(destination: BookReaderView(book: book)) {
+                            BookGridItem(book: book, state: state, onCancel: {}, onRemove: {})
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                bookToDelete = book
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                    } else {
+                        BookGridItem(
+                            book: book,
+                            state: state,
+                            onCancel: { cancelImport(book) },
+                            onRemove: { removeBook(book) }
+                        )
                     }
                 }
             }
@@ -236,19 +214,9 @@ struct BookLibraryView: View {
         }
     }
 
-    private func cancelImport(_ job: BookEPUBImport) {
+    private func cancelImport(_ book: Book) {
         Task {
-            await BookImportManager.shared.cancelImport(jobID: job.objectID)
-        }
-    }
-
-    private func dismissImport(_ job: BookEPUBImport) {
-        viewContext.delete(job)
-        do {
-            try viewContext.save()
-        } catch {
-            importError = error
-            showingError = true
+            await BookImportManager.shared.cancelImport(jobID: book.objectID)
         }
     }
 
@@ -257,91 +225,17 @@ struct BookLibraryView: View {
             await BookImportManager.shared.deleteBook(bookID: book.objectID)
         }
     }
-}
 
-struct BookImportJobRow: View {
-    let job: BookEPUBImport
-    let onCancel: () -> Void
-    let onDismiss: () -> Void
-
-    private var fileName: String {
-        job.file?.lastPathComponent ?? "Unknown File"
-    }
-
-    private var statusIcon: String {
-        if job.isCancelled {
-            "xmark.circle.fill"
-        } else if job.isComplete {
-            "checkmark.circle.fill"
-        } else if job.isStarted {
-            "gear"
-        } else {
-            "clock"
-        }
-    }
-
-    private var statusColor: Color {
-        if job.isCancelled {
-            .secondary
-        } else if job.isComplete {
-            .green
-        } else if job.isStarted {
-            .blue
-        } else {
-            .orange
-        }
-    }
-
-    private var canCancel: Bool {
-        !job.isComplete && !job.isCancelled
-    }
-
-    private var canDismiss: Bool {
-        job.isComplete || job.isCancelled
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: statusIcon)
-                    .foregroundStyle(statusColor)
-                    .imageScale(.small)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(fileName)
-                        .font(.headline)
-                        .lineLimit(1)
-
-                    if let message = job.displayProgressMessage {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-
-                Spacer()
-
-                if canCancel {
-                    Button("Cancel", action: onCancel)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                } else if canDismiss {
-                    Button("Dismiss", action: onDismiss)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                }
-            }
-        }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 12)
-        .background(Color(.systemGray6))
-        .cornerRadius(8)
+    private func removeBook(_ book: Book) {
+        deleteBook(book)
     }
 }
 
 struct BookGridItem: View {
     let book: Book
+    let state: BookImportState
+    let onCancel: () -> Void
+    let onRemove: () -> Void
 
     private var coverImage: UIImage? {
         guard let coverFileName = book.coverFileName else { return nil }
@@ -359,6 +253,47 @@ struct BookGridItem: View {
 
         guard let data = try? Data(contentsOf: coverURL) else { return nil }
         return UIImage(data: data)
+    }
+
+    private var displayTitle: String {
+        if let title = book.title, !title.isEmpty {
+            return title
+        }
+        if let originalName = book.originalFileName, !originalName.isEmpty {
+            return originalName
+        }
+        return "Untitled Book"
+    }
+
+    private var displayAuthor: String? {
+        if let author = book.author, !author.isEmpty {
+            return author
+        }
+        return nil
+    }
+
+    private var statusMessage: String? {
+        switch state.status {
+        case .complete:
+            return nil
+        case .inProgress:
+            return book.displayProgressMessage ?? "Importing..."
+        case .failed:
+            return book.errorMessage ?? book.displayProgressMessage ?? "Import failed."
+        case .cancelled:
+            return book.displayProgressMessage ?? "Import cancelled."
+        }
+    }
+
+    private var actionLabel: String? {
+        switch state.status {
+        case .complete:
+            return nil
+        case .inProgress:
+            return "Cancel"
+        case .failed, .cancelled:
+            return "Remove"
+        }
     }
 
     var body: some View {
@@ -384,20 +319,70 @@ struct BookGridItem: View {
 
             // Book Info
             VStack(alignment: .center, spacing: 2) {
-                Text(book.title ?? "Unknown Title")
+                Text(displayTitle)
                     .font(.caption)
                     .fontWeight(.medium)
                     .lineLimit(2)
                     .multilineTextAlignment(.center)
 
-                if let author = book.author {
+                if let author = displayAuthor {
                     Text(author)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+
+                if let statusMessage {
+                    Text(statusMessage)
+                        .font(.caption2)
+                        .foregroundStyle(state.status == .failed ? .red : .secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
             }
             .frame(width: 120)
+
+            if let actionLabel {
+                Button(actionLabel) {
+                    switch state.status {
+                    case .inProgress:
+                        onCancel()
+                    case .failed, .cancelled:
+                        onRemove()
+                    case .complete:
+                        break
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
         }
+    }
+}
+
+struct BookImportState {
+    enum Status {
+        case complete
+        case inProgress
+        case failed
+        case cancelled
+    }
+
+    let status: Status
+
+    init(book: Book) {
+        if book.isComplete {
+            status = .complete
+        } else if book.isCancelled {
+            status = .cancelled
+        } else if let errorMessage = book.errorMessage, !errorMessage.isEmpty {
+            status = .failed
+        } else {
+            status = .inProgress
+        }
+    }
+
+    var isComplete: Bool {
+        status == .complete
     }
 }

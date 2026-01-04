@@ -14,38 +14,38 @@ import ReadiumStreamer
 import UIKit
 
 struct CoverExtractionTask {
-    let jobID: NSManagedObjectID
+    let bookID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
-        self.jobID = jobID
+    init(bookID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
+        self.bookID = bookID
         self.persistentContainer = container
     }
 
     func start() async throws {
         let container = persistentContainer
-        let jobID = self.jobID
+        let bookID = self.bookID
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (fileURL, bookID) = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+        let (fileURL, bookUUID) = try await context.perform {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
             }
-            guard let fileURL = job.file else {
+            guard let fileURL = book.importFile else {
                 throw BookImportError.missingFile
             }
-            guard let book = job.book, let bookID = book.id else {
+            guard let bookUUID = book.id else {
                 throw BookImportError.bookCreationFailed
             }
 
             // Update progress message
-            job.displayProgressMessage = "Extracting book cover..."
+            book.displayProgressMessage = "Extracting book cover..."
             try context.save()
-            return (fileURL, bookID)
+            return (fileURL, bookUUID)
         }
 
         try Task.checkCancellation()
@@ -118,12 +118,12 @@ struct CoverExtractionTask {
         // If no cover image, mark as complete but without saving a cover file
         guard let coverImage else {
             try await context.perform {
-                guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+                guard let book = try context.existingObject(with: bookID) as? Book else {
                     throw BookImportError.importNotFound
                 }
 
-                job.coverExtracted = true
-                job.displayProgressMessage = "No cover image found."
+                book.coverExtracted = true
+                book.displayProgressMessage = "No cover image found."
 
                 try context.save()
             }
@@ -152,7 +152,7 @@ struct CoverExtractionTask {
         }
 
         // Save cover image as PNG
-        let coverFileName = "\(bookID.uuidString).png"
+        let coverFileName = "\(bookUUID.uuidString).png"
         let coverURL = coversDir.appendingPathComponent(coverFileName)
 
         do {
@@ -176,16 +176,13 @@ struct CoverExtractionTask {
 
         // Update Book entity with cover file name
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
-            }
-            guard let book = job.book else {
-                throw BookImportError.bookCreationFailed
             }
 
             book.coverFileName = coverFileName
-            job.coverExtracted = true
-            job.displayProgressMessage = "Cover extracted."
+            book.coverExtracted = true
+            book.displayProgressMessage = "Cover extracted."
 
             try context.save()
         }

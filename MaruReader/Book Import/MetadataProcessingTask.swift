@@ -13,33 +13,33 @@ import ReadiumShared
 import ReadiumStreamer
 
 struct MetadataProcessingTask {
-    let jobID: NSManagedObjectID
+    let bookID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
-        self.jobID = jobID
+    init(bookID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
+        self.bookID = bookID
         self.persistentContainer = container
     }
 
     func start() async throws {
         let container = persistentContainer
-        let jobID = self.jobID
+        let bookID = self.bookID
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
         let fileURL = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
             }
-            guard let fileURL = job.file else {
+            guard let fileURL = book.importFile else {
                 throw BookImportError.missingFile
             }
 
             // Update progress message
-            job.displayProgressMessage = "Reading book metadata..."
+            book.displayProgressMessage = "Reading book metadata..."
             try context.save()
             return fileURL
         }
@@ -107,28 +107,21 @@ struct MetadataProcessingTask {
 
         try Task.checkCancellation()
 
-        // Create Book entity in Core Data
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? BookEPUBImport else {
+            guard let book = try context.existingObject(with: bookID) as? Book else {
                 throw BookImportError.importNotFound
             }
 
-            // Create Book entity
-            let book = Book(context: context)
-            book.id = UUID()
             book.title = title
             book.author = author
             book.mediaType = mediaType
-            book.added = Date()
+            if book.added == nil {
+                book.added = Date()
+            }
             book.language = language
             book.originalFileName = fileURL.lastPathComponent
-
-            context.insert(book)
-
-            // Link job to book
-            job.book = book
-            job.metadataSaved = true
-            job.displayProgressMessage = "Metadata extracted."
+            book.metadataSaved = true
+            book.displayProgressMessage = "Metadata extracted."
 
             try context.save()
         }
