@@ -24,6 +24,20 @@ struct DataBankProcessingTask {
         self.persistentContainer = container
     }
 
+    private static func decodeURLArray(from jsonString: String?) throws -> [URL] {
+        guard let jsonString,
+              let data = jsonString.data(using: .utf8)
+        else {
+            throw DictionaryImportError.databaseError
+        }
+        let strings = try JSONDecoder().decode([String].self, from: data)
+        let urls = strings.compactMap { URL(string: $0) }
+        guard urls.count == strings.count else {
+            throw DictionaryImportError.invalidData
+        }
+        return urls
+    }
+
     func start() async throws {
         let container = persistentContainer
         let jobID = self.jobID
@@ -42,21 +56,11 @@ struct DataBankProcessingTask {
             guard let format = try? DictionaryFormat.resolve(format: formatRaw, version: nil) else {
                 throw DictionaryImportError.databaseError
             }
-            guard let termBankURLs = dictionary.termBanks as? [URL] else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let kanjiBankURLs = dictionary.kanjiBanks as? [URL] else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let termMetaBankURLs = dictionary.termMetaBanks as? [URL] else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let kanjiMetaBankURLs = dictionary.kanjiMetaBanks as? [URL] else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let tagMetaBankURLs = dictionary.tagBanks as? [URL] else {
-                throw DictionaryImportError.databaseError
-            }
+            let termBankURLs = try Self.decodeURLArray(from: dictionary.termBanks)
+            let kanjiBankURLs = try Self.decodeURLArray(from: dictionary.kanjiBanks)
+            let termMetaBankURLs = try Self.decodeURLArray(from: dictionary.termMetaBanks)
+            let kanjiMetaBankURLs = try Self.decodeURLArray(from: dictionary.kanjiMetaBanks)
+            let tagMetaBankURLs = try Self.decodeURLArray(from: dictionary.tagBanks)
             return (format, termBankURLs, kanjiBankURLs, termMetaBankURLs, kanjiMetaBankURLs, tagMetaBankURLs)
         }
 

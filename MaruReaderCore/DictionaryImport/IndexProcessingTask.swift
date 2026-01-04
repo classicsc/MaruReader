@@ -37,6 +37,15 @@ struct IndexProcessingTask {
         return 0
     }
 
+    private static func encodeURLArray(_ urls: [URL]) throws -> String {
+        let strings = urls.map(\.absoluteString)
+        let data = try JSONEncoder().encode(strings)
+        guard let encoded = String(data: data, encoding: .utf8) else {
+            throw DictionaryImportError.invalidData
+        }
+        return encoded
+    }
+
     func start() async throws -> UUID {
         let container = self.persistentContainer
         let jobID = self.jobID
@@ -139,11 +148,11 @@ struct IndexProcessingTask {
                 }
             }
 
-            dictionary.setValue(termBanks, forKey: "termBanks")
-            dictionary.setValue(kanjiBanks, forKey: "kanjiBanks")
-            dictionary.setValue(termMetaBanks, forKey: "termMetaBanks")
-            dictionary.setValue(kanjiMetaBanks, forKey: "kanjiMetaBanks")
-            dictionary.setValue(tagBanks, forKey: "tagBanks")
+            dictionary.termBanks = try Self.encodeURLArray(termBanks)
+            dictionary.kanjiBanks = try Self.encodeURLArray(kanjiBanks)
+            dictionary.termMetaBanks = try Self.encodeURLArray(termMetaBanks)
+            dictionary.kanjiMetaBanks = try Self.encodeURLArray(kanjiMetaBanks)
+            dictionary.tagBanks = try Self.encodeURLArray(tagBanks)
             dictionary.indexProcessed = true
             dictionary.displayProgressMessage = "Processed dictionary index."
 
