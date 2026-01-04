@@ -222,6 +222,13 @@ public struct PitchAccent: Codable, Sendable {
         self.devoice = try decodeIntOrArray(for: .devoice)
         self.tags = try c.decodeIfPresent([String].self, forKey: .tags)
     }
+
+    public init(position: PitchPosition, nasal: [Int]? = nil, devoice: [Int]? = nil, tags: [String]? = nil) {
+        self.position = position
+        self.nasal = nasal
+        self.devoice = devoice
+        self.tags = tags
+    }
 }
 
 public extension PitchAccent {

@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct AnkiFieldValueFormatter {
+enum AnkiFieldValueFormatter {
     static func buildFieldValues(from fields: [String: [TemplateResolvedValue]]) -> [String: String] {
         var output: [String: String] = [:]
 
