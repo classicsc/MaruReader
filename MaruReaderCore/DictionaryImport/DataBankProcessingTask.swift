@@ -35,39 +35,36 @@ struct DataBankProcessingTask {
 
         // Fetch format and term bank URLs on the context queue
         let (format, termBankURLs, kanjiBankURLs, termMetaBankURLs, kanjiMetaBankURLs, tagMetaBankURLs) = try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let dictionary = job.dictionary else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
             let formatRaw = Int(dictionary.format)
             guard let format = try? DictionaryFormat.resolve(format: formatRaw, version: nil) else {
                 throw DictionaryImportError.databaseError
             }
-            guard let termBankURLs = job.termBanks as? [URL] else {
+            guard let termBankURLs = dictionary.termBanks as? [URL] else {
                 throw DictionaryImportError.databaseError
             }
-            guard let kanjiBankURLs = job.kanjiBanks as? [URL] else {
+            guard let kanjiBankURLs = dictionary.kanjiBanks as? [URL] else {
                 throw DictionaryImportError.databaseError
             }
-            guard let termMetaBankURLs = job.termMetaBanks as? [URL] else {
+            guard let termMetaBankURLs = dictionary.termMetaBanks as? [URL] else {
                 throw DictionaryImportError.databaseError
             }
-            guard let kanjiMetaBankURLs = job.kanjiMetaBanks as? [URL] else {
+            guard let kanjiMetaBankURLs = dictionary.kanjiMetaBanks as? [URL] else {
                 throw DictionaryImportError.databaseError
             }
-            guard let tagMetaBankURLs = job.tagBanks as? [URL] else {
+            guard let tagMetaBankURLs = dictionary.tagBanks as? [URL] else {
                 throw DictionaryImportError.databaseError
             }
             return (format, termBankURLs, kanjiBankURLs, termMetaBankURLs, kanjiMetaBankURLs, tagMetaBankURLs)
         }
 
         try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            job.displayProgressMessage = "Processing dictionary data..."
+            dictionary.displayProgressMessage = "Processing dictionary data..."
             try context.save()
         }
 
@@ -75,11 +72,11 @@ struct DataBankProcessingTask {
 
         // Mark banks as processed
         try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            job.displayProgressMessage = "Processed data."
-            job.banksProcessed = true
+            dictionary.displayProgressMessage = "Processed data."
+            dictionary.banksProcessed = true
             try context.save()
         }
 
@@ -274,10 +271,7 @@ struct DataBankProcessingTask {
         ]
 
         try await context.perform {
-            guard let job = try? context.existingObject(with: self.jobID) as? DictionaryZIPFileImport else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let dictionary = job.dictionary else {
+            guard let dictionary = try? context.existingObject(with: self.jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
             dictionary.ipaCount = Int64(results[5])

@@ -35,13 +35,15 @@ public actor DictionaryImportManager {
     /// Enqueue a new dictionary import from the given ZIP file URL.
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
     public func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
-        // Create DictionaryZIPFileImport in Core Data (on MainActor)
+        // Create Dictionary in Core Data (on MainActor)
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
-            let job = DictionaryZIPFileImport(context: context)
+            let dictionary = Dictionary(context: context)
             let jobID = UUID()
-            job.id = jobID
-            job.file = zipURL
+            dictionary.id = jobID
+            dictionary.file = zipURL
+            let baseTitle = zipURL.deletingPathExtension().lastPathComponent
+            dictionary.title = baseTitle.isEmpty ? "Imported Dictionary" : baseTitle
             // Use application support directory with job ID as working directory for resume capability
             let appSupport = try FileManager.default.url(
                 for: .applicationSupportDirectory,
@@ -51,10 +53,16 @@ public actor DictionaryImportManager {
             )
             let workingDir = appSupport.appendingPathComponent("DictionaryImports").appendingPathComponent(jobID.uuidString)
             try FileManager.default.createDirectory(at: workingDir, withIntermediateDirectories: true)
-            job.workingDirectory = workingDir
-            job.timeQueued = Date()
+            dictionary.workingDirectory = workingDir
+            dictionary.timeQueued = Date()
+            dictionary.displayProgressMessage = "Queued for import."
+            dictionary.isComplete = false
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.isStarted = false
+            dictionary.errorMessage = nil
             try context.save()
-            let importJob = job.objectID
+            let importJob = dictionary.objectID
 
             return importJob
         }
@@ -64,7 +72,7 @@ public actor DictionaryImportManager {
     }
 
     /// Cancel an ongoing or queued import job.
-    /// - Parameter jobID: The NSManagedObjectID of the DictionaryZIPFileImport to cancel.
+    /// - Parameter jobID: The NSManagedObjectID of the Dictionary import to cancel.
     public func cancelImport(jobID: NSManagedObjectID) async {
         if currentJobID == jobID {
             currentTask?.cancel()
@@ -73,17 +81,22 @@ public actor DictionaryImportManager {
             // Also mark as cancelled in Core Data
             let viewContext = container.viewContext
             await viewContext.perform {
-                if let job = try? viewContext.existingObject(with: jobID) as? DictionaryZIPFileImport {
-                    job.isCancelled = true
-                    job.timeCancelled = Date()
+                if let dictionary = try? viewContext.existingObject(with: jobID) as? Dictionary {
+                    dictionary.isCancelled = true
+                    dictionary.isFailed = false
+                    dictionary.isComplete = false
+                    dictionary.timeCancelled = Date()
+                    dictionary.displayProgressMessage = "Import cancelled."
+                    dictionary.errorMessage = nil
                     try? viewContext.save()
+                    Self.cleanup(dictionary: dictionary)
                 }
             }
         }
     }
 
     /// Wait for a given import job to complete.
-    /// - Parameter jobID: The NSManagedObjectID of the DictionaryZIPFileImport to wait for.
+    /// - Parameter jobID: The NSManagedObjectID of the Dictionary import to wait for.
     func waitForCompletion(jobID: NSManagedObjectID) async {
         while true {
             if currentJobID == jobID {
@@ -121,14 +134,22 @@ public actor DictionaryImportManager {
         context.shouldDeleteInaccessibleFaults = true
         var dictionaryUUID: UUID?
         do {
-            try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            dictionaryUUID = try await context.perform {
+                guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
-                job.isStarted = true
-                job.timeStarted = Date()
-                job.displayProgressMessage = "Starting import..."
+                if dictionary.id == nil {
+                    dictionary.id = UUID()
+                }
+                dictionary.isStarted = true
+                dictionary.isComplete = false
+                dictionary.isFailed = false
+                dictionary.isCancelled = false
+                dictionary.timeStarted = Date()
+                dictionary.displayProgressMessage = "Starting import..."
+                dictionary.errorMessage = nil
                 try context.save()
+                return dictionary.id
             }
             try Task.checkCancellation()
             try testErrorInjection?()
@@ -140,7 +161,6 @@ public actor DictionaryImportManager {
 
             let indexProcessingTask = IndexProcessingTask(jobID: jobID, container: container)
             let dictionaryID = try await indexProcessingTask.start()
-            dictionaryUUID = dictionaryID
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
@@ -157,29 +177,20 @@ public actor DictionaryImportManager {
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let capturedDictionaryUUID = dictionaryUUID
             try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
-                job.isComplete = true
-                job.timeCompleted = Date()
-                job.displayProgressMessage = "Import complete."
-
-                let dictionary: Dictionary?
-                if let uuid = capturedDictionaryUUID {
-                    let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    dictionary = (try? context.fetch(fetchRequest))?.first
-                } else {
-                    dictionary = job.dictionary
-                }
-
-                dictionary?.isComplete = true
+                context.refresh(dictionary, mergeChanges: true)
+                dictionary.isComplete = true
+                dictionary.timeCompleted = Date()
+                dictionary.displayProgressMessage = "Import complete."
+                dictionary.isFailed = false
+                dictionary.isCancelled = false
+                dictionary.errorMessage = nil
 
                 // Enable the dictionary for each type of entry if the import completed successfully
-                if job.isComplete, let dictionary {
+                if dictionary.isComplete {
                     if dictionary.termCount > 0 {
                         dictionary.termResultsEnabled = true
                     }
@@ -196,7 +207,9 @@ public actor DictionaryImportManager {
                     // it should be enabled for the frequency type if there is not already a frequency dictionary enabled
                     if dictionary.termFrequencyCount > 0 {
                         let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                        fetchRequest.predicate = NSPredicate(format: "termFrequencyEnabled == true AND id != %@", dictionary.objectID)
+                        if let dictionaryID = dictionary.id {
+                            fetchRequest.predicate = NSPredicate(format: "termFrequencyEnabled == true AND id != %@", dictionaryID as CVarArg)
+                        }
                         fetchRequest.fetchLimit = 1
                         if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
                             dictionary.termFrequencyEnabled = true
@@ -205,7 +218,9 @@ public actor DictionaryImportManager {
 
                     if dictionary.kanjiFrequencyCount > 0 {
                         let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                        fetchRequest.predicate = NSPredicate(format: "kanjiFrequencyEnabled == true AND id != %@", dictionary.objectID)
+                        if let dictionaryID = dictionary.id {
+                            fetchRequest.predicate = NSPredicate(format: "kanjiFrequencyEnabled == true AND id != %@", dictionaryID as CVarArg)
+                        }
                         fetchRequest.fetchLimit = 1
                         if let existing = try? context.fetch(fetchRequest), existing.isEmpty {
                             dictionary.kanjiFrequencyEnabled = true
@@ -215,92 +230,93 @@ public actor DictionaryImportManager {
                 try context.save()
             }
         } catch is CancellationError {
-            let capturedDictionaryUUID = dictionaryUUID
+            if let uuid = dictionaryUUID {
+                try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
+            }
             await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                     return
                 }
-                job.isCancelled = true
-                job.timeCancelled = Date()
-
-                if let uuid = capturedDictionaryUUID {
-                    let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    if let dict = (try? context.fetch(fetchRequest))?.first {
-                        context.delete(dict)
-                    }
-                } else if let dict = job.dictionary {
-                    context.delete(dict)
-                }
+                dictionary.isCancelled = true
+                dictionary.isFailed = false
+                dictionary.isComplete = false
+                dictionary.timeCancelled = Date()
+                dictionary.displayProgressMessage = "Import cancelled."
+                dictionary.errorMessage = nil
+                dictionary.termCount = 0
+                dictionary.kanjiCount = 0
+                dictionary.termFrequencyCount = 0
+                dictionary.kanjiFrequencyCount = 0
+                dictionary.pitchesCount = 0
+                dictionary.ipaCount = 0
+                dictionary.tagCount = 0
 
                 try? context.save()
 
-                if let uuid = capturedDictionaryUUID {
+                if let uuid = dictionary.id {
                     Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
-                } else {
-                    Self.cleanMediaDirectory(job: job)
                 }
+                Self.cleanup(dictionary: dictionary)
             }
         } catch {
-            let capturedDictionaryUUID = dictionaryUUID
+            if let uuid = dictionaryUUID {
+                try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
+            }
             await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+                guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                     return
                 }
-                job.isFailed = true
-                job.displayProgressMessage = error.localizedDescription
-                job.timeFailed = Date()
-
-                if let uuid = capturedDictionaryUUID {
-                    let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", uuid as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    if let dict = (try? context.fetch(fetchRequest))?.first {
-                        context.delete(dict)
-                    }
-                } else if let dict = job.dictionary {
-                    context.delete(dict)
-                }
+                dictionary.isFailed = true
+                dictionary.isCancelled = false
+                dictionary.isComplete = false
+                dictionary.displayProgressMessage = "Import failed."
+                dictionary.errorMessage = error.localizedDescription
+                dictionary.timeFailed = Date()
+                dictionary.termCount = 0
+                dictionary.kanjiCount = 0
+                dictionary.termFrequencyCount = 0
+                dictionary.kanjiFrequencyCount = 0
+                dictionary.pitchesCount = 0
+                dictionary.ipaCount = 0
+                dictionary.tagCount = 0
 
                 try? context.save()
 
-                if let uuid = capturedDictionaryUUID {
+                if let uuid = dictionary.id {
                     Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
-                } else {
-                    Self.cleanMediaDirectory(job: job)
                 }
+                Self.cleanup(dictionary: dictionary)
             }
         }
 
         await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 return
             }
-            Self.cleanup(job: job)
+            Self.cleanup(dictionary: dictionary)
         }
     }
 
-    /// Check if working directory exists for a given job
+    /// Check if working directory exists for a given dictionary import
     func workingDirectoryExists(for job: NSManagedObjectID) async throws -> Bool {
         let context = container.newBackgroundContext()
         return try await context.perform {
-            guard let job = try? context.existingObject(with: job) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: job) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            guard let workingDir = job.workingDirectory else { return false }
+            guard let workingDir = dictionary.workingDirectory else { return false }
             return FileManager.default.fileExists(atPath: workingDir.path)
         }
     }
 
-    /// Check if media directory exists for a given job
+    /// Check if media directory exists for a given dictionary import
     func mediaDirectoryExists(for jobID: NSManagedObjectID) async throws -> Bool {
         let context = container.newBackgroundContext()
         return try await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? DictionaryZIPFileImport else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else { return false }
+            guard let dictionaryID = dictionary.id else { return false }
 
             guard let appGroupDir = FileManager.default.containerURL(
                 forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
@@ -310,26 +326,6 @@ public actor DictionaryImportManager {
             let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
             return FileManager.default.fileExists(atPath: mediaDir.path)
         }
-    }
-
-    static func cleanMediaDirectory(job: DictionaryZIPFileImport) {
-        let fileManager = FileManager.default
-        guard let dictionary = job.dictionary, let dictionaryID = dictionary.id else {
-            return
-        }
-
-        do {
-            guard let appGroupDir = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-            ) else {
-                return
-            }
-            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
-
-            if fileManager.fileExists(atPath: mediaDir.path) {
-                try fileManager.removeItem(at: mediaDir)
-            }
-        } catch {}
     }
 
     static func cleanMediaDirectoryByUUID(dictionaryUUID: UUID) {
@@ -349,10 +345,10 @@ public actor DictionaryImportManager {
         } catch {}
     }
 
-    static func cleanup(job: DictionaryZIPFileImport) {
+    static func cleanup(dictionary: Dictionary) {
         // Delete working directory if complete/failed/cancelled
         let fileManager = FileManager.default
-        if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
+        if let workingDir = dictionary.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
             do {
                 try fileManager.removeItem(at: workingDir)
             } catch {}
@@ -410,7 +406,11 @@ public actor DictionaryImportManager {
                 }
 
                 // Delete entry entities in batches
-                try await deleteDictionaryEntitiesInBatches(dictionaryID: dictionaryID, batchSize: batchSize)
+                if let uuid = dictionaryUUID {
+                    try await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: batchSize)
+                } else {
+                    throw DictionaryImportError.databaseError
+                }
 
                 // Finally delete the dictionary itself
                 let finalContext = container.newBackgroundContext()
@@ -443,7 +443,7 @@ public actor DictionaryImportManager {
     }
 
     /// Delete dictionary entry entities in batches for memory efficiency.
-    private func deleteDictionaryEntitiesInBatches(dictionaryID: NSManagedObjectID, batchSize: Int) async throws {
+    private func deleteDictionaryEntitiesInBatches(dictionaryUUID: UUID, batchSize: Int) async throws {
         let entityNames = [
             "TermEntry",
             "KanjiEntry",
@@ -455,22 +455,22 @@ public actor DictionaryImportManager {
         ]
 
         for entityName in entityNames {
-            logger.debug("Deleting \\(entityName) entities for dictionary \\(dictionaryID)")
-            try await deleteBatchesForEntity(entityName: entityName, dictionaryID: dictionaryID, batchSize: batchSize)
+            logger.debug("Deleting \\(entityName) entities for dictionary \\(dictionaryUUID)")
+            try await deleteBatchesForEntity(entityName: entityName, dictionaryUUID: dictionaryUUID, batchSize: batchSize)
         }
     }
 
     /// Delete entities of a specific type in batches.
-    private func deleteBatchesForEntity(entityName: String, dictionaryID: NSManagedObjectID, batchSize: Int) async throws {
+    private func deleteBatchesForEntity(entityName: String, dictionaryUUID: UUID, batchSize: Int) async throws {
         while true {
-            let moreToDelete = try await deleteEntityBatch(entityName: entityName, dictionaryID: dictionaryID, batchSize: batchSize)
+            let moreToDelete = try await deleteEntityBatch(entityName: entityName, dictionaryUUID: dictionaryUUID, batchSize: batchSize)
             if !moreToDelete {
                 break
             }
         }
     }
 
-    private func deleteEntityBatch(entityName: String, dictionaryID: NSManagedObjectID, batchSize: Int) async throws -> Bool {
+    private func deleteEntityBatch(entityName: String, dictionaryUUID: UUID, batchSize: Int) async throws -> Bool {
         // Create a fresh context for each batch to manage memory
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
@@ -480,7 +480,7 @@ public actor DictionaryImportManager {
         return try await context.perform {
             // Create fetch request for this entity type
             let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
-            fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", dictionaryID)
+            fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", dictionaryUUID as CVarArg)
             fetchRequest.fetchLimit = batchSize
             fetchRequest.resultType = .managedObjectIDResultType
 
