@@ -1,0 +1,154 @@
+//
+//  TemplateConfigurationView.swift
+//  MaruReader
+//
+//  Step 7: Configure a template profile.
+//
+
+import CoreData
+import MaruAnki
+import MaruReaderCore
+import SwiftUI
+
+struct TemplateConfigurationView: View {
+    @Bindable var viewModel: AnkiConfigurationViewModel
+    @State private var availableDictionaries: [DictionaryPickerInfo] = []
+    @State private var isLoadingDictionaries = true
+
+    var body: some View {
+        Form {
+            if let template = viewModel.selectedTemplate {
+                templateInfoSection(template)
+                dictionarySection
+                cardTypeSection
+            }
+        }
+        .navigationTitle("Configure Template")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Back") {
+                    viewModel.goBack()
+                }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") {
+                    Task {
+                        await viewModel.proceed()
+                    }
+                }
+                .disabled(!viewModel.canProceed || viewModel.isLoading)
+            }
+        }
+        .overlay {
+            if viewModel.isLoading {
+                LoadingOverlay(message: "Saving configuration...")
+            }
+        }
+        .task {
+            await loadAvailableDictionaries()
+        }
+    }
+
+    @ViewBuilder
+    private func templateInfoSection(_ template: ConfigurableProfileTemplate) -> some View {
+        Section {
+            HStack {
+                Text("Template")
+                Spacer()
+                Text(template.displayName)
+                    .foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var dictionarySection: some View {
+        Section {
+            if isLoadingDictionaries {
+                HStack {
+                    ProgressView()
+                    Text("Loading dictionaries...")
+                        .foregroundStyle(.secondary)
+                }
+            } else if availableDictionaries.isEmpty {
+                Text("No dictionaries available. Import dictionaries first.")
+                    .foregroundStyle(.secondary)
+            } else {
+                Picker("Dictionary", selection: $viewModel.templateDictionaryID) {
+                    Text("Select a dictionary...").tag(nil as UUID?)
+                    ForEach(availableDictionaries) { dict in
+                        Text(dict.title).tag(dict.id as UUID?)
+                    }
+                }
+            }
+        } header: {
+            Text("Main Definition Dictionary")
+        } footer: {
+            Text("Select the dictionary to use for the MainDefinition field. This is typically a bilingual dictionary like JMdict or Jitendex.")
+        }
+    }
+
+    @ViewBuilder
+    private var cardTypeSection: some View {
+        Section {
+            Picker("Card Type", selection: $viewModel.templateCardType) {
+                ForEach(LapisCardType.allCases, id: \.self) { cardType in
+                    Text(cardType.displayName).tag(cardType)
+                }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+        } header: {
+            Text("Card Type")
+        } footer: {
+            Text("Select the default card type for new notes. You can change this per-card in Anki by editing the corresponding Is...Card field.")
+        }
+    }
+
+    private func loadAvailableDictionaries() async {
+        let context = DictionaryPersistenceController.shared.newBackgroundContext()
+        let termDicts = await context.perform {
+            let request = NSFetchRequest<Dictionary>(entityName: "Dictionary")
+            request.predicate = NSPredicate(format: "isComplete == YES AND termCount > 0")
+            request.sortDescriptors = [
+                NSSortDescriptor(key: "termDisplayPriority", ascending: true),
+                NSSortDescriptor(key: "title", ascending: true),
+            ]
+
+            guard let results = try? context.fetch(request) else {
+                return [DictionaryPickerInfo]()
+            }
+
+            return results.compactMap { dict -> DictionaryPickerInfo? in
+                guard let id = dict.id, let title = dict.title else { return nil }
+                return DictionaryPickerInfo(
+                    id: id,
+                    title: title,
+                    priority: Int(dict.termDisplayPriority),
+                    frequencyMode: nil
+                )
+            }
+        }
+
+        await MainActor.run {
+            availableDictionaries = termDicts
+            isLoadingDictionaries = false
+
+            // Auto-select first dictionary if none selected
+            if viewModel.templateDictionaryID == nil, let first = termDicts.first {
+                viewModel.templateDictionaryID = first.id
+            }
+        }
+    }
+}
+
+#Preview {
+    NavigationStack {
+        TemplateConfigurationView(viewModel: {
+            let vm = AnkiConfigurationViewModel()
+            vm.selectTemplate("lapis")
+            return vm
+        }())
+    }
+}

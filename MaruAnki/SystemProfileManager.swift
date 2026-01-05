@@ -67,4 +67,98 @@ public enum SystemProfileManager {
             return (try? context.fetch(request)) ?? []
         }
     }
+
+    /// Creates or updates a configured profile from a template.
+    /// - Parameters:
+    ///   - templateID: The template identifier (e.g., "lapis")
+    ///   - fieldMap: The complete field map with user configuration applied
+    ///   - configuration: The user's configuration choices for storage/re-editing
+    ///   - context: The managed object context to use
+    /// - Returns: The UUID of the created/updated profile
+    public static func saveConfiguredProfile(
+        templateID: String,
+        fieldMap: AnkiFieldMap,
+        configuration: ConfiguredProfileData,
+        in context: NSManagedObjectContext
+    ) async throws -> UUID {
+        let profileID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+
+        try await context.perform {
+            // Find existing or create new
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "sourceTemplateID == %@", templateID)
+            request.fetchLimit = 1
+
+            let profile: MaruModelSettings
+            if let existing = try context.fetch(request).first {
+                profile = existing
+            } else {
+                profile = MaruModelSettings(context: context)
+                profile.id = profileID
+            }
+
+            // Update profile
+            let template = ConfigurableProfileTemplates.template(for: templateID)
+            profile.displayName = template?.displayName ?? templateID
+            profile.isSystemProfile = false
+            profile.isHidden = true
+            profile.sourceTemplateID = templateID
+
+            // Store field map
+            let encoder = JSONEncoder()
+            let fieldMapData = try encoder.encode(fieldMap)
+            profile.fieldMap = String(data: fieldMapData, encoding: .utf8)
+
+            // Store configuration for re-editing
+            let configData = try encoder.encode(configuration)
+            profile.templateConfiguration = String(data: configData, encoding: .utf8)
+
+            try context.save()
+        }
+
+        return profileID
+    }
+
+    /// Retrieves the configuration data for a template-based profile.
+    /// - Parameters:
+    ///   - templateID: The template identifier to look up
+    ///   - context: The managed object context to use
+    /// - Returns: The configuration data, or nil if no configured profile exists
+    public static func getConfiguredProfileData(
+        for templateID: String,
+        in context: NSManagedObjectContext
+    ) async -> ConfiguredProfileData? {
+        await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "sourceTemplateID == %@", templateID)
+            request.fetchLimit = 1
+
+            guard let profile = try? context.fetch(request).first,
+                  let configString = profile.templateConfiguration,
+                  let data = configString.data(using: .utf8)
+            else {
+                return nil
+            }
+
+            return try? JSONDecoder().decode(ConfiguredProfileData.self, from: data)
+        }
+    }
+
+    /// Checks if a template has been configured.
+    /// - Parameters:
+    ///   - templateID: The template identifier to check
+    ///   - context: The managed object context to use
+    /// - Returns: True if the template has a configured profile
+    public static func isTemplateConfigured(
+        _ templateID: String,
+        in context: NSManagedObjectContext
+    ) async -> Bool {
+        await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "sourceTemplateID == %@", templateID)
+            request.fetchLimit = 1
+
+            return (try? context.count(for: request)) ?? 0 > 0
+        }
+    }
 }

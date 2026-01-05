@@ -13,28 +13,62 @@ struct FieldMappingManagementView: View {
     @State private var viewModel = AnkiConfigurationViewModel()
     @State private var showingNewEditor = false
     @State private var editingProfile: FieldMappingProfileInfo?
+    @State private var configuringTemplate: ConfigurableProfileTemplate?
     @State private var profileToDelete: FieldMappingProfileInfo?
     @State private var showDeleteConfirmation = false
     @State private var isLoading = true
     @State private var error: Error?
     @State private var showError = false
 
+    /// Visible profiles (non-hidden, non-system)
+    private var customProfiles: [FieldMappingProfileInfo] {
+        viewModel.fieldMappingProfiles.filter { !$0.isHidden && !$0.isSystemProfile }
+    }
+
+    /// System profiles
+    private var systemProfiles: [FieldMappingProfileInfo] {
+        viewModel.fieldMappingProfiles.filter(\.isSystemProfile)
+    }
+
     var body: some View {
         List {
             if isLoading {
                 ProgressView()
             } else {
-                ForEach(viewModel.fieldMappingProfiles) { profile in
-                    profileRow(profile)
-                }
-                .onDelete { indexSet in
-                    if let index = indexSet.first {
-                        let profile = viewModel.fieldMappingProfiles[index]
-                        if !profile.isSystemProfile {
-                            profileToDelete = profile
-                            showDeleteConfirmation = true
-                        }
+                // Templates section
+                Section {
+                    ForEach(ConfigurableProfileTemplates.all) { template in
+                        templateRow(template)
                     }
+                } header: {
+                    Text("Templates")
+                }
+
+                // Custom profiles section
+                if !customProfiles.isEmpty {
+                    Section {
+                        ForEach(customProfiles) { profile in
+                            profileRow(profile)
+                        }
+                        .onDelete { indexSet in
+                            if let index = indexSet.first {
+                                let profile = customProfiles[index]
+                                profileToDelete = profile
+                                showDeleteConfirmation = true
+                            }
+                        }
+                    } header: {
+                        Text("Custom Profiles")
+                    }
+                }
+
+                // System profiles section
+                Section {
+                    ForEach(systemProfiles) { profile in
+                        profileRow(profile)
+                    }
+                } header: {
+                    Text("System Profiles")
                 }
             }
         }
@@ -75,6 +109,23 @@ struct FieldMappingManagementView: View {
                 FieldMappingEditorView(
                     viewModel: viewModel,
                     editingProfile: profile
+                )
+            }
+        }
+        .sheet(item: $configuringTemplate, onDismiss: {
+            Task {
+                await loadProfiles()
+            }
+        }) { template in
+            NavigationStack {
+                TemplateConfigurationSheetView(
+                    template: template,
+                    onSave: {
+                        configuringTemplate = nil
+                        Task {
+                            await loadProfiles()
+                        }
+                    }
                 )
             }
         }
@@ -132,6 +183,35 @@ struct FieldMappingManagementView: View {
         }
         .buttonStyle(.plain)
         .deleteDisabled(profile.isSystemProfile)
+    }
+
+    @ViewBuilder
+    private func templateRow(_ template: ConfigurableProfileTemplate) -> some View {
+        Button {
+            configuringTemplate = template
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(template.displayName)
+                        .foregroundStyle(.primary)
+                    if viewModel.templateConfiguredProfiles[template.id] == true {
+                        Text("Configured")
+                            .font(.caption)
+                            .foregroundStyle(.green)
+                    } else {
+                        Text("Not configured")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 
     private func loadProfiles() async {
