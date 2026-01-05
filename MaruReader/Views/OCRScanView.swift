@@ -20,6 +20,7 @@ struct OCRScanView: View {
     @State private var isProcessing = false
     @State private var errorMessage: String?
     @State private var showCamera = false
+    @State private var showPhotoPicker = false
     @State private var ocr = {
         #if DEBUG
             OCR(clusteringConfiguration: .debug)
@@ -59,7 +60,9 @@ struct OCRScanView: View {
                                 Label("Take Photo", systemImage: "camera")
                             }
                         }
-                        PhotosPicker(selection: $selectedItem, matching: .images) {
+                        Button {
+                            showPhotoPicker = true
+                        } label: {
                             Label("Choose from Library", systemImage: "photo.on.rectangle")
                         }
                     } label: {
@@ -67,6 +70,7 @@ struct OCRScanView: View {
                     }
                 }
             }
+            .photosPicker(isPresented: $showPhotoPicker, selection: $selectedItem, matching: .images)
             .onChange(of: selectedItem) { _, newItem in
                 Task {
                     await loadImage(from: newItem)
