@@ -205,8 +205,6 @@ struct TemplateConfigurationSheetView: View {
     }
 }
 
-extension ConfigurableProfileTemplate: Identifiable {}
-
 #Preview {
     NavigationStack {
         TemplateConfigurationSheetView(
