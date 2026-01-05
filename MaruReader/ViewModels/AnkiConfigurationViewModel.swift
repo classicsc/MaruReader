@@ -14,6 +14,8 @@ struct FieldMappingProfileInfo: Identifiable, Sendable {
     let id: UUID
     let displayName: String
     let isSystemProfile: Bool
+    let isHidden: Bool
+    let sourceTemplateID: String?
     let fieldMap: AnkiFieldMap?
 }
 
@@ -48,6 +50,7 @@ final class AnkiConfigurationViewModel {
         case deckSelection = 4
         case modelSelection = 5
         case fieldMappingSelection = 6
+        case templateConfiguration = 7
     }
 
     enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
@@ -80,6 +83,12 @@ final class AnkiConfigurationViewModel {
     var selectedDeckName: String?
     var selectedModelName: String?
     var selectedFieldMappingProfileID: UUID?
+
+    // Template configuration
+    var selectedTemplateID: String?
+    var templateDictionaryID: UUID?
+    var templateCardType: LapisCardType = .vocabularyCard
+    var templateConfiguredProfiles: [String: Bool] = [:] // templateID -> isConfigured
 
     // Loading/Error state
     var isLoading: Bool = false
@@ -114,6 +123,11 @@ final class AnkiConfigurationViewModel {
         fieldMappingProfiles.first { $0.id == selectedFieldMappingProfileID }
     }
 
+    var selectedTemplate: ConfigurableProfileTemplate? {
+        guard let id = selectedTemplateID else { return nil }
+        return ConfigurableProfileTemplates.template(for: id)
+    }
+
     var portInt: Int? {
         Int(port)
     }
@@ -137,7 +151,9 @@ final class AnkiConfigurationViewModel {
         case .modelSelection:
             selectedModelName != nil
         case .fieldMappingSelection:
-            selectedFieldMappingProfileID != nil
+            selectedFieldMappingProfileID != nil || selectedTemplateID != nil
+        case .templateConfiguration:
+            templateDictionaryID != nil
         }
     }
 
@@ -178,7 +194,16 @@ final class AnkiConfigurationViewModel {
             await fetchFieldMappingProfiles()
 
         case .fieldMappingSelection:
-            await saveConfiguration()
+            if selectedTemplateID != nil {
+                // User selected a template, go to configuration step
+                await loadTemplateConfiguration()
+                currentStep = .templateConfiguration
+            } else {
+                await saveConfiguration()
+            }
+
+        case .templateConfiguration:
+            await saveTemplateConfiguration()
         }
     }
 
@@ -208,6 +233,12 @@ final class AnkiConfigurationViewModel {
             case .ankiMobile:
                 currentStep = .mobileDetails
             }
+        case .templateConfiguration:
+            // Clear template selection and go back to field mapping selection
+            selectedTemplateID = nil
+            templateDictionaryID = nil
+            templateCardType = .vocabularyCard
+            currentStep = .fieldMappingSelection
         }
     }
 
@@ -305,7 +336,7 @@ final class AnkiConfigurationViewModel {
         let context = persistence.newBackgroundContext()
 
         // Fetch and extract data within the context to avoid cross-context access
-        let profileInfos: [FieldMappingProfileInfo] = await context.perform {
+        let (profileInfos, configuredTemplates): ([FieldMappingProfileInfo], [String: Bool]) = await context.perform {
             let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
             request.sortDescriptors = [
                 NSSortDescriptor(key: "isSystemProfile", ascending: false),
@@ -313,12 +344,20 @@ final class AnkiConfigurationViewModel {
             ]
 
             guard let profiles = try? context.fetch(request) else {
-                return []
+                return ([], [:])
             }
 
             let decoder = JSONDecoder()
-            return profiles.compactMap { profile in
+            var configured: [String: Bool] = [:]
+
+            let infos = profiles.compactMap { profile -> FieldMappingProfileInfo? in
                 guard let id = profile.id else { return nil }
+
+                // Track configured templates
+                if let templateID = profile.sourceTemplateID {
+                    configured[templateID] = true
+                }
+
                 var fieldMap: AnkiFieldMap?
                 if let fieldMapString = profile.fieldMap,
                    let data = fieldMapString.data(using: .utf8)
@@ -329,17 +368,22 @@ final class AnkiConfigurationViewModel {
                     id: id,
                     displayName: profile.displayName ?? "Unnamed",
                     isSystemProfile: profile.isSystemProfile,
+                    isHidden: profile.isHidden,
+                    sourceTemplateID: profile.sourceTemplateID,
                     fieldMap: fieldMap
                 )
             }
+
+            return (infos, configured)
         }
 
         fieldMappingProfiles = profileInfos
+        templateConfiguredProfiles = configuredTemplates
 
         // Auto-select Basic if it exists
         if let basicProfile = fieldMappingProfiles.first(where: { $0.id == SystemProfileManager.basicProfileUUID }) {
             selectedFieldMappingProfileID = basicProfile.id
-        } else if let firstProfile = fieldMappingProfiles.first {
+        } else if let firstProfile = fieldMappingProfiles.first(where: { !$0.isHidden }) {
             selectedFieldMappingProfileID = firstProfile.id
         }
 
@@ -449,12 +493,87 @@ final class AnkiConfigurationViewModel {
         }
     }
 
+    // MARK: - Template Configuration
+
+    private func loadTemplateConfiguration() async {
+        guard let templateID = selectedTemplateID else { return }
+
+        let context = persistence.newBackgroundContext()
+
+        // Load existing configuration if any
+        if let existingConfig = await SystemProfileManager.getConfiguredProfileData(for: templateID, in: context) {
+            templateDictionaryID = existingConfig.mainDefinitionDictionaryID
+            templateCardType = existingConfig.lapisCardType ?? .vocabularyCard
+        } else {
+            // Reset to defaults
+            templateDictionaryID = nil
+            templateCardType = .vocabularyCard
+        }
+    }
+
+    private func saveTemplateConfiguration() async {
+        guard let templateID = selectedTemplateID,
+              let template = selectedTemplate,
+              let dictionaryID = templateDictionaryID
+        else { return }
+
+        isLoading = true
+        defer { isLoading = false }
+
+        let context = persistence.newBackgroundContext()
+
+        do {
+            // Build the field map from template + configuration
+            let fieldMap = template.buildFieldMap(
+                mainDefinitionDictionaryID: dictionaryID,
+                cardType: templateCardType
+            )
+
+            // Create configuration data
+            let configuration = ConfiguredProfileData(
+                templateID: templateID,
+                mainDefinitionDictionaryID: dictionaryID,
+                cardType: templateCardType
+            )
+
+            // Save the configured profile
+            let profileID = try await SystemProfileManager.saveConfiguredProfile(
+                templateID: templateID,
+                fieldMap: fieldMap,
+                configuration: configuration,
+                in: context
+            )
+
+            // Select the configured profile and save
+            selectedFieldMappingProfileID = profileID
+            selectedTemplateID = nil // Clear template selection
+
+            await saveConfiguration()
+        } catch {
+            self.error = error
+            showError = true
+        }
+    }
+
+    /// Selects a template for configuration.
+    func selectTemplate(_ templateID: String) {
+        selectedTemplateID = templateID
+        selectedFieldMappingProfileID = nil // Clear regular profile selection
+    }
+
+    /// Clears template selection and allows selecting a regular profile.
+    func clearTemplateSelection() {
+        selectedTemplateID = nil
+        templateDictionaryID = nil
+        templateCardType = .vocabularyCard
+    }
+
     // MARK: - Field Mapping Management
 
     func refreshFieldMappingProfiles() async {
         let context = persistence.newBackgroundContext()
 
-        let profileInfos: [FieldMappingProfileInfo] = await context.perform {
+        let (profileInfos, configuredTemplates): ([FieldMappingProfileInfo], [String: Bool]) = await context.perform {
             let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
             request.sortDescriptors = [
                 NSSortDescriptor(key: "isSystemProfile", ascending: false),
@@ -462,12 +581,19 @@ final class AnkiConfigurationViewModel {
             ]
 
             guard let profiles = try? context.fetch(request) else {
-                return []
+                return ([], [:])
             }
 
             let decoder = JSONDecoder()
-            return profiles.compactMap { profile in
+            var configured: [String: Bool] = [:]
+
+            let infos = profiles.compactMap { profile -> FieldMappingProfileInfo? in
                 guard let id = profile.id else { return nil }
+
+                if let templateID = profile.sourceTemplateID {
+                    configured[templateID] = true
+                }
+
                 var fieldMap: AnkiFieldMap?
                 if let fieldMapString = profile.fieldMap,
                    let data = fieldMapString.data(using: .utf8)
@@ -478,12 +604,17 @@ final class AnkiConfigurationViewModel {
                     id: id,
                     displayName: profile.displayName ?? "Unnamed",
                     isSystemProfile: profile.isSystemProfile,
+                    isHidden: profile.isHidden,
+                    sourceTemplateID: profile.sourceTemplateID,
                     fieldMap: fieldMap
                 )
             }
+
+            return (infos, configured)
         }
 
         fieldMappingProfiles = profileInfos
+        templateConfiguredProfiles = configuredTemplates
     }
 
     func createFieldMappingProfile(name: String, fieldMap: AnkiFieldMap) async throws -> UUID {

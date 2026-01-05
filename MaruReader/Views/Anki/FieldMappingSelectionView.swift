@@ -12,11 +12,55 @@ struct FieldMappingSelectionView: View {
     @Bindable var viewModel: AnkiConfigurationViewModel
     @State private var showingEditor = false
 
+    /// Profiles that should be shown (non-hidden)
+    private var visibleProfiles: [FieldMappingProfileInfo] {
+        viewModel.fieldMappingProfiles.filter { !$0.isHidden }
+    }
+
     var body: some View {
         List {
+            // Templates section
             Section {
-                ForEach(viewModel.fieldMappingProfiles, id: \.id) { profile in
+                ForEach(ConfigurableProfileTemplates.all) { template in
                     Button {
+                        viewModel.selectTemplate(template.id)
+                    } label: {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(template.displayName)
+                                    .foregroundStyle(.primary)
+                                if viewModel.templateConfiguredProfiles[template.id] == true {
+                                    Text("Configured")
+                                        .font(.caption)
+                                        .foregroundStyle(.green)
+                                } else {
+                                    Text("Configurable Template")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            Spacer()
+                            if viewModel.selectedTemplateID == template.id {
+                                Image(systemName: "checkmark")
+                                    .foregroundStyle(.tint)
+                            }
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(.secondary)
+                                .font(.caption)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            } header: {
+                Text("Templates")
+            }
+
+            // Saved profiles section
+            Section {
+                ForEach(visibleProfiles, id: \.id) { profile in
+                    Button {
+                        viewModel.clearTemplateSelection()
                         viewModel.selectedFieldMappingProfileID = profile.id
                     } label: {
                         HStack {
@@ -30,7 +74,7 @@ struct FieldMappingSelectionView: View {
                                 }
                             }
                             Spacer()
-                            if viewModel.selectedFieldMappingProfileID == profile.id {
+                            if viewModel.selectedFieldMappingProfileID == profile.id, viewModel.selectedTemplateID == nil {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(.tint)
                             }
@@ -39,6 +83,8 @@ struct FieldMappingSelectionView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            } header: {
+                Text("Saved Profiles")
             }
 
             Section {
@@ -53,7 +99,7 @@ struct FieldMappingSelectionView: View {
         .navigationTitle("Field Mapping")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Save") {
+                Button(viewModel.selectedTemplateID != nil ? "Next" : "Save") {
                     Task {
                         await viewModel.proceed()
                     }

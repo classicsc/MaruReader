@@ -28,7 +28,10 @@
         <attribute name="displayName" attributeType="String"/>
         <attribute name="fieldMap" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isHidden" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isSystemProfile" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="sourceTemplateID" optional="YES" attributeType="String"/>
+        <attribute name="templateConfiguration" optional="YES" attributeType="String"/>
         <relationship name="settings" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="modelConfiguration" inverseEntity="MaruAnkiSettings"/>
     </entity>
     <composite name="AnkiConnectConfiguration">
