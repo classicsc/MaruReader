@@ -402,7 +402,20 @@ private enum TemplateValueCategory: CaseIterable {
         case .glossary:
             [.multiDictionaryGlossary, .glossaryNoDictionary, .dictionaryTitle]
         case .context:
-            [.sentence, .sentenceFurigana, .clozePrefix, .clozeBody, .clozeSuffix, .documentTitle, .documentURL, .documentCoverImage, .screenshot]
+            [
+                .sentence,
+                .sentenceFurigana,
+                .clozePrefix,
+                .clozeBody,
+                .clozeSuffix,
+                .clozeFuriganaPrefix,
+                .clozeFuriganaBody,
+                .clozeFuriganaSuffix,
+                .documentTitle,
+                .documentURL,
+                .documentCoverImage,
+                .screenshot,
+            ]
         case .frequency:
             [.frequencyList, .singleFrequency, .frequencyRankHarmonicMeanSortField, .frequencyOccurrenceHarmonicMeanSortField]
         case .pitch:
@@ -438,6 +451,9 @@ extension TemplateValue {
         case .clozePrefix: return "Cloze Prefix"
         case .clozeBody: return "Cloze Body"
         case .clozeSuffix: return "Cloze Suffix"
+        case .clozeFuriganaPrefix: return "Cloze Furigana Prefix"
+        case .clozeFuriganaBody: return "Cloze Furigana Body"
+        case .clozeFuriganaSuffix: return "Cloze Furigana Suffix"
         case .tags: return "Tags"
         case .documentURL: return "Document URL"
         case .screenshot: return "Screenshot"

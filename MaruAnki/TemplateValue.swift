@@ -26,6 +26,9 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case clozePrefix
     case clozeBody
     case clozeSuffix
+    case clozeFuriganaPrefix
+    case clozeFuriganaBody
+    case clozeFuriganaSuffix
     case tags
     case documentURL
     case screenshot
