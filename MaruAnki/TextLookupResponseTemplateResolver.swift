@@ -86,6 +86,15 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case .clozeSuffix:
             return resolveClozeSuffix()
 
+        case .clozeFuriganaPrefix:
+            return resolveClozeFuriganaPrefix()
+
+        case .clozeFuriganaBody:
+            return resolveClozeFuriganaBody()
+
+        case .clozeFuriganaSuffix:
+            return resolveClozeFuriganaSuffix()
+
         // MARK: - Conjugation/deinflection
 
         case .conjugation:
@@ -202,6 +211,32 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
         let suffix = String(context[range.upperBound ..< context.endIndex])
         return .text(suffix)
+    }
+
+    private func resolveClozeFuriganaPrefix() -> TemplateResolvedValue {
+        let segments = resolveClozeFuriganaSegments()
+        return .text(segments.prefix)
+    }
+
+    private func resolveClozeFuriganaBody() -> TemplateResolvedValue {
+        let segments = resolveClozeFuriganaSegments()
+        return .text(segments.body)
+    }
+
+    private func resolveClozeFuriganaSuffix() -> TemplateResolvedValue {
+        let segments = resolveClozeFuriganaSegments()
+        return .text(segments.suffix)
+    }
+
+    private func resolveClozeFuriganaSegments() -> (prefix: String?, body: String?, suffix: String?) {
+        let context = response.context
+        let range = response.primaryResultSourceRange
+        let segments = SentenceFuriganaGenerator.generateSegments(from: context, selectionRange: range)
+        return (
+            segments.prefix.isEmpty ? nil : segments.prefix,
+            segments.body.isEmpty ? nil : segments.body,
+            segments.suffix.isEmpty ? nil : segments.suffix
+        )
     }
 
     private func resolveFurigana() -> TemplateResolvedValue {
