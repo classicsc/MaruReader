@@ -60,7 +60,45 @@ final class MangaReaderViewModel {
     var readingDirection: MangaReadingDirection = .rightToLeft {
         didSet {
             if readingDirection != oldValue {
+                recomputeSpreadLayout()
                 saveReadingDirection()
+            }
+        }
+    }
+
+    /// User preference: force single-page mode even in landscape
+    var forceSinglePage: Bool = false {
+        didSet {
+            if forceSinglePage != oldValue {
+                recomputeSpreadLayout()
+                saveForceSinglePage()
+            }
+        }
+    }
+
+    // MARK: - Spread Layout State
+
+    /// Whether the device is in landscape orientation
+    private(set) var isLandscape: Bool = false
+
+    /// Computed spread layout based on current settings
+    private(set) var spreadLayout: SpreadLayout = .init(items: [])
+
+    /// Whether spreads are currently active (landscape + not forced single + horizontal mode)
+    var isSpreadModeActive: Bool {
+        !forceSinglePage && isLandscape && readingDirection != .vertical
+    }
+
+    /// Current spread index (for TabView selection in spread mode)
+    var currentSpreadIndex: Int {
+        get {
+            spreadLayout.spreadIndex(forPage: currentPageIndex) ?? 0
+        }
+        set {
+            // When spread changes, update currentPageIndex to first page of spread
+            let pages = spreadLayout.pages(atSpreadIndex: newValue)
+            if let first = pages.min(), first != currentPageIndex {
+                currentPageIndex = first
             }
         }
     }
@@ -136,6 +174,9 @@ final class MangaReaderViewModel {
             archiveReader = reader
             pageCount = await reader.pageCount
             logger.info("Loaded archive with \(self.pageCount) pages")
+
+            // Compute initial spread layout now that we know page count
+            recomputeSpreadLayout()
 
             // Start loading current page
             await loadPage(at: currentPageIndex)
@@ -222,6 +263,24 @@ final class MangaReaderViewModel {
         }
     }
 
+    // MARK: - Spread Layout
+
+    /// Updates the orientation and recomputes spread layout if needed.
+    func updateOrientation(_ landscape: Bool) {
+        guard isLandscape != landscape else { return }
+        isLandscape = landscape
+        recomputeSpreadLayout()
+    }
+
+    /// Recomputes the spread layout based on current settings.
+    private func recomputeSpreadLayout() {
+        spreadLayout = SpreadLayout.compute(
+            pageCount: pageCount,
+            spreadMode: isSpreadModeActive,
+            readingDirection: readingDirection
+        )
+    }
+
     // MARK: - Toolbar
 
     func toggleToolbars() {
@@ -279,6 +338,9 @@ final class MangaReaderViewModel {
         {
             readingDirection = direction
         }
+
+        // Load force single page preference
+        forceSinglePage = manga.forceSinglePage
     }
 
     private func debounceSaveProgress() {
@@ -315,6 +377,20 @@ final class MangaReaderViewModel {
                 return
             }
             manga.readingDirection = String(direction)
+            try? context.save()
+        }
+    }
+
+    private func saveForceSinglePage() {
+        let mangaID = manga.objectID
+        let value = forceSinglePage
+
+        let context = persistenceController.newBackgroundContext()
+        context.perform {
+            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                return
+            }
+            manga.forceSinglePage = value
             try? context.save()
         }
     }

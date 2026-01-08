@@ -242,6 +242,34 @@ public actor MangaArchiveReader {
         }
     }
 
+    /// Prefetches specific pages by their indices.
+    ///
+    /// Used for spread-aware prefetching where the caller knows which pages
+    /// to load based on the current spread layout.
+    ///
+    /// - Parameter indices: The page indices to prefetch.
+    public func prefetchPages(_ indices: [Int]) {
+        prefetchTask?.cancel()
+
+        prefetchTask = Task { [weak self] in
+            guard let self else { return }
+
+            for index in indices {
+                guard !Task.isCancelled else { break }
+
+                let count = await self.pageCount
+                guard index >= 0, index < count else { continue }
+
+                let isCached = await self.isCached(pageIndex: index)
+                if isCached {
+                    continue
+                }
+
+                _ = try? await self.loadPage(at: index)
+            }
+        }
+    }
+
     // MARK: - Test Helpers
 
     /// Returns whether the page at the given index is currently in the cache.

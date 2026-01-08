@@ -28,6 +28,8 @@ public struct MangaReaderView: View {
 
     public var body: some View {
         GeometryReader { geometry in
+            let isLandscape = geometry.size.width > geometry.size.height
+
             ZStack(alignment: .topTrailing) {
                 // Main page content
                 pageContainer
@@ -46,6 +48,12 @@ public struct MangaReaderView: View {
                         .frame(maxHeight: .infinity, alignment: .bottom)
                         .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
+            }
+            .onAppear {
+                viewModel.updateOrientation(isLandscape)
+            }
+            .onChange(of: isLandscape) { _, newValue in
+                viewModel.updateOrientation(newValue)
             }
         }
         .navigationTitle(viewModel.overlayState.shouldShowNavigationTitle ? (viewModel.manga.title ?? "Manga") : "")
@@ -70,7 +78,11 @@ public struct MangaReaderView: View {
     private var pageContainer: some View {
         switch viewModel.readingDirection {
         case .leftToRight, .rightToLeft:
-            horizontalPagedView
+            if viewModel.isSpreadModeActive {
+                spreadPagedView
+            } else {
+                horizontalPagedView
+            }
         case .vertical:
             verticalScrollView
         }
@@ -81,6 +93,17 @@ public struct MangaReaderView: View {
             ForEach(0 ..< max(1, viewModel.pageCount), id: \.self) { pageIndex in
                 MangaPageView(pageIndex: pageIndex, viewModel: viewModel)
                     .tag(pageIndex)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .environment(\.layoutDirection, viewModel.readingDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+    }
+
+    private var spreadPagedView: some View {
+        TabView(selection: $viewModel.currentSpreadIndex) {
+            ForEach(Array(viewModel.spreadLayout.items.enumerated()), id: \.offset) { index, item in
+                MangaSpreadView(spreadItem: item, viewModel: viewModel)
+                    .tag(index)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -143,6 +166,21 @@ public struct MangaReaderView: View {
                 Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
             }
 
+            // Spread mode toggle (only in landscape + horizontal mode)
+            if viewModel.isLandscape, viewModel.readingDirection != .vertical {
+                Divider()
+                    .frame(height: 20)
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.forceSinglePage.toggle()
+                    }
+                } label: {
+                    Image(systemName: viewModel.forceSinglePage ? "rectangle" : "rectangle.split.2x1")
+                }
+                .help(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
+            }
+
             Divider()
                 .frame(height: 20)
 
@@ -162,10 +200,7 @@ public struct MangaReaderView: View {
                 .frame(height: 20)
 
             // Page indicator
-            Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pageCount)")
-                .font(.caption)
-                .monospacedDigit()
-                .foregroundStyle(.secondary)
+            pageIndicator
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -175,6 +210,22 @@ public struct MangaReaderView: View {
                 .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
         )
         .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    private var pageIndicator: some View {
+        let pages = viewModel.spreadLayout.pages(atSpreadIndex: viewModel.currentSpreadIndex)
+        let displayText = if viewModel.isSpreadModeActive, pages.count == 2 {
+            // Show range for spreads (e.g., "3-4 / 10")
+            "\(pages.min()! + 1)-\(pages.max()! + 1) / \(viewModel.pageCount)"
+        } else {
+            // Show single page
+            "\(viewModel.currentPageIndex + 1) / \(viewModel.pageCount)"
+        }
+
+        return Text(displayText)
+            .font(.caption)
+            .monospacedDigit()
+            .foregroundStyle(.secondary)
     }
 
     // MARK: - Dictionary Sheet
