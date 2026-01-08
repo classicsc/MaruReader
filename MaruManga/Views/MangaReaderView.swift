@@ -36,7 +36,7 @@ public struct MangaReaderView: View {
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
             }
-            .overlay(alignment: .topLeading) {
+            .overlay(alignment: .top) {
                 if viewModel.overlayState.shouldShowToolbars {
                     topFloatingBar
                 }
