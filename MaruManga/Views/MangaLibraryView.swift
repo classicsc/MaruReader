@@ -309,7 +309,7 @@ struct MangaArchiveGridItem: View {
                 if let coverImage {
                     Image(uiImage: coverImage)
                         .resizable()
-                        .aspectRatio(contentMode: .fill)
+                        .aspectRatio(contentMode: .fit)
                 } else {
                     Image(systemName: "book.closed")
                         .resizable()
