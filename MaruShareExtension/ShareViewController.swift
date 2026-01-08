@@ -139,6 +139,8 @@ struct SearchView: View {
         #endif
     }()
 
+    @State private var clusters = [TextCluster]()
+
     @State private var isProcessing = false
     @State private var errorMessage: String?
 
@@ -164,7 +166,7 @@ struct SearchView: View {
                 case let .image(image, imageData):
                     OCRImageResultsView(
                         image: image,
-                        clusters: ocr.clusters,
+                        clusters: clusters,
                         isProcessing: isProcessing
                     )
                     .task {
@@ -197,7 +199,7 @@ struct SearchView: View {
         errorMessage = nil
 
         do {
-            try await ocr.performOCR(imageData: imageData)
+            clusters = try await ocr.performOCR(imageData: imageData)
             isProcessing = false
         } catch {
             errorMessage = "OCR failed: \(error.localizedDescription)"

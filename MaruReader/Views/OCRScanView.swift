@@ -28,6 +28,7 @@ struct OCRScanView: View {
             OCR()
         #endif
     }()
+    @State private var clusters = [TextCluster]()
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRScanView")
 
@@ -41,7 +42,7 @@ struct OCRScanView: View {
                 if let image = selectedImage {
                     OCRImageResultsView(
                         image: image,
-                        clusters: ocr.clusters,
+                        clusters: clusters,
                         isProcessing: isProcessing
                     )
                 } else {
@@ -141,7 +142,7 @@ struct OCRScanView: View {
         errorMessage = nil
 
         do {
-            try await ocr.performOCR(imageData: data)
+            clusters = try await ocr.performOCR(imageData: data)
             isProcessing = false
         } catch {
             errorMessage = "OCR failed: \(error.localizedDescription)"

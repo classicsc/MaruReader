@@ -7,12 +7,14 @@
 
 import CoreData
 import MaruDictionaryUICommon
+import MaruManga
 import MaruReaderCore
 import SwiftUI
 
 struct ContentView: View {
     private let bookPersistenceController = BookDataPersistenceController.shared
     private let dictionaryPersistenceController = DictionaryPersistenceController.shared
+    private let mangaPersistenceController = MangaDataPersistenceController.shared
 
     @State private var searchViewModel = DictionarySearchViewModel()
     @State private var query: String = ""
@@ -23,6 +25,10 @@ struct ContentView: View {
             Tab("Library", systemImage: "books.vertical") {
                 BookLibraryView()
                     .environment(\.managedObjectContext, bookPersistenceController.container.viewContext)
+            }
+            Tab("Manga", systemImage: "book.closed") {
+                MangaArchiveLibraryView()
+                    .environment(\.managedObjectContext, mangaPersistenceController.container.viewContext)
             }
             Tab("Scan", systemImage: "doc.text.viewfinder") {
                 OCRScanView()

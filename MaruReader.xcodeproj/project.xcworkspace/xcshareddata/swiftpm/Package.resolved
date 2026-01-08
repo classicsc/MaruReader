@@ -1,5 +1,5 @@
 {
-  "originHash" : "f63a3c3277dac9a50afc8f6fd84429fa3d0396955f7d7e71085f3da9fa158b9b",
+  "originHash" : "c2603a639c8528a80a756636bb939a5aa06490c28937e21b9a286e7bb11edf2c",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -51,8 +51,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/nicklockwood/LRUCache.git",
       "state" : {
-        "revision" : "e0e9e039b33db8f2ef39b8e25607e38f46b13584",
-        "version" : "1.1.2"
+        "branch" : "main",
+        "revision" : "0d91406ecd4d6c1c56275866f00508d9aeacc92a"
       }
     },
     {

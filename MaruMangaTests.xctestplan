@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "B59EBD39-2807-4278-9890-B0FF43EFAD85",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+      }
+    ],
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DBDCE10F2F0C98CC00B42F93",
+        "name" : "MaruMangaTests"
+      }
+    }
+  ],
+  "version" : 1
+}

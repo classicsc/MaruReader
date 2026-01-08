@@ -1,0 +1,188 @@
+//
+//  MangaReaderView.swift
+//  MaruManga
+//
+
+import MaruDictionaryUICommon
+import SwiftUI
+
+/// The main manga reader view with paging, toolbars, and dictionary integration.
+public struct MangaReaderView: View {
+    @State private var viewModel: MangaReaderViewModel
+
+    public init(manga: MangaArchive) {
+        _viewModel = State(wrappedValue: MangaReaderViewModel(manga: manga))
+    }
+
+    public var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .topTrailing) {
+                // Main page content
+                pageContainer
+                    .ignoresSafeArea(.all, edges: .bottom)
+
+                // Toolbar toggle button (visible when toolbars hidden)
+                if viewModel.overlayState.shouldShowToolbarToggleButton {
+                    toolbarToggleButton
+                        .padding(.trailing, 16)
+                        .padding(.top, 8)
+                }
+
+                // Bottom toolbar
+                if viewModel.overlayState.shouldShowToolbars {
+                    bottomToolbar
+                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
+                }
+            }
+        }
+        .navigationTitle(viewModel.overlayState.shouldShowNavigationTitle ? (viewModel.manga.title ?? "Manga") : "")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowToolbars)
+        .toolbar(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
+        .sheet(isPresented: $viewModel.showingDictionarySheet) {
+            dictionarySheet
+        }
+        .task {
+            await viewModel.loadArchive()
+        }
+        .onDisappear {
+            viewModel.saveOnDisappear()
+        }
+    }
+
+    // MARK: - Page Container
+
+    @ViewBuilder
+    private var pageContainer: some View {
+        switch viewModel.readingDirection {
+        case .leftToRight, .rightToLeft:
+            horizontalPagedView
+        case .vertical:
+            verticalScrollView
+        }
+    }
+
+    private var horizontalPagedView: some View {
+        TabView(selection: $viewModel.currentPageIndex) {
+            ForEach(0 ..< max(1, viewModel.pageCount), id: \.self) { pageIndex in
+                MangaPageView(pageIndex: pageIndex, viewModel: viewModel)
+                    .tag(pageIndex)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .environment(\.layoutDirection, viewModel.readingDirection == .rightToLeft ? .rightToLeft : .leftToRight)
+    }
+
+    private var verticalScrollView: some View {
+        GeometryReader { geometry in
+            // Use full height including safe areas so toolbar changes don't affect page size
+            let pageHeight = geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
+
+            ScrollViewReader { proxy in
+                ScrollView(.vertical, showsIndicators: false) {
+                    LazyVStack(spacing: 0) {
+                        ForEach(0 ..< max(1, viewModel.pageCount), id: \.self) { pageIndex in
+                            MangaPageView(pageIndex: pageIndex, viewModel: viewModel)
+                                .frame(height: pageHeight)
+                                .id(pageIndex)
+                        }
+                    }
+                }
+                .scrollTargetBehavior(.paging)
+                .onAppear {
+                    // Scroll to current page when entering vertical mode
+                    proxy.scrollTo(viewModel.currentPageIndex, anchor: .top)
+                }
+                .onChange(of: viewModel.currentPageIndex) { _, newValue in
+                    withAnimation {
+                        proxy.scrollTo(newValue, anchor: .top)
+                    }
+                }
+            }
+            .ignoresSafeArea()
+        }
+    }
+
+    // MARK: - Toolbar Toggle Button
+
+    private var toolbarToggleButton: some View {
+        Button {
+            viewModel.toggleToolbars()
+        } label: {
+            Image(systemName: "chevron.down.circle.fill")
+                .font(.title2)
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.5), radius: 2)
+        }
+    }
+
+    // MARK: - Bottom Toolbar
+
+    private var bottomToolbar: some View {
+        HStack(spacing: 20) {
+            // Bounding box toggle
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    viewModel.showBoundingBoxes.toggle()
+                }
+            } label: {
+                Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+            }
+
+            Divider()
+                .frame(height: 20)
+
+            // Reading direction picker
+            Picker("Direction", selection: $viewModel.readingDirection) {
+                Image(systemName: "arrow.left")
+                    .tag(MangaReadingDirection.rightToLeft)
+                Image(systemName: "arrow.right")
+                    .tag(MangaReadingDirection.leftToRight)
+                Image(systemName: "arrow.down")
+                    .tag(MangaReadingDirection.vertical)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 120)
+
+            Divider()
+                .frame(height: 20)
+
+            // Page indicator
+            Text("\(viewModel.currentPageIndex + 1) / \(viewModel.pageCount)")
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+        )
+        .frame(maxWidth: .infinity, alignment: .center)
+    }
+
+    // MARK: - Dictionary Sheet
+
+    private var dictionarySheet: some View {
+        NavigationStack {
+            if let searchViewModel = viewModel.dictionarySearchViewModel {
+                DictionarySearchView()
+                    .environment(searchViewModel)
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                viewModel.showingDictionarySheet = false
+                            }
+                        }
+                    }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+}

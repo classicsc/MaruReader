@@ -12,10 +12,6 @@ import Vision
 public actor OCR {
     /// The array of the request's results.
     private var observations = [RecognizedTextObservation]()
-
-    /// Clustered observations for UI interaction.
-    @MainActor public var clusters = [TextCluster]()
-
     /// The Vision request.
     var request: RecognizeTextRequest
 
@@ -40,13 +36,7 @@ public actor OCR {
         clusteringConfiguration.verboseLogging = enabled
     }
 
-    public func performOCR(imageData: Data) async throws {
-        /// Clear the arrays for photo recapture.
-        observations.removeAll()
-        await MainActor.run {
-            clusters.removeAll()
-        }
-
+    public func performOCR(imageData: Data) async throws -> [TextCluster] {
         /// Perform the request on the image data and return the results.
         let results = try await request.perform(on: imageData)
 
@@ -60,25 +50,19 @@ public actor OCR {
 
         /// Update the published arrays on main actor.
         observations = results
-        await MainActor.run {
-            clusters = clusteredResults
-        }
+        return clusteredResults
     }
 
     /// Re-cluster existing observations with a new configuration.
     /// Useful for adjusting clustering parameters without re-running OCR.
-    public func recluster(with configuration: ClusteringConfiguration) async {
+    public func recluster(with configuration: ClusteringConfiguration) async -> [TextCluster] {
         let currentObservations = observations
-        guard !currentObservations.isEmpty else { return }
+        guard !currentObservations.isEmpty else { return [] }
 
         let clusterer = TextClusterer(configuration: configuration)
         let clusteredResults = clusterer.cluster(currentObservations)
         clusteringConfiguration = configuration
-
-        await MainActor.run {
-            clusters = clusteredResults
-        }
-
         logger.debug("Re-clustered \(currentObservations.count) observations into \(clusteredResults.count) clusters.")
+        return clusteredResults
     }
 }

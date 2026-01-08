@@ -1,13 +1,13 @@
-//  BookLibraryView.swift
+//  MangaLibraryView.swift
 //  MaruReader
 //
-//  Book library view with import progress and book grid display.
+//  MangaArchive library view with import progress and book grid display.
 //
 import CoreData
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum BookSortOption: String, CaseIterable, Identifiable {
+enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     case title = "Title"
     case author = "Author"
     case dateAdded = "Date Added"
@@ -18,67 +18,67 @@ enum BookSortOption: String, CaseIterable, Identifiable {
         switch self {
         case .title:
             [
-                NSSortDescriptor(keyPath: \Book.title, ascending: true),
-                NSSortDescriptor(keyPath: \Book.author, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.title, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.author, ascending: true),
             ]
         case .author:
             [
-                NSSortDescriptor(keyPath: \Book.author, ascending: true),
-                NSSortDescriptor(keyPath: \Book.title, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.author, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.title, ascending: true),
             ]
         case .dateAdded:
             [
-                NSSortDescriptor(keyPath: \Book.added, ascending: false),
+                NSSortDescriptor(keyPath: \MangaArchive.dateAdded, ascending: false),
             ]
         }
     }
 
-    var sortDescriptors: [SortDescriptor<Book>] {
+    var sortDescriptors: [SortDescriptor<MangaArchive>] {
         switch self {
         case .title:
             [
-                SortDescriptor(\Book.title, order: .forward),
-                SortDescriptor(\Book.author, order: .forward),
+                SortDescriptor(\MangaArchive.title, order: .forward),
+                SortDescriptor(\MangaArchive.author, order: .forward),
             ]
         case .author:
             [
-                SortDescriptor(\Book.author, order: .forward),
-                SortDescriptor(\Book.title, order: .forward),
+                SortDescriptor(\MangaArchive.author, order: .forward),
+                SortDescriptor(\MangaArchive.title, order: .forward),
             ]
         case .dateAdded:
             [
-                SortDescriptor(\Book.added, order: .reverse),
+                SortDescriptor(\MangaArchive.dateAdded, order: .reverse),
             ]
         }
     }
 }
 
-struct BookLibraryView: View {
+public struct MangaArchiveLibraryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    @State private var sortOption: BookSortOption = .dateAdded
+    @State private var sortOption: MangaArchiveSortOption = .dateAdded
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
-    @State private var bookToDelete: Book?
+    @State private var bookToDelete: MangaArchive?
     @State private var showingDeleteConfirmation = false
 
-    private var books: FetchRequest<Book>
+    private var books: FetchRequest<MangaArchive>
 
-    init() {
-        let initialSortOption = BookSortOption.dateAdded
-        books = FetchRequest<Book>(
-            entity: Book.entity(),
+    public init() {
+        let initialSortOption = MangaArchiveSortOption.dateAdded
+        books = FetchRequest<MangaArchive>(
+            entity: MangaArchive.entity(),
             sortDescriptors: initialSortOption.nsSortDescriptors,
             predicate: nil,
             animation: .default
         )
     }
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             contentView
-                .navigationTitle("Library")
+                .navigationTitle("Manga")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
@@ -90,7 +90,7 @@ struct BookLibraryView: View {
                     ToolbarItem(placement: .secondaryAction) {
                         Menu {
                             Picker("Sort By", selection: $sortOption) {
-                                ForEach(BookSortOption.allCases) { option in
+                                ForEach(MangaArchiveSortOption.allCases) { option in
                                     Text(option.rawValue).tag(option)
                                 }
                             }
@@ -101,7 +101,7 @@ struct BookLibraryView: View {
                 }
                 .fileImporter(
                     isPresented: $showingFilePicker,
-                    allowedContentTypes: [.epub],
+                    allowedContentTypes: [.zip, UTType(filenameExtension: "cbz")!],
                     allowsMultipleSelection: false
                 ) { result in
                     handleFileImport(result: result)
@@ -117,19 +117,22 @@ struct BookLibraryView: View {
                     }
                 }
                 .confirmationDialog(
-                    "Delete Book",
+                    "Delete Manga",
                     isPresented: $showingDeleteConfirmation,
                     presenting: bookToDelete
                 ) { book in
                     Button("Delete", role: .destructive) {
-                        deleteBook(book)
+                        deleteMangaArchive(book)
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: { book in
-                    Text("Are you sure you want to delete \"\(book.title ?? "Unknown Book")\"? This action cannot be undone.")
+                    Text("Are you sure you want to delete \"\(book.title ?? "Unknown Manga")\"? This action cannot be undone.")
                 }
                 .onChange(of: sortOption) { _, newValue in
                     books.wrappedValue.sortDescriptors = newValue.sortDescriptors
+                }
+                .navigationDestination(for: MangaArchive.self) { manga in
+                    MangaReaderView(manga: manga)
                 }
         }
     }
@@ -148,9 +151,9 @@ struct BookLibraryView: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView(
-            "No Books",
+            "No Manga",
             systemImage: "books.vertical",
-            description: Text("Import EPUB files to see them here")
+            description: Text("Import ZIP/CBZ files to see them here")
         )
         .frame(maxHeight: .infinity)
     }
@@ -163,11 +166,11 @@ struct BookLibraryView: View {
             spacing: 20
         ) {
             ForEach(books.wrappedValue, id: \.objectID) { book in
-                let state = BookImportState(book: book)
+                let state = MangaArchiveImportState(book: book)
                 Group {
                     if state.isComplete {
-                        NavigationLink(destination: BookReaderView(book: book)) {
-                            BookGridItem(book: book, state: state, onCancel: {}, onRemove: {})
+                        NavigationLink(value: book) {
+                            MangaArchiveGridItem(book: book, state: state, onCancel: {}, onRemove: {})
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
@@ -179,11 +182,11 @@ struct BookLibraryView: View {
                             }
                         }
                     } else {
-                        BookGridItem(
+                        MangaArchiveGridItem(
                             book: book,
                             state: state,
                             onCancel: { cancelImport(book) },
-                            onRemove: { removeBook(book) }
+                            onRemove: { removeMangaArchive(book) }
                         )
                     }
                 }
@@ -199,7 +202,7 @@ struct BookLibraryView: View {
 
             Task {
                 do {
-                    _ = try await BookImportManager.shared.enqueueImport(from: url)
+                    _ = try await MangaImportManager.shared.enqueueImport(from: url)
                 } catch {
                     await MainActor.run {
                         importError = error
@@ -214,42 +217,31 @@ struct BookLibraryView: View {
         }
     }
 
-    private func cancelImport(_ book: Book) {
+    private func cancelImport(_ book: MangaArchive) {
         Task {
-            await BookImportManager.shared.cancelImport(jobID: book.objectID)
+            await MangaImportManager.shared.cancelImport(jobID: book.objectID)
         }
     }
 
-    private func deleteBook(_ book: Book) {
+    private func deleteMangaArchive(_ book: MangaArchive) {
         Task {
-            await BookImportManager.shared.deleteBook(bookID: book.objectID)
+            await MangaImportManager.shared.deleteManga(mangaID: book.objectID)
         }
     }
 
-    private func removeBook(_ book: Book) {
-        deleteBook(book)
+    private func removeMangaArchive(_ book: MangaArchive) {
+        deleteMangaArchive(book)
     }
 }
 
-struct BookGridItem: View {
-    let book: Book
-    let state: BookImportState
+struct MangaArchiveGridItem: View {
+    let book: MangaArchive
+    let state: MangaArchiveImportState
     let onCancel: () -> Void
     let onRemove: () -> Void
 
     private var coverImage: UIImage? {
-        guard let coverFileName = book.coverFileName else { return nil }
-
-        guard let appSupportDir = try? FileManager.default.url(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask,
-            appropriateFor: nil,
-            create: false
-        ) else { return nil }
-
-        let coverURL = appSupportDir
-            .appendingPathComponent("Covers")
-            .appendingPathComponent(coverFileName)
+        guard let coverURL = book.coverImage else { return nil }
 
         guard let data = try? Data(contentsOf: coverURL) else { return nil }
         return UIImage(data: data)
@@ -259,10 +251,7 @@ struct BookGridItem: View {
         if let title = book.title, !title.isEmpty {
             return title
         }
-        if let originalName = book.originalFileName, !originalName.isEmpty {
-            return originalName
-        }
-        return "Untitled Book"
+        return "Untitled"
     }
 
     private var displayAuthor: String? {
@@ -277,11 +266,11 @@ struct BookGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            book.displayProgressMessage ?? "Importing..."
+            "Importing..."
         case .failed:
-            book.errorMessage ?? book.displayProgressMessage ?? "Import failed."
+            book.importErrorMessage ?? "Import failed."
         case .cancelled:
-            book.displayProgressMessage ?? "Import cancelled."
+            "Import cancelled."
         }
     }
 
@@ -317,7 +306,7 @@ struct BookGridItem: View {
             .cornerRadius(8)
             .shadow(radius: 2)
 
-            // Book Info
+            // MangaArchive Info
             VStack(alignment: .center, spacing: 2) {
                 Text(displayTitle)
                     .font(.caption)
@@ -360,7 +349,7 @@ struct BookGridItem: View {
     }
 }
 
-struct BookImportState {
+struct MangaArchiveImportState {
     enum Status {
         case complete
         case inProgress
@@ -370,12 +359,10 @@ struct BookImportState {
 
     let status: Status
 
-    init(book: Book) {
-        if book.isComplete {
+    init(book: MangaArchive) {
+        if book.importComplete {
             status = .complete
-        } else if book.isCancelled {
-            status = .cancelled
-        } else if let errorMessage = book.errorMessage, !errorMessage.isEmpty {
+        } else if let errorMessage = book.importErrorMessage, !errorMessage.isEmpty {
             status = .failed
         } else {
             status = .inProgress
