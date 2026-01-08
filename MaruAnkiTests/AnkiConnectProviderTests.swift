@@ -76,7 +76,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: false
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",
@@ -131,7 +131,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: true
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",
@@ -176,7 +176,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: true
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",
@@ -220,7 +220,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: false
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",
@@ -275,7 +275,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: false
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",
@@ -330,7 +330,7 @@ struct AnkiConnectProviderTests {
             checkAllModels: false
         )
 
-        try await provider.addNote(
+        _ = try await provider.addNote(
             fields: fields,
             profileName: "User 1",
             deckName: "Test Deck",

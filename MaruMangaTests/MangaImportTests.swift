@@ -42,7 +42,7 @@ struct MangaImportTests {
 
         // Create dummy image files
         for i in 1 ... imageCount {
-            let imageName = String(format: "page_%03d.jpg", i)
+            let imageName = "page_\(String(i).padding(toLength: 3, withPad: "0", startingAt: 0)).jpg"
             let imageURL = imagesDir.appendingPathComponent(imageName)
 
             // Create a minimal valid JPEG using UIKit
