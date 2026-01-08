@@ -21,6 +21,7 @@ import SwiftUI
 /// The main manga reader view with paging, toolbars, and dictionary integration.
 public struct MangaReaderView: View {
     @State private var viewModel: MangaReaderViewModel
+    @Environment(\.dismiss) private var dismiss
 
     public init(manga: MangaArchive) {
         _viewModel = State(wrappedValue: MangaReaderViewModel(manga: manga))
@@ -30,22 +31,28 @@ public struct MangaReaderView: View {
         GeometryReader { geometry in
             let isLandscape = geometry.size.width > geometry.size.height
 
-            ZStack(alignment: .topTrailing) {
+            ZStack {
                 // Main page content
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
-
-                // Toolbar toggle button (visible when toolbars hidden)
+            }
+            .overlay(alignment: .topLeading) {
+                if viewModel.overlayState.shouldShowToolbars {
+                    topFloatingBar
+                        .padding(.top, geometry.safeAreaInsets.top + 8)
+                        .padding(.leading, 16)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
                 if viewModel.overlayState.shouldShowToolbarToggleButton {
                     toolbarToggleButton
                         .padding(.trailing, 16)
-                        .padding(.top, 8)
+                        .padding(.top, geometry.safeAreaInsets.top + 8)
                 }
-
-                // Bottom toolbar
+            }
+            .overlay(alignment: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
                     bottomToolbar
-                        .frame(maxHeight: .infinity, alignment: .bottom)
                         .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
             }
@@ -56,10 +63,8 @@ public struct MangaReaderView: View {
                 viewModel.updateOrientation(newValue)
             }
         }
-        .navigationTitle(viewModel.overlayState.shouldShowNavigationTitle ? (viewModel.manga.title ?? "Manga") : "")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowToolbars)
-        .toolbar(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .navigationBar)
+        .navigationBarBackButtonHidden(true)
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $viewModel.showingDictionarySheet) {
             dictionarySheet
@@ -151,6 +156,32 @@ public struct MangaReaderView: View {
                 .foregroundStyle(.white)
                 .shadow(color: .black.opacity(0.5), radius: 2)
         }
+    }
+
+    // MARK: - Top Floating Bar
+
+    private var topFloatingBar: some View {
+        HStack(spacing: 10) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+            }
+
+            Text(viewModel.manga.title ?? "Manga")
+                .font(.headline)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+        )
     }
 
     // MARK: - Bottom Toolbar
