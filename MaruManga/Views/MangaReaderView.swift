@@ -39,8 +39,6 @@ public struct MangaReaderView: View {
             .overlay(alignment: .topLeading) {
                 if viewModel.overlayState.shouldShowToolbars {
                     topFloatingBar
-                        .padding(.top, geometry.safeAreaInsets.top + 8)
-                        .padding(.leading, 16)
                 }
             }
             .overlay(alignment: .topTrailing) {
@@ -53,7 +51,6 @@ public struct MangaReaderView: View {
             .overlay(alignment: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
                     bottomToolbar
-                        .padding(.bottom, geometry.safeAreaInsets.bottom + 20)
                 }
             }
             .onAppear {
