@@ -72,6 +72,9 @@ struct DictionaryCandidateGenerator {
 
                 // Accumulate candidates by text, preserving all transformation chains
                 for candidate in deinflectedCandidates {
+                    // Skip empty candidates
+                    guard !candidate.text.isEmpty else { continue }
+
                     let candidateKey = candidate.text + "|" + (candidate.deinflectionOutputRules.isEmpty ? "exact" : "deinflected")
 
                     if var accumulator = candidatesByText[candidateKey] {
