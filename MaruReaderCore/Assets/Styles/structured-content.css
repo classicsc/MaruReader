@@ -262,7 +262,11 @@ body {
 }
 
 .gloss-separator {
-    margin-right: 0.25em;
+    display: inline;
+    font-size: 0;
+    opacity: 0;
+    white-space: pre-wrap;
+    display: none;
 }
 
 .gloss-content {
