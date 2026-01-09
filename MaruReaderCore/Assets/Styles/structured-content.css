@@ -18,6 +18,7 @@
 /* Root and variables for iOS system colors and sizing */
 :root {
     color-scheme: light dark;
+    overscroll-behavior-x: none;
 
     /* Color system */
     --text-color: CanvasText;
