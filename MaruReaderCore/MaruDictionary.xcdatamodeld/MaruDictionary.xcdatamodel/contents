@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24411" systemVersion="25B78" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AudioFile" representedClassName="AudioFile" syncable="YES" codeGenerationType="class">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="kanaReading" attributeType="String"/>
@@ -74,14 +74,14 @@
         <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="kanjiBanks" optional="YES" attributeType="String"/>
         <attribute name="kanjiCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="kanjiResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="kanjiBanks" optional="YES" attributeType="String"/>
         <attribute name="kanjiMetaBanks" optional="YES" attributeType="String"/>
+        <attribute name="kanjiResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="mediaImported" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
         <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -160,10 +160,11 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="transcriptions" attributeType="String" valueTransformerName="IPATranscriptionArrayTransformer"/>
-        <fetchIndex name="byExpressionReading">
+        <fetchIndex name="byExpression">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
     <entity name="KanjiEntry" representedClassName="KanjiEntry" syncable="YES" codeGenerationType="class">
@@ -197,10 +198,11 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="pitches" attributeType="String" valueTransformerName="PitchAccentArrayTransformer"/>
         <attribute name="reading" attributeType="String"/>
-        <fetchIndex name="byExpressionReading">
+        <fetchIndex name="byExpression">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
@@ -214,10 +216,11 @@
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
-        <fetchIndex name="byExpressionReading">
+        <fetchIndex name="byExpression">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
     <entity name="TermFrequencyEntry" representedClassName="TermFrequencyEntry" syncable="YES" codeGenerationType="class">
@@ -227,10 +230,11 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="value" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <fetchIndex name="byExpressionReading">
+        <fetchIndex name="byExpression">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
 </model>
