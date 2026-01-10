@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import Foundation
 internal import IPADic
 internal import Mecab_Swift
-import Foundation
 
-enum SentenceFuriganaGenerator {
+public enum SentenceFuriganaGenerator {
     /// Generates Anki-style furigana for an entire sentence.
     ///
     /// Uses MeCab with IPADic to tokenize Japanese text and retrieve readings.
@@ -27,7 +27,7 @@ enum SentenceFuriganaGenerator {
     ///
     /// - Parameter sentence: The Japanese sentence to annotate.
     /// - Returns: The sentence with Anki-style furigana annotations.
-    static func generate(from sentence: String) -> String {
+    public static func generate(from sentence: String) -> String {
         guard !sentence.isEmpty else { return "" }
 
         guard let tokenizer = try? Tokenizer(dictionary: IPADic()) else {
@@ -63,7 +63,7 @@ enum SentenceFuriganaGenerator {
     }
 
     /// Generates Anki-style furigana for a sentence and splits it into cloze segments.
-    static func generateSegments(
+    public static func generateSegments(
         from sentence: String,
         selectionRange: Range<String.Index>
     ) -> (prefix: String, body: String, suffix: String) {

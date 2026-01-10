@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreData
 import Foundation
 import MaruAnki
 import MaruReaderCore
@@ -62,6 +63,40 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
     var currentResponse: TextLookupResponse?
+
+    // Context display settings
+    var contextFontSize: Double = DictionaryDisplayDefaults.defaultContextFontSize
+    var contextFuriganaEnabled: Bool = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
+    var toolbarFuriganaOverride: Bool?
+
+    /// Effective furigana enabled state (toolbar override takes precedence)
+    var furiganaEnabled: Bool {
+        toolbarFuriganaOverride ?? contextFuriganaEnabled
+    }
+
+    // Context editing state
+    var isEditingContext: Bool = false
+    var editContextText: String = ""
+
+    // Cached furigana segments for current context
+    private var cachedFuriganaSegments: [FuriganaSegment] = []
+    private var cachedFuriganaContext: String?
+
+    /// Get furigana segments for the current context
+    var currentFuriganaSegments: [FuriganaSegment] {
+        guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else {
+            return []
+        }
+
+        if cachedFuriganaContext == context {
+            return cachedFuriganaSegments
+        }
+
+        let segments = FuriganaGenerator.generateSegments(from: context)
+        cachedFuriganaContext = context
+        cachedFuriganaSegments = segments
+        return segments
+    }
 
     // Navigation history for back/forward functionality
     let history = NavigationHistory()
@@ -608,5 +643,71 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         } catch {
             logger.error("Failed to set button state: \(error.localizedDescription)")
         }
+    }
+
+    // MARK: - Context Display
+
+    /// Load context display settings from Core Data
+    public func loadContextDisplaySettings() {
+        Task {
+            let container = DictionaryPersistenceController.shared.container
+            let context = container.viewContext
+
+            await context.perform {
+                let fetchRequest = DictionaryDisplayPreferences.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "enabled == YES")
+                fetchRequest.fetchLimit = 1
+
+                if let preferences = try? context.fetch(fetchRequest).first {
+                    Task { @MainActor in
+                        self.contextFontSize = preferences.contextFontSize
+                        self.contextFuriganaEnabled = preferences.contextFuriganaEnabled
+                    }
+                }
+            }
+        }
+    }
+
+    /// Toggle furigana display on/off
+    public func toggleFurigana() {
+        if toolbarFuriganaOverride == nil {
+            // First toggle: override the setting
+            toolbarFuriganaOverride = !contextFuriganaEnabled
+        } else {
+            // Subsequent toggles: flip the override
+            toolbarFuriganaOverride = !furiganaEnabled
+        }
+        // Invalidate furigana cache
+        cachedFuriganaContext = nil
+    }
+
+    /// Start editing the context text
+    public func startEditingContext() {
+        guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else { return }
+        editContextText = context
+        isEditingContext = true
+    }
+
+    /// Commit the edited context text
+    public func commitContextEdit() {
+        guard isEditingContext else { return }
+        currentResponse?.editedContext = editContextText
+
+        // Invalidate furigana cache since context changed
+        cachedFuriganaContext = nil
+
+        isEditingContext = false
+    }
+
+    /// Cancel editing and discard changes
+    public func cancelContextEdit() {
+        isEditingContext = false
+        editContextText = ""
+    }
+
+    /// Copy the current context to clipboard
+    public func copyContextToClipboard() {
+        guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else { return }
+        UIPasteboard.general.string = context
     }
 }

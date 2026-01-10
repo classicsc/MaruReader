@@ -60,7 +60,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         // MARK: - Context values from request
 
         case .sentence:
-            return .text(response.context)
+            return .text(response.effectiveContext)
 
         case .documentTitle:
             return .text(response.request.contextValues?.documentTitle)
@@ -116,7 +116,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return resolveFurigana()
 
         case .sentenceFurigana:
-            return .text(generateSentenceFurigana(response.context))
+            return .text(generateSentenceFurigana(response.effectiveContext))
 
         // MARK: - Tags and part of speech
 
@@ -204,7 +204,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     // MARK: - Private Resolution Helpers
 
     private func resolveClozePrefix() -> TemplateResolvedValue {
-        let context = response.context
+        let context = response.effectiveContext
         let range = response.primaryResultSourceRange
         guard range.lowerBound >= context.startIndex else {
             return .text("")
@@ -214,7 +214,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     }
 
     private func resolveClozeSuffix() -> TemplateResolvedValue {
-        let context = response.context
+        let context = response.effectiveContext
         let range = response.primaryResultSourceRange
         guard range.upperBound <= context.endIndex else {
             return .text("")
@@ -239,7 +239,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     }
 
     private func resolveClozeFuriganaSegments() -> (prefix: String?, body: String?, suffix: String?) {
-        let context = response.context
+        let context = response.effectiveContext
         let range = response.primaryResultSourceRange
         let segments = SentenceFuriganaGenerator.generateSegments(from: context, selectionRange: range)
         return (

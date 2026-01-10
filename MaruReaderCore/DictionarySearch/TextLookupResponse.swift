@@ -81,6 +81,12 @@ public struct TextLookupResponse: Sendable {
     /// Whether Anki integration is enabled. When false, Anki buttons are not shown.
     public var ankiEnabled: Bool = false
 
+    /// User-edited context. When set, this overrides the original request.context.
+    public var editedContext: String?
+
+    /// User-edited highlight range. When set, this overrides the original primaryResultSourceRange.
+    public var editedPrimaryResultSourceRange: Range<String.Index>?
+
     /// Mark term keys that already have notes in Anki.
     public mutating func markExistingNotes(_ termKeys: Set<String>) {
         existingNoteTermKeys = termKeys
@@ -99,6 +105,14 @@ public struct TextLookupResponse: Sendable {
 
     /// The original context string (convenience accessor).
     public var context: String { request.context }
+
+    /// The effective context for display and Anki note creation (edited or original).
+    public var effectiveContext: String { editedContext ?? request.context }
+
+    /// The effective highlight range for display (edited or original).
+    public var effectivePrimaryResultSourceRange: Range<String.Index>? {
+        editedPrimaryResultSourceRange ?? primaryResultSourceRange
+    }
 
     /// Start offset of the matched text within the context (UTF-16 code units for JS compatibility)
     public var matchStartInContext: Int {

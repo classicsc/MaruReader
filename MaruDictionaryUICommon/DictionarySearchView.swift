@@ -20,6 +20,7 @@
 //
 //  Dictionary search view with integrated HTML rendering.
 //
+
 import MaruReaderCore
 import os.log
 import SwiftUI
@@ -32,16 +33,28 @@ public struct DictionarySearchView: View {
 
     public init() {}
 
+    /// Whether to show the bottom toolbar (when context exists or navigation is possible)
+    private var showToolbar: Bool {
+        viewModel.currentRequest != nil || viewModel.history.canGoBack || viewModel.history.canGoForward
+    }
+
     public var body: some View {
+        @Bindable var viewModel = viewModel
+
         VStack(alignment: .leading, spacing: 0) {
             // Context display (if available)
             if let request = viewModel.currentRequest {
                 ContextDisplayView(
-                    context: request.context,
-                    matchRange: viewModel.currentResponse?.primaryResultSourceRange,
+                    context: viewModel.currentResponse?.effectiveContext ?? request.context,
+                    matchRange: viewModel.currentResponse?.effectivePrimaryResultSourceRange,
+                    furiganaSegments: viewModel.currentFuriganaSegments,
+                    fontSize: viewModel.contextFontSize,
+                    furiganaEnabled: viewModel.furiganaEnabled,
+                    isEditing: viewModel.isEditingContext,
                     onCharacterTap: { offset in
                         viewModel.performSearchAtOffset(offset)
-                    }
+                    },
+                    editText: $viewModel.editContextText
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -76,29 +89,70 @@ public struct DictionarySearchView: View {
                 }
             }
 
-            // Navigation toolbar (only visible when navigation is possible)
-            if viewModel.history.canGoBack || viewModel.history.canGoForward {
-                HStack(spacing: 16) {
-                    Button(action: { viewModel.navigateBack() }) {
-                        Label("Back", systemImage: "chevron.backward")
-                            .labelStyle(.iconOnly)
-                    }
-                    .disabled(!viewModel.history.canGoBack)
-
-                    Button(action: { viewModel.navigateForward() }) {
-                        Label("Forward", systemImage: "chevron.forward")
-                            .labelStyle(.iconOnly)
-                    }
-                    .disabled(!viewModel.history.canGoForward)
-
-                    Spacer()
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .background(Color(.systemBackground))
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+            // Bottom toolbar (visible when context exists or navigation is possible)
+            if showToolbar {
+                bottomToolbar
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .onAppear {
+            viewModel.loadContextDisplaySettings()
+        }
+    }
+
+    private var bottomToolbar: some View {
+        HStack(spacing: 16) {
+            // Navigation buttons
+            Button(action: { viewModel.navigateBack() }) {
+                Label("Back", systemImage: "chevron.backward")
+                    .labelStyle(.iconOnly)
+            }
+            .disabled(!viewModel.history.canGoBack)
+
+            Button(action: { viewModel.navigateForward() }) {
+                Label("Forward", systemImage: "chevron.forward")
+                    .labelStyle(.iconOnly)
+            }
+            .disabled(!viewModel.history.canGoForward)
+
+            Spacer()
+
+            // Context action buttons (only when context exists)
+            if viewModel.currentRequest != nil {
+                // Furigana toggle
+                Button(action: { viewModel.toggleFurigana() }) {
+                    Label("Furigana", systemImage: viewModel.furiganaEnabled ? "textformat.abc.dottedunderline" : "textformat.abc")
+                        .labelStyle(.iconOnly)
+                }
+
+                // Edit/Done button
+                if viewModel.isEditingContext {
+                    Button(action: { viewModel.commitContextEdit() }) {
+                        Label("Done", systemImage: "checkmark")
+                            .labelStyle(.iconOnly)
+                    }
+
+                    Button(action: { viewModel.cancelContextEdit() }) {
+                        Label("Cancel", systemImage: "xmark")
+                            .labelStyle(.iconOnly)
+                    }
+                } else {
+                    Button(action: { viewModel.startEditingContext() }) {
+                        Label("Edit", systemImage: "pencil")
+                            .labelStyle(.iconOnly)
+                    }
+                }
+
+                // Copy button
+                Button(action: { viewModel.copyContextToClipboard() }) {
+                    Label("Copy", systemImage: "doc.on.doc")
+                        .labelStyle(.iconOnly)
+                }
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        .background(Color(.systemBackground))
     }
 }
 

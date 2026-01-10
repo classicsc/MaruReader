@@ -39,6 +39,10 @@ struct DictionaryDisplaySettingsView: View {
     @State private var pitchResultsAreaDownstepPositionEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
     @State private var pitchResultsAreaEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
 
+    // Context display settings
+    @State private var contextFontSize: Double = DictionaryDisplayDefaults.defaultContextFontSize
+    @State private var contextFuriganaEnabled: Bool = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
+
     private let fontOptions: [(displayName: String, family: String)] = [
         ("System", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
         ("Serif", "Hiragino Mincho ProN, TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
@@ -81,6 +85,11 @@ struct DictionaryDisplaySettingsView: View {
                         Toggle("Show Downstep Positions", isOn: $pitchResultsAreaDownstepPositionEnabled)
                     }
                 }
+
+                Section("Context Display") {
+                    Stepper("Font Size: \(contextFontSize, specifier: "%.1f")x", value: $contextFontSize, in: 0.5 ... 2.0, step: 0.1)
+                    Toggle("Show Furigana", isOn: $contextFuriganaEnabled)
+                }
             }
             .navigationTitle("Display Settings")
             .onAppear(perform: loadPreferences)
@@ -94,6 +103,8 @@ struct DictionaryDisplaySettingsView: View {
             .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
             .onChange(of: pitchResultsAreaDownstepPositionEnabled) { _, _ in savePreferences() }
             .onChange(of: pitchResultsAreaEnabled) { _, _ in savePreferences() }
+            .onChange(of: contextFontSize) { _, _ in savePreferences() }
+            .onChange(of: contextFuriganaEnabled) { _, _ in savePreferences() }
         }
     }
 
@@ -114,6 +125,8 @@ struct DictionaryDisplaySettingsView: View {
             pitchResultsAreaDownstepNotationEnabled = pref.pitchResultsAreaDownstepNotationEnabled
             pitchResultsAreaDownstepPositionEnabled = pref.pitchResultsAreaDownstepPositionEnabled
             pitchResultsAreaEnabled = pref.pitchResultsAreaEnabled
+            contextFontSize = pref.contextFontSize
+            contextFuriganaEnabled = pref.contextFuriganaEnabled
         } else {
             createDefaultPreferences()
         }
@@ -145,6 +158,8 @@ struct DictionaryDisplaySettingsView: View {
         newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
         newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
         newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
+        newPref.contextFontSize = DictionaryDisplayDefaults.defaultContextFontSize
+        newPref.contextFuriganaEnabled = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
 
         do {
             try viewContext.save()
@@ -164,6 +179,8 @@ struct DictionaryDisplaySettingsView: View {
         pref.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled
         pref.pitchResultsAreaDownstepPositionEnabled = pitchResultsAreaDownstepPositionEnabled
         pref.pitchResultsAreaEnabled = pitchResultsAreaEnabled
+        pref.contextFontSize = contextFontSize
+        pref.contextFuriganaEnabled = contextFuriganaEnabled
         do {
             try viewContext.save()
         } catch {

@@ -19,10 +19,6 @@
 		DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DB4A77342F01407400DBCAD9 /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DB4A7A062F03629700DBCAD9 /* CharacterFilter in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A052F03629700DBCAD9 /* CharacterFilter */; };
-		DB4A7A082F03629700DBCAD9 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A072F03629700DBCAD9 /* IPADic */; };
-		DB4A7A0A2F03629700DBCAD9 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A092F03629700DBCAD9 /* Mecab-Swift */; };
-		DB4A7A0C2F03629700DBCAD9 /* StringTools in Frameworks */ = {isa = PBXBuildFile; productRef = DB4A7A0B2F03629700DBCAD9 /* StringTools */; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
 		DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */; };
@@ -53,6 +49,8 @@
 		DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */; };
 		DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1CB2EAAC58A00B4F27D /* Zip */; };
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
+		DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755662F120EF3000AFED1 /* Mecab-Swift */; };
+		DBD755692F120EF8000AFED1 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755682F120EF8000AFED1 /* IPADic */; };
 		DBDCE1112F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11C2F0C98CC00B42F93 /* MaruManga.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -605,7 +603,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DBD755692F120EF8000AFED1 /* IPADic in Frameworks */,
 				DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */,
+				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
 				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
 			);
@@ -661,12 +661,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB4A7A062F03629700DBCAD9 /* CharacterFilter in Frameworks */,
-				DB4A7A0A2F03629700DBCAD9 /* Mecab-Swift in Frameworks */,
 				DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */,
 				DBDCE12E2F0CAC3700B42F93 /* LRUCache in Frameworks */,
-				DB4A7A0C2F03629700DBCAD9 /* StringTools in Frameworks */,
-				DB4A7A082F03629700DBCAD9 /* IPADic in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -991,6 +987,8 @@
 				DBCFB1C72EAAC56800B4F27D /* JsonStream */,
 				DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */,
 				DBCFB1CB2EAAC58A00B4F27D /* Zip */,
+				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
+				DBD755682F120EF8000AFED1 /* IPADic */,
 			);
 			productName = MaruReaderCore;
 			productReference = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */;
@@ -1144,10 +1142,6 @@
 			);
 			name = MaruAnki;
 			packageProductDependencies = (
-				DB4A7A052F03629700DBCAD9 /* CharacterFilter */,
-				DB4A7A072F03629700DBCAD9 /* IPADic */,
-				DB4A7A092F03629700DBCAD9 /* Mecab-Swift */,
-				DB4A7A0B2F03629700DBCAD9 /* StringTools */,
 				DBDCE12D2F0CAC3700B42F93 /* LRUCache */,
 			);
 			productName = MaruAnki;
@@ -2935,26 +2929,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DB4A7A052F03629700DBCAD9 /* CharacterFilter */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
-			productName = CharacterFilter;
-		};
-		DB4A7A072F03629700DBCAD9 /* IPADic */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
-			productName = IPADic;
-		};
-		DB4A7A092F03629700DBCAD9 /* Mecab-Swift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
-			productName = "Mecab-Swift";
-		};
-		DB4A7A0B2F03629700DBCAD9 /* StringTools */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
-			productName = StringTools;
-		};
 		DB58C8F92EAB137600CE59FD /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
@@ -3013,6 +2987,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
 			productName = Zip;
+		};
+		DBD755662F120EF3000AFED1 /* Mecab-Swift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = "Mecab-Swift";
+		};
+		DBD755682F120EF8000AFED1 /* IPADic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
+			productName = IPADic;
 		};
 		DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */ = {
 			isa = XCSwiftPackageProductDependency;

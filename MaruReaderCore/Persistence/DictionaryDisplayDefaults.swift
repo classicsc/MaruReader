@@ -25,4 +25,8 @@ public enum DictionaryDisplayDefaults {
     public static let defaultPitchResultsAreaDownstepNotationEnabled: Bool = false
     public static let defaultPitchResultsAreaDownstepPositionEnabled: Bool = true
     public static let defaultPitchResultsAreaEnabled: Bool = false
+
+    // Context display settings
+    public static let defaultContextFontSize: Double = 1.0
+    public static let defaultContextFuriganaEnabled: Bool = true
 }
