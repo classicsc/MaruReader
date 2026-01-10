@@ -241,11 +241,12 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private func resolveClozeFuriganaSegments() -> (prefix: String?, body: String?, suffix: String?) {
         let context = response.effectiveContext
         let range = response.primaryResultSourceRange
-        let segments = SentenceFuriganaGenerator.generateSegments(from: context, selectionRange: range)
+        let furiganaSegments = FuriganaGenerator.generateSegments(from: context)
+        let cloze = FuriganaGenerator.formatCloze(furiganaSegments, selectionRange: range, in: context)
         return (
-            segments.prefix.isEmpty ? nil : segments.prefix,
-            segments.body.isEmpty ? nil : segments.body,
-            segments.suffix.isEmpty ? nil : segments.suffix
+            cloze.prefix.isEmpty ? nil : cloze.prefix,
+            cloze.body.isEmpty ? nil : cloze.body,
+            cloze.suffix.isEmpty ? nil : cloze.suffix
         )
     }
 
@@ -538,7 +539,8 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
     private func generateSentenceFurigana(_ sentence: String?) -> String? {
         guard let sentence, !sentence.isEmpty else { return nil }
-        return SentenceFuriganaGenerator.generate(from: sentence)
+        let segments = FuriganaGenerator.generateSegments(from: sentence)
+        return FuriganaGenerator.formatAnkiStyle(segments)
     }
 }
 

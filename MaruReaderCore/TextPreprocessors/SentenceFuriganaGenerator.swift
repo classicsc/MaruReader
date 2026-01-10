@@ -16,9 +16,12 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
-internal import IPADic
-internal import Mecab_Swift
 
+/// Generates Anki-style furigana strings from Japanese text.
+///
+/// - Note: This type is deprecated. Use `FuriganaGenerator` instead, which provides
+///   both segment generation and Anki formatting in a unified API with proper okurigana handling.
+@available(*, deprecated, message: "Use FuriganaGenerator.formatAnkiStyle() instead")
 public enum SentenceFuriganaGenerator {
     /// Generates Anki-style furigana for an entire sentence.
     ///
@@ -27,42 +30,13 @@ public enum SentenceFuriganaGenerator {
     ///
     /// - Parameter sentence: The Japanese sentence to annotate.
     /// - Returns: The sentence with Anki-style furigana annotations.
+    @available(*, deprecated, message: "Use FuriganaGenerator.formatAnkiStyle(FuriganaGenerator.generateSegments(from:)) instead")
     public static func generate(from sentence: String) -> String {
-        guard !sentence.isEmpty else { return "" }
-
-        guard let tokenizer = try? Tokenizer(dictionary: IPADic()) else {
-            return sentence
-        }
-
-        let annotations = tokenizer.tokenize(text: sentence, transliteration: .hiragana)
-
-        var result = ""
-        var lastIndex = sentence.startIndex
-
-        for annotation in annotations {
-            // Append any text between the last token and this one
-            if lastIndex < annotation.range.lowerBound {
-                result += String(sentence[lastIndex ..< annotation.range.lowerBound])
-            }
-
-            if annotation.containsKanji {
-                result += " \(annotation.base)[\(annotation.reading)]"
-            } else {
-                result += annotation.base
-            }
-
-            lastIndex = annotation.range.upperBound
-        }
-
-        // Append any remaining text after the last token
-        if lastIndex < sentence.endIndex {
-            result += String(sentence[lastIndex...])
-        }
-
-        return result.trimmingCharacters(in: .whitespaces)
+        FuriganaGenerator.formatAnkiStyle(FuriganaGenerator.generateSegments(from: sentence))
     }
 
     /// Generates Anki-style furigana for a sentence and splits it into cloze segments.
+    @available(*, deprecated, message: "Use FuriganaGenerator.formatCloze() instead")
     public static func generateSegments(
         from sentence: String,
         selectionRange: Range<String.Index>
@@ -77,114 +51,7 @@ public enum SentenceFuriganaGenerator {
             return ("", "", "")
         }
 
-        guard let tokenizer = try? Tokenizer(dictionary: IPADic()) else {
-            let prefix = String(sentence[..<selectionRange.lowerBound])
-            let body = String(sentence[selectionRange])
-            let suffix = String(sentence[selectionRange.upperBound...])
-            return trimSegments(prefix: prefix, body: body, suffix: suffix)
-        }
-
-        let annotations = tokenizer.tokenize(text: sentence, transliteration: .hiragana)
-
-        struct Piece {
-            let range: Range<String.Index>
-            let text: String
-            let splittable: Bool
-        }
-
-        var pieces: [Piece] = []
-        var lastIndex = sentence.startIndex
-
-        for annotation in annotations {
-            if lastIndex < annotation.range.lowerBound {
-                let gap = String(sentence[lastIndex ..< annotation.range.lowerBound])
-                pieces.append(Piece(range: lastIndex ..< annotation.range.lowerBound, text: gap, splittable: true))
-            }
-
-            let text: String = if annotation.containsKanji {
-                " \(annotation.base)[\(annotation.reading)]"
-            } else {
-                annotation.base
-            }
-
-            pieces.append(Piece(range: annotation.range, text: text, splittable: !annotation.containsKanji))
-            lastIndex = annotation.range.upperBound
-        }
-
-        if lastIndex < sentence.endIndex {
-            let gap = String(sentence[lastIndex...])
-            pieces.append(Piece(range: lastIndex ..< sentence.endIndex, text: gap, splittable: true))
-        }
-
-        var prefix = ""
-        var body = ""
-        var suffix = ""
-
-        for piece in pieces {
-            if piece.range.upperBound <= selectionRange.lowerBound {
-                prefix += piece.text
-                continue
-            }
-
-            if piece.range.lowerBound >= selectionRange.upperBound {
-                suffix += piece.text
-                continue
-            }
-
-            if piece.range.lowerBound >= selectionRange.lowerBound,
-               piece.range.upperBound <= selectionRange.upperBound
-            {
-                body += piece.text
-                continue
-            }
-
-            if piece.splittable {
-                if piece.range.lowerBound < selectionRange.lowerBound {
-                    prefix += String(sentence[piece.range.lowerBound ..< selectionRange.lowerBound])
-                }
-
-                let bodyStart = max(piece.range.lowerBound, selectionRange.lowerBound)
-                let bodyEnd = min(piece.range.upperBound, selectionRange.upperBound)
-                if bodyStart < bodyEnd {
-                    body += String(sentence[bodyStart ..< bodyEnd])
-                }
-
-                if selectionRange.upperBound < piece.range.upperBound {
-                    suffix += String(sentence[selectionRange.upperBound ..< piece.range.upperBound])
-                }
-            } else {
-                body += piece.text
-            }
-        }
-
-        return trimSegments(prefix: prefix, body: body, suffix: suffix)
-    }
-
-    private static func trimSegments(
-        prefix: String,
-        body: String,
-        suffix: String
-    ) -> (prefix: String, body: String, suffix: String) {
-        var segments = [prefix, body, suffix]
-
-        for index in segments.indices {
-            segments[index] = String(segments[index].drop(while: isTrimWhitespace))
-            if !segments[index].isEmpty {
-                break
-            }
-        }
-
-        for index in segments.indices.reversed() {
-            segments[index] = String(segments[index].reversed().drop(while: isTrimWhitespace).reversed())
-            if !segments[index].isEmpty {
-                break
-            }
-        }
-
-        return (segments[0], segments[1], segments[2])
-    }
-
-    private static func isTrimWhitespace(_ character: Character) -> Bool {
-        character.unicodeScalars.allSatisfy { CharacterSet.whitespaces.contains($0) }
+        let segments = FuriganaGenerator.generateSegments(from: sentence)
+        return FuriganaGenerator.formatCloze(segments, selectionRange: selectionRange, in: sentence)
     }
 }
