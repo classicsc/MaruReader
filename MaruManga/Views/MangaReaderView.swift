@@ -41,13 +41,6 @@ public struct MangaReaderView: View {
                     topFloatingBar
                 }
             }
-            .overlay(alignment: .topTrailing) {
-                if viewModel.overlayState.shouldShowToolbarToggleButton {
-                    toolbarToggleButton
-                        .padding(.trailing, 16)
-                        .padding(.top, geometry.safeAreaInsets.top + 8)
-                }
-            }
             .overlay(alignment: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
                     bottomToolbar
@@ -139,19 +132,6 @@ public struct MangaReaderView: View {
                 }
             }
             .ignoresSafeArea()
-        }
-    }
-
-    // MARK: - Toolbar Toggle Button
-
-    private var toolbarToggleButton: some View {
-        Button {
-            viewModel.toggleToolbars()
-        } label: {
-            Image(systemName: "chevron.down.circle.fill")
-                .font(.title2)
-                .foregroundStyle(.white)
-                .shadow(color: .black.opacity(0.5), radius: 2)
         }
     }
 

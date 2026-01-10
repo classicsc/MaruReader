@@ -29,10 +29,6 @@ enum MangaReaderOverlayState {
     var shouldShowNavigationTitle: Bool {
         shouldShowToolbars
     }
-
-    var shouldShowToolbarToggleButton: Bool {
-        !shouldShowToolbars
-    }
 }
 
 /// Loading state for manga pages.
