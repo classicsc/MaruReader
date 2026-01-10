@@ -127,13 +127,14 @@ struct ContextDisplayView: View {
 
     @ViewBuilder
     private func contextTextContent(width: CGFloat) -> some View {
-        if furiganaEnabled, !furiganaSegments.isEmpty {
-            furiganaTextView(width: width)
+        if !furiganaSegments.isEmpty {
+            segmentedTextView(width: width)
         } else {
             plainTextView(width: width)
         }
     }
 
+    /// Fallback for when no furigana segments are available
     private func plainTextView(width: CGFloat) -> some View {
         FlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
             ForEach(Array(context.enumerated()), id: \.offset) { index, character in
@@ -149,7 +150,8 @@ struct ContextDisplayView: View {
         .frame(width: width, alignment: .leading)
     }
 
-    private func furiganaTextView(width: CGFloat) -> some View {
+    /// Segment-based layout that maintains consistent spacing whether furigana is shown or hidden
+    private func segmentedTextView(width: CGFloat) -> some View {
         FlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
             ForEach(furiganaSegments.indices, id: \.self) { segmentIndex in
                 let segment = furiganaSegments[segmentIndex]
@@ -161,14 +163,14 @@ struct ContextDisplayView: View {
 
     private func furiganaSegmentView(segment: FuriganaSegment) -> some View {
         VStack(spacing: 0) {
-            // Furigana reading (or empty space to maintain consistent height)
-            if let reading = segment.reading {
+            // Furigana reading (or empty space to maintain consistent height and width)
+            if furiganaEnabled, let reading = segment.reading {
                 Text(reading)
                     .font(.system(size: furiganaFontSize))
                     .foregroundColor(.secondary)
             } else {
-                // Empty spacer to maintain alignment
-                Text(" ")
+                // Use the reading text (invisible) to reserve the same width, or a space for height
+                Text(segment.reading ?? " ")
                     .font(.system(size: furiganaFontSize))
                     .foregroundColor(.clear)
             }
