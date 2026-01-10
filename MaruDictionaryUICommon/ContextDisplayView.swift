@@ -50,10 +50,7 @@ struct ContextDisplayView: View {
     /// Furigana font size (smaller than base)
     private var furiganaFontSize: CGFloat { 10 * fontSize }
 
-    /// Line height for text without furigana
-    private var plainLineHeight: CGFloat { baseFontSize + 4 }
-
-    /// Line height for text with furigana (base + reading + spacing)
+    /// Line height for text (base + furigana space + spacing)
     private var furiganaLineHeight: CGFloat { baseFontSize + furiganaFontSize + 6 }
 
     var body: some View {
@@ -140,7 +137,13 @@ struct ContextDisplayView: View {
     private func plainTextView(width: CGFloat) -> some View {
         FlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
             ForEach(Array(context.enumerated()), id: \.offset) { index, character in
-                characterView(String(character), charIndex: index)
+                VStack(spacing: 0) {
+                    // Reserve space for furigana to maintain consistent line height
+                    Text(" ")
+                        .font(.system(size: furiganaFontSize))
+                        .foregroundColor(.clear)
+                    characterView(String(character), charIndex: index)
+                }
             }
         }
         .frame(width: width, alignment: .leading)
@@ -209,9 +212,8 @@ struct ContextDisplayView: View {
         let availableWidth: CGFloat = measuredWidth > 0 ? measuredWidth : 300 // Fallback width
         let charsPerLine = max(1, Int(availableWidth / estimatedCharWidth))
         let lineCount = max(1, (context.count + charsPerLine - 1) / charsPerLine)
-        let lineHeight = furiganaEnabled ? furiganaLineHeight : plainLineHeight
-
-        contentHeight = CGFloat(lineCount) * lineHeight
+        // Always use furiganaLineHeight since both views reserve space for furigana
+        contentHeight = CGFloat(lineCount) * furiganaLineHeight
     }
 }
 
