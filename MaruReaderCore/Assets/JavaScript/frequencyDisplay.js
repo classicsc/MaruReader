@@ -17,26 +17,28 @@ window.MaruReader.frequencyDisplay = {
      */
     initialize: function() {
         document.addEventListener('click', function(event) {
-            if (event.target.matches('.freq-toggle')) {
-                event.preventDefault();
-                event.stopPropagation();
+            var button = event.target.closest('.freq-button');
+            if (!button || button.disabled) return;
 
-                const toggle = event.target;
-                const display = toggle.closest('.frequency-display');
-                if (!display) return;
+            event.preventDefault();
+            event.stopPropagation();
 
-                const expanded = display.querySelector('.freq-expanded');
-                if (!expanded) return;
+            var display = button.closest('.frequency-display');
+            if (!display) return;
 
-                if (expanded.style.display === 'none' || expanded.style.display === '') {
-                    expanded.style.display = 'inline-flex';
-                    toggle.textContent = '−';
-                    toggle.setAttribute('aria-label', 'Hide frequency details');
-                } else {
-                    expanded.style.display = 'none';
-                    toggle.textContent = '+';
-                    toggle.setAttribute('aria-label', 'Toggle frequency details');
-                }
+            var expanded = display.querySelector('.freq-expanded');
+            if (!expanded) return;
+
+            var isExpanded = button.getAttribute('aria-expanded') === 'true';
+
+            if (isExpanded) {
+                expanded.classList.remove('visible');
+                button.setAttribute('aria-expanded', 'false');
+                button.setAttribute('aria-label', 'Show frequency details');
+            } else {
+                expanded.classList.add('visible');
+                button.setAttribute('aria-expanded', 'true');
+                button.setAttribute('aria-label', 'Hide frequency details');
             }
         }, true);
     }

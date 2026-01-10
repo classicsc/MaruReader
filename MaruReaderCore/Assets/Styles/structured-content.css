@@ -72,62 +72,92 @@
     --border-width: 1px;
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     --shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+
+    /* Pseudo glass effect */
+    --glass-bg-light: rgba(0, 0, 0, 0.08);
+    --glass-bg-light-hover: rgba(0, 0, 0, 0.12);
+    --glass-bg-light-active: rgba(0, 0, 0, 0.18);
+    --glass-bg-dark: rgba(255, 255, 255, 0.12);
+    --glass-bg-dark-hover: rgba(255, 255, 255, 0.18);
+    --glass-bg-dark-active: rgba(255, 255, 255, 0.25);
+    --glass-blur: blur(20px);
+    --glass-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    --glass-shadow-dark: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 /* Frequency display styles */
 .frequency-display {
     display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    margin-bottom: 4px;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
-.freq-compact {
-    background: var(--frequency-color);
-    color: white;
-    padding: 2px 6px;
-    border-radius: 12px;
+.freq-button {
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color: var(--text-color);
+    border: none;
+    padding: 4px 10px;
+    border-radius: 14px;
+    cursor: pointer;
     font-size: var(--font-size-xs);
     font-weight: 500;
     line-height: 1;
     white-space: nowrap;
-}
-
-.freq-toggle {
-    background: var(--frequency-color);
-    color: white;
-    border: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
+    gap: 4px;
     transition: all 0.15s ease;
-    flex-shrink: 0;
+    box-shadow: var(--glass-shadow);
 }
 
-.freq-toggle:hover {
-    background: color-mix(in srgb, var(--frequency-color) 80%, black);
-    transform: scale(1.05);
+.freq-button:hover {
+    background: var(--glass-bg-light-hover);
 }
 
-.freq-toggle:active {
-    transform: scale(0.95);
+.freq-button:active {
+    background: var(--glass-bg-light-active);
+    transform: scale(0.98);
+}
+
+.freq-button:disabled {
+    cursor: default;
+    opacity: 0.8;
+}
+
+.freq-button:disabled:hover {
+    background: var(--glass-bg-light);
+    transform: none;
+}
+
+/* Expand indicator icon */
+.freq-button:not(:disabled)::after {
+    content: 'expand_more';
+    font-family: 'Material Symbols Outlined';
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    transition: transform 0.2s ease;
+}
+
+.freq-button[aria-expanded="true"]::after {
+    transform: rotate(180deg);
 }
 
 .freq-expanded {
     display: none;
-    inline-size: max-content;
     flex-wrap: wrap;
-    gap: 4px;
-    margin-left: 4px;
-    padding: 2px 4px;
+    gap: 6px;
+    padding: 8px 12px;
     background: var(--background-color-dark1);
-    border-radius: 6px;
+    border-radius: 8px;
+}
+
+.freq-expanded.visible {
+    display: flex;
 }
 
 .freq-item {
@@ -135,13 +165,33 @@
     color: var(--text-color);
     padding: 1px 4px;
     border-radius: 4px;
-    font-size: 0.7em;
+    font-size: 0.75em;
     font-weight: 500;
 }
 
 .freq-separator {
     color: var(--text-color-light2);
     font-weight: normal;
+}
+
+/* Dark mode frequency button */
+@media (prefers-color-scheme: dark) {
+    .freq-button {
+        background: var(--glass-bg-dark);
+        box-shadow: var(--glass-shadow-dark);
+    }
+
+    .freq-button:hover {
+        background: var(--glass-bg-dark-hover);
+    }
+
+    .freq-button:active {
+        background: var(--glass-bg-dark-active);
+    }
+
+    .freq-button:disabled:hover {
+        background: var(--glass-bg-dark);
+    }
 }
 
 /* Body and layout from SearchViewModel */
@@ -162,36 +212,75 @@ body {
 .term-header {
     font-size: 1.375em;
     font-weight: 600;
-    margin: 0 0 0.75em 0;
+    margin: 0;
     color: var(--text-color);
+}
+
+/* Term header container for right-aligned buttons */
+.term-header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 0.75em;
+}
+
+.term-header-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.term-header-buttons {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .dictionary-section {
     margin-bottom: 0.75em;
+    padding-top: 0.5em;
+    border-top: 1px solid var(--text-color-light3);
+}
+
+.dictionary-section:first-child {
+    border-top: none;
+    padding-top: 0;
 }
 
 .dictionary-header {
-    font-size: 1.0625em;
+    font-size: 0.875em;
     font-weight: 600;
-    margin: 0 0 0.5em 0;
-    color: white;
-    background: #aa66cc;
-    display: inline-block;
-    padding: 0.125em 0.375em;
-    border-radius: 0.25em;
+    margin: 0 0 0.375em 0;
+    color: var(--text-color-light1);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.375em;
+    padding: 0;
+    border-radius: 0;
+}
+
+.dictionary-header::before {
+    content: 'book';
+    font-family: 'Material Symbols Outlined';
+    font-size: 1.1em;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--text-color-light2);
 }
 
 .dictionary-header .tag-list {
     display: inline-flex;
     flex-wrap: wrap;
-    gap: 0.1875em;
+    gap: 0.25em;
     align-items: center;
-    margin-right: 0.25em;
+    margin-left: auto;
 }
 
 .dictionary-header .tag {
-    font-size: 0.625em;
-    padding: 0.1em 0.3em;
+    font-size: 0.75em;
+    padding: 0.1em 0.4em;
     vertical-align: middle;
 }
 
@@ -916,56 +1005,57 @@ body {
 
 .term-tags .tag {
     display: inline-block;
-    padding: 0.125em 0.375em;
+    padding: 0.125em 0.5em;
     font-size: 0.6875em;
-    border-radius: 0.25em;
+    border-radius: 0.375em;
     font-weight: 500;
-    color: white;
+    background: transparent;
+    border: 1px solid currentColor;
 }
 
-/* Category-based tag colors */
+/* Category-based tag colors (outlined style) */
 .tag.tag-category-name {
-    background: #b6327a;
+    color: #b6327a;
 }
 
 .tag.tag-category-expression {
-    background: #f0ad4e;
+    color: #d4942a;
 }
 
 .tag.tag-category-popular {
-    background: #0275d8;
+    color: #0275d8;
 }
 
 .tag.tag-category-frequent {
-    background: #5bc0de;
+    color: #5bc0de;
 }
 
 .tag.tag-category-archaism {
-    background: #d9534f;
+    color: #d9534f;
 }
 
 .tag.tag-category-dictionary {
-    background: #aa66cc;
+    color: #aa66cc;
 }
 
 .tag.tag-category-frequency {
-    background: #5cb85c;
+    color: #5cb85c;
 }
 
 .tag.tag-category-partOfSpeech {
-    background: #565656;
+    color: #666666;
 }
 
 .tag.tag-category-search {
-    background: #8a8a91;
+    color: #8a8a91;
 }
 
 .tag.tag-category-pronunciation-dictionary {
-    background: #6640be;
+    color: #6640be;
 }
 
 .tag.tag-category-unknown {
-    background: #8a8a91;
+    color: #8a8a91;
 }
 
 /* Deinflection info display */
@@ -1042,29 +1132,49 @@ body {
 }
 
 .pitch-toggle {
-    background: var(--pitch-accent-color);
-    color: white;
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color: var(--text-color);
     border: none;
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    font-size: 12px;
-    font-weight: bold;
+    font-size: 14px;
+    font-weight: 500;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
     flex-shrink: 0;
+    box-shadow: var(--glass-shadow);
 }
 
 .pitch-toggle:hover {
-    background: color-mix(in srgb, var(--pitch-accent-color) 80%, black);
+    background: var(--glass-bg-light-hover);
     transform: scale(1.05);
 }
 
 .pitch-toggle:active {
+    background: var(--glass-bg-light-active);
     transform: scale(0.95);
+}
+
+/* Dark mode pitch toggle */
+@media (prefers-color-scheme: dark) {
+    .pitch-toggle {
+        background: var(--glass-bg-dark);
+        box-shadow: var(--glass-shadow-dark);
+    }
+
+    .pitch-toggle:hover {
+        background: var(--glass-bg-dark-hover);
+    }
+
+    .pitch-toggle:active {
+        background: var(--glass-bg-dark-active);
+    }
 }
 
 .pitch-results-list {
@@ -1114,11 +1224,13 @@ body {
 }
 
 .audio-button {
-    background: var(--audio-color);
-    color: white;
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color: var(--text-color);
     border: none;
-    width: 18px;
-    height: 18px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     cursor: pointer;
     display: inline-flex;
@@ -1127,21 +1239,23 @@ body {
     transition: all 0.15s ease;
     flex-shrink: 0;
     vertical-align: middle;
-    margin-left: 4px;
+    margin-left: 0;
     font-family: 'Material Symbols Outlined';
-    font-size: 14px;
+    font-size: 18px;
     font-weight: normal;
     font-style: normal;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     -webkit-font-smoothing: antialiased;
+    box-shadow: var(--glass-shadow);
 }
 
 .audio-button:hover {
-    background: color-mix(in srgb, var(--audio-color) 80%, black);
+    background: var(--glass-bg-light-hover);
     transform: scale(1.05);
 }
 
 .audio-button:active {
+    background: var(--glass-bg-light-active);
     transform: scale(0.95);
 }
 
@@ -1163,26 +1277,28 @@ body {
 }
 
 .audio-button[data-state="error"] {
-    background: var(--text-color-light2);
+    background: rgba(128, 128, 128, 0.15);
     cursor: not-allowed;
 }
 
 /* Pitch result item audio button (smaller) */
 .pitch-result-item .audio-button {
-    width: 16px;
-    height: 16px;
-    font-size: 12px;
-    margin-left: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    margin-left: 0;
 }
 
 /* Anki Button Styles */
 
 .anki-button {
-    background: var(--anki-color, #4caf50);
-    color: white;
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    color: var(--text-color);
     border: none;
-    width: 18px;
-    height: 18px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     cursor: pointer;
     display: inline-flex;
@@ -1191,21 +1307,23 @@ body {
     padding: 0;
     flex-shrink: 0;
     vertical-align: middle;
-    margin-left: 4px;
+    margin-left: 0;
     font-family: 'Material Symbols Outlined';
-    font-size: 14px;
+    font-size: 18px;
     font-weight: normal;
     font-style: normal;
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     -webkit-font-smoothing: antialiased;
+    box-shadow: var(--glass-shadow);
 }
 
 .anki-button:hover {
-    background: color-mix(in srgb, var(--anki-color, #4caf50) 80%, black);
+    background: var(--glass-bg-light-hover);
     transform: scale(1.05);
 }
 
 .anki-button:active {
+    background: var(--glass-bg-light-active);
     transform: scale(0.95);
 }
 
@@ -1232,11 +1350,43 @@ body {
 
 .anki-button[data-state="exists"],
 .anki-button[data-state="success"] {
-    background: var(--anki-exists-color, #8bc34a);
+    background: rgba(76, 175, 80, 0.15);
 }
 
 .anki-button[data-state="error"] {
-    background: var(--error-color, #f44336);
+    background: rgba(244, 67, 54, 0.15);
+}
+
+/* Dark mode glass adjustments */
+@media (prefers-color-scheme: dark) {
+    .audio-button,
+    .anki-button {
+        background: var(--glass-bg-dark);
+        box-shadow: var(--glass-shadow-dark);
+    }
+
+    .audio-button:hover,
+    .anki-button:hover {
+        background: var(--glass-bg-dark-hover);
+    }
+
+    .audio-button:active,
+    .anki-button:active {
+        background: var(--glass-bg-dark-active);
+    }
+
+    .audio-button[data-state="error"] {
+        background: rgba(128, 128, 128, 0.2);
+    }
+
+    .anki-button[data-state="exists"],
+    .anki-button[data-state="success"] {
+        background: rgba(76, 175, 80, 0.2);
+    }
+
+    .anki-button[data-state="error"] {
+        background: rgba(244, 67, 54, 0.2);
+    }
 }
 
 /* Print styles */

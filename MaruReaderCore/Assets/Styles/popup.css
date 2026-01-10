@@ -27,12 +27,12 @@
 
 /* Term groups - clickable navigation buttons */
 .popup-term-group {
-    padding: 12px;
-    margin-bottom: 8px;
-    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 10px;
+    border-radius: 12px;
     cursor: pointer;
     transition: all 0.15s ease;
-    border: 1px solid var(--text-color-light3);
+    border: 2px solid var(--text-color-light2);
     background: var(--background-color);
     user-select: none;
     -webkit-user-select: none;
@@ -42,36 +42,23 @@
 
 .popup-term-group:hover {
     background-color: color-mix(in srgb, var(--accent-color) 8%, var(--background-color));
-    border-color: color-mix(in srgb, var(--accent-color) 20%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color) 40%, var(--text-color-light2));
     transform: translateY(-1px);
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--text-color) 10%, transparent);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--text-color) 12%, transparent);
 }
 
 .popup-term-group:active {
     background-color: color-mix(in srgb, var(--accent-color) 15%, var(--background-color));
     transform: translateY(0);
-    box-shadow: 0 1px 4px color-mix(in srgb, var(--text-color) 10%, transparent);
+    box-shadow: 0 2px 6px color-mix(in srgb, var(--text-color) 10%, transparent);
 }
 
 .popup-term-header {
     font-weight: 600;
-    font-size: 16px;
+    font-size: 15px;
     margin: 0 0 8px 0;
     color: var(--accent-color);
-    display: flex;
-    align-items: center;
-}
-
-.popup-term-header::after {
-    content: '→';
-    margin-left: auto;
-    font-size: 14px;
-    opacity: 0.6;
-    transition: opacity 0.15s ease;
-}
-
-.popup-term-group:hover .popup-term-header::after {
-    opacity: 1;
+    display: block;
 }
 
 .popup-dictionary-section {
@@ -84,15 +71,26 @@
 
 .popup-dictionary-header {
     font-weight: 500;
-    font-size: 12px;
+    font-size: 11px;
     margin: 0 0 4px 0;
-    color: white;
-    background: #aa66cc;
-    display: inline-block;
-    padding: 0.125em 0.375em;
-    border-radius: 0.25em;
+    color: var(--text-color-light1);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    padding: 0;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+}
+
+.popup-dictionary-header::before {
+    content: 'book';
+    font-family: 'Material Symbols Outlined';
+    font-size: 1.1em;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--text-color-light2);
 }
 
 .popup-dictionary-header .tag-list {
@@ -100,7 +98,7 @@
     flex-wrap: wrap;
     gap: 3px;
     align-items: center;
-    margin-right: 4px;
+    margin-left: auto;
 }
 
 .popup-dictionary-header .tag {
@@ -153,52 +151,53 @@
     font-size: 11px;
     border-radius: 4px;
     font-weight: 500;
-    color: white;
+    background: transparent;
+    border: 1px solid currentColor;
 }
 
-/* Category-based tag colors */
+/* Category-based tag colors (outlined style) */
 .tag.tag-category-name {
-    background: #b6327a;
+    color: #b6327a;
 }
 
 .tag.tag-category-expression {
-    background: #f0ad4e;
+    color: #d4942a;
 }
 
 .tag.tag-category-popular {
-    background: #0275d8;
+    color: #0275d8;
 }
 
 .tag.tag-category-frequent {
-    background: #5bc0de;
+    color: #5bc0de;
 }
 
 .tag.tag-category-archaism {
-    background: #d9534f;
+    color: #d9534f;
 }
 
 .tag.tag-category-dictionary {
-    background: #aa66cc;
+    color: #aa66cc;
 }
 
 .tag.tag-category-frequency {
-    background: #5cb85c;
+    color: #5cb85c;
 }
 
 .tag.tag-category-partOfSpeech {
-    background: #565656;
+    color: #666666;
 }
 
 .tag.tag-category-search {
-    background: #8a8a91;
+    color: #8a8a91;
 }
 
 .tag.tag-category-pronunciation-dictionary {
-    background: #6640be;
+    color: #6640be;
 }
 
 .tag.tag-category-unknown {
-    background: #8a8a91;
+    color: #8a8a91;
 }
 
 /* Deinflection info display */
@@ -214,22 +213,18 @@
 }
 
 /* Frequency display for popup (compact only) */
-.frequency-display {
+.popup-results-body .frequency-display {
     display: inline-flex;
+    flex-direction: row;
     align-items: center;
     gap: 4px;
     margin-bottom: 4px;
 }
 
-.freq-compact {
-    background: #5cb85c;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 12px;
+.popup-results-body .freq-button {
+    padding: 3px 8px;
     font-size: 11px;
-    font-weight: 500;
-    line-height: 1;
-    white-space: nowrap;
+    border-radius: 10px;
 }
 
 /* Popup-specific pitch accent styles */
@@ -263,11 +258,11 @@
     padding: 1px 4px;
 }
 
-/* Popup audio button styles */
+/* Popup header with buttons */
 .popup-term-header-wrapper {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
 }
 
 .popup-term-header-wrapper .popup-term-header {
@@ -275,29 +270,13 @@
     margin-bottom: 0;
 }
 
-.popup-term-header-wrapper .popup-term-header::after {
-    display: none;
-}
-
-.popup-term-header-wrapper .audio-button {
-    width: 20px;
-    height: 20px;
-    font-size: 14px;
+.popup-term-header-wrapper .audio-button,
+.popup-term-header-wrapper .anki-button {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
     margin-left: 0;
     flex-shrink: 0;
     position: relative;
     z-index: 1;
-}
-
-/* Preserve navigation arrow when using header wrapper */
-.popup-term-header-wrapper::after {
-    content: '→';
-    font-size: 14px;
-    opacity: 0.6;
-    transition: opacity 0.15s ease;
-    margin-left: auto;
-}
-
-.popup-term-group:hover .popup-term-header-wrapper::after {
-    opacity: 1;
 }

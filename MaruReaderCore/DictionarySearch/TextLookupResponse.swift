@@ -142,21 +142,22 @@ public struct TextLookupResponse: Sendable {
 
         guard let firstFreq = sortedFrequencies.first else { return "" }
 
-        var compactTitle = firstFreq.dictionaryTitle.escapeHTML()
+        let displayValue = firstFreq.displayString.escapeHTML()
+        var buttonTitle = firstFreq.dictionaryTitle.escapeHTML()
         if let mode = firstFreq.mode {
-            compactTitle += ": \(mode.escapeHTML())"
+            buttonTitle += ": \(mode.escapeHTML())"
         }
-        let compactHTML = "<span class=\"freq-compact\" title=\"\(compactTitle)\">\(firstFreq.displayString.escapeHTML())</span>"
 
         if compactOnly {
+            // Popup: just show the button, no expansion
             return """
             <div class="frequency-display">
-              \(compactHTML)
+                <button type="button" class="freq-button" title="\(buttonTitle)" aria-expanded="false" disabled>\(displayValue)</button>
             </div>
             """
         }
 
-        // Expanded
+        // Full: expandable with all frequency details
         let freqItemsHTML = sortedFrequencies.map { freq in
             let itemTitle = freq.dictionaryTitle.escapeHTML()
             let itemMode = freq.mode ?? "N/A"
@@ -166,11 +167,10 @@ public struct TextLookupResponse: Sendable {
 
         return """
         <div class="frequency-display">
-          \(compactHTML)
-          <button type="button" class="freq-toggle" aria-label="Toggle frequency details">+</button>
-          <div class="freq-expanded">
-            \(freqItemsHTML)
-          </div>
+            <button type="button" class="freq-button" title="\(buttonTitle)" aria-expanded="false" aria-label="Toggle frequency details">\(displayValue)</button>
+            <div class="freq-expanded">
+                \(freqItemsHTML)
+            </div>
         </div>
         """
     }
@@ -479,23 +479,40 @@ public struct TextLookupResponse: Sendable {
         // Generate Anki button if requested and enabled
         let ankiHTML = includeAnki ? ankiButtonHTML(for: termGroup) : ""
 
-        guard let reading = termGroup.reading, !reading.isEmpty else {
-            return "<h2 class=\"\(cssClass)\">\(expression)\(audioHTML)\(ankiHTML)</h2>"
-        }
-
-        let readingHTML: String
-
-            // Check if pitch notation in header is enabled and we have pitch data
-            = if styles.pitchDownstepNotationInHeaderEnabled,
-            let firstPitchResult = termGroup.pitchAccentResults.first,
-            let firstPitch = firstPitchResult.pitches.first
-        {
-            generatePitchNotationHTML(reading: reading, pitchAccent: firstPitch)
+        // Build header content (expression + optional reading)
+        let headerContent: String
+        if let reading = termGroup.reading, !reading.isEmpty {
+            let readingHTML: String
+                // Check if pitch notation in header is enabled and we have pitch data
+                = if styles.pitchDownstepNotationInHeaderEnabled,
+                let firstPitchResult = termGroup.pitchAccentResults.first,
+                let firstPitch = firstPitchResult.pitches.first
+            {
+                generatePitchNotationHTML(reading: reading, pitchAccent: firstPitch)
+            } else {
+                reading.escapeHTML()
+            }
+            headerContent = "\(expression) [\(readingHTML)]"
         } else {
-            reading.escapeHTML()
+            headerContent = expression
         }
 
-        return "<h2 class=\"\(cssClass)\">\(expression) [\(readingHTML)]\(audioHTML)\(ankiHTML)</h2>"
+        // If we have buttons, use container layout for right alignment
+        let hasButtons = !audioHTML.isEmpty || !ankiHTML.isEmpty
+        if hasButtons {
+            return """
+            <div class="term-header-container">
+                <div class="term-header-content">
+                    <h2 class="\(cssClass)">\(headerContent)</h2>
+                </div>
+                <div class="term-header-buttons">
+                    \(audioHTML)\(ankiHTML)
+                </div>
+            </div>
+            """
+        }
+
+        return "<h2 class=\"\(cssClass)\">\(headerContent)</h2>"
     }
 
     public func toPopupHTML() -> String {
