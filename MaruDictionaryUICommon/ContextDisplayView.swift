@@ -34,6 +34,7 @@ struct ContextDisplayView: View {
     let furiganaEnabled: Bool
     let isEditing: Bool
     let onCharacterTap: (Int) -> Void
+    var onCommitEdit: (() -> Void)?
 
     @Binding var editText: String
 
@@ -96,11 +97,24 @@ struct ContextDisplayView: View {
     }
 
     private var editView: some View {
-        TextEditor(text: $editText)
-            .font(.system(size: baseFontSize))
-            .padding(.horizontal, 8)
+        VStack(spacing: 0) {
+            TextEditor(text: $editText)
+                .font(.system(size: baseFontSize))
+                .padding(.horizontal, 8)
+                .frame(minHeight: 60, maxHeight: 160)
+
+            HStack {
+                Spacer()
+                Button(action: { onCommitEdit?() }) {
+                    Text("Done Editing")
+                        .font(.subheadline.weight(.medium))
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+            }
+            .padding(.horizontal, 12)
             .padding(.bottom, 8)
-            .frame(minHeight: 60, maxHeight: 200)
+        }
     }
 
     private var contextContentView: some View {

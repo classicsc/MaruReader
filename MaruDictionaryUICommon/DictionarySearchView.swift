@@ -54,6 +54,7 @@ public struct DictionarySearchView: View {
                     onCharacterTap: { offset in
                         viewModel.performSearchAtOffset(offset)
                     },
+                    onCommitEdit: { viewModel.commitContextEdit() },
                     editText: $viewModel.editContextText
                 )
                 .transition(.move(edge: .top).combined(with: .opacity))
