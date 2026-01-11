@@ -241,7 +241,7 @@ public actor DictionarySearchService {
             let mergedTermTags = [Tag].merge(allTermTags)
 
             // Aggregate pitch accents from all results for this term
-            let allPitchAccents = termResults.flatMap(\.pitchAccents)
+            let allPitchAccents = firstResult.pitchAccents
             let pitchAccentsByDictionary = Swift.Dictionary(grouping: allPitchAccents, by: \.dictionaryID)
             let pitchAccentResults = pitchAccentsByDictionary.map { dictionaryID, pitchResults in
                 let firstResult = pitchResults.first!
