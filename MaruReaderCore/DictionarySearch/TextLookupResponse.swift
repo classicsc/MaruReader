@@ -432,13 +432,14 @@ public struct TextLookupResponse: Sendable {
                 itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
 
                 // Add audio button for this specific pitch if audio is available
+                // Use requireExactMatch: true so audio buttons only appear when the audio source has matching pitch data
                 if includeAudio, let audioResults = termGroup.audioResults {
                     let pitchPositionString: String? = switch pitch.position {
                     case let .mora(pos): String(pos)
                     case .pattern: nil
                     }
 
-                    let pitchSources = audioResults.sources(forPitchPosition: pitchPositionString)
+                    let pitchSources = audioResults.sources(forPitchPosition: pitchPositionString, requireExactMatch: true)
                     if !pitchSources.isEmpty {
                         itemHTML += audioButtonHTML(sources: pitchSources, pitchPosition: pitchPositionString)
                     }

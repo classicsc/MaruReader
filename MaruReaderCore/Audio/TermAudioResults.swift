@@ -35,21 +35,32 @@ public struct TermAudioResults: Sendable {
     public var primaryAudioURL: URL? { sources.first?.url }
 
     /// Get audio sources matching a specific downstep position
-    /// - Parameter position: The downstep position string (e.g., "0", "1", "2-1")
-    /// - Returns: Audio sources with matching pitch, or all sources if none match
-    public func sources(forPitchPosition position: String?) -> [AudioSourceResult] {
+    /// - Parameters:
+    ///   - position: The downstep position string (e.g., "0", "1", "2-1")
+    ///   - requireExactMatch: If true, returns empty array when no sources match the pitch.
+    ///                        If false (default), falls back to all sources when none match.
+    /// - Returns: Audio sources with matching pitch, or all sources if none match (unless requireExactMatch is true)
+    public func sources(forPitchPosition position: String?, requireExactMatch: Bool = false) -> [AudioSourceResult] {
         guard let position else {
-            return sources
+            return requireExactMatch ? [] : sources
         }
 
         let matching = sources.filter { $0.pitchNumber == position }
+
+        if requireExactMatch {
+            return matching
+        }
+
         return matching.isEmpty ? sources : matching
     }
 
     /// Get the best audio URL for a specific pitch position
-    /// Prioritizes exact pitch match, falls back to first available
-    public func primaryURL(forPitchPosition position: String?) -> URL? {
-        sources(forPitchPosition: position).first?.url
+    /// - Parameters:
+    ///   - position: The downstep position string
+    ///   - requireExactMatch: If true, returns nil when no sources match the pitch exactly
+    /// - Returns: URL of the first matching source, or first available if no match and requireExactMatch is false
+    public func primaryURL(forPitchPosition position: String?, requireExactMatch: Bool = false) -> URL? {
+        sources(forPitchPosition: position, requireExactMatch: requireExactMatch).first?.url
     }
 
     public init(expression: String, reading: String?, sources: [AudioSourceResult]) {
