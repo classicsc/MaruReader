@@ -71,22 +71,11 @@ public actor AudioSourceImportManager {
             job.isCancelled = false
             job.isStarted = false
             job.pendingDeletion = false
-            job.archiveExtracted = false
             job.indexProcessed = false
             job.entriesProcessed = false
             job.mediaImported = false
             job.displayProgressMessage = "Queued for import."
             job.priority = try Self.getNextPriority(in: context)
-            // Use application support directory with job ID as working directory
-            let appSupport = try FileManager.default.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: true
-            )
-            let workingDir = appSupport.appendingPathComponent("AudioSourceImports").appendingPathComponent(jobID.uuidString)
-            try FileManager.default.createDirectory(at: workingDir, withIntermediateDirectories: true)
-            job.workingDirectory = workingDir
             job.timeQueued = Date()
             try context.save()
             return job.objectID
@@ -113,7 +102,6 @@ public actor AudioSourceImportManager {
                     job.timeCancelled = Date()
                     job.displayProgressMessage = "Import cancelled."
                     try? viewContext.save()
-                    Self.cleanup(source: job)
                 }
             }
         }
@@ -155,6 +143,13 @@ public actor AudioSourceImportManager {
         context.shouldDeleteInaccessibleFaults = true
 
         var sourceID: UUID?
+        var indexURL: URL?
+
+        defer {
+            if let indexURL {
+                try? FileManager.default.removeItem(at: indexURL)
+            }
+        }
 
         do {
             sourceID = try await context.perform {
@@ -180,27 +175,22 @@ public actor AudioSourceImportManager {
             try Task.checkCancellation()
             try testErrorInjection?()
 
-            // Stage 1: Unzip
-            let unzipTask = AudioSourceUnzipTask(jobID: jobID, container: container)
-            try await unzipTask.start()
-            logger.debug("Audio source job \(jobID) unzipped")
-
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-
-            // Stage 2: Process index
+            // Stage 1: Process index
             let indexTask = AudioSourceIndexProcessingTask(jobID: jobID, container: container)
-            let (importedSourceID, indexURL, isLocal) = try await indexTask.start()
+            let indexResult = try await indexTask.start()
+            indexURL = indexResult.indexURL
+            let importedSourceID = indexResult.sourceID
+            let isLocal = indexResult.isLocal
             logger.debug("Audio source job \(jobID) index processed")
 
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            // Stage 3: Process entries
+            // Stage 2: Process entries
             let entryTask = AudioSourceEntryProcessingTask(
                 jobID: jobID,
                 sourceID: importedSourceID,
-                indexURL: indexURL,
+                indexURL: indexResult.indexURL,
                 container: container
             )
             try await entryTask.start()
@@ -209,12 +199,14 @@ public actor AudioSourceImportManager {
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            // Stage 4: Copy media (only for local sources)
+            // Stage 3: Copy media (only for local sources)
             if isLocal {
                 let mediaTask = AudioSourceMediaCopyTask(
                     jobID: jobID,
                     sourceID: importedSourceID,
-                    indexURL: indexURL,
+                    indexURL: indexResult.indexURL,
+                    archiveURL: indexResult.archiveURL,
+                    indexEntryPath: indexResult.indexEntryPath,
                     container: container
                 )
                 try await mediaTask.start()
@@ -263,7 +255,6 @@ public actor AudioSourceImportManager {
                 job.timeCancelled = Date()
                 job.displayProgressMessage = "Import cancelled."
                 try? context.save()
-                Self.cleanup(source: job)
             }
         } catch {
             let capturedSourceID = sourceID
@@ -282,25 +273,11 @@ public actor AudioSourceImportManager {
                 job.displayProgressMessage = error.localizedDescription
                 job.timeFailed = Date()
                 try? context.save()
-                Self.cleanup(source: job)
             }
         }
 
-        // Clean up working directory
         await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
-                return
-            }
-            Self.cleanup(source: job)
-        }
-    }
-
-    static func cleanup(source: AudioSource) {
-        let fileManager = FileManager.default
-        if let workingDir = source.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
-            do {
-                try fileManager.removeItem(at: workingDir)
-            } catch {}
+            _ = try? context.existingObject(with: jobID) as? AudioSource
         }
     }
 

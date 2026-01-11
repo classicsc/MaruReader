@@ -19,7 +19,7 @@ import CoreData
 import Foundation
 @testable import MaruReaderCore
 import Testing
-import Zip
+internal import ReadiumZIPFoundation
 
 struct DictionaryPersistenceTests {
     // Custom errors for diagnostics
@@ -31,13 +31,14 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Create a mock ZIP file with given JSON contents
-    private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) throws -> URL {
+    private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
         debugPrint("Created temp directory: \(tempDir.path)")
 
         // Always create index.json as it's required
-        let indexURL = tempDir.appendingPathComponent("index.json")
+        let indexURL = contentsDir.appendingPathComponent("index.json")
         guard let indexData = indexJSON.data(using: .utf8) else {
             throw MockZipError.invalidJSON("Failed to convert JSON to data for index.json")
         }
@@ -49,7 +50,7 @@ struct DictionaryPersistenceTests {
 
         // Create tag_bank_1.json if tagJSON is provided
         if let tagJSON {
-            let tagURL = tempDir.appendingPathComponent("tag_bank_1.json")
+            let tagURL = contentsDir.appendingPathComponent("tag_bank_1.json")
             guard let tagData = tagJSON.data(using: .utf8) else {
                 throw MockZipError.invalidJSON("Failed to convert JSON to data for tag_bank_1.json")
             }
@@ -62,7 +63,7 @@ struct DictionaryPersistenceTests {
 
         // Create term_bank_1.json if termJSON is provided
         if let termJSON {
-            let termURL = tempDir.appendingPathComponent("term_bank_1.json")
+            let termURL = contentsDir.appendingPathComponent("term_bank_1.json")
             guard let termData = termJSON.data(using: .utf8) else {
                 throw MockZipError.invalidJSON("Failed to convert JSON to data for term_bank_1.json")
             }
@@ -75,7 +76,7 @@ struct DictionaryPersistenceTests {
 
         // Create term_meta_bank_1.json if termMetaJSON is provided
         if let termMetaJSON {
-            let termMetaURL = tempDir.appendingPathComponent("term_meta_bank_1.json")
+            let termMetaURL = contentsDir.appendingPathComponent("term_meta_bank_1.json")
             guard let termMetaData = termMetaJSON.data(using: .utf8) else {
                 throw MockZipError.invalidJSON("Failed to convert JSON to data for term_meta_bank_1.json")
             }
@@ -88,7 +89,7 @@ struct DictionaryPersistenceTests {
 
         // Create kanji_bank_1.json if kanjiJSON is provided
         if let kanjiJSON {
-            let kanjiURL = tempDir.appendingPathComponent("kanji_bank_1.json")
+            let kanjiURL = contentsDir.appendingPathComponent("kanji_bank_1.json")
             guard let kanjiData = kanjiJSON.data(using: .utf8) else {
                 throw MockZipError.invalidJSON("Failed to convert JSON to data for kanji_bank_1.json")
             }
@@ -101,7 +102,7 @@ struct DictionaryPersistenceTests {
 
         // Create kanji_meta_bank_1.json if kanjiMetaJSON is provided
         if let kanjiMetaJSON {
-            let kanjiMetaURL = tempDir.appendingPathComponent("kanji_meta_bank_1.json")
+            let kanjiMetaURL = contentsDir.appendingPathComponent("kanji_meta_bank_1.json")
             guard let kanjiMetaData = kanjiMetaJSON.data(using: .utf8) else {
                 throw MockZipError.invalidJSON("Failed to convert JSON to data for kanji_meta_bank_1.json")
             }
@@ -115,7 +116,7 @@ struct DictionaryPersistenceTests {
         // Create media files if provided
         if let mediaFiles {
             for mediaPath in mediaFiles {
-                let mediaURL = tempDir.appendingPathComponent(mediaPath)
+                let mediaURL = contentsDir.appendingPathComponent(mediaPath)
 
                 // Create intermediate directories if needed
                 let mediaDir = mediaURL.deletingLastPathComponent()
@@ -141,10 +142,7 @@ struct DictionaryPersistenceTests {
         }
 
         let zipURL = tempDir.appendingPathComponent("mock.zip")
-        // Get all items in the temp directory
-        let tempContents = try FileManager.default.contentsOfDirectory(at: tempDir.absoluteURL, includingPropertiesForKeys: [])
-
-        try Zip.zipFiles(paths: tempContents, zipFilePath: zipURL, password: nil, progress: nil)
+        try await createArchive(from: contentsDir, zipURL: zipURL)
 
         guard FileManager.default.fileExists(atPath: zipURL.path) else {
             throw MockZipError.fileNotFound(zipURL)
@@ -152,6 +150,20 @@ struct DictionaryPersistenceTests {
         debugPrint("Created ZIP: \(zipURL.path)")
 
         return zipURL
+    }
+
+    private func createArchive(from rootURL: URL, zipURL: URL) async throws {
+        let archive = try await Archive(url: zipURL, accessMode: .create)
+        let rootPath = rootURL.path
+        let rootPrefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
+        let enumerator = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: nil)
+        while let fileURL = enumerator?.nextObject() as? URL {
+            if fileURL.hasDirectoryPath {
+                continue
+            }
+            let relativePath = fileURL.path.replacingOccurrences(of: rootPrefix, with: "")
+            try await archive.addEntry(with: relativePath, relativeTo: rootURL)
+        }
     }
 
     // Helper: Create a corrupted ZIP file for testing error handling
@@ -167,16 +179,17 @@ struct DictionaryPersistenceTests {
     }
 
     // Helper: Create ZIP without index.json
-    private func createZIPWithoutIndex() throws -> URL {
+    private func createZIPWithoutIndex() async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
 
         // Create some other file
-        let dummyURL = tempDir.appendingPathComponent("dummy.txt")
+        let dummyURL = contentsDir.appendingPathComponent("dummy.txt")
         try "dummy content".write(to: dummyURL, atomically: true, encoding: .utf8)
 
         let zipURL = tempDir.appendingPathComponent("no_index.zip")
-        try Zip.zipFiles(paths: [dummyURL], zipFilePath: zipURL, password: nil, progress: nil)
+        try await createArchive(from: contentsDir, zipURL: zipURL)
 
         return zipURL
     }
@@ -266,14 +279,12 @@ struct DictionaryPersistenceTests {
 
     // Helper: Verify directory cleanup
     private func verifyDirectoryCleanup(importManager: DictionaryImportManager, importID: NSManagedObjectID) async {
-        let workingDirectoryExists = try? await importManager.workingDirectoryExists(for: importID)
         let mediaDirectoryExists = try? await importManager.mediaDirectoryExists(for: importID)
-        #expect(workingDirectoryExists == false)
         #expect(mediaDirectoryExists == false)
     }
 
     @Test @MainActor func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
-        // Test Description: Verifies that a valid Yomitan ZIP is unzipped, parsed, and batch-inserted into Core Data.
+        // Test Description: Verifies that a valid Yomitan ZIP is read, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
         // - Action: Call importDictionary
         // - Expected: Dictionary created and marked complete; fetchable data.
@@ -351,7 +362,7 @@ struct DictionaryPersistenceTests {
         """
 
         let mediaFiles = ["images/test.png", "audio/pronunciation.mp3", "nested/folder/file.jpg"]
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON, mediaFiles: mediaFiles)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -625,7 +636,7 @@ struct DictionaryPersistenceTests {
         ]
         """
         let mediaFiles = ["sounds/audio.wav", "pictures/image.gif"]
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -766,8 +777,8 @@ struct DictionaryPersistenceTests {
 
     // MARK: - Cancellation Tests
 
-    @Test func importDictionary_CancelDuringUnzip_CleansUpProperly() async throws {
-        // Test cancellation during unzip phase
+    @Test func importDictionary_CancelAfterIndex_CleansUpProperly() async throws {
+        // Test cancellation after index processing
         let indexJSON = """
         {
             "title": "TestDict",
@@ -781,13 +792,13 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
-        // Set up cancellation hook to trigger during unzip (after first cancellation check)
+        // Set up cancellation hook to trigger after index processing
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
@@ -818,8 +829,8 @@ struct DictionaryPersistenceTests {
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
     }
 
-    @Test func importDictionary_CancelAfterIndex_CleansUpProperly() async throws {
-        // Test cancellation after index processing but before term processing
+    @Test func importDictionary_CancelAfterDataProcessing_CleansUpProperly() async throws {
+        // Test cancellation after data processing but before media copy
         let indexJSON = """
         {
             "title": "TestDict",
@@ -833,17 +844,17 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: ["test.png"])
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: ["test.png"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
-        // Set up cancellation hook to trigger after index processing
+        // Set up cancellation hook to trigger after data processing
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
-            if cancellationCount == 2 { // Second call is after index processing
+            if cancellationCount == 2 { // Second call is after data processing
                 throw CancellationError()
             }
         }
@@ -883,7 +894,7 @@ struct DictionaryPersistenceTests {
         """
 
         let mediaFiles = ["images/test.png", "audio/sound.mp3"]
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -893,7 +904,7 @@ struct DictionaryPersistenceTests {
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
-            if cancellationCount == 4 { // After media copy
+            if cancellationCount == 3 { // After media copy
                 throw CancellationError()
             }
         }
@@ -931,7 +942,7 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -988,7 +999,7 @@ struct DictionaryPersistenceTests {
 
     @Test @MainActor func importDictionary_MissingIndexJSON_FailsAndCleansUp() async throws {
         // Test failure when index.json is missing
-        let zipURL = try createZIPWithoutIndex()
+        let zipURL = try await createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -1026,7 +1037,7 @@ struct DictionaryPersistenceTests {
             ["invalid", "json", "structure"  // Missing closing bracket and quotes
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: invalidTermJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: invalidTermJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -1065,7 +1076,7 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -1104,7 +1115,7 @@ struct DictionaryPersistenceTests {
         ]
         """
 
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -1148,7 +1159,7 @@ struct DictionaryPersistenceTests {
         """
 
         // Create ZIP with only index.json, no bank files
-        let zipURL = try createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
+        let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)

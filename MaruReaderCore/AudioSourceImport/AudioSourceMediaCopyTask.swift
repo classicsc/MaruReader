@@ -18,20 +18,25 @@
 import CoreData
 import Foundation
 import os.log
+internal import ReadiumZIPFoundation
 
-/// A task to copy audio files from the working directory to the app group container.
+/// A task to copy audio files from the archive to the app group container.
 /// This task only runs for local audio sources (isLocal = true).
 struct AudioSourceMediaCopyTask {
     let jobID: NSManagedObjectID
     let sourceID: UUID
     let indexURL: URL
+    let archiveURL: URL
+    let indexEntryPath: String
     let persistentContainer: NSPersistentContainer
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceMediaCopyTask")
 
-    init(jobID: NSManagedObjectID, sourceID: UUID, indexURL: URL, container: NSPersistentContainer) {
+    init(jobID: NSManagedObjectID, sourceID: UUID, indexURL: URL, archiveURL: URL, indexEntryPath: String, container: NSPersistentContainer) {
         self.jobID = jobID
         self.sourceID = sourceID
         self.indexURL = indexURL
+        self.archiveURL = archiveURL
+        self.indexEntryPath = indexEntryPath
         self.persistentContainer = container
     }
 
@@ -43,17 +48,12 @@ struct AudioSourceMediaCopyTask {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let workingDirectory = try await context.perform {
+        try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
-            guard let workingDirectory = job.workingDirectory else {
-                throw AudioSourceImportError.noWorkingDirectory
-            }
-
             job.displayProgressMessage = "Copying audio files..."
             try context.save()
-            return workingDirectory
         }
 
         try Task.checkCancellation()
@@ -61,7 +61,9 @@ struct AudioSourceMediaCopyTask {
         // Parse meta to get media_dir
         let meta = try AudioSourceMetaParser.parse(from: indexURL)
         let mediaDir = meta.mediaDir ?? "media"
-        let sourceMediaDir = workingDirectory.appendingPathComponent(mediaDir)
+        let basePath = (indexEntryPath as NSString).deletingLastPathComponent
+        let mediaPrefix = basePath.isEmpty ? mediaDir : "\(basePath)/\(mediaDir)"
+        let mediaPrefixWithSlash = mediaPrefix.hasSuffix("/") ? mediaPrefix : "\(mediaPrefix)/"
 
         // Setup destination directory in app group
         let fileManager = FileManager.default
@@ -79,65 +81,59 @@ struct AudioSourceMediaCopyTask {
             try fileManager.createDirectory(at: destMediaDir, withIntermediateDirectories: true, attributes: nil)
         }
 
-        // Check if source media directory exists
-        guard fileManager.fileExists(atPath: sourceMediaDir.path) else {
-            Self.logger.warning("Media directory not found at \(sourceMediaDir.path), skipping media copy")
-            // Mark as complete even if no media to copy
-            try await context.perform {
-                guard let job = try context.existingObject(with: jobID) as? AudioSource else {
-                    throw AudioSourceImportError.importNotFound
-                }
-                job.mediaImported = true
-                job.displayProgressMessage = "No media files to copy."
-                try context.save()
-            }
-            return
+        guard archiveURL.startAccessingSecurityScopedResource() else {
+            throw AudioSourceImportError.fileAccessDenied
         }
 
-        // Copy files recursively
-        let resolvedSourcePath = sourceMediaDir.resolvingSymlinksInPath().path
-        let enumerator = fileManager.enumerator(at: sourceMediaDir, includingPropertiesForKeys: nil)
+        defer {
+            archiveURL.stopAccessingSecurityScopedResource()
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: archiveURL, accessMode: .read)
+        } catch {
+            throw AudioSourceImportError.unzipFailed(underlyingError: error)
+        }
+
+        let entries: [Entry]
+        do {
+            entries = try await archive.entries()
+        } catch {
+            throw AudioSourceImportError.unzipFailed(underlyingError: error)
+        }
         var filesCopied = 0
 
-        while let fileURL = enumerator?.nextObject() as? URL {
+        for entry in entries where entry.type == .file {
             try Task.checkCancellation()
 
-            // Skip directories
-            if fileURL.hasDirectoryPath {
-                continue
-            }
-
-            // Determine relative path
-            let resolvedFilePath = fileURL.resolvingSymlinksInPath().path
-
-            guard resolvedFilePath.hasPrefix(resolvedSourcePath) else {
-                Self.logger.error("File path \(resolvedFilePath, privacy: .public) outside source directory")
-                continue
-            }
-
-            var relativePath = String(resolvedFilePath.dropFirst(resolvedSourcePath.count))
-            if relativePath.hasPrefix("/") {
-                relativePath.removeFirst()
-            }
+            guard entry.path.hasPrefix(mediaPrefixWithSlash) else { continue }
+            let relativePath = String(entry.path.dropFirst(mediaPrefixWithSlash.count))
+            guard !relativePath.isEmpty else { continue }
 
             let destinationURL = destMediaDir.appendingPathComponent(relativePath)
-            let destinationDir = destinationURL.deletingLastPathComponent()
-
-            // Create destination directory if needed
-            if !fileManager.fileExists(atPath: destinationDir.path) {
-                try fileManager.createDirectory(at: destinationDir, withIntermediateDirectories: true, attributes: nil)
+            guard destinationURL.isContained(in: destMediaDir) else {
+                Self.logger.error("File path \(relativePath, privacy: .public) outside destination directory")
+                continue
             }
 
-            // Copy file
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                try fileManager.removeItem(at: destinationURL)
+            do {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    try fileManager.removeItem(at: destinationURL)
+                }
+                _ = try await archive.extract(entry, to: destinationURL, skipCRC32: false)
+                filesCopied += 1
+            } catch {
+                throw AudioSourceImportError.unzipFailed(underlyingError: error)
             }
-            try fileManager.copyItem(at: fileURL, to: destinationURL)
-            filesCopied += 1
 
             if filesCopied % 1000 == 0 {
                 Self.logger.debug("Copied \(filesCopied) audio files...")
             }
+        }
+
+        if filesCopied == 0 {
+            Self.logger.warning("Media entries not found for prefix \(mediaPrefixWithSlash, privacy: .public)")
         }
 
         Self.logger.info("Copied \(filesCopied) audio files to \(destMediaDir.path)")
@@ -145,12 +141,13 @@ struct AudioSourceMediaCopyTask {
         try Task.checkCancellation()
 
         let totalFilesCopied = filesCopied
+        let progressMessage = totalFilesCopied == 0 ? "No media files to copy." : "Copied \(totalFilesCopied) audio files."
         try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             job.mediaImported = true
-            job.displayProgressMessage = "Copied \(totalFilesCopied) audio files."
+            job.displayProgressMessage = progressMessage
             try context.save()
         }
     }

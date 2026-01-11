@@ -19,7 +19,7 @@ import CoreData
 import Foundation
 @testable import MaruReaderCore
 import Testing
-import Zip
+internal import ReadiumZIPFoundation
 
 struct AudioSourceImportManagerTests {
     // Custom errors for diagnostics
@@ -37,12 +37,13 @@ struct AudioSourceImportManagerTests {
         indexFilename: String = "index.json",
         audioFiles: [String]? = nil,
         mediaDir: String = "media"
-    ) throws -> URL {
+    ) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
 
         // Write index JSON file
-        let indexURL = tempDir.appendingPathComponent(indexFilename)
+        let indexURL = contentsDir.appendingPathComponent(indexFilename)
         guard let indexData = indexJSON.data(using: .utf8) else {
             throw MockZipError.invalidJSON("Failed to convert JSON to data")
         }
@@ -54,7 +55,7 @@ struct AudioSourceImportManagerTests {
         // Create audio files if provided
         if let audioFiles {
             for audioPath in audioFiles {
-                let fullPath = tempDir.appendingPathComponent(mediaDir).appendingPathComponent(audioPath)
+                let fullPath = contentsDir.appendingPathComponent(mediaDir).appendingPathComponent(audioPath)
                 let parentDir = fullPath.deletingLastPathComponent()
 
                 if !FileManager.default.fileExists(atPath: parentDir.path) {
@@ -77,16 +78,27 @@ struct AudioSourceImportManagerTests {
 
         // Create ZIP
         let zipURL = tempDir.appendingPathComponent("audio_source.zip")
-        let tempContents = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-            .filter { $0.lastPathComponent != "audio_source.zip" }
-
-        try Zip.zipFiles(paths: tempContents, zipFilePath: zipURL, password: nil, progress: nil)
+        try await createArchive(from: contentsDir, zipURL: zipURL)
 
         guard FileManager.default.fileExists(atPath: zipURL.path) else {
             throw MockZipError.fileNotFound(zipURL)
         }
 
         return zipURL
+    }
+
+    private func createArchive(from rootURL: URL, zipURL: URL) async throws {
+        let archive = try await Archive(url: zipURL, accessMode: .create)
+        let rootPath = rootURL.path
+        let rootPrefix = rootPath.hasSuffix("/") ? rootPath : rootPath + "/"
+        let enumerator = FileManager.default.enumerator(at: rootURL, includingPropertiesForKeys: nil)
+        while let fileURL = enumerator?.nextObject() as? URL {
+            if fileURL.hasDirectoryPath {
+                continue
+            }
+            let relativePath = fileURL.path.replacingOccurrences(of: rootPrefix, with: "")
+            try await archive.addEntry(with: relativePath, relativeTo: rootURL)
+        }
     }
 
     /// Create a corrupted ZIP file for testing error handling.
@@ -102,15 +114,16 @@ struct AudioSourceImportManagerTests {
     }
 
     /// Create ZIP without any JSON file.
-    private func createZIPWithoutIndex() throws -> URL {
+    private func createZIPWithoutIndex() async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
 
-        let dummyURL = tempDir.appendingPathComponent("dummy.txt")
+        let dummyURL = contentsDir.appendingPathComponent("dummy.txt")
         try "dummy content".write(to: dummyURL, atomically: true, encoding: .utf8)
 
         let zipURL = tempDir.appendingPathComponent("no_index.zip")
-        try Zip.zipFiles(paths: [dummyURL], zipFilePath: zipURL, password: nil, progress: nil)
+        try await createArchive(from: contentsDir, zipURL: zipURL)
 
         return zipURL
     }
@@ -226,7 +239,7 @@ struct AudioSourceImportManagerTests {
             "kare_03.ogg",
         ]
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: audioFiles)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: audioFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -371,7 +384,7 @@ struct AudioSourceImportManagerTests {
         """
 
         // Online source: single JSON at root, named anything
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, indexFilename: "shinmeikai8.json", audioFiles: nil)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, indexFilename: "shinmeikai8.json", audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -450,7 +463,7 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -475,7 +488,7 @@ struct AudioSourceImportManagerTests {
 
     // MARK: - Cancellation Tests
 
-    @Test func importAudioSource_CancelDuringUnzip_CleansUpProperly() async throws {
+    @Test func importAudioSource_CancelAfterIndex_CleansUpProperly() async throws {
         let indexJSON = """
         {
             "meta": { "name": "Test" },
@@ -484,13 +497,13 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
-        // Cancel during first cancellation check (after unzip)
+        // Cancel during first cancellation check (after index processing)
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
@@ -519,49 +532,6 @@ struct AudioSourceImportManagerTests {
         }
     }
 
-    @Test func importAudioSource_CancelAfterIndex_CleansUpProperly() async throws {
-        let indexJSON = """
-        {
-            "meta": { "name": "Test" },
-            "headwords": { "テスト": ["test.ogg"] },
-            "files": { "test.ogg": { "kana_reading": "てすと" } }
-        }
-        """
-
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
-        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
-
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
-        let importManager = AudioSourceImportManager(container: persistenceController.container)
-
-        // Cancel after index processing (second cancellation check)
-        var cancellationCount = 0
-        await importManager.setTestCancellationHook {
-            cancellationCount += 1
-            if cancellationCount == 2 {
-                throw CancellationError()
-            }
-        }
-
-        let importID = try await importManager.enqueueImport(from: zipURL)
-        await importManager.waitForCompletion(jobID: importID)
-
-        let context = persistenceController.container.viewContext
-        await MainActor.run {
-            let job = getJob(from: context, importID: importID)
-            verifyJobCancelled(job)
-
-            let sources = fetchAudioSources(from: context)
-            #expect(sources.count == 1)
-
-            let headwords = fetchAudioHeadwords(from: context)
-            #expect(headwords.isEmpty)
-
-            let files = fetchAudioFiles(from: context)
-            #expect(files.isEmpty)
-        }
-    }
-
     @Test func importAudioSource_CancelAfterEntries_CleansUpProperly() async throws {
         let indexJSON = """
         {
@@ -571,17 +541,17 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
-        // Cancel after entry processing (third cancellation check)
+        // Cancel after entry processing (second cancellation check)
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
-            if cancellationCount == 3 {
+            if cancellationCount == 2 {
                 throw CancellationError()
             }
         }
@@ -614,17 +584,17 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
-        // Cancel after media copy (fourth cancellation check)
+        // Cancel after media copy (third cancellation check)
         var cancellationCount = 0
         await importManager.setTestCancellationHook {
             cancellationCount += 1
-            if cancellationCount == 4 {
+            if cancellationCount == 3 {
                 throw CancellationError()
             }
         }
@@ -657,7 +627,7 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -711,7 +681,7 @@ struct AudioSourceImportManagerTests {
     }
 
     @Test @MainActor func importAudioSource_MissingIndexJSON_FailsAndCleansUp() async throws {
-        let zipURL = try createZIPWithoutIndex()
+        let zipURL = try await createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -744,7 +714,7 @@ struct AudioSourceImportManagerTests {
                 "invalid": "json"  // Should be array, not string
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: invalidJSON, audioFiles: nil)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: invalidJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -770,24 +740,23 @@ struct AudioSourceImportManagerTests {
     @Test @MainActor func importAudioSource_MultipleJSONFiles_FailsForAmbiguity() async throws {
         // Create a ZIP with multiple JSON files at root (ambiguous for online sources)
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
 
         // First JSON file
         let json1 = """
         { "meta": { "name": "Source 1" }, "headwords": {}, "files": {} }
         """
-        try json1.write(to: tempDir.appendingPathComponent("source1.json"), atomically: true, encoding: .utf8)
+        try json1.write(to: contentsDir.appendingPathComponent("source1.json"), atomically: true, encoding: .utf8)
 
         // Second JSON file
         let json2 = """
         { "meta": { "name": "Source 2" }, "headwords": {}, "files": {} }
         """
-        try json2.write(to: tempDir.appendingPathComponent("source2.json"), atomically: true, encoding: .utf8)
+        try json2.write(to: contentsDir.appendingPathComponent("source2.json"), atomically: true, encoding: .utf8)
 
         let zipURL = tempDir.appendingPathComponent("multiple_json.zip")
-        let contents = try FileManager.default.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: nil)
-            .filter { $0.pathExtension == "json" }
-        try Zip.zipFiles(paths: contents, zipFilePath: zipURL, password: nil, progress: nil)
+        try await createArchive(from: contentsDir, zipURL: zipURL)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -819,7 +788,7 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -869,7 +838,7 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["sakujo.ogg", "test.ogg"])
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["sakujo.ogg", "test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)
@@ -951,7 +920,7 @@ struct AudioSourceImportManagerTests {
         }
         """
 
-        let zipURL = try createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = DictionaryPersistenceController(inMemory: true)

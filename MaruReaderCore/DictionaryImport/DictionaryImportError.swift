@@ -26,7 +26,6 @@ enum DictionaryImportError: Error, Equatable {
     case databaseError
     case fileAccessDenied
     case missingFile
-    case noWorkingDirectory
     case unzipFailed(underlyingError: Error)
     case deletionFailed
     case mediaDirectoryCreationFailed
@@ -49,10 +48,8 @@ enum DictionaryImportError: Error, Equatable {
             "Could not access the dictionary file."
         case .missingFile:
             "The dictionary file is missing."
-        case .noWorkingDirectory:
-            "No working directory is available."
         case let .unzipFailed(underlyingError):
-            "Failed to unzip the dictionary file: \(underlyingError.localizedDescription)"
+            "Failed to read the dictionary archive: \(underlyingError.localizedDescription)"
         case .deletionFailed:
             "Failed to delete the dictionary."
         case .mediaDirectoryCreationFailed:
@@ -70,7 +67,6 @@ enum DictionaryImportError: Error, Equatable {
              (.databaseError, .databaseError),
              (.fileAccessDenied, .fileAccessDenied),
              (.missingFile, .missingFile),
-             (.noWorkingDirectory, .noWorkingDirectory),
              (.deletionFailed, .deletionFailed):
             true
         case (.unzipFailed, .unzipFailed):

@@ -19,33 +19,24 @@ internal import AsyncAlgorithms
 import CoreData
 import Foundation
 import os.log
+internal import ReadiumZIPFoundation
 
 struct DataBankProcessingTask {
     static let batchSize = 5000
 
     let jobID: NSManagedObjectID
     let dictionaryID: UUID
+    let archiveURL: URL
+    let bankPaths: DictionaryBankPaths
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermBankProcessingTask")
 
-    init(jobID: NSManagedObjectID, dictionaryID: UUID, container: NSPersistentContainer) {
+    init(jobID: NSManagedObjectID, dictionaryID: UUID, archiveURL: URL, bankPaths: DictionaryBankPaths, container: NSPersistentContainer) {
         self.jobID = jobID
         self.dictionaryID = dictionaryID
+        self.archiveURL = archiveURL
+        self.bankPaths = bankPaths
         self.persistentContainer = container
-    }
-
-    private static func decodeURLArray(from jsonString: String?) throws -> [URL] {
-        guard let jsonString,
-              let data = jsonString.data(using: .utf8)
-        else {
-            throw DictionaryImportError.databaseError
-        }
-        let strings = try JSONDecoder().decode([String].self, from: data)
-        let urls = strings.compactMap { URL(string: $0) }
-        guard urls.count == strings.count else {
-            throw DictionaryImportError.invalidData
-        }
-        return urls
     }
 
     func start() async throws {
@@ -58,7 +49,7 @@ struct DataBankProcessingTask {
         context.shouldDeleteInaccessibleFaults = true
 
         // Fetch format and term bank URLs on the context queue
-        let (format, termBankURLs, kanjiBankURLs, termMetaBankURLs, kanjiMetaBankURLs, tagMetaBankURLs) = try await context.perform {
+        let format = try await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
@@ -66,12 +57,7 @@ struct DataBankProcessingTask {
             guard let format = try? DictionaryFormat.resolve(format: formatRaw, version: nil) else {
                 throw DictionaryImportError.databaseError
             }
-            let termBankURLs = try Self.decodeURLArray(from: dictionary.termBanks)
-            let kanjiBankURLs = try Self.decodeURLArray(from: dictionary.kanjiBanks)
-            let termMetaBankURLs = try Self.decodeURLArray(from: dictionary.termMetaBanks)
-            let kanjiMetaBankURLs = try Self.decodeURLArray(from: dictionary.kanjiMetaBanks)
-            let tagMetaBankURLs = try Self.decodeURLArray(from: dictionary.tagBanks)
-            return (format, termBankURLs, kanjiBankURLs, termMetaBankURLs, kanjiMetaBankURLs, tagMetaBankURLs)
+            return format
         }
 
         try await context.perform {
@@ -82,7 +68,7 @@ struct DataBankProcessingTask {
             try context.save()
         }
 
-        try await processDataBanks(format: format, termBankURLs: termBankURLs, kanjiBankURLs: kanjiBankURLs, termMetaBankURLs: termMetaBankURLs, kanjiMetaBankURLs: kanjiMetaBankURLs, tagMetaBankURLs: tagMetaBankURLs, context: context)
+        try await processDataBanks(format: format, bankPaths: bankPaths, archiveURL: archiveURL, context: context)
 
         // Mark banks as processed
         try await context.perform {
@@ -97,27 +83,29 @@ struct DataBankProcessingTask {
         try Task.checkCancellation()
     }
 
-    private func processDataBanks(format: DictionaryFormat, termBankURLs: [URL], kanjiBankURLs: [URL], termMetaBankURLs: [URL], kanjiMetaBankURLs: [URL], tagMetaBankURLs: [URL], context: NSManagedObjectContext) async throws {
+    private func processDataBanks(format: DictionaryFormat, bankPaths: DictionaryBankPaths, archiveURL: URL, context: NSManagedObjectContext) async throws {
         switch format {
         case .v1:
-            try await processV1DataBanks(termBankURLs: termBankURLs, kanjiBankURLs: kanjiBankURLs, termMetaBankURLs: termMetaBankURLs, kanjiMetaBankURLs: kanjiMetaBankURLs, tagMetaBankURLs: tagMetaBankURLs, context: context)
+            try await processV1DataBanks(bankPaths: bankPaths, archiveURL: archiveURL, context: context)
         case .v3:
-            try await processV3DataBanks(termBankURLs: termBankURLs, kanjiBankURLs: kanjiBankURLs, termMetaBankURLs: termMetaBankURLs, kanjiMetaBankURLs: kanjiMetaBankURLs, tagMetaBankURLs: tagMetaBankURLs, context: context)
+            try await processV3DataBanks(bankPaths: bankPaths, archiveURL: archiveURL, context: context)
         }
     }
 
-    private func processV1DataBanks(termBankURLs: [URL], kanjiBankURLs: [URL], termMetaBankURLs _: [URL], kanjiMetaBankURLs _: [URL], tagMetaBankURLs _: [URL], context: NSManagedObjectContext) async throws {
+    private func processV1DataBanks(bankPaths: DictionaryBankPaths, archiveURL: URL, context: NSManagedObjectContext) async throws {
         let termEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let kanjiEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in termBankURLs {
+                for path in bankPaths.termBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             termEntryChannel.fail(error)
@@ -130,12 +118,14 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in kanjiBankURLs {
+                for path in bankPaths.kanjiBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             kanjiEntryChannel.fail(error)
@@ -155,7 +145,7 @@ struct DataBankProcessingTask {
         logger.info("Processed \(results.reduce(0, +)) entries: Terms=\(results[0]), Kanji=\(results[1])")
     }
 
-    private func processV3DataBanks(termBankURLs: [URL], kanjiBankURLs: [URL], termMetaBankURLs: [URL], kanjiMetaBankURLs: [URL], tagMetaBankURLs: [URL], context: NSManagedObjectContext) async throws {
+    private func processV3DataBanks(bankPaths: DictionaryBankPaths, archiveURL: URL, context: NSManagedObjectContext) async throws {
         let termEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let kanjiEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let termFrequencyEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
@@ -166,12 +156,14 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in termBankURLs {
+                for path in bankPaths.termBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             termEntryChannel.fail(error)
@@ -184,12 +176,14 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in kanjiBankURLs {
+                for path in bankPaths.kanjiBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             kanjiEntryChannel.fail(error)
@@ -202,12 +196,14 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in tagMetaBankURLs {
+                for path in bankPaths.tagBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await dictionaryTagMetaEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await dictionaryTagMetaEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             dictionaryTagMetaEntryChannel.fail(error)
@@ -220,12 +216,14 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in kanjiMetaBankURLs {
+                for path in bankPaths.kanjiMetaBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                await kanjiFrequencyEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    await kanjiFrequencyEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                }
                             }
                         } catch {
                             kanjiFrequencyEntryChannel.fail(error)
@@ -238,20 +236,22 @@ struct DataBankProcessingTask {
 
         Task {
             await withTaskGroup(of: Void.self) { group in
-                for url in termMetaBankURLs {
+                for path in bankPaths.termMetaBanks {
                     group.addTask {
-                        let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [url])
                         do {
-                            for try await entry in iterator {
-                                let dataDict = entry.toDataDictionary(dictionaryID: self.dictionaryID)
-                                switch dataDict.0 {
-                                case .termFrequencyEntry:
-                                    await termFrequencyEntryChannel.send(dataDict.1)
-                                case .pitchAccentEntry:
-                                    await pitchAccentEntryChannel.send(dataDict.1)
-                                case .ipaEntry:
-                                    await ipaEntryChannel.send(dataDict.1)
-                                default: throw DictionaryImportError.invalidData
+                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [fileURL])
+                                for try await entry in iterator {
+                                    let dataDict = entry.toDataDictionary(dictionaryID: self.dictionaryID)
+                                    switch dataDict.0 {
+                                    case .termFrequencyEntry:
+                                        await termFrequencyEntryChannel.send(dataDict.1)
+                                    case .pitchAccentEntry:
+                                        await pitchAccentEntryChannel.send(dataDict.1)
+                                    case .ipaEntry:
+                                        await ipaEntryChannel.send(dataDict.1)
+                                    default: throw DictionaryImportError.invalidData
+                                    }
                                 }
                             }
                         } catch {
@@ -327,6 +327,53 @@ struct DataBankProcessingTask {
             batchInsert.resultType = .count
             let result = try context.execute(batchInsert) as? NSBatchInsertResult
             return result?.result as? Int ?? 0
+        }
+    }
+
+    private func withExtractedEntry<T>(
+        archiveURL: URL,
+        entryPath: String,
+        skipCRC32: Bool = true,
+        body: (URL) async throws -> T
+    ) async throws -> T {
+        guard archiveURL.startAccessingSecurityScopedResource() else {
+            throw DictionaryImportError.fileAccessDenied
+        }
+
+        defer {
+            archiveURL.stopAccessingSecurityScopedResource()
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: archiveURL, accessMode: .read)
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+
+        let entry: Entry
+        do {
+            guard let resolvedEntry = try await archive.get(entryPath) else {
+                throw DictionaryImportError.invalidData
+            }
+            entry = resolvedEntry
+        } catch {
+            if let importError = error as? DictionaryImportError {
+                throw importError
+            }
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        do {
+            _ = try await archive.extract(entry, to: tempURL, skipCRC32: skipCRC32)
+            return try await body(tempURL)
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
     }
 }

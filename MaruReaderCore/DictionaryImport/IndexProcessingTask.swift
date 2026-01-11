@@ -18,6 +18,21 @@
 import CoreData
 import Foundation
 import os.log
+internal import ReadiumZIPFoundation
+
+struct DictionaryBankPaths: Sendable {
+    let termBanks: [String]
+    let kanjiBanks: [String]
+    let termMetaBanks: [String]
+    let kanjiMetaBanks: [String]
+    let tagBanks: [String]
+}
+
+struct DictionaryIndexResult: Sendable {
+    let dictionaryID: UUID
+    let archiveURL: URL
+    let bankPaths: DictionaryBankPaths
+}
 
 struct IndexProcessingTask {
     let jobID: NSManagedObjectID
@@ -47,21 +62,11 @@ struct IndexProcessingTask {
         return 0
     }
 
-    private static func encodeURLArray(_ urls: [URL]) throws -> String {
-        let strings = urls.map(\.absoluteString)
-        let data = try JSONEncoder().encode(strings)
-        guard let encoded = String(data: data, encoding: .utf8) else {
-            throw DictionaryImportError.invalidData
-        }
-        return encoded
-    }
-
-    func start() async throws -> UUID {
+    func start() async throws -> DictionaryIndexResult {
         let container = self.persistentContainer
         let jobID = self.jobID
         // Load index.json
         // Create Dictionary entity
-        // Populate job.termBanks, job.kanjiBanks, etc.
         // Index can contain tag metadata that needs to be processed
 
         let context = container.newBackgroundContext()
@@ -69,37 +74,73 @@ struct IndexProcessingTask {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (indexURL, workingDir) = try await context.perform {
+        let jobURL = try await context.perform {
             guard let dictionary = try context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.importNotFound
             }
-            guard let workingDir = dictionary.workingDirectory else {
-                throw DictionaryImportError.noWorkingDirectory
+            guard let jobURL = dictionary.file else {
+                throw DictionaryImportError.missingFile
             }
-            let indexURL = workingDir.appendingPathComponent("index.json")
-            guard FileManager.default.fileExists(atPath: indexURL.path) else {
-                throw DictionaryImportError.notADictionary
-            }
-            return (indexURL, workingDir)
+            dictionary.displayProgressMessage = "Processing dictionary index..."
+            try context.save()
+            return jobURL
+        }
+
+        guard jobURL.startAccessingSecurityScopedResource() else {
+            throw DictionaryImportError.fileAccessDenied
+        }
+
+        defer {
+            jobURL.stopAccessingSecurityScopedResource()
+        }
+
+        guard FileManager.default.fileExists(atPath: jobURL.path) else {
+            throw DictionaryImportError.missingFile
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: jobURL, accessMode: .read)
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+
+        guard let indexEntry = try await archive.get("index.json") else {
+            throw DictionaryImportError.notADictionary
+        }
+
+        let tempIndexURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            try? FileManager.default.removeItem(at: tempIndexURL)
+        }
+        do {
+            _ = try await archive.extract(indexEntry, to: tempIndexURL, skipCRC32: true)
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
 
         // Decode index.json to type DictionaryIndex
-        let data = try Data(contentsOf: indexURL)
         let decoder = JSONDecoder()
-        let index = try decoder.decode(DictionaryIndex.self, from: data)
+        let indexData = try Data(contentsOf: tempIndexURL)
+        let index = try decoder.decode(DictionaryIndex.self, from: indexData)
 
         // Ensure format is supported
         guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
             throw DictionaryImportError.unsupportedFormat
         }
 
-        // Find the bank files in working directory
-        let contents = try FileManager.default.contentsOfDirectory(at: workingDir, includingPropertiesForKeys: nil)
-        let termBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_bank_") && $0.pathExtension == "json" }
-        let kanjiBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_bank_") && $0.pathExtension == "json" }
-        let termMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("term_meta_bank_") && $0.pathExtension == "json" }
-        let kanjiMetaBanks = contents.filter { $0.lastPathComponent.hasPrefix("kanji_meta_bank_") && $0.pathExtension == "json" }
-        let tagBanks = contents.filter { $0.lastPathComponent.hasPrefix("tag_bank_") && $0.pathExtension == "json" }
+        // Find the bank files in archive
+        let entries: [Entry]
+        do {
+            entries = try await archive.entries()
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+        let termBanks = Self.bankPaths(from: entries, prefix: "term_bank_")
+        let kanjiBanks = Self.bankPaths(from: entries, prefix: "kanji_bank_")
+        let termMetaBanks = Self.bankPaths(from: entries, prefix: "term_meta_bank_")
+        let kanjiMetaBanks = Self.bankPaths(from: entries, prefix: "kanji_meta_bank_")
+        let tagBanks = Self.bankPaths(from: entries, prefix: "tag_bank_")
 
         // Dictionary must have at least one of termBanks, kanjiBanks, termMetaBanks, kanjiMetaBanks
         if termBanks.isEmpty, kanjiBanks.isEmpty, termMetaBanks.isEmpty, kanjiMetaBanks.isEmpty {
@@ -158,17 +199,31 @@ struct IndexProcessingTask {
                 }
             }
 
-            dictionary.termBanks = try Self.encodeURLArray(termBanks)
-            dictionary.kanjiBanks = try Self.encodeURLArray(kanjiBanks)
-            dictionary.termMetaBanks = try Self.encodeURLArray(termMetaBanks)
-            dictionary.kanjiMetaBanks = try Self.encodeURLArray(kanjiMetaBanks)
-            dictionary.tagBanks = try Self.encodeURLArray(tagBanks)
             dictionary.indexProcessed = true
             dictionary.displayProgressMessage = "Processed dictionary index."
 
             try context.save()
             return dictionaryID
         }
-        return dictionaryID
+        return DictionaryIndexResult(
+            dictionaryID: dictionaryID,
+            archiveURL: jobURL,
+            bankPaths: DictionaryBankPaths(
+                termBanks: termBanks,
+                kanjiBanks: kanjiBanks,
+                termMetaBanks: termMetaBanks,
+                kanjiMetaBanks: kanjiMetaBanks,
+                tagBanks: tagBanks
+            )
+        )
+    }
+
+    private static func bankPaths(from entries: [Entry], prefix: String) -> [String] {
+        entries.compactMap { entry in
+            guard entry.type == .file else { return nil }
+            let name = entry.path.split(separator: "/").last.map(String.init) ?? entry.path
+            guard name.hasPrefix(prefix), name.hasSuffix(".json") else { return nil }
+            return entry.path
+        }
     }
 }
