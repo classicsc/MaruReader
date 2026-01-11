@@ -1244,7 +1244,7 @@ body {
 .pitch-results-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25em;
+    gap: 1em;
 }
 
 .pitch-result-item {
