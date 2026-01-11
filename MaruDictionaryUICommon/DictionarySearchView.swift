@@ -67,7 +67,7 @@ public struct DictionarySearchView: View {
                     switch viewModel.resultState {
                     case .ready:
                         WebView(viewModel.page)
-                            // Popup overlay
+                            // Popup overlay for text scanning
                             .popover(
                                 isPresented: Binding(get: { viewModel.showPopup }, set: { viewModel.showPopup = $0 }),
                                 attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
@@ -75,6 +75,23 @@ public struct DictionarySearchView: View {
                                 WebView(viewModel.popupPage)
                                     .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                                     .presentationCompactAdaptation(.popover)
+                            }
+                            // External link confirmation popover
+                            .popover(
+                                isPresented: $viewModel.showExternalLinkConfirmation,
+                                attachmentAnchor: .rect(.rect(viewModel.externalLinkAnchorRect))
+                            ) {
+                                ExternalLinkConfirmationView(
+                                    url: viewModel.pendingExternalURL,
+                                    onOpen: {
+                                        if let url = viewModel.pendingExternalURL {
+                                            openURL(url)
+                                        }
+                                        viewModel.clearPendingExternalURL()
+                                        viewModel.showExternalLinkConfirmation = false
+                                    }
+                                )
+                                .presentationCompactAdaptation(.popover)
                             }
                     case let .noResults(query):
                         ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
@@ -99,21 +116,6 @@ public struct DictionarySearchView: View {
         }
         .onAppear {
             viewModel.loadContextDisplaySettings()
-        }
-        .confirmationDialog(
-            "Open External Link",
-            isPresented: $viewModel.showExternalLinkConfirmation,
-            presenting: viewModel.pendingExternalURL
-        ) { url in
-            Button("Open in Browser") {
-                openURL(url)
-                viewModel.clearPendingExternalURL()
-            }
-            Button("Cancel", role: .cancel) {
-                viewModel.clearPendingExternalURL()
-            }
-        } message: { url in
-            Text("Open \(url.host ?? url.absoluteString) in browser?")
         }
     }
 
@@ -176,6 +178,23 @@ public struct DictionarySearchView: View {
         .padding(.horizontal)
         .padding(.vertical, 8)
         .background(Color(.systemBackground))
+    }
+}
+
+/// Popover content for external link confirmation
+private struct ExternalLinkConfirmationView: View {
+    let url: URL?
+    let onOpen: () -> Void
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 12) {
+            Text("Open \(url?.host ?? url?.absoluteString ?? "link") in browser?")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+            Button("Open", action: onOpen)
+        }
+        .padding()
     }
 }
 

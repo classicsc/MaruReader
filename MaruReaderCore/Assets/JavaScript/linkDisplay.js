@@ -41,7 +41,7 @@ window.MaruReader.linkDisplay = {
             var isExternal = link.getAttribute('data-external') === 'true';
 
             if (isExternal) {
-                self.handleExternalLink(href);
+                self.handleExternalLink(href, link);
             } else {
                 self.handleInternalLink(href);
             }
@@ -77,12 +77,24 @@ window.MaruReader.linkDisplay = {
 
     /**
      * Handle external link - request confirmation from Swift
+     * @param {string} href - The external URL
+     * @param {Element} linkElement - The clicked link element
      */
-    handleExternalLink: function(href) {
+    handleExternalLink: function(href, linkElement) {
         if (!href) return;
 
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.externalLink) {
-            window.webkit.messageHandlers.externalLink.postMessage(href);
+            // Get the bounding rect of the link for popover positioning
+            var rect = linkElement.getBoundingClientRect();
+            window.webkit.messageHandlers.externalLink.postMessage({
+                url: href,
+                anchorRect: {
+                    x: rect.x,
+                    y: rect.y,
+                    width: rect.width,
+                    height: rect.height
+                }
+            });
         }
     }
 };

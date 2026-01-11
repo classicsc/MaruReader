@@ -84,6 +84,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     // External link confirmation dialog state
     var pendingExternalURL: URL?
+    var externalLinkAnchorRect: CGRect = .zero
     var showExternalLinkConfirmation: Bool = false
 
     // Context editing state
@@ -481,12 +482,24 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             performSearch(query)
         } else if message.name == "externalLink" {
             logger.debug("Received externalLink message: \(String(describing: message.body))")
-            guard let urlString = message.body as? String,
+            guard let messageObject = message.body as? [String: Any],
+                  let urlString = messageObject["url"] as? String,
                   let url = URL(string: urlString)
             else {
                 logger.error("Invalid message body for externalLink")
                 return
             }
+
+            // Parse anchor rect for popover positioning
+            if let anchorRect = messageObject["anchorRect"] as? [String: Double],
+               let x = anchorRect["x"],
+               let y = anchorRect["y"],
+               let width = anchorRect["width"],
+               let height = anchorRect["height"]
+            {
+                externalLinkAnchorRect = CGRect(x: x, y: y, width: width, height: height)
+            }
+
             pendingExternalURL = url
             showExternalLinkConfirmation = true
         }
