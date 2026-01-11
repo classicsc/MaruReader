@@ -36,7 +36,7 @@ public actor OCR {
         /// Initialize the request with default parameters.
         request = RecognizeTextRequest()
         request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = false
+        request.usesLanguageCorrection = true
         request.recognitionLanguages = [.init(identifier: "ja-JP")]
     }
 
