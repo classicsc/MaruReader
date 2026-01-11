@@ -44,7 +44,7 @@ window.MaruReader.audioDisplay = {
             // Only handle long-press for main audio buttons
             if (button.closest('.audio-sources-area')) {
                 // For buttons inside sources area, just play directly
-                self.handleDirectPlay(button);
+                self.handleDirectPlay(button, event);
                 return;
             }
 
@@ -71,7 +71,7 @@ window.MaruReader.audioDisplay = {
             if (!button) return;
 
             if (button.closest('.audio-sources-area')) {
-                self.handleDirectPlay(button);
+                self.handleDirectPlay(button, event);
                 return;
             }
 
@@ -91,6 +91,14 @@ window.MaruReader.audioDisplay = {
             // If clicking outside any audio-sources-area, hide all
             if (!event.target.closest('.audio-sources-area') && !event.target.closest('.audio-button')) {
                 self.hideAllSourcesAreas();
+            }
+        }, true);
+
+        // Prevent click propagation on audio buttons (catches synthetic clicks after touch events)
+        document.addEventListener('click', function(event) {
+            var button = event.target.closest('.audio-button');
+            if (button) {
+                event.stopPropagation();
             }
         }, true);
     },
@@ -124,7 +132,7 @@ window.MaruReader.audioDisplay = {
         }
 
         self.cancelLongPress();
-        self.handleDirectPlay(button);
+        self.handleDirectPlay(button, event);
     },
 
     /**
@@ -140,8 +148,14 @@ window.MaruReader.audioDisplay = {
     /**
      * Handle direct audio playback
      */
-    handleDirectPlay: function(button) {
+    handleDirectPlay: function(button, event) {
         var self = this;
+
+        // Stop event propagation to prevent parent handlers (e.g., navigation in popups)
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
 
         // Get audio sources from data attribute
         var sourcesJSON = button.getAttribute('data-audio-sources');

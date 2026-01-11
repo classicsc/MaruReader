@@ -1311,6 +1311,8 @@ body {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     -webkit-font-smoothing: antialiased;
     box-shadow: var(--glass-shadow);
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .audio-button:hover {
