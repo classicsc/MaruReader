@@ -74,6 +74,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         toolbarFuriganaOverride ?? contextFuriganaEnabled
     }
 
+    // Link activation state
+    var toolbarLinksActiveOverride: Bool?
+
+    /// Effective links active state (toolbar override takes precedence, default off)
+    var linksActiveEnabled: Bool {
+        toolbarLinksActiveOverride ?? false
+    }
+
+    // External link confirmation dialog state
+    var pendingExternalURL: URL?
+    var externalLinkAnchorRect: CGRect = .zero
+    var showExternalLinkConfirmation: Bool = false
+
     // Context editing state
     var isEditingContext: Bool = false
     var editContextText: String = ""
@@ -191,6 +204,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "textScanning")
         userContentController.add(self, name: "ankiAdd")
+        userContentController.add(self, name: "internalLink")
+        userContentController.add(self, name: "externalLink")
         config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
@@ -456,6 +471,37 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             // Determine source based on whether popup is showing
             let isFromPopup = showPopup && currentPopupResponse != nil
             handleAnkiAdd(termKey: termKey, expression: expression, reading: reading, isFromPopup: isFromPopup)
+        } else if message.name == "internalLink" {
+            logger.debug("Received internalLink message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let query = messageObject["query"] as? String
+            else {
+                logger.error("Invalid message body for internalLink")
+                return
+            }
+            performSearch(query)
+        } else if message.name == "externalLink" {
+            logger.debug("Received externalLink message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let urlString = messageObject["url"] as? String,
+                  let url = URL(string: urlString)
+            else {
+                logger.error("Invalid message body for externalLink")
+                return
+            }
+
+            // Parse anchor rect for popover positioning
+            if let anchorRect = messageObject["anchorRect"] as? [String: Double],
+               let x = anchorRect["x"],
+               let y = anchorRect["y"],
+               let width = anchorRect["width"],
+               let height = anchorRect["height"]
+            {
+                externalLinkAnchorRect = CGRect(x: x, y: y, width: width, height: height)
+            }
+
+            pendingExternalURL = url
+            showExternalLinkConfirmation = true
         }
     }
 
@@ -679,6 +725,32 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
         // Invalidate furigana cache
         cachedFuriganaContext = nil
+    }
+
+    /// Toggle link activation on/off
+    public func toggleLinksActive() {
+        if toolbarLinksActiveOverride == nil {
+            // First toggle: activate links
+            toolbarLinksActiveOverride = true
+        } else {
+            // Subsequent toggles: flip the override
+            toolbarLinksActiveOverride = !linksActiveEnabled
+        }
+        // Notify JavaScript of state change
+        updateLinksActiveState()
+    }
+
+    /// Update JavaScript with current links active state
+    private func updateLinksActiveState() {
+        let js = "window.MaruReader.linkDisplay?.setLinksActive(\(linksActiveEnabled));"
+        Task {
+            _ = try? await page.callJavaScript(js)
+        }
+    }
+
+    /// Clear pending external URL after it has been opened
+    public func clearPendingExternalURL() {
+        pendingExternalURL = nil
     }
 
     /// Start editing the context text

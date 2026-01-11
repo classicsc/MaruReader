@@ -33,6 +33,13 @@ window.MaruReader.textScanning = {
      * @param {Event} event - The tap/click event
      */
     handleTap: function(event) {
+        // Check if this is a link click and links are active - if so, let linkDisplay handle it
+        var link = event.target.closest('a.gloss-link');
+        if (link && window.MaruReader.linkDisplay && window.MaruReader.linkDisplay.linksActive) {
+            // Don't prevent default or stop propagation - let linkDisplay handle it
+            return;
+        }
+
         // Prevent default behavior to avoid interfering with text scanning
         event.preventDefault();
         event.stopPropagation();

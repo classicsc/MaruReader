@@ -775,6 +775,7 @@ public struct TextLookupResponse: Sendable {
             <script src="marureader-resource://pitchDisplay.js"></script>
             <script src="marureader-resource://audioDisplay.js"></script>
             <script src="marureader-resource://ankiDisplay.js"></script>
+            <script src="marureader-resource://linkDisplay.js"></script>
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
                     if (window.MaruReader && window.MaruReader.textScanning) {
@@ -791,6 +792,9 @@ public struct TextLookupResponse: Sendable {
                     }
                     if (window.MaruReader && window.MaruReader.ankiDisplay) {
                         window.MaruReader.ankiDisplay.initialize();
+                    }
+                    if (window.MaruReader && window.MaruReader.linkDisplay) {
+                        window.MaruReader.linkDisplay.initialize();
                     }
                 });
             </script>
