@@ -240,19 +240,17 @@ public struct MangaReaderView: View {
 
     private var dictionarySheet: some View {
         NavigationStack {
-            if let searchViewModel = viewModel.dictionarySearchViewModel {
-                DictionarySearchView()
-                    .environment(searchViewModel)
-                    .navigationTitle("Dictionary")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done") {
-                                viewModel.showingDictionarySheet = false
-                            }
+            DictionarySearchView()
+                .environment(viewModel.dictionarySearchViewModel)
+                .navigationTitle("Dictionary")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Done") {
+                            viewModel.showingDictionarySheet = false
                         }
                     }
-            }
+                }
         }
         .presentationDetents([.medium, .large])
     }

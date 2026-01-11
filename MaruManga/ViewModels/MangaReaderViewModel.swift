@@ -132,7 +132,7 @@ final class MangaReaderViewModel {
     var showingDictionarySheet: Bool = false
 
     /// View model for the dictionary search sheet
-    var dictionarySearchViewModel: DictionarySearchViewModel?
+    var dictionarySearchViewModel = DictionarySearchViewModel(resultState: .searching)
 
     // MARK: - Private State
 
@@ -309,20 +309,8 @@ final class MangaReaderViewModel {
     }
 
     private func performDictionaryLookup(text: String) async {
-        let request = TextLookupRequest(context: text)
-
-        do {
-            if let response = try await searchService.performTextLookup(query: request) {
-                dictionarySearchViewModel = DictionarySearchViewModel(response: response)
-                showingDictionarySheet = true
-            } else {
-                // No results - still show the sheet with a search
-                dictionarySearchViewModel = DictionarySearchViewModel(resultState: .noResults(text))
-                showingDictionarySheet = true
-            }
-        } catch {
-            logger.error("Dictionary lookup failed: \(error.localizedDescription)")
-        }
+        dictionarySearchViewModel.performSearch(text)
+        showingDictionarySheet = true
     }
 
     // MARK: - Persistence
