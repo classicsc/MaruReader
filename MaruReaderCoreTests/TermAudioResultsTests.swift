@@ -26,6 +26,7 @@ struct TermAudioResultsTests {
         AudioSourceResult(
             url: URL(string: "https://example.com/\(UUID().uuidString).mp3")!,
             sourceName: name,
+            providerName: name,
             sourceType: .urlPattern("test"),
             isLocal: false,
             pitchNumber: pitchNumber
@@ -218,6 +219,7 @@ struct TermAudioResultsTests {
         let indexedSource0 = AudioSourceResult(
             url: URL(string: "https://example.com/indexed0.mp3")!,
             sourceName: "Indexed",
+            providerName: "Indexed",
             sourceType: .indexed(UUID()),
             isLocal: true,
             pitchNumber: "0"
@@ -225,6 +227,7 @@ struct TermAudioResultsTests {
         let indexedSource1 = AudioSourceResult(
             url: URL(string: "https://example.com/indexed1.mp3")!,
             sourceName: "Indexed",
+            providerName: "Indexed",
             sourceType: .indexed(UUID()),
             isLocal: true,
             pitchNumber: "1"
@@ -232,6 +235,7 @@ struct TermAudioResultsTests {
         let urlPatternSource = AudioSourceResult(
             url: URL(string: "https://example.com/pattern.mp3")!,
             sourceName: "URL Pattern",
+            providerName: "URL Pattern",
             sourceType: .urlPattern("test"),
             isLocal: false,
             pitchNumber: nil

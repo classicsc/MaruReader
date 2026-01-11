@@ -249,6 +249,7 @@ public actor AudioLookupService {
         return [AudioSourceResult(
             url: url,
             sourceName: provider.name,
+            providerName: provider.name,
             sourceType: provider.type,
             isLocal: provider.isLocal,
             pitchNumber: nil // URL pattern sources don't have pitch info
@@ -306,6 +307,7 @@ public actor AudioLookupService {
             results.append(AudioSourceResult(
                 url: audioURL,
                 sourceName: source.name ?? provider.name,
+                providerName: provider.name,
                 sourceType: provider.type,
                 isLocal: false,
                 pitchNumber: pitchNumber
@@ -398,6 +400,7 @@ public actor AudioLookupService {
                 let result = AudioSourceResult(
                     url: url,
                     sourceName: provider.name,
+                    providerName: provider.name,
                     sourceType: provider.type,
                     isLocal: provider.isLocal,
                     pitchNumber: normalizedPitchNumber

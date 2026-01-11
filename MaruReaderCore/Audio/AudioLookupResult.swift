@@ -32,15 +32,26 @@ public struct AudioLookupResult: Sendable {
 
 public struct AudioSourceResult: Sendable {
     public let url: URL
+    /// The name of the audio source item (from JSON response), or provider name if no specific item name
     public let sourceName: String
+    /// The name of the audio provider/dictionary (always the provider name)
+    public let providerName: String
     public let sourceType: AudioSourceType
     public let isLocal: Bool
     /// The pitch accent downstep position this audio represents (e.g., "0", "1", "2-1"), or nil if unknown
     public let pitchNumber: String?
 
-    public init(url: URL, sourceName: String, sourceType: AudioSourceType, isLocal: Bool, pitchNumber: String? = nil) {
+    public init(
+        url: URL,
+        sourceName: String,
+        providerName: String,
+        sourceType: AudioSourceType,
+        isLocal: Bool,
+        pitchNumber: String? = nil
+    ) {
         self.url = url
         self.sourceName = sourceName
+        self.providerName = providerName
         self.sourceType = sourceType
         self.isLocal = isLocal
         self.pitchNumber = pitchNumber

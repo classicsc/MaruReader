@@ -320,6 +320,11 @@ public struct TextLookupResponse: Sendable {
     private func audioSourcesJSON(for sources: [AudioSourceResult]) -> String {
         let sourceData = sources.map { source -> [String: String] in
             var dict: [String: String] = ["url": source.url.absoluteString]
+            dict["providerName"] = source.providerName
+            // Include item name only if it differs from provider name (indicates JSON source with specific name)
+            if source.sourceName != source.providerName {
+                dict["itemName"] = source.sourceName
+            }
             if let pitch = source.pitchNumber {
                 dict["pitch"] = pitch
             }
@@ -365,6 +370,63 @@ public struct TextLookupResponse: Sendable {
 
         return """
         <button type="button" class="anki-button" data-term-key="\(termKey)" data-expression="\(expression)" data-reading="\(reading)" data-state="\(state)" aria-label="Add to Anki"></button>
+        """
+    }
+
+    /// Generates the expandable audio sources area HTML for a term group.
+    /// This area is hidden by default and revealed by long-pressing the main audio button.
+    private func audioSourcesAreaHTML(for termGroup: GroupedSearchResults) -> String {
+        guard let audioResults = termGroup.audioResults, audioResults.hasAudio else {
+            return ""
+        }
+
+        let sources = audioResults.sources
+        guard sources.count > 1 else {
+            // No need for expanded list if there's only one source
+            return ""
+        }
+
+        var itemsHTML: [String] = []
+
+        for source in sources {
+            let providerName = source.providerName.escapeHTML()
+
+            // Item name (from JSON source) if different from provider name
+            let itemNameHTML = if source.sourceName != source.providerName {
+                "<span class=\"audio-source-item-name\">\(source.sourceName.escapeHTML())</span>"
+            } else {
+                ""
+            }
+
+            // Pitch position if available
+            let pitchHTML = if let pitch = source.pitchNumber {
+                "<span class=\"audio-source-pitch\">[\(pitch.escapeHTML())]</span>"
+            } else {
+                ""
+            }
+
+            // Audio button for this specific source
+            let buttonJSON = audioSourcesJSON(for: [source])
+            let buttonHTML = """
+            <button type="button" class="audio-button audio-button-small" data-audio-sources="\(buttonJSON)" data-state="ready" aria-label="Play audio"></button>
+            """
+
+            itemsHTML.append("""
+            <div class="audio-source-item">
+                <span class="audio-source-provider">\(providerName)</span>
+                \(itemNameHTML)
+                \(pitchHTML)
+                \(buttonHTML)
+            </div>
+            """)
+        }
+
+        return """
+        <div class="audio-sources-area" hidden>
+            <div class="audio-sources-list">
+                \(itemsHTML.joined(separator: "\n"))
+            </div>
+        </div>
         """
     }
 
@@ -479,7 +541,13 @@ public struct TextLookupResponse: Sendable {
     }
 
     /// Generates the term header with optional pitch notation, audio button, and Anki button.
-    private func termHeaderHTML(for termGroup: GroupedSearchResults, cssClass: String, includeAudio: Bool = false, includeAnki: Bool = false) -> String {
+    private func termHeaderHTML(
+        for termGroup: GroupedSearchResults,
+        cssClass: String,
+        includeAudio: Bool = false,
+        includeAnki: Bool = false,
+        includeAudioSourcesArea: Bool = false
+    ) -> String {
         let expression = termGroup.expression.escapeHTML()
 
         // Generate audio button if requested and audio is available
@@ -493,6 +561,9 @@ public struct TextLookupResponse: Sendable {
 
         // Generate Anki button if requested and enabled
         let ankiHTML = includeAnki ? ankiButtonHTML(for: termGroup) : ""
+
+        // Generate audio sources area if requested
+        let audioSourcesHTML = includeAudioSourcesArea ? audioSourcesAreaHTML(for: termGroup) : ""
 
         // Build header content (expression + optional reading)
         let headerContent: String
@@ -523,6 +594,7 @@ public struct TextLookupResponse: Sendable {
                 <div class="term-header-buttons">
                     \(audioHTML)\(ankiHTML)
                 </div>
+                \(audioSourcesHTML)
             </div>
             """
         }
@@ -641,8 +713,8 @@ public struct TextLookupResponse: Sendable {
 
     public func toResultsHTML() -> String {
         let termGroupsHTML = results.map { termGroup in
-            // Generate term header with optional pitch notation, audio, and Anki button
-            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true, includeAnki: true)
+            // Generate term header with optional pitch notation, audio, Anki button, and audio sources area
+            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true, includeAnki: true, includeAudioSourcesArea: true)
 
             // Generate tags HTML
             let tagsHTML = termGroup.termTags.isEmpty ? "" : """
