@@ -46,7 +46,7 @@ struct AudioSourceEntryProcessingTask {
         context.shouldDeleteInaccessibleFaults = true
 
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             job.displayProgressMessage = "Processing audio entries..."
@@ -68,7 +68,7 @@ struct AudioSourceEntryProcessingTask {
         try Task.checkCancellation()
 
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             job.entriesProcessed = true

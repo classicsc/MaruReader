@@ -48,14 +48,35 @@ public actor AudioSourceImportManager {
 
     /// Enqueue a new audio source import from the given ZIP file URL.
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
-    /// - Returns: The NSManagedObjectID of the created AudioSourceImport job.
+    /// - Returns: The NSManagedObjectID of the created AudioSource import job.
     public func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
-            let job = AudioSourceImport(context: context)
+            let job = AudioSource(context: context)
             let jobID = UUID()
             job.id = jobID
             job.file = zipURL
+            let baseName = zipURL.deletingPathExtension().lastPathComponent
+            job.name = baseName.isEmpty ? "Imported Audio Source" : baseName
+            job.dateAdded = Date()
+            job.enabled = true
+            job.indexedByHeadword = true
+            job.isLocal = true
+            job.baseRemoteURL = nil
+            job.urlPattern = nil
+            job.urlPatternReturnsJSON = false
+            job.audioFileExtensions = ""
+            job.isComplete = false
+            job.isFailed = false
+            job.isCancelled = false
+            job.isStarted = false
+            job.pendingDeletion = false
+            job.archiveExtracted = false
+            job.indexProcessed = false
+            job.entriesProcessed = false
+            job.mediaImported = false
+            job.displayProgressMessage = "Queued for import."
+            job.priority = try Self.getNextPriority(in: context)
             // Use application support directory with job ID as working directory
             let appSupport = try FileManager.default.url(
                 for: .applicationSupportDirectory,
@@ -76,7 +97,7 @@ public actor AudioSourceImportManager {
     }
 
     /// Cancel an ongoing or queued import job.
-    /// - Parameter jobID: The NSManagedObjectID of the AudioSourceImport to cancel.
+    /// - Parameter jobID: The NSManagedObjectID of the AudioSource import to cancel.
     public func cancelImport(jobID: NSManagedObjectID) async {
         if currentJobID == jobID {
             currentTask?.cancel()
@@ -85,17 +106,21 @@ public actor AudioSourceImportManager {
             // Also mark as cancelled in Core Data
             let viewContext = container.viewContext
             await viewContext.perform {
-                if let job = try? viewContext.existingObject(with: jobID) as? AudioSourceImport {
+                if let job = try? viewContext.existingObject(with: jobID) as? AudioSource {
                     job.isCancelled = true
+                    job.isFailed = false
+                    job.isComplete = false
                     job.timeCancelled = Date()
+                    job.displayProgressMessage = "Import cancelled."
                     try? viewContext.save()
+                    Self.cleanup(source: job)
                 }
             }
         }
     }
 
     /// Wait for a given import job to complete.
-    /// - Parameter jobID: The NSManagedObjectID of the AudioSourceImport to wait for.
+    /// - Parameter jobID: The NSManagedObjectID of the AudioSource import to wait for.
     func waitForCompletion(jobID: NSManagedObjectID) async {
         while true {
             if currentJobID == jobID {
@@ -132,14 +157,24 @@ public actor AudioSourceImportManager {
         var sourceID: UUID?
 
         do {
-            try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+            sourceID = try await context.perform {
+                guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                     throw AudioSourceImportError.databaseError
                 }
+                if job.id == nil {
+                    job.id = UUID()
+                }
+                job.isComplete = false
+                job.isFailed = false
+                job.isCancelled = false
                 job.isStarted = true
                 job.timeStarted = Date()
                 job.displayProgressMessage = "Starting import..."
                 try context.save()
+                guard let id = job.id else {
+                    throw AudioSourceImportError.databaseError
+                }
+                return id
             }
 
             try Task.checkCancellation()
@@ -156,7 +191,6 @@ public actor AudioSourceImportManager {
             // Stage 2: Process index
             let indexTask = AudioSourceIndexProcessingTask(jobID: jobID, container: container)
             let (importedSourceID, indexURL, isLocal) = try await indexTask.start()
-            sourceID = importedSourceID
             logger.debug("Audio source job \(jobID) index processed")
 
             try Task.checkCancellation()
@@ -188,7 +222,7 @@ public actor AudioSourceImportManager {
             } else {
                 // Mark media as imported for online sources (no media to copy)
                 try await context.perform {
-                    guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+                    guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                         throw AudioSourceImportError.databaseError
                     }
                     job.mediaImported = true
@@ -201,10 +235,12 @@ public actor AudioSourceImportManager {
 
             // Mark import as complete
             try await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+                guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                     throw AudioSourceImportError.databaseError
                 }
                 job.isComplete = true
+                job.isFailed = false
+                job.isCancelled = false
                 job.timeCompleted = Date()
                 job.displayProgressMessage = "Import complete."
                 try context.save()
@@ -212,73 +248,74 @@ public actor AudioSourceImportManager {
 
         } catch is CancellationError {
             let capturedSourceID = sourceID
+            if let id = capturedSourceID {
+                try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: id, batchSize: 10000)
+                try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: id, batchSize: 10000)
+                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
+            }
             await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+                guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                     return
                 }
                 job.isCancelled = true
+                job.isFailed = false
+                job.isComplete = false
                 job.timeCancelled = Date()
-
-                if let id = capturedSourceID {
-                    let fetchRequest = NSFetchRequest<AudioSource>(entityName: "AudioSource")
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    if let audioSource = (try? context.fetch(fetchRequest))?.first {
-                        context.delete(audioSource)
-                    }
-                } else if let audioSource = job.audioSource {
-                    context.delete(audioSource)
-                }
-
+                job.displayProgressMessage = "Import cancelled."
                 try? context.save()
-                if let id = capturedSourceID {
-                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
-                }
+                Self.cleanup(source: job)
             }
         } catch {
             let capturedSourceID = sourceID
+            if let id = capturedSourceID {
+                try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: id, batchSize: 10000)
+                try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: id, batchSize: 10000)
+                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
+            }
             await context.perform {
-                guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+                guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                     return
                 }
                 job.isFailed = true
+                job.isCancelled = false
+                job.isComplete = false
                 job.displayProgressMessage = error.localizedDescription
                 job.timeFailed = Date()
-
-                if let id = capturedSourceID {
-                    let fetchRequest = NSFetchRequest<AudioSource>(entityName: "AudioSource")
-                    fetchRequest.predicate = NSPredicate(format: "id == %@", id as CVarArg)
-                    fetchRequest.fetchLimit = 1
-                    if let audioSource = (try? context.fetch(fetchRequest))?.first {
-                        context.delete(audioSource)
-                    }
-                } else if let audioSource = job.audioSource {
-                    context.delete(audioSource)
-                }
-
                 try? context.save()
-                if let id = capturedSourceID {
-                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
-                }
+                Self.cleanup(source: job)
             }
         }
 
         // Clean up working directory
         await context.perform {
-            guard let job = try? context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
                 return
             }
-            Self.cleanup(job: job)
+            Self.cleanup(source: job)
         }
     }
 
-    static func cleanup(job: AudioSourceImport) {
+    static func cleanup(source: AudioSource) {
         let fileManager = FileManager.default
-        if let workingDir = job.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
+        if let workingDir = source.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
             do {
                 try fileManager.removeItem(at: workingDir)
             } catch {}
         }
+    }
+
+    private static func getNextPriority(in context: NSManagedObjectContext) throws -> Int64 {
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "AudioSource")
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "priority", ascending: false)]
+        fetchRequest.fetchLimit = 1
+
+        if let results = try context.fetch(fetchRequest) as? [NSManagedObject],
+           let maxSource = results.first,
+           let maxPriority = maxSource.value(forKey: "priority") as? Int64
+        {
+            return maxPriority + 1
+        }
+        return 0
     }
 
     // MARK: - Test Helper Methods
@@ -304,50 +341,66 @@ public actor AudioSourceImportManager {
         taskContext.undoManager = nil
 
         do {
-            // Get source UUID for media cleanup
-            let audioSourceUUID = try await taskContext.perform {
+            try await taskContext.perform {
                 guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
                     throw AudioSourceImportError.databaseError
                 }
-                return audioSource.id
+                audioSource.pendingDeletion = true
+                audioSource.displayProgressMessage = nil
+                try taskContext.save()
             }
-
-            // Clean up media directory
-            if let uuid = audioSourceUUID {
-                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid)
-            }
-
-            // Delete AudioHeadword entities in batches
-            if let uuid = audioSourceUUID {
-                try await deleteEntitiesInBatches(
-                    entityName: "AudioHeadword",
-                    sourceID: uuid,
-                    batchSize: batchSize
-                )
-                try await deleteEntitiesInBatches(
-                    entityName: "AudioFile",
-                    sourceID: uuid,
-                    batchSize: batchSize
-                )
-            }
-
-            // Delete the AudioSource itself
-            let finalContext = container.newBackgroundContext()
-            finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-            finalContext.undoManager = nil
-
-            try await finalContext.perform {
-                guard let audioSource = try? finalContext.existingObject(with: sourceID) as? AudioSource else {
-                    throw AudioSourceImportError.databaseError
-                }
-                finalContext.delete(audioSource)
-                try finalContext.save()
-            }
-
-            logger.debug("Audio source deletion completed for \(sourceID)")
-
         } catch {
-            logger.error("Audio source deletion failed for \(sourceID): \(error.localizedDescription)")
+            logger.error("Failed to mark audio source for deletion \(sourceID): \(error.localizedDescription)")
+            return
+        }
+
+        Task {
+            do {
+                let audioSourceUUID = try await taskContext.perform {
+                    guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
+                        throw AudioSourceImportError.databaseError
+                    }
+                    return audioSource.id
+                }
+
+                if let uuid = audioSourceUUID {
+                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid)
+                    try await deleteEntitiesInBatches(
+                        entityName: "AudioHeadword",
+                        sourceID: uuid,
+                        batchSize: batchSize
+                    )
+                    try await deleteEntitiesInBatches(
+                        entityName: "AudioFile",
+                        sourceID: uuid,
+                        batchSize: batchSize
+                    )
+                }
+
+                let finalContext = container.newBackgroundContext()
+                finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+                finalContext.undoManager = nil
+
+                try await finalContext.perform {
+                    guard let audioSource = try? finalContext.existingObject(with: sourceID) as? AudioSource else {
+                        throw AudioSourceImportError.databaseError
+                    }
+                    finalContext.delete(audioSource)
+                    try finalContext.save()
+                }
+
+                logger.debug("Audio source deletion completed for \(sourceID)")
+            } catch {
+                logger.error("Audio source deletion failed for \(sourceID): \(error.localizedDescription)")
+                await taskContext.perform {
+                    guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
+                        return
+                    }
+                    audioSource.pendingDeletion = false
+                    audioSource.displayProgressMessage = AudioSourceImportError.deletionFailed.localizedDescription
+                    try? taskContext.save()
+                }
+            }
         }
     }
 

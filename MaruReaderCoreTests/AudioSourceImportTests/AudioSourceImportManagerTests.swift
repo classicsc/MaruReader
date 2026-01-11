@@ -118,7 +118,7 @@ struct AudioSourceImportManagerTests {
     // MARK: - Job Verification Helpers
 
     @MainActor
-    private func verifyJobCancelled(_ job: AudioSourceImport?) {
+    private func verifyJobCancelled(_ job: AudioSource?) {
         #expect(job != nil)
         #expect(job?.isCancelled == true)
         #expect(job?.isFailed == false)
@@ -127,7 +127,7 @@ struct AudioSourceImportManagerTests {
     }
 
     @MainActor
-    private func verifyJobFailed(_ job: AudioSourceImport?) {
+    private func verifyJobFailed(_ job: AudioSource?) {
         #expect(job != nil)
         #expect(job?.isFailed == true)
         #expect(job?.isCancelled == false)
@@ -137,8 +137,8 @@ struct AudioSourceImportManagerTests {
     }
 
     @MainActor
-    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> AudioSourceImport? {
-        try? context.existingObject(with: importID) as? AudioSourceImport
+    private func getJob(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> AudioSource? {
+        try? context.existingObject(with: importID) as? AudioSource
     }
 
     // MARK: - Fetch Helpers
@@ -161,20 +161,16 @@ struct AudioSourceImportManagerTests {
         return (try? context.fetch(request)) ?? []
     }
 
-    // MARK: - Directory Verification
-
-    private func verifyDirectoryCleanup(sourceID: UUID?) async {
-        guard let sourceID else { return }
-
-        let fileManager = FileManager.default
-        guard let appGroupDir = fileManager.containerURL(
-            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-        ) else {
-            return
+    @MainActor
+    private func waitForSourceDeletion(in context: NSManagedObjectContext, timeout: TimeInterval = 5.0) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if fetchAudioSources(from: context).isEmpty {
+                return
+            }
+            context.refreshAllObjects()
+            try? await Task.sleep(nanoseconds: 50_000_000)
         }
-
-        let mediaDir = appGroupDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
-        #expect(!fileManager.fileExists(atPath: mediaDir.path), "Media directory should be cleaned up")
     }
 
     // MARK: - Success Tests
@@ -511,12 +507,15 @@ struct AudioSourceImportManagerTests {
             let job = getJob(from: context, importID: importID)
             verifyJobCancelled(job)
 
-            // Verify no entities created
+            // Verify source record remains but no entries were created
             let sources = fetchAudioSources(from: context)
-            #expect(sources.isEmpty)
+            #expect(sources.count == 1)
 
             let headwords = fetchAudioHeadwords(from: context)
             #expect(headwords.isEmpty)
+
+            let files = fetchAudioFiles(from: context)
+            #expect(files.isEmpty)
         }
     }
 
@@ -552,9 +551,14 @@ struct AudioSourceImportManagerTests {
             let job = getJob(from: context, importID: importID)
             verifyJobCancelled(job)
 
-            // Verify AudioSource was cleaned up
             let sources = fetchAudioSources(from: context)
-            #expect(sources.isEmpty)
+            #expect(sources.count == 1)
+
+            let headwords = fetchAudioHeadwords(from: context)
+            #expect(headwords.isEmpty)
+
+            let files = fetchAudioFiles(from: context)
+            #expect(files.isEmpty)
         }
     }
 
@@ -590,9 +594,14 @@ struct AudioSourceImportManagerTests {
             let job = getJob(from: context, importID: importID)
             verifyJobCancelled(job)
 
-            // Verify all entities were cleaned up
             let sources = fetchAudioSources(from: context)
-            #expect(sources.isEmpty)
+            #expect(sources.count == 1)
+
+            let headwords = fetchAudioHeadwords(from: context)
+            #expect(headwords.isEmpty)
+
+            let files = fetchAudioFiles(from: context)
+            #expect(files.isEmpty)
         }
     }
 
@@ -628,9 +637,14 @@ struct AudioSourceImportManagerTests {
             let job = getJob(from: context, importID: importID)
             verifyJobCancelled(job)
 
-            // Verify all entities were cleaned up
             let sources = fetchAudioSources(from: context)
-            #expect(sources.isEmpty)
+            #expect(sources.count == 1)
+
+            let headwords = fetchAudioHeadwords(from: context)
+            #expect(headwords.isEmpty)
+
+            let files = fetchAudioFiles(from: context)
+            #expect(files.isEmpty)
         }
     }
 
@@ -661,7 +675,13 @@ struct AudioSourceImportManagerTests {
         verifyJobCancelled(job)
 
         let sources = fetchAudioSources(from: context)
-        #expect(sources.isEmpty)
+        #expect(sources.count == 1)
+
+        let headwords = fetchAudioHeadwords(from: context)
+        #expect(headwords.isEmpty)
+
+        let files = fetchAudioFiles(from: context)
+        #expect(files.isEmpty)
     }
 
     // MARK: - Failure Tests
@@ -681,7 +701,13 @@ struct AudioSourceImportManagerTests {
         verifyJobFailed(job)
 
         let sources = fetchAudioSources(from: context)
-        #expect(sources.isEmpty)
+        #expect(sources.count == 1)
+
+        let headwords = fetchAudioHeadwords(from: context)
+        #expect(headwords.isEmpty)
+
+        let files = fetchAudioFiles(from: context)
+        #expect(files.isEmpty)
     }
 
     @Test @MainActor func importAudioSource_MissingIndexJSON_FailsAndCleansUp() async throws {
@@ -699,7 +725,13 @@ struct AudioSourceImportManagerTests {
         verifyJobFailed(job)
 
         let sources = fetchAudioSources(from: context)
-        #expect(sources.isEmpty)
+        #expect(sources.count == 1)
+
+        let headwords = fetchAudioHeadwords(from: context)
+        #expect(headwords.isEmpty)
+
+        let files = fetchAudioFiles(from: context)
+        #expect(files.isEmpty)
     }
 
     @Test @MainActor func importAudioSource_InvalidJSON_FailsAndCleansUp() async throws {
@@ -726,7 +758,13 @@ struct AudioSourceImportManagerTests {
         verifyJobFailed(job)
 
         let sources = fetchAudioSources(from: context)
-        #expect(sources.isEmpty)
+        #expect(sources.count == 1)
+
+        let headwords = fetchAudioHeadwords(from: context)
+        #expect(headwords.isEmpty)
+
+        let files = fetchAudioFiles(from: context)
+        #expect(files.isEmpty)
     }
 
     @Test @MainActor func importAudioSource_MultipleJSONFiles_FailsForAmbiguity() async throws {
@@ -763,7 +801,13 @@ struct AudioSourceImportManagerTests {
         verifyJobFailed(job)
 
         let sources = fetchAudioSources(from: context)
-        #expect(sources.isEmpty)
+        #expect(sources.count == 1)
+
+        let headwords = fetchAudioHeadwords(from: context)
+        #expect(headwords.isEmpty)
+
+        let files = fetchAudioFiles(from: context)
+        #expect(files.isEmpty)
     }
 
     @Test func importAudioSource_FileSystemError_FailsAndCleansUp() async throws {
@@ -797,7 +841,13 @@ struct AudioSourceImportManagerTests {
             verifyJobFailed(job)
 
             let sources = fetchAudioSources(from: context)
-            #expect(sources.isEmpty)
+            #expect(sources.count == 1)
+
+            let headwords = fetchAudioHeadwords(from: context)
+            #expect(headwords.isEmpty)
+
+            let files = fetchAudioFiles(from: context)
+            #expect(files.isEmpty)
         }
     }
 
@@ -861,8 +911,7 @@ struct AudioSourceImportManagerTests {
         // Delete the audio source
         await importManager.deleteAudioSource(sourceID: sourceObjectID)
 
-        // Refresh context
-        context.refreshAllObjects()
+        await waitForSourceDeletion(in: context)
 
         // Verify all data is deleted
         let remainingSources = fetchAudioSources(from: context)

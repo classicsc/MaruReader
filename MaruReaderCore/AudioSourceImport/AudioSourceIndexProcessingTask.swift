@@ -41,7 +41,7 @@ struct AudioSourceIndexProcessingTask {
         context.shouldDeleteInaccessibleFaults = true
 
         let workingDir = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             guard let workingDir = job.workingDirectory else {
@@ -68,34 +68,30 @@ struct AudioSourceIndexProcessingTask {
         // Detect file extensions from the files section (we'll scan a sample)
         let fileExtensions = try detectFileExtensions(from: indexURL)
 
-        let sourceID = UUID()
-
-        try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+        let sourceID = try await context.perform {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
 
-            // Create the AudioSource entity
-            let audioSource = AudioSource(context: context)
-            audioSource.id = sourceID
-            audioSource.name = meta.name
-            audioSource.year = Int64(meta.year ?? 0)
-            audioSource.version = Int64(meta.version ?? 0)
-            audioSource.isLocal = isLocal
-            audioSource.baseRemoteURL = meta.mediaDirAbs
-            audioSource.indexedByHeadword = true
-            audioSource.enabled = true
-            audioSource.dateAdded = Date()
-            audioSource.audioFileExtensions = fileExtensions.joined(separator: ",")
-            audioSource.priority = try Self.getNextPriority(in: context)
-
-            context.insert(audioSource)
-
-            job.audioSource = audioSource
+            if job.id == nil {
+                job.id = UUID()
+            }
+            job.name = meta.name
+            job.year = Int64(meta.year ?? 0)
+            job.version = Int64(meta.version ?? 0)
+            job.isLocal = isLocal
+            job.baseRemoteURL = meta.mediaDirAbs
+            job.indexedByHeadword = true
+            job.enabled = true
+            job.audioFileExtensions = fileExtensions.joined(separator: ",")
             job.indexProcessed = true
             job.displayProgressMessage = "Processed audio source index."
 
             try context.save()
+            guard let id = job.id else {
+                throw AudioSourceImportError.databaseError
+            }
+            return id
         }
 
         return (sourceID, indexURL, isLocal)
@@ -124,7 +120,7 @@ struct AudioSourceIndexProcessingTask {
                         // Update the workingDir to the subdirectory
                         let context = persistentContainer.newBackgroundContext()
                         try context.performAndWait {
-                            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+                            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                                 throw AudioSourceImportError.importNotFound
                             }
                             job.workingDirectory = item
@@ -172,20 +168,5 @@ struct AudioSourceIndexProcessingTask {
         }
 
         return extensions
-    }
-
-    /// Get the next available priority value for audio sources.
-    private static func getNextPriority(in context: NSManagedObjectContext) throws -> Int64 {
-        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "AudioSource")
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "priority", ascending: false)]
-        fetchRequest.fetchLimit = 1
-
-        if let results = try context.fetch(fetchRequest) as? [NSManagedObject],
-           let maxSource = results.first,
-           let maxPriority = maxSource.value(forKey: "priority") as? Int64
-        {
-            return maxPriority + 1
-        }
-        return 0
     }
 }
