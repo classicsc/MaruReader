@@ -73,7 +73,7 @@ public actor AudioLookupService {
 
         let sources: [(UUID, String, AudioSourceType, Int64, Bool, String?)] = try await context.perform {
             let request = NSFetchRequest<NSFetchRequestResult>(entityName: "AudioSource")
-            request.predicate = NSPredicate(format: "enabled == YES")
+            request.predicate = NSPredicate(format: "enabled == YES AND isComplete == YES AND pendingDeletion == NO")
             request.sortDescriptors = [NSSortDescriptor(key: "priority", ascending: true)]
 
             guard let results = try context.fetch(request) as? [NSManagedObject] else {

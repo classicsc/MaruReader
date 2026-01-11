@@ -44,7 +44,7 @@ struct AudioSourceMediaCopyTask {
         context.shouldDeleteInaccessibleFaults = true
 
         let workingDirectory = try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             guard let workingDirectory = job.workingDirectory else {
@@ -84,7 +84,7 @@ struct AudioSourceMediaCopyTask {
             Self.logger.warning("Media directory not found at \(sourceMediaDir.path), skipping media copy")
             // Mark as complete even if no media to copy
             try await context.perform {
-                guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+                guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                     throw AudioSourceImportError.importNotFound
                 }
                 job.mediaImported = true
@@ -146,7 +146,7 @@ struct AudioSourceMediaCopyTask {
 
         let totalFilesCopied = filesCopied
         try await context.perform {
-            guard let job = try context.existingObject(with: jobID) as? AudioSourceImport else {
+            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             job.mediaImported = true

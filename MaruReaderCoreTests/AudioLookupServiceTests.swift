@@ -91,6 +91,8 @@ struct AudioLookupServicePitchExtractionTests {
         source.setValue(true, forKey: "urlPatternReturnsJSON")
         source.setValue(Date(), forKey: "dateAdded")
         source.setValue("mp3", forKey: "audioFileExtensions")
+        source.setValue(true, forKey: "isComplete")
+        source.setValue(false, forKey: "pendingDeletion")
         return source
     }
 

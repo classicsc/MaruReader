@@ -39,40 +39,47 @@ struct AudioSourceSettingsView: View {
     )
     private var audioSources: FetchedResults<AudioSource>
 
-    @FetchRequest(
-        entity: AudioSourceImport.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \AudioSourceImport.timeQueued, ascending: false)],
-        animation: .default
-    )
-    private var importJobs: FetchedResults<AudioSourceImport>
+    private var visibleSources: [AudioSource] {
+        audioSources.filter { !$0.pendingDeletion }
+    }
+
+    private var unifiedSources: [AudioSource] {
+        let incomplete = visibleSources
+            .filter { !$0.isComplete }
+            .sorted {
+                let lhsDate = $0.timeQueued ?? .distantPast
+                let rhsDate = $1.timeQueued ?? .distantPast
+                if lhsDate != rhsDate {
+                    return lhsDate > rhsDate
+                }
+                return ($0.name ?? "") < ($1.name ?? "")
+            }
+        let complete = visibleSources
+            .filter(\.isComplete)
+            .sorted { $0.priority < $1.priority }
+        return incomplete + complete
+    }
 
     var body: some View {
         List {
-            if !importJobs.isEmpty {
-                Section("Import Progress") {
-                    ForEach(importJobs, id: \.objectID) { job in
-                        AudioSourceImportJobRow(
-                            job: job,
-                            onCancel: { cancelImport(job) },
-                            onDismiss: { dismissImport(job) }
-                        )
-                    }
-                }
-            }
-
-            Section(importJobs.isEmpty ? "Audio Sources" : "Sources") {
-                if audioSources.isEmpty {
+            Section("Audio Sources") {
+                if unifiedSources.isEmpty {
                     ContentUnavailableView(
                         "No Audio Sources",
                         systemImage: "speaker.wave.2",
                         description: Text("Add an audio source to enable pronunciation audio")
                     )
                 } else {
-                    ForEach(audioSources, id: \.objectID) { source in
-                        AudioSourceRow(source: source) {
-                            sourceToDelete = source
-                            showingDeleteConfirmation = true
-                        }
+                    ForEach(unifiedSources, id: \.objectID) { source in
+                        AudioSourceListRow(
+                            source: source,
+                            onCancel: { cancelImport(source) },
+                            onDelete: {
+                                sourceToDelete = source
+                                showingDeleteConfirmation = true
+                            }
+                        )
+                        .moveDisabled(!source.isComplete)
                     }
                     .onMove(perform: reorderSources)
                     .onDelete(perform: deleteSources)
@@ -157,19 +164,9 @@ struct AudioSourceSettingsView: View {
         }
     }
 
-    private func cancelImport(_ job: AudioSourceImport) {
+    private func cancelImport(_ source: AudioSource) {
         Task {
-            await AudioSourceImportManager.shared.cancelImport(jobID: job.objectID)
-        }
-    }
-
-    private func dismissImport(_ job: AudioSourceImport) {
-        viewContext.delete(job)
-        do {
-            try viewContext.save()
-        } catch {
-            importError = error
-            showingError = true
+            await AudioSourceImportManager.shared.cancelImport(jobID: source.objectID)
         }
     }
 
@@ -180,15 +177,28 @@ struct AudioSourceSettingsView: View {
     }
 
     private func deleteSources(at offsets: IndexSet) {
+        let sources = unifiedSources
         for index in offsets {
-            guard index < audioSources.count else { continue }
-            deleteSource(audioSources[index])
+            guard index < sources.count else { continue }
+            let source = sources[index]
+            if source.isComplete || source.isFailed || source.isCancelled {
+                deleteSource(source)
+            }
         }
     }
 
     private func reorderSources(from source: IndexSet, to destination: Int) {
-        var updated = Array(audioSources)
-        updated.move(fromOffsets: source, toOffset: destination)
+        let completeSources = unifiedSources.filter(\.isComplete)
+        let completeIndices = unifiedSources.enumerated().compactMap { index, item in
+            item.isComplete ? index : nil
+        }
+        let sourceInComplete = IndexSet(source.compactMap { index in
+            completeIndices.firstIndex(of: index)
+        })
+        let destinationInComplete = completeIndices.prefix(destination).count
+
+        var updated = completeSources
+        updated.move(fromOffsets: sourceInComplete, toOffset: destinationInComplete)
 
         for (index, item) in updated.enumerated() {
             item.priority = Int64(index)
@@ -203,11 +213,147 @@ struct AudioSourceSettingsView: View {
     }
 }
 
-private struct AudioSourceRow: View {
+private struct AudioSourceListRow: View {
+    let source: AudioSource
+    let onCancel: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        if source.isComplete {
+            CompletedAudioSourceRow(source: source, onDelete: onDelete)
+        } else if source.isFailed || source.isCancelled {
+            FailedAudioSourceRow(source: source, onRemove: onDelete)
+        } else {
+            InProgressAudioSourceRow(source: source, onCancel: onCancel)
+        }
+    }
+}
+
+private struct InProgressAudioSourceRow: View {
+    let source: AudioSource
+    let onCancel: () -> Void
+
+    private var title: String {
+        if let name = source.name, !name.isEmpty {
+            return name
+        }
+        return source.file?.deletingPathExtension().lastPathComponent ?? "Unknown Source"
+    }
+
+    private var statusIcon: String {
+        source.isStarted ? "gear" : "clock"
+    }
+
+    private var statusColor: Color {
+        source.isStarted ? .blue : .orange
+    }
+
+    private var statusMessage: String {
+        if let message = source.displayProgressMessage, !message.isEmpty {
+            return message
+        }
+        return source.isStarted ? "Importing..." : "Queued for import."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusColor)
+                    .imageScale(.small)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: title)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Button("Cancel", action: onCancel)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+private struct FailedAudioSourceRow: View {
+    let source: AudioSource
+    let onRemove: () -> Void
+
+    private var title: String {
+        if let name = source.name, !name.isEmpty {
+            return name
+        }
+        return source.file?.deletingPathExtension().lastPathComponent ?? "Unknown Source"
+    }
+
+    private var statusIcon: String {
+        source.isCancelled ? "xmark.circle.fill" : "exclamationmark.triangle.fill"
+    }
+
+    private var statusColor: Color {
+        source.isCancelled ? .secondary : .red
+    }
+
+    private var statusMessage: String {
+        if source.isCancelled {
+            return "Import cancelled."
+        }
+        return source.displayProgressMessage ?? "Import failed."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Image(systemName: statusIcon)
+                    .foregroundStyle(statusColor)
+                    .imageScale(.small)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(verbatim: title)
+                        .font(.headline)
+                        .lineLimit(1)
+
+                    Text(statusMessage)
+                        .font(.caption)
+                        .foregroundStyle(statusColor)
+                        .lineLimit(2)
+                }
+
+                Spacer()
+
+                Button("Remove", action: onRemove)
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+private struct CompletedAudioSourceRow: View {
     @Environment(\.managedObjectContext) private var viewContext
 
     let source: AudioSource
     let onDelete: () -> Void
+
+    private var statusLine: String? {
+        if let message = source.displayProgressMessage, !message.isEmpty {
+            return message
+        }
+        if source.indexedByHeadword {
+            return "Import complete."
+        }
+        return "Ready."
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -233,6 +379,12 @@ private struct AudioSourceRow: View {
             Text(typeDescription)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+
+            if let statusLine {
+                Label(statusLine, systemImage: "checkmark.circle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
 
             if let detail = detailLine {
                 Text(detail)
@@ -265,9 +417,8 @@ private struct AudioSourceRow: View {
             if let base = source.baseRemoteURL, !base.isEmpty {
                 return base
             }
-            let ext = source.value(forKey: "audioFileExtensions") as? String ?? ""
-            if !ext.isEmpty {
-                return "Extensions: \(ext)"
+            if let extensions = source.audioFileExtensions, !extensions.isEmpty {
+                return "Extensions: \(extensions)"
             }
             return nil
         }
@@ -276,88 +427,6 @@ private struct AudioSourceRow: View {
             return pattern
         }
         return nil
-    }
-}
-
-private struct AudioSourceImportJobRow: View {
-    let job: AudioSourceImport
-    let onCancel: () -> Void
-    let onDismiss: () -> Void
-
-    private var fileName: String {
-        job.file?.lastPathComponent ?? "Unknown File"
-    }
-
-    private var statusIcon: String {
-        if job.isCancelled {
-            "xmark.circle.fill"
-        } else if job.isFailed {
-            "exclamationmark.triangle.fill"
-        } else if job.isComplete {
-            "checkmark.circle.fill"
-        } else if job.isStarted {
-            "gear"
-        } else {
-            "clock"
-        }
-    }
-
-    private var statusColor: Color {
-        if job.isCancelled {
-            .secondary
-        } else if job.isFailed {
-            .red
-        } else if job.isComplete {
-            .green
-        } else if job.isStarted {
-            .blue
-        } else {
-            .orange
-        }
-    }
-
-    private var canCancel: Bool {
-        !job.isComplete && !job.isFailed && !job.isCancelled
-    }
-
-    private var canDismiss: Bool {
-        job.isComplete || job.isFailed || job.isCancelled
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: statusIcon)
-                    .foregroundStyle(statusColor)
-                    .imageScale(.small)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(fileName)
-                        .font(.headline)
-                        .lineLimit(1)
-
-                    if let message = job.displayProgressMessage {
-                        Text(message)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(2)
-                    }
-                }
-
-                Spacer()
-
-                if canCancel {
-                    Button("Cancel", action: onCancel)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                } else if canDismiss {
-                    Button("Dismiss", action: onDismiss)
-                        .buttonStyle(.bordered)
-                        .controlSize(.small)
-                }
-            }
-        }
-        .padding(.vertical, 2)
     }
 }
 
@@ -443,6 +512,13 @@ private struct AddURLPatternAudioSourceView: View {
         source.isLocal = false
         source.baseRemoteURL = nil
         source.audioFileExtensions = ""
+        source.isComplete = true
+        source.isFailed = false
+        source.isCancelled = false
+        source.isStarted = false
+        source.pendingDeletion = false
+        source.timeCompleted = Date()
+        source.displayProgressMessage = nil
 
         do {
             source.priority = try nextPriority()
