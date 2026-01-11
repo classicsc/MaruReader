@@ -240,6 +240,11 @@ window.MaruReader.audioDisplay = {
         }, { once: true });
 
         audio.addEventListener('error', function(e) {
+            // Ignore spurious errors if audio is already playing or has been replaced
+            var currentState = button.getAttribute('data-state');
+            if (currentState === 'playing' || currentState === 'ready' || self.currentAudio !== audio) {
+                return;
+            }
             console.log('Audio error for source ' + index + ':', source.url, e);
             // Try next source on error (404 common with URL pattern sources)
             self.playWithFallback(sources, index + 1, button);
