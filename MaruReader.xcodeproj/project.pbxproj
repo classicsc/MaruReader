@@ -51,6 +51,7 @@
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
 		DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755662F120EF3000AFED1 /* Mecab-Swift */; };
 		DBD755692F120EF8000AFED1 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755682F120EF8000AFED1 /* IPADic */; };
+		DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */; };
 		DBDCE1112F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11C2F0C98CC00B42F93 /* MaruManga.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -608,6 +609,7 @@
 				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
 				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
+				DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -989,6 +991,7 @@
 				DBCFB1CB2EAAC58A00B4F27D /* Zip */,
 				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
 				DBD755682F120EF8000AFED1 /* IPADic */,
+				DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */,
 			);
 			productName = MaruReaderCore;
 			productReference = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */;
@@ -2997,6 +3000,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
 			productName = IPADic;
+		};
+		DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBDCE1262F0C9F2700B42F93 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
+			productName = ReadiumZIPFoundation;
 		};
 		DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */ = {
 			isa = XCSwiftPackageProductDependency;
