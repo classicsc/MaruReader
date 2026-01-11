@@ -21,11 +21,17 @@
 //  Stub settings screen.
 //
 import MaruAnki
+import MaruManga
 import SwiftUI
 
 struct SettingsView: View {
     @State private var pendingCount = 0
+    @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
+    private var smartMetadataExtractionEnabled = MangaMetadataExtractionSettings.smartExtractionEnabledDefault
     private let noteService = AnkiNoteService()
+    private var isMetadataExtractorAvailable: Bool {
+        MangaImportManager.isMetadataExtractorAvailable
+    }
 
     var body: some View {
         NavigationStack {
@@ -41,6 +47,14 @@ struct SettingsView: View {
                 Section("Appearance") {
                     NavigationLink(destination: DictionaryDisplaySettingsView()) {
                         Label("Dictionary Display", systemImage: "textformat")
+                    }
+                }
+                if isMetadataExtractorAvailable {
+                    Section(
+                        header: Text("Manga"),
+                        footer: Text("Uses the on-device language model to infer titles and authors from filenames.")
+                    ) {
+                        Toggle("Smart Metadata Extraction", isOn: $smartMetadataExtractionEnabled)
                     }
                 }
                 Section("Integrations") {

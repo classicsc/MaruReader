@@ -2,6 +2,7 @@
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="MangaArchive" representedClassName="MangaArchive" syncable="YES" codeGenerationType="class">
         <attribute name="author" optional="YES" attributeType="String"/>
+        <attribute name="authorWasExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="coverFileName" optional="YES" attributeType="String"/>
         <attribute name="dateAdded" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="forceSinglePage" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -12,10 +13,12 @@
         <attribute name="lastReadDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="lastReadPage" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="localFileName" optional="YES" attributeType="String"/>
+        <attribute name="originalFileName" optional="YES" attributeType="String"/>
         <attribute name="readingDirection" optional="YES" attributeType="String"/>
         <attribute name="readingMode" optional="YES" attributeType="String"/>
         <attribute name="readingOrientation" optional="YES" attributeType="String"/>
         <attribute name="title" attributeType="String" defaultValueString="Unknown"/>
+        <attribute name="titleWasExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="totalPages" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
 </model>

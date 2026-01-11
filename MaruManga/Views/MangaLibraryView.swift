@@ -79,6 +79,7 @@ public struct MangaArchiveLibraryView: View {
     @State private var showingError = false
     @State private var bookToDelete: MangaArchive?
     @State private var showingDeleteConfirmation = false
+    @State private var metadataEditorBook: MangaArchive?
 
     private var books: FetchRequest<MangaArchive>
 
@@ -123,6 +124,14 @@ public struct MangaArchiveLibraryView: View {
                 ) { result in
                     handleFileImport(result: result)
                 }
+                .onChange(of: showingFilePicker) {
+                    // When the file picker appears, prewarm the metadata extractor
+                    if showingFilePicker {
+                        Task {
+                            await MangaImportManager.shared.prewarmMetadataExtractor()
+                        }
+                    }
+                }
                 .alert("Import Error", isPresented: $showingError) {
                     Button("OK") {
                         showingError = false
@@ -144,6 +153,9 @@ public struct MangaArchiveLibraryView: View {
                     Button("Cancel", role: .cancel) {}
                 } message: { book in
                     Text("Are you sure you want to delete \"\(book.title ?? "Unknown Manga")\"? This action cannot be undone.")
+                }
+                .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
+                    MangaMetadataEditorView(manga: book)
                 }
                 .onChange(of: sortOption) { _, newValue in
                     books.wrappedValue.sortDescriptors = newValue.sortDescriptors
@@ -191,6 +203,12 @@ public struct MangaArchiveLibraryView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
+                            Button {
+                                metadataEditorBook = book
+                            } label: {
+                                Label("Edit Metadata", systemImage: "pencil")
+                            }
+
                             Button(role: .destructive) {
                                 bookToDelete = book
                                 showingDeleteConfirmation = true
@@ -252,7 +270,7 @@ public struct MangaArchiveLibraryView: View {
 }
 
 struct MangaArchiveGridItem: View {
-    let book: MangaArchive
+    @ObservedObject var book: MangaArchive
     let state: MangaArchiveImportState
     let onCancel: () -> Void
     let onRemove: () -> Void
@@ -388,5 +406,126 @@ struct MangaArchiveImportState {
 
     var isComplete: Bool {
         status == .complete
+    }
+}
+
+struct MangaMetadataEditorView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Environment(\.dismiss) private var dismiss
+
+    @ObservedObject var manga: MangaArchive
+
+    @State private var title: String
+    @State private var author: String
+    @State private var titleWasExtracted: Bool
+    @State private var authorWasExtracted: Bool
+    @State private var saveError: Error?
+    @State private var showingSaveError = false
+
+    private let originalTitle: String
+    private let originalAuthor: String
+
+    init(manga: MangaArchive) {
+        self.manga = manga
+        let initialTitle = manga.title ?? ""
+        let initialAuthor = manga.author ?? ""
+        _title = State(initialValue: initialTitle)
+        _author = State(initialValue: initialAuthor)
+        _titleWasExtracted = State(initialValue: manga.titleWasExtracted)
+        _authorWasExtracted = State(initialValue: manga.authorWasExtracted)
+        originalTitle = initialTitle
+        originalAuthor = initialAuthor
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Metadata") {
+                    LabeledContent("Title") {
+                        HStack(spacing: 8) {
+                            TextField("Title", text: $title)
+                                .multilineTextAlignment(.trailing)
+                            metadataBadge(isVisible: titleWasExtracted)
+                        }
+                    }
+
+                    LabeledContent("Author") {
+                        HStack(spacing: 8) {
+                            TextField("Author", text: $author)
+                                .multilineTextAlignment(.trailing)
+                            metadataBadge(isVisible: authorWasExtracted)
+                        }
+                    }
+                }
+
+                Section("Original Filename") {
+                    Text(manga.originalFileName ?? "Unknown Filename")
+                        .foregroundStyle(.secondary)
+                        .font(.footnote)
+                        .textSelection(.enabled)
+                }
+            }
+            .navigationTitle("Edit Metadata")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        saveChanges()
+                    }
+                }
+            }
+            .onChange(of: title) { _, newValue in
+                if newValue != originalTitle {
+                    titleWasExtracted = false
+                }
+            }
+            .onChange(of: author) { _, newValue in
+                if newValue != originalAuthor {
+                    authorWasExtracted = false
+                }
+            }
+            .alert("Unable to Save", isPresented: $showingSaveError) {
+                Button("OK") {
+                    showingSaveError = false
+                    saveError = nil
+                }
+            } message: {
+                if let error = saveError {
+                    Text(error.localizedDescription)
+                }
+            }
+        }
+    }
+
+    private func saveChanges() {
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedAuthor = author.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        manga.title = trimmedTitle.isEmpty ? "" : trimmedTitle
+        manga.author = trimmedAuthor.isEmpty ? nil : trimmedAuthor
+        manga.titleWasExtracted = titleWasExtracted
+        manga.authorWasExtracted = authorWasExtracted
+
+        do {
+            try viewContext.save()
+            dismiss()
+        } catch {
+            saveError = error
+            showingSaveError = true
+        }
+    }
+
+    private func metadataBadge(isVisible: Bool) -> some View {
+        Image(systemName: "character.textbox.badge.sparkles")
+            .foregroundStyle(.secondary)
+            .opacity(isVisible ? 1 : 0)
+            .accessibilityHidden(true)
+            .frame(width: 20, alignment: .trailing)
     }
 }

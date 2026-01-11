@@ -23,11 +23,15 @@ import UIKit
 
 public actor MangaImportManager {
     public static let shared = MangaImportManager(container: MangaDataPersistenceController.shared.container)
+    public static var isMetadataExtractorAvailable: Bool {
+        MangaFilenameMetadataExtractor.isModelAvailable
+    }
 
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
     private let container: NSPersistentContainer
+    private let metadataExtractor = MangaFilenameMetadataExtractor()
     private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaImport")
 
     // Supported image extensions
@@ -44,6 +48,14 @@ public actor MangaImportManager {
 
     // MARK: - Public API
 
+    /// Prewarm the metadata extractor model
+    public func prewarmMetadataExtractor() {
+        guard shouldUseSmartMetadataExtraction else {
+            return
+        }
+        metadataExtractor.prewarm()
+    }
+
     /// Enqueue a new manga archive import from the given file URL.
     /// - Parameter archiveURL: The file URL of the ZIP/CBZ archive to import.
     /// - Returns: The NSManagedObjectID of the created MangaArchive entity.
@@ -58,6 +70,7 @@ public actor MangaImportManager {
             manga.id = UUID()
             manga.importFile = archiveURL
             manga.title = archiveURL.deletingPathExtension().lastPathComponent
+            manga.originalFileName = archiveURL.lastPathComponent
             manga.dateAdded = Date()
             manga.importComplete = false
             try context.save()
@@ -221,6 +234,11 @@ public actor MangaImportManager {
 
             let totalPages = imageEntries.count
             let coverEntry = imageEntries[0]
+            let shouldUseSmartMetadata = shouldUseSmartMetadataExtraction
+            async let extractedMetadata = metadataExtractor.extractMetadata(
+                from: importFile.lastPathComponent,
+                useSmartExtraction: shouldUseSmartMetadata
+            )
 
             try Task.checkCancellation()
             try await testCancellationHook?()
@@ -255,6 +273,9 @@ public actor MangaImportManager {
                 throw MangaImportError.coverExtractionFailed(underlyingError: error)
             }
 
+            let metadata = await extractedMetadata
+            let authorValue = metadata.author.trimmingCharacters(in: .whitespacesAndNewlines)
+
             try Task.checkCancellation()
             try await testCancellationHook?()
 
@@ -270,6 +291,10 @@ public actor MangaImportManager {
                 manga.localFileName = destinationFileName
                 manga.coverFileName = coverFileName
                 manga.totalPages = Int64(totalPages)
+                manga.title = metadata.title
+                manga.author = authorValue.isEmpty ? nil : authorValue
+                manga.titleWasExtracted = metadata.titleWasExtracted
+                manga.authorWasExtracted = metadata.authorWasExtracted
                 manga.importComplete = true
                 manga.importErrorMessage = nil
                 manga.importFile = nil
@@ -343,6 +368,10 @@ public actor MangaImportManager {
     }
 
     // MARK: - Helper Methods
+
+    private var shouldUseSmartMetadataExtraction: Bool {
+        MangaMetadataExtractionSettings.smartExtractionEnabled && metadataExtractor.isModelAvailable
+    }
 
     private func isImageFile(_ path: String) -> Bool {
         let ext = (path as NSString).pathExtension.lowercased()
