@@ -35,8 +35,6 @@ public enum AudioSourceImportError: Error, LocalizedError {
     case fileAccessDenied
     /// A required file is missing from the archive.
     case missingFile
-    /// The working directory is not set or does not exist.
-    case noWorkingDirectory
     /// Failed to extract the ZIP archive.
     case unzipFailed(underlyingError: Error)
     /// Failed to delete the audio source and its data.
@@ -62,10 +60,8 @@ public enum AudioSourceImportError: Error, LocalizedError {
             "Unable to access the source file."
         case .missingFile:
             "A required file is missing."
-        case .noWorkingDirectory:
-            "No working directory available."
         case let .unzipFailed(error):
-            "Failed to extract archive: \(error.localizedDescription)"
+            "Failed to read archive: \(error.localizedDescription)"
         case .deletionFailed:
             "Failed to delete the audio source."
         case .mediaDirectoryCreationFailed:

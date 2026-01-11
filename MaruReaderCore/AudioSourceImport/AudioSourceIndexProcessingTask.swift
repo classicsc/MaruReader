@@ -18,6 +18,15 @@
 import CoreData
 import Foundation
 import os.log
+internal import ReadiumZIPFoundation
+
+struct AudioSourceIndexResult: Sendable {
+    let sourceID: UUID
+    let indexURL: URL
+    let indexEntryPath: String
+    let archiveURL: URL
+    let isLocal: Bool
+}
 
 /// A task to process the audio source index JSON and create the AudioSource entity.
 struct AudioSourceIndexProcessingTask {
@@ -31,8 +40,8 @@ struct AudioSourceIndexProcessingTask {
     }
 
     /// Process the index and create the AudioSource entity.
-    /// - Returns: A tuple of (sourceID, indexURL, isLocal) for use by subsequent tasks.
-    func start() async throws -> (sourceID: UUID, indexURL: URL, isLocal: Bool) {
+    /// - Returns: Audio source metadata for use by subsequent tasks.
+    func start() async throws -> AudioSourceIndexResult {
         let container = persistentContainer
         let jobID = self.jobID
         let context = container.newBackgroundContext()
@@ -40,22 +49,62 @@ struct AudioSourceIndexProcessingTask {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let workingDir = try await context.perform {
+        let jobURL = try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
-            guard let workingDir = job.workingDirectory else {
-                throw AudioSourceImportError.noWorkingDirectory
+            guard let jobURL = job.file else {
+                throw AudioSourceImportError.missingFile
             }
 
             job.displayProgressMessage = "Processing audio source index..."
             try context.save()
-            return workingDir
+            return jobURL
         }
 
-        // Find the index JSON file
-        let indexURL = try findIndexFile(in: workingDir)
-        logger.debug("Found index file at \(indexURL.path)")
+        guard jobURL.startAccessingSecurityScopedResource() else {
+            throw AudioSourceImportError.fileAccessDenied
+        }
+
+        defer {
+            jobURL.stopAccessingSecurityScopedResource()
+        }
+
+        guard FileManager.default.fileExists(atPath: jobURL.path) else {
+            throw AudioSourceImportError.missingFile
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: jobURL, accessMode: .read)
+        } catch {
+            throw AudioSourceImportError.unzipFailed(underlyingError: error)
+        }
+
+        let entries: [Entry]
+        do {
+            entries = try await archive.entries()
+        } catch {
+            throw AudioSourceImportError.unzipFailed(underlyingError: error)
+        }
+        let indexEntry = try findIndexEntry(in: entries)
+        let indexEntryPath = indexEntry.path
+
+        let indexURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("json")
+        var shouldCleanupIndex = true
+        defer {
+            if shouldCleanupIndex {
+                try? FileManager.default.removeItem(at: indexURL)
+            }
+        }
+        do {
+            _ = try await archive.extract(indexEntry, to: indexURL, skipCRC32: false)
+        } catch {
+            throw AudioSourceImportError.unzipFailed(underlyingError: error)
+        }
+        logger.debug("Found index file at \(indexEntryPath)")
 
         try Task.checkCancellation()
 
@@ -94,55 +143,39 @@ struct AudioSourceIndexProcessingTask {
             return id
         }
 
-        return (sourceID, indexURL, isLocal)
+        shouldCleanupIndex = false
+        return AudioSourceIndexResult(
+            sourceID: sourceID,
+            indexURL: indexURL,
+            indexEntryPath: indexEntryPath,
+            archiveURL: jobURL,
+            isLocal: isLocal
+        )
     }
 
-    /// Find the index JSON file in the working directory.
+    /// Find the index JSON entry in an archive.
     /// For local sources: must be named "index.json"
     /// For online sources: any single JSON file at root level
-    private func findIndexFile(in workingDir: URL) throws -> URL {
-        let fileManager = FileManager.default
-        let contents = try fileManager.contentsOfDirectory(at: workingDir, includingPropertiesForKeys: nil)
+    private func findIndexEntry(in entries: [Entry]) throws -> Entry {
+        let fileEntries = entries.filter { $0.type == .file }
+        let rootEntries = fileEntries.filter { !$0.path.contains("/") }
 
-        // First, check for index.json (required for local sources)
-        let indexJSON = workingDir.appendingPathComponent("index.json")
-        if fileManager.fileExists(atPath: indexJSON.path) {
-            return indexJSON
+        if let indexEntry = rootEntries.first(where: { $0.path == "index.json" }) {
+            return indexEntry
         }
 
-        // Descend one level to check for index.json in subdirectories
-        for item in contents {
-            let isDirectory = (try? item.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) ?? false
-            if isDirectory {
-                if let subContents = try? fileManager.contentsOfDirectory(at: item, includingPropertiesForKeys: nil) {
-                    let subIndexJSON = item.appendingPathComponent("index.json")
-                    if subContents.contains(subIndexJSON) {
-                        // Update the workingDir to the subdirectory
-                        let context = persistentContainer.newBackgroundContext()
-                        try context.performAndWait {
-                            guard let job = try context.existingObject(with: jobID) as? AudioSource else {
-                                throw AudioSourceImportError.importNotFound
-                            }
-                            job.workingDirectory = item
-                            try context.save()
-                        }
-                        return subIndexJSON
-                    }
-                }
-            }
+        if let nestedIndex = fileEntries.first(where: { entry in
+            entry.path.hasSuffix("/index.json") && entry.path.split(separator: "/").count == 2
+        }) {
+            return nestedIndex
         }
 
-        // For online sources, find any JSON file at root level
-        let jsonFiles = contents.filter { $0.pathExtension.lowercased() == "json" }
-
-        if jsonFiles.count == 1 {
-            return jsonFiles[0]
-        } else if jsonFiles.isEmpty {
-            throw AudioSourceImportError.notAnAudioSource
-        } else {
-            // Multiple JSON files without an index.json - ambiguous
-            throw AudioSourceImportError.notAnAudioSource
+        let jsonFiles = rootEntries.filter { $0.path.lowercased().hasSuffix(".json") }
+        if jsonFiles.count == 1, let entry = jsonFiles.first {
+            return entry
         }
+
+        throw AudioSourceImportError.notAnAudioSource
     }
 
     /// Detect unique file extensions from the files section.

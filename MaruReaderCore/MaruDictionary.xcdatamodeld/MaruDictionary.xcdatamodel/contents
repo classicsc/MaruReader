@@ -16,7 +16,6 @@
         <attribute name="sourceID" attributeType="UUID" usesScalarValueType="NO"/>
     </entity>
     <entity name="AudioSource" representedClassName="AudioSource" syncable="YES" codeGenerationType="class">
-        <attribute name="archiveExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="audioFileExtensions" attributeType="String"/>
         <attribute name="baseRemoteURL" optional="YES" attributeType="String"/>
         <attribute name="dateAdded" attributeType="Date" usesScalarValueType="NO"/>
@@ -44,11 +43,9 @@
         <attribute name="urlPattern" optional="YES" attributeType="String"/>
         <attribute name="urlPatternReturnsJSON" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="version" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="workingDirectory" optional="YES" attributeType="URI"/>
         <attribute name="year" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
     <entity name="Dictionary" representedClassName="Dictionary" syncable="YES" codeGenerationType="class">
-        <attribute name="archiveExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="author" optional="YES" attributeType="String"/>
         <attribute name="banksProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -70,13 +67,11 @@
         <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="kanjiBanks" optional="YES" attributeType="String"/>
         <attribute name="kanjiCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="kanjiMetaBanks" optional="YES" attributeType="String"/>
         <attribute name="kanjiResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="mediaImported" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="minimumYomitanVersion" optional="YES" attributeType="String"/>
@@ -87,16 +82,13 @@
         <attribute name="revision" optional="YES" attributeType="String"/>
         <attribute name="sequenced" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="sourceLanguage" optional="YES" attributeType="String"/>
-        <attribute name="tagBanks" optional="YES" attributeType="String"/>
         <attribute name="tagCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="targetLanguage" optional="YES" attributeType="String"/>
-        <attribute name="termBanks" optional="YES" attributeType="String"/>
         <attribute name="termCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termFrequencyEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="termMetaBanks" optional="YES" attributeType="String"/>
         <attribute name="termResultsEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
@@ -105,7 +97,6 @@
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="title" attributeType="String"/>
         <attribute name="url" optional="YES" attributeType="String"/>
-        <attribute name="workingDirectory" optional="YES" attributeType="URI"/>
         <fetchIndex name="byTermResultsEnabled">
             <fetchIndexElement property="termResultsEnabled" type="Binary" order="ascending"/>
         </fetchIndex>

@@ -18,7 +18,6 @@
 import CoreData
 import Foundation
 import os.log
-internal import Zip
 
 public actor DictionaryImportManager {
     public static let shared = DictionaryImportManager(container: DictionaryPersistenceController.shared.container)
@@ -54,16 +53,6 @@ public actor DictionaryImportManager {
             dictionary.file = zipURL
             let baseTitle = zipURL.deletingPathExtension().lastPathComponent
             dictionary.title = baseTitle.isEmpty ? "Imported Dictionary" : baseTitle
-            // Use application support directory with job ID as working directory for resume capability
-            let appSupport = try FileManager.default.url(
-                for: .applicationSupportDirectory,
-                in: .userDomainMask,
-                appropriateFor: nil,
-                create: true
-            )
-            let workingDir = appSupport.appendingPathComponent("DictionaryImports").appendingPathComponent(jobID.uuidString)
-            try FileManager.default.createDirectory(at: workingDir, withIntermediateDirectories: true)
-            dictionary.workingDirectory = workingDir
             dictionary.timeQueued = Date()
             dictionary.displayProgressMessage = "Queued for import."
             dictionary.isComplete = false
@@ -99,7 +88,6 @@ public actor DictionaryImportManager {
                     dictionary.displayProgressMessage = "Import cancelled."
                     dictionary.errorMessage = nil
                     try? viewContext.save()
-                    Self.cleanup(dictionary: dictionary)
                 }
             }
         }
@@ -163,25 +151,29 @@ public actor DictionaryImportManager {
             }
             try Task.checkCancellation()
             try testErrorInjection?()
-            let unzipTask = UnzipTask(jobID: jobID, container: container)
-            try await unzipTask.start()
-            logger.debug("Import job \(jobID) unzipped")
-            try Task.checkCancellation()
-            try await testCancellationHook?()
-
             let indexProcessingTask = IndexProcessingTask(jobID: jobID, container: container)
-            let dictionaryID = try await indexProcessingTask.start()
+            let indexResult = try await indexProcessingTask.start()
             logger.debug("Import job \(jobID) index processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let dataBankProcessingTask = DataBankProcessingTask(jobID: jobID, dictionaryID: dictionaryID, container: container)
+            let dataBankProcessingTask = DataBankProcessingTask(
+                jobID: jobID,
+                dictionaryID: indexResult.dictionaryID,
+                archiveURL: indexResult.archiveURL,
+                bankPaths: indexResult.bankPaths,
+                container: container
+            )
             try await dataBankProcessingTask.start()
             logger.debug("Import job \(jobID) term banks processed")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let mediaCopyTask = MediaCopyProcessingTask(jobID: jobID, container: container)
+            let mediaCopyTask = MediaCopyProcessingTask(
+                jobID: jobID,
+                archiveURL: indexResult.archiveURL,
+                container: container
+            )
             try await mediaCopyTask.start()
             logger.debug("Import job \(jobID) media copied")
             try Task.checkCancellation()
@@ -266,7 +258,6 @@ public actor DictionaryImportManager {
                 if let uuid = dictionary.id {
                     Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 }
-                Self.cleanup(dictionary: dictionary)
             }
         } catch {
             if let uuid = dictionaryUUID {
@@ -295,27 +286,11 @@ public actor DictionaryImportManager {
                 if let uuid = dictionary.id {
                     Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 }
-                Self.cleanup(dictionary: dictionary)
             }
         }
 
         await context.perform {
-            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                return
-            }
-            Self.cleanup(dictionary: dictionary)
-        }
-    }
-
-    /// Check if working directory exists for a given dictionary import
-    func workingDirectoryExists(for job: NSManagedObjectID) async throws -> Bool {
-        let context = container.newBackgroundContext()
-        return try await context.perform {
-            guard let dictionary = try? context.existingObject(with: job) as? Dictionary else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let workingDir = dictionary.workingDirectory else { return false }
-            return FileManager.default.fileExists(atPath: workingDir.path)
+            _ = try? context.existingObject(with: jobID) as? Dictionary
         }
     }
 
@@ -353,16 +328,6 @@ public actor DictionaryImportManager {
                 try fileManager.removeItem(at: mediaDir)
             }
         } catch {}
-    }
-
-    static func cleanup(dictionary: Dictionary) {
-        // Delete working directory if complete/failed/cancelled
-        let fileManager = FileManager.default
-        if let workingDir = dictionary.workingDirectory, fileManager.fileExists(atPath: workingDir.path) {
-            do {
-                try fileManager.removeItem(at: workingDir)
-            } catch {}
-        }
     }
 
     // MARK: - Test Helper Methods

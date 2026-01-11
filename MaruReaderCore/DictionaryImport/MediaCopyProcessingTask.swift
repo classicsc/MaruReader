@@ -18,15 +18,18 @@
 import CoreData
 import Foundation
 import os.log
+internal import ReadiumZIPFoundation
 
-/// A task to copy media files from the working directory to the permanent media directory.
+/// A task to copy media files from the archive to the permanent media directory.
 struct MediaCopyProcessingTask {
     let jobID: NSManagedObjectID
+    let archiveURL: URL
     let persistentContainer: NSPersistentContainer
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")
 
-    init(jobID: NSManagedObjectID, container: NSPersistentContainer) {
+    init(jobID: NSManagedObjectID, archiveURL: URL, container: NSPersistentContainer) {
         self.jobID = jobID
+        self.archiveURL = archiveURL
         self.persistentContainer = container
     }
 
@@ -39,12 +42,9 @@ struct MediaCopyProcessingTask {
         context.shouldDeleteInaccessibleFaults = true
 
         // Get job information from Core Data
-        let (workingDirectory, dictionaryID): (URL, UUID) = try await context.perform {
+        let dictionaryID: UUID = try await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
-            }
-            guard let workingDirectory = dictionary.workingDirectory else {
-                throw DictionaryImportError.noWorkingDirectory
             }
             guard let dictionaryID = dictionary.id else {
                 throw DictionaryImportError.databaseError
@@ -54,7 +54,7 @@ struct MediaCopyProcessingTask {
             dictionary.displayProgressMessage = "Copying media files..."
             try context.save()
 
-            return (workingDirectory, dictionaryID)
+            return dictionaryID
         }
 
         try Task.checkCancellation()
@@ -74,49 +74,49 @@ struct MediaCopyProcessingTask {
             try fileManager.createDirectory(at: mediaDir, withIntermediateDirectories: true, attributes: nil)
         }
 
-        // Recursively copy files
-        let enumerator = fileManager.enumerator(at: workingDirectory, includingPropertiesForKeys: nil)
-        let resolvedWorkingPath = workingDirectory.resolvingSymlinksInPath().path
-        while let fileURL = enumerator?.nextObject() as? URL {
+        guard archiveURL.startAccessingSecurityScopedResource() else {
+            throw DictionaryImportError.fileAccessDenied
+        }
+
+        defer {
+            archiveURL.stopAccessingSecurityScopedResource()
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: archiveURL, accessMode: .read)
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+
+        let entries: [Entry]
+        do {
+            entries = try await archive.entries()
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
+        for entry in entries where entry.type == .file {
             try Task.checkCancellation()
 
-            // Skip JSON files
-            if fileURL.pathExtension.lowercased() == "json" {
+            let path = entry.path
+            if path.lowercased().hasSuffix(".json") {
                 continue
             }
 
-            // Skip directories; enumerator can walk them but we only copy files
-            if fileURL.hasDirectoryPath {
+            let destinationURL = mediaDir.appendingPathComponent(path)
+            guard destinationURL.isContained(in: mediaDir) else {
+                MediaCopyProcessingTask.logger.error("Skipped media path outside destination: \(path, privacy: .public)")
                 continue
             }
-
-            // Determine relative path
-            let resolvedFilePath = fileURL.resolvingSymlinksInPath().path
-
-            guard resolvedFilePath.hasPrefix(resolvedWorkingPath) else {
-                MediaCopyProcessingTask.logger.error("File path \(resolvedFilePath, privacy: .public) outside working directory \(resolvedWorkingPath, privacy: .public)")
-                continue
+            do {
+                if fileManager.fileExists(atPath: destinationURL.path) {
+                    try fileManager.removeItem(at: destinationURL)
+                }
+                _ = try await archive.extract(entry, to: destinationURL, skipCRC32: true)
+                MediaCopyProcessingTask.logger.debug("Copied media file to \(destinationURL.path, privacy: .public)")
+            } catch {
+                throw DictionaryImportError.unzipFailed(underlyingError: error)
             }
-
-            var relativePath = String(resolvedFilePath.dropFirst(resolvedWorkingPath.count))
-            if relativePath.hasPrefix("/") {
-                relativePath.removeFirst()
-            }
-
-            let destinationURL = mediaDir.appendingPathComponent(relativePath)
-            let destinationDir = destinationURL.deletingLastPathComponent()
-
-            // Create destination directory if needed
-            if !fileManager.fileExists(atPath: destinationDir.path) {
-                try fileManager.createDirectory(at: destinationDir, withIntermediateDirectories: true, attributes: nil)
-            }
-
-            // Copy file
-            if fileManager.fileExists(atPath: destinationURL.path) {
-                try fileManager.removeItem(at: destinationURL)
-            }
-            try fileManager.copyItem(at: fileURL, to: destinationURL)
-            MediaCopyProcessingTask.logger.debug("Copied media file to \(destinationURL.path, privacy: .public)")
         }
 
         try Task.checkCancellation()
