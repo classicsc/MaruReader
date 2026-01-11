@@ -39,6 +39,7 @@ public actor AudioLookupService {
     private var cache: [String: AudioLookupResult] = [:] // Session cache
 
     private let persistenceController: DictionaryPersistenceController
+    private let networkProvider: NetworkProviding
 
     // Observation tasks for auto-reload
     private var observationTask: Task<Void, Never>?
@@ -48,8 +49,9 @@ public actor AudioLookupService {
 
     // MARK: - Initialization
 
-    public init(persistenceController: DictionaryPersistenceController) {
+    public init(persistenceController: DictionaryPersistenceController, networkProvider: NetworkProviding = URLSession.shared) {
         self.persistenceController = persistenceController
+        self.networkProvider = networkProvider
     }
 
     // MARK: - Provider Management
@@ -264,7 +266,7 @@ public actor AudioLookupService {
             return []
         }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await networkProvider.data(from: url)
 
         // Check for HTTP success status
         if let httpResponse = response as? HTTPURLResponse {
@@ -282,20 +284,48 @@ public actor AudioLookupService {
             return []
         }
 
-        // Convert audio sources to results, using only the first item for now
-        guard let firstSource = listResponse.audioSources.first,
-              let audioURL = URL(string: firstSource.url)
-        else {
-            return []
+        // Convert audio sources to results, keeping one source per unique pitch
+        var seenPitches: Set<String> = []
+        var hasNilPitch = false
+        var results: [AudioSourceResult] = []
+
+        for source in listResponse.audioSources {
+            guard let audioURL = URL(string: source.url) else { continue }
+
+            let pitchNumber = extractPitchFromName(source.name)
+
+            // Deduplicate: only keep first source for each pitch value
+            if let pitch = pitchNumber {
+                guard !seenPitches.contains(pitch) else { continue }
+                seenPitches.insert(pitch)
+            } else {
+                guard !hasNilPitch else { continue }
+                hasNilPitch = true
+            }
+
+            results.append(AudioSourceResult(
+                url: audioURL,
+                sourceName: source.name ?? provider.name,
+                sourceType: provider.type,
+                isLocal: false,
+                pitchNumber: pitchNumber
+            ))
         }
 
-        return [AudioSourceResult(
-            url: audioURL,
-            sourceName: firstSource.name ?? provider.name,
-            sourceType: provider.type,
-            isLocal: false,
-            pitchNumber: nil
-        )]
+        return results
+    }
+
+    /// Extracts pitch number from a name string if it contains a bracketed pitch pattern like "[0]", "[2]", etc.
+    private func extractPitchFromName(_ name: String?) -> String? {
+        guard let name else { return nil }
+
+        // Match a bracketed number, e.g., "[0]", "[2]", "[3-1]"
+        let pattern = /\[(\d+(?:-\d+)?)\]/
+        guard let match = name.firstMatch(of: pattern) else {
+            return nil
+        }
+
+        return String(match.1)
     }
 
     /// Get results from an indexed source
