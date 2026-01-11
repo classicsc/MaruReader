@@ -28,6 +28,7 @@ import WebKit
 
 public struct DictionarySearchView: View {
     @Environment(DictionarySearchViewModel.self) private var viewModel
+    @Environment(\.openURL) private var openURL
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
@@ -99,6 +100,21 @@ public struct DictionarySearchView: View {
         .onAppear {
             viewModel.loadContextDisplaySettings()
         }
+        .confirmationDialog(
+            "Open External Link",
+            isPresented: $viewModel.showExternalLinkConfirmation,
+            presenting: viewModel.pendingExternalURL
+        ) { url in
+            Button("Open in Browser") {
+                openURL(url)
+                viewModel.clearPendingExternalURL()
+            }
+            Button("Cancel", role: .cancel) {
+                viewModel.clearPendingExternalURL()
+            }
+        } message: { url in
+            Text("Open \(url.host ?? url.absoluteString) in browser?")
+        }
     }
 
     private var bottomToolbar: some View {
@@ -115,6 +131,12 @@ public struct DictionarySearchView: View {
                     .labelStyle(.iconOnly)
             }
             .disabled(!viewModel.history.canGoForward)
+
+            // Link activation toggle
+            Button(action: { viewModel.toggleLinksActive() }) {
+                Label("Links", systemImage: viewModel.linksActiveEnabled ? "pointer.arrow" : "pointer.arrow.slash")
+                    .labelStyle(.iconOnly)
+            }
 
             Spacer()
 

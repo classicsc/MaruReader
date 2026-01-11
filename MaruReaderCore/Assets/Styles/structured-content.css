@@ -746,6 +746,20 @@ body {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
 
+/* Link activation state visual feedback */
+body[data-links-active="true"] .gloss-link {
+    cursor: pointer;
+}
+
+body[data-links-active="true"] .gloss-link:hover {
+    background-color: color-mix(in srgb, var(--accent-color) 15%, transparent);
+    border-radius: 2px;
+}
+
+body:not([data-links-active="true"]) .gloss-link {
+    cursor: text;
+}
+
 /* ContentStyle classes */
 .gloss-font-bold {
     font-weight: bold;
