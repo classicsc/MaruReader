@@ -637,6 +637,65 @@ struct BookImportTests {
         #expect(books.count == 1, "Failed imports should remain in the library for removal")
     }
 
+    @Test func cleanupInterruptedBookImports_MarksFailedAndCleansFiles() async throws {
+        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let importManager = BookImportManager(container: persistenceController.container)
+
+        let fileManager = FileManager.default
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let booksDir = appSupportDir.appendingPathComponent("Books")
+        let coversDir = appSupportDir.appendingPathComponent("Covers")
+        try fileManager.createDirectory(at: booksDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: coversDir, withIntermediateDirectories: true)
+
+        let fileName = "interrupted-\(UUID().uuidString).epub"
+        let coverFileName = "interrupted-\(UUID().uuidString).png"
+        let bookFile = booksDir.appendingPathComponent(fileName)
+        let coverFile = coversDir.appendingPathComponent(coverFileName)
+        try Data("book".utf8).write(to: bookFile)
+        try Data("cover".utf8).write(to: coverFile)
+
+        let importURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".epub")
+        try "source".write(to: importURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: importURL) }
+
+        let context = persistenceController.container.newBackgroundContext()
+        let bookID = try await context.perform {
+            let book = Book(context: context)
+            book.id = UUID()
+            book.importFile = importURL
+            book.originalFileName = importURL.lastPathComponent
+            book.fileName = fileName
+            book.coverFileName = coverFileName
+            book.fileCopied = true
+            book.coverExtracted = true
+            book.isStarted = true
+            book.isComplete = false
+            book.isCancelled = false
+            book.displayProgressMessage = "Importing..."
+            book.timeQueued = Date()
+            try context.save()
+            return book.objectID
+        }
+
+        await importManager.cleanupInterruptedImports()
+
+        let viewContext = persistenceController.container.viewContext
+        let bookDTO = await getBookDTO(from: viewContext, bookID: bookID)
+        verifyImportFailed(bookDTO)
+        #expect(bookDTO?.fileCopied == false)
+        #expect(bookDTO?.coverExtracted == false)
+        #expect(bookDTO?.fileName == nil)
+        #expect(bookDTO?.coverFileName == nil)
+        #expect(!fileManager.fileExists(atPath: bookFile.path), "Book file should be deleted")
+        #expect(!fileManager.fileExists(atPath: coverFile.path), "Cover file should be deleted")
+    }
+
     @Test func deleteBook_RemovesBookAndFiles() async throws {
         // Setup: Import a valid EPUB first
         let epubURL = try createValidEPUB(title: "Book to Delete", author: "Test Author")

@@ -118,6 +118,45 @@ public actor MangaImportManager {
         }
     }
 
+    /// Mark interrupted jobs as failed and clean any partially imported files.
+    public func cleanupInterruptedImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupInfos: [(URL?, URL?)] = await context.perform {
+            let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
+            request.predicate = NSPredicate(format: "importComplete == NO AND (importErrorMessage == nil OR importErrorMessage == '')")
+            let archives = (try? context.fetch(request)) ?? []
+            guard !archives.isEmpty else { return [] }
+
+            var infos: [(URL?, URL?)] = []
+            for manga in archives {
+                manga.importErrorMessage = "Import interrupted."
+                manga.importFile = nil
+
+                let localPath = manga.localPath
+                let coverImage = manga.coverImage
+                manga.localFileName = nil
+                manga.coverFileName = nil
+                manga.importComplete = false
+
+                infos.append((localPath, coverImage))
+            }
+
+            try? context.save()
+            return infos
+        }
+
+        guard !cleanupInfos.isEmpty else { return }
+        logger.debug("Cleaning up \(cleanupInfos.count, privacy: .public) interrupted manga imports")
+
+        for (localPath, coverImage) in cleanupInfos {
+            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
+        }
+    }
+
     /// Delete a manga and its associated files.
     /// - Parameter mangaID: The NSManagedObjectID of the MangaArchive to delete.
     public func deleteManga(mangaID: NSManagedObjectID) async {

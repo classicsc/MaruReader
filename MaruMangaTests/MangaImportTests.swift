@@ -415,6 +415,57 @@ struct MangaImportTests {
         #expect(allManga.count == 1, "Failed imports should remain in the library for removal")
     }
 
+    @Test func cleanupInterruptedMangaImports_MarksFailedAndCleansFiles() async throws {
+        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let importManager = MangaImportManager(container: persistenceController.container)
+
+        guard let mangaDir = MangaArchive.mangaDirectory(),
+              let coversDir = MangaArchive.coversDirectory()
+        else {
+            Issue.record("Failed to resolve manga or cover directories")
+            return
+        }
+        let fileManager = FileManager.default
+        try fileManager.createDirectory(at: mangaDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: coversDir, withIntermediateDirectories: true)
+
+        let localFileName = "interrupted-\(UUID().uuidString).cbz"
+        let coverFileName = "interrupted-\(UUID().uuidString).png"
+        let localURL = mangaDir.appendingPathComponent(localFileName)
+        let coverURL = coversDir.appendingPathComponent(coverFileName)
+        try Data("manga".utf8).write(to: localURL)
+        try Data("cover".utf8).write(to: coverURL)
+
+        let importURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".cbz")
+        try "source".write(to: importURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: importURL) }
+
+        let context = persistenceController.container.newBackgroundContext()
+        let mangaID = try await context.perform {
+            let manga = MangaArchive(context: context)
+            manga.id = UUID()
+            manga.title = "Interrupted Manga"
+            manga.importFile = importURL
+            manga.localFileName = localFileName
+            manga.coverFileName = coverFileName
+            manga.importComplete = false
+            manga.importErrorMessage = nil
+            manga.dateAdded = Date()
+            try context.save()
+            return manga.objectID
+        }
+
+        await importManager.cleanupInterruptedImports()
+
+        let viewContext = persistenceController.container.viewContext
+        let mangaDTO = await getMangaDTO(from: viewContext, mangaID: mangaID)
+        verifyImportFailed(mangaDTO)
+        #expect(mangaDTO?.localPath == nil)
+        #expect(mangaDTO?.coverImage == nil)
+        #expect(!fileManager.fileExists(atPath: localURL.path), "Manga archive should be deleted")
+        #expect(!fileManager.fileExists(atPath: coverURL.path), "Cover image should be deleted")
+    }
+
     @Test func importManga_CancelDuringImport_CleansUpFiles() async throws {
         // Setup: Create a valid manga archive
         let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "cancelled_manga")

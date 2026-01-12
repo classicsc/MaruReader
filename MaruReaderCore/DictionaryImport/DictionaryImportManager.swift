@@ -111,6 +111,56 @@ public actor DictionaryImportManager {
         }
     }
 
+    /// Mark interrupted jobs as failed and clean any partially imported data.
+    public func cleanupInterruptedImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupIDs: [UUID] = await context.perform {
+            let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
+            let dictionaries = (try? context.fetch(request)) ?? []
+            guard !dictionaries.isEmpty else { return [] }
+
+            let now = Date()
+            var ids: [UUID] = []
+            for dictionary in dictionaries {
+                if let dictionaryID = dictionary.id {
+                    ids.append(dictionaryID)
+                }
+                dictionary.isFailed = true
+                dictionary.isCancelled = false
+                dictionary.isComplete = false
+                dictionary.displayProgressMessage = "Import interrupted."
+                dictionary.errorMessage = "Import interrupted."
+                dictionary.timeFailed = now
+                dictionary.termCount = 0
+                dictionary.kanjiCount = 0
+                dictionary.termFrequencyCount = 0
+                dictionary.kanjiFrequencyCount = 0
+                dictionary.pitchesCount = 0
+                dictionary.ipaCount = 0
+                dictionary.tagCount = 0
+                dictionary.indexProcessed = false
+                dictionary.banksProcessed = false
+                dictionary.mediaImported = false
+            }
+
+            try? context.save()
+            return ids
+        }
+
+        guard !cleanupIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(cleanupIDs.count, privacy: .public) interrupted dictionary imports")
+
+        for dictionaryID in cleanupIDs {
+            try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
+            Self.cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
+        }
+    }
+
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
 

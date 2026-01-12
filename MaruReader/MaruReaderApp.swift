@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruAnki
+import MaruManga
 import MaruReaderCore
 import SwiftUI
 
@@ -28,6 +29,13 @@ struct MaruReaderApp: App {
                 opener: UIApplicationURLOpener(),
                 returnURL: returnURL
             )
+        }
+
+        Task {
+            await BookImportManager.shared.cleanupInterruptedImports()
+            await DictionaryImportManager.shared.cleanupInterruptedImports()
+            await AudioSourceImportManager.shared.cleanupInterruptedImports()
+            await MangaImportManager.shared.cleanupInterruptedImports()
         }
     }
 

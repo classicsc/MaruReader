@@ -1182,4 +1182,68 @@ struct DictionaryPersistenceTests {
         let dictResults = fetchDictionaries(from: context)
         #expect(dictResults.count == 1)
     }
+
+    @Test @MainActor func cleanupInterruptedDictionaryImports_MarksFailedAndCleansEntries() async throws {
+        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+
+        let dictionaryUUID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        let importID = try await context.perform {
+            let dictionary = Dictionary(context: context)
+            dictionary.id = dictionaryUUID
+            dictionary.title = "Interrupted Dictionary"
+            dictionary.timeQueued = Date()
+            dictionary.isComplete = false
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.isStarted = true
+            dictionary.displayProgressMessage = "Importing..."
+            dictionary.indexProcessed = true
+            dictionary.banksProcessed = true
+            dictionary.mediaImported = true
+            dictionary.termCount = 1
+
+            let termEntry = TermEntry(context: context)
+            termEntry.id = UUID()
+            termEntry.dictionaryID = dictionaryUUID
+            termEntry.expression = "食べる"
+            termEntry.reading = "たべる"
+            termEntry.glossary = "[]"
+            termEntry.definitionTags = "[]"
+            termEntry.termTags = "[]"
+            termEntry.rules = "[]"
+            termEntry.score = 0
+            termEntry.sequence = 1
+
+            try context.save()
+            return dictionary.objectID
+        }
+
+        var mediaDir: URL?
+        if let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) {
+            let dir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let marker = dir.appendingPathComponent("marker.txt")
+            try? "marker".write(to: marker, atomically: true, encoding: .utf8)
+            mediaDir = dir
+        }
+
+        await importManager.cleanupInterruptedImports()
+
+        let viewContext = persistenceController.container.viewContext
+        let dictionary = getDictionary(from: viewContext, importID: importID)
+        verifyDictionaryFailed(dictionary)
+        #expect(dictionary?.termCount == 0)
+        #expect(dictionary?.indexProcessed == false)
+        #expect(dictionary?.banksProcessed == false)
+        #expect(dictionary?.mediaImported == false)
+        #expect(fetchTermEntries(from: viewContext).isEmpty)
+
+        if let mediaDir {
+            #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Media directory should be deleted")
+        }
+    }
 }

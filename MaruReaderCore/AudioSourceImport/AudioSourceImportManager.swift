@@ -122,6 +122,50 @@ public actor AudioSourceImportManager {
         }
     }
 
+    /// Mark interrupted jobs as failed and clean any partially imported data.
+    public func cleanupInterruptedImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupIDs: [UUID] = await context.perform {
+            let request: NSFetchRequest<AudioSource> = AudioSource.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
+            let sources = (try? context.fetch(request)) ?? []
+            guard !sources.isEmpty else { return [] }
+
+            let now = Date()
+            var ids: [UUID] = []
+            for source in sources {
+                if let sourceID = source.id {
+                    ids.append(sourceID)
+                }
+                source.isFailed = true
+                source.isCancelled = false
+                source.isComplete = false
+                source.isStarted = false
+                source.timeFailed = now
+                source.displayProgressMessage = "Import interrupted."
+                source.indexProcessed = false
+                source.entriesProcessed = false
+                source.mediaImported = false
+            }
+
+            try? context.save()
+            return ids
+        }
+
+        guard !cleanupIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(cleanupIDs.count, privacy: .public) interrupted audio source imports")
+
+        for sourceID in cleanupIDs {
+            try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: sourceID, batchSize: 10000)
+            try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: sourceID, batchSize: 10000)
+            AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: sourceID)
+        }
+    }
+
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
 

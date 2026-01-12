@@ -896,6 +896,77 @@ struct AudioSourceImportManagerTests {
         #expect(!fileManager.fileExists(atPath: mediaDir.path))
     }
 
+    @Test @MainActor func cleanupInterruptedAudioSourceImports_MarksFailedAndCleansEntries() async throws {
+        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let importManager = AudioSourceImportManager(container: persistenceController.container)
+
+        let sourceID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        let importID = try await context.perform {
+            let source = AudioSource(context: context)
+            source.id = sourceID
+            source.name = "Interrupted Source"
+            source.audioFileExtensions = "ogg"
+            source.dateAdded = Date()
+            source.enabled = true
+            source.isLocal = true
+            source.indexedByHeadword = true
+            source.isComplete = false
+            source.isFailed = false
+            source.isCancelled = false
+            source.isStarted = true
+            source.pendingDeletion = false
+            source.displayProgressMessage = "Importing..."
+            source.indexProcessed = true
+            source.entriesProcessed = true
+            source.mediaImported = true
+            source.priority = 0
+
+            let headword = AudioHeadword(context: context)
+            headword.id = UUID()
+            headword.expression = "てすと"
+            headword.files = "[\"test.ogg\"]"
+            headword.sourceID = sourceID
+
+            let audioFile = AudioFile(context: context)
+            audioFile.id = UUID()
+            audioFile.name = "test.ogg"
+            audioFile.kanaReading = "てすと"
+            audioFile.normalizedReading = "てすと"
+            audioFile.pitchNumber = "0"
+            audioFile.sourceID = sourceID
+
+            try context.save()
+            return source.objectID
+        }
+
+        var mediaDir: URL?
+        if let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) {
+            let dir = appGroupDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
+            try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+            let marker = dir.appendingPathComponent("marker.txt")
+            try? "marker".write(to: marker, atomically: true, encoding: .utf8)
+            mediaDir = dir
+        }
+
+        await importManager.cleanupInterruptedImports()
+
+        let viewContext = persistenceController.container.viewContext
+        let job = getJob(from: viewContext, importID: importID)
+        verifyJobFailed(job)
+        #expect(job?.indexProcessed == false)
+        #expect(job?.entriesProcessed == false)
+        #expect(job?.mediaImported == false)
+        #expect(fetchAudioHeadwords(from: viewContext).isEmpty)
+        #expect(fetchAudioFiles(from: viewContext).isEmpty)
+
+        if let mediaDir {
+            #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Audio media directory should be deleted")
+        }
+    }
+
     // MARK: - Large Data Tests
 
     @Test @MainActor func importAudioSource_LargeDataset_ImportsSuccessfully() async throws {

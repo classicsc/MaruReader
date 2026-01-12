@@ -101,6 +101,50 @@ actor BookImportManager {
         }
     }
 
+    /// Mark interrupted jobs as failed and clean any partially imported files.
+    func cleanupInterruptedImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupInfos: [(UUID, String?, String?)] = await context.perform {
+            let request: NSFetchRequest<Book> = Book.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isCancelled == NO AND (errorMessage == nil OR errorMessage == '')")
+            let books = (try? context.fetch(request)) ?? []
+            guard !books.isEmpty else { return [] }
+
+            var infos: [(UUID, String?, String?)] = []
+            for book in books {
+                book.isComplete = false
+                book.isCancelled = false
+                book.isStarted = false
+                book.displayProgressMessage = "Import interrupted."
+                book.errorMessage = "Import interrupted."
+                book.importFile = nil
+
+                let fileName = book.fileName
+                let coverFileName = book.coverFileName
+                book.fileName = nil
+                book.coverFileName = nil
+                book.fileCopied = false
+                book.coverExtracted = false
+
+                infos.append((book.id ?? UUID(), fileName, coverFileName))
+            }
+
+            try? context.save()
+            return infos
+        }
+
+        guard !cleanupInfos.isEmpty else { return }
+        logger.debug("Cleaning up \(cleanupInfos.count, privacy: .public) interrupted book imports")
+
+        for (uuid, fileName, coverFileName) in cleanupInfos {
+            Self.cleanupBookFilesByUUID(bookUUID: uuid, fileName: fileName, coverFileName: coverFileName)
+        }
+    }
+
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
 
