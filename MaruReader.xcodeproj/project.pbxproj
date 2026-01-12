@@ -42,12 +42,10 @@
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
 		DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED52E8B332D00E9723D /* ReadiumShared */; };
-		DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBC9FEB02E6C9B7800F1E920 /* Zip */; };
 		DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBCFB1762EAAAE8B00B4F27D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C72EAAC56800B4F27D /* JsonStream */; };
 		DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */; };
-		DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1CB2EAAC58A00B4F27D /* Zip */; };
 		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
 		DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755662F120EF3000AFED1 /* Mecab-Swift */; };
 		DBD755692F120EF8000AFED1 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755682F120EF8000AFED1 /* IPADic */; };
@@ -550,7 +548,6 @@
 				DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */,
 				DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */,
 				DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */,
-				DBC9FEB12E6C9B7800F1E920 /* Zip in Frameworks */,
 				DB1C342C2EB8578200315E79 /* MaruVisionUICommon.framework in Frameworks */,
 				DBEF7A132EEF9423002DBFFC /* MaruAnki.framework in Frameworks */,
 				DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */,
@@ -606,7 +603,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				DBD755692F120EF8000AFED1 /* IPADic in Frameworks */,
-				DBCFB1CC2EAAC58A00B4F27D /* Zip in Frameworks */,
 				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
 				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
@@ -836,7 +832,6 @@
 			);
 			name = MaruReader;
 			packageProductDependencies = (
-				DBC9FEB02E6C9B7800F1E920 /* Zip */,
 				DB5DFD072E76701F0085AC1F /* JsonStream */,
 				DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */,
 				DB97CED32E8B332D00E9723D /* ReadiumNavigator */,
@@ -990,7 +985,6 @@
 			packageProductDependencies = (
 				DBCFB1C72EAAC56800B4F27D /* JsonStream */,
 				DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */,
-				DBCFB1CB2EAAC58A00B4F27D /* Zip */,
 				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
 				DBD755682F120EF8000AFED1 /* IPADic */,
 				DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */,
@@ -2974,11 +2968,6 @@
 			package = DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */;
 			productName = ReadiumShared;
 		};
-		DBC9FEB02E6C9B7800F1E920 /* Zip */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
-			productName = Zip;
-		};
 		DBCFB1C72EAAC56800B4F27D /* JsonStream */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
@@ -2988,11 +2977,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
 			productName = AsyncAlgorithms;
-		};
-		DBCFB1CB2EAAC58A00B4F27D /* Zip */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
-			productName = Zip;
 		};
 		DBD755662F120EF3000AFED1 /* Mecab-Swift */ = {
 			isa = XCSwiftPackageProductDependency;
