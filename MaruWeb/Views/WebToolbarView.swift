@@ -18,6 +18,8 @@
 import SwiftUI
 
 struct WebToolbarView: View {
+    @ScaledMetric(relativeTo: .body) private var iconSize: CGFloat = 16
+
     @Binding var addressText: String
     let isLoading: Bool
     let estimatedProgress: Double
@@ -61,7 +63,7 @@ struct WebToolbarView: View {
                     // Reload/Stop button
                     Button(action: isLoading ? onStopLoading : onReload) {
                         Image(systemName: isLoading ? "xmark" : "arrow.clockwise")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .accessibilityLabel(isLoading ? "Stop" : "Reload")
                 }
@@ -71,7 +73,7 @@ struct WebToolbarView: View {
                     // Navigation buttons
                     Button(action: onBack) {
                         Image(systemName: "chevron.backward")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .disabled(!canGoBack)
                     .accessibilityLabel("Back")
@@ -79,20 +81,20 @@ struct WebToolbarView: View {
 
                     Button(action: onForward) {
                         Image(systemName: "chevron.forward")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .disabled(!canGoForward)
                     .accessibilityLabel("Forward")
                     Spacer()
                     Button(action: onExit) {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .accessibilityLabel("Exit Web Viewer")
                     Spacer()
                     Button(action: onBookmark) {
                         Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .foregroundStyle(isBookmarked ? Color.accentColor : .primary)
                     .accessibilityLabel(isBookmarked ? "Remove Bookmark" : "Add Bookmark")
@@ -100,7 +102,7 @@ struct WebToolbarView: View {
                     Spacer()
                     Button(action: onToggleReadingMode) {
                         Image(systemName: isReadingModeEnabled ? "hand.tap.fill" : "hand.tap")
-                            .font(.system(size: 16, weight: .medium))
+                            .font(.system(size: iconSize, weight: .medium))
                     }
                     .foregroundStyle(isReadingModeEnabled ? Color.accentColor : .primary)
                     .accessibilityLabel(isReadingModeEnabled ? "Disable Reading Mode" : "Enable Reading Mode")
@@ -108,7 +110,7 @@ struct WebToolbarView: View {
                     if isReadingModeEnabled {
                         Button(action: onTogglePagingMode) {
                             Image(systemName: pagingMode == .horizontalPaging ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: iconSize, weight: .medium))
                         }
                         .accessibilityLabel(pagingMode == .horizontalPaging ? "Switch to Vertical Scrolling" : "Switch to Horizontal Paging")
                     }

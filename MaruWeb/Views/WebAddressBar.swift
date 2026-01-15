@@ -18,6 +18,8 @@
 import SwiftUI
 
 struct WebAddressBar: View {
+    @ScaledMetric(relativeTo: .body) private var goButtonSize: CGFloat = 18
+
     @Binding var text: String
     var showsGoButton: Bool = true
     var onEditingChanged: ((Bool) -> Void)?
@@ -48,7 +50,7 @@ struct WebAddressBar: View {
             if showsGoButton {
                 Button(action: onSubmit) {
                     Image(systemName: "arrow.right.circle.fill")
-                        .font(.system(size: 18))
+                        .font(.system(size: goButtonSize))
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Go")

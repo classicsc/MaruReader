@@ -22,6 +22,9 @@ import SwiftUI
 import WebKit
 
 public struct WebViewerView: View {
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
+
     @State private var viewModel: WebViewerViewModel
     @State private var selectedCluster: TextCluster?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
@@ -177,11 +180,12 @@ public struct WebViewerView: View {
             viewModel.toggleOverlay()
         } label: {
             Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.down" : "chevron.up")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .foregroundStyle(.secondary)
-                .frame(width: 36, height: 36)
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)
+        .accessibilityLabel(viewModel.overlayState.shouldShowToolbars ? "Hide toolbar" : "Show toolbar")
         .animation(.easeInOut(duration: 0.2), value: viewModel.overlayState)
     }
 }

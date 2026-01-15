@@ -24,6 +24,10 @@ import WebKit
 // MARK: - BookReaderView
 
 struct BookReaderView: View {
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 48
+
     @State private var viewModel: BookReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @Environment(\.colorScheme) var colorScheme
@@ -202,18 +206,21 @@ struct BookReaderView: View {
             } label: {
                 Image(systemName: "list.bullet")
             }
+            .accessibilityLabel("Table of contents")
 
             Button {
                 viewModel.isDictionaryActive.toggle()
             } label: {
                 Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill" : "character.book.closed")
             }
+            .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
 
             Button {
                 viewModel.bookmarkCurrentLocation()
             } label: {
                 Image(systemName: "bookmark")
             }
+            .accessibilityLabel("Add bookmark")
 
             QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
                 viewModel.overlayState = .showingQuickSettings
@@ -236,19 +243,20 @@ struct BookReaderView: View {
             dismiss()
         } label: {
             Image(systemName: "chevron.left")
-                .font(.system(size: 14, weight: .semibold))
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .foregroundStyle(
                     viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
                 )
-                .frame(width: 36, height: 36)
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)
+        .accessibilityLabel("Back")
     }
 
     private func errorView(error: Error) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 48))
+                .font(.system(size: errorIconSize))
                 .foregroundStyle(.red)
             Text("Failed to load book")
                 .font(.headline)
@@ -308,6 +316,7 @@ private struct MarginSwipeOverlay: View {
                 .gesture(swipeGesture)
         }
         .allowsHitTesting(true)
+        .accessibilityHidden(true)
     }
 
     private var swipeGesture: some Gesture {
@@ -367,5 +376,6 @@ private struct DictionaryGestureOverlay: View {
                         }
                 )
         }
+        .accessibilityHidden(true)
     }
 }

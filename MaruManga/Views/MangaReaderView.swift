@@ -20,6 +20,9 @@ import SwiftUI
 
 /// The main manga reader view with paging, toolbars, and dictionary integration.
 public struct MangaReaderView: View {
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 14
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
+
     @State private var viewModel: MangaReaderViewModel
     @Environment(\.dismiss) private var dismiss
 
@@ -162,10 +165,11 @@ public struct MangaReaderView: View {
             dismiss()
         } label: {
             Image(systemName: "chevron.left")
-                .font(.system(size: 14, weight: .semibold))
-                .frame(width: 36, height: 36)
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)
+        .accessibilityLabel("Back")
     }
 
     // MARK: - Bottom Toolbar
@@ -180,6 +184,7 @@ public struct MangaReaderView: View {
             } label: {
                 Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
             }
+            .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
 
             // Spread mode toggle (only in landscape + horizontal mode)
             if viewModel.isLandscape, viewModel.readingDirection != .vertical {
@@ -193,7 +198,7 @@ public struct MangaReaderView: View {
                 } label: {
                     Image(systemName: viewModel.forceSinglePage ? "rectangle" : "rectangle.split.2x1")
                 }
-                .help(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
+                .accessibilityLabel(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
             }
 
             Divider()
@@ -202,14 +207,18 @@ public struct MangaReaderView: View {
             // Reading direction picker
             Picker("Direction", selection: $viewModel.readingDirection) {
                 Image(systemName: "arrow.left")
+                    .accessibilityLabel("Right to left")
                     .tag(MangaReadingDirection.rightToLeft)
                 Image(systemName: "arrow.right")
+                    .accessibilityLabel("Left to right")
                     .tag(MangaReadingDirection.leftToRight)
                 Image(systemName: "arrow.down")
+                    .accessibilityLabel("Vertical")
                     .tag(MangaReadingDirection.vertical)
             }
             .pickerStyle(.segmented)
             .frame(width: 120)
+            .accessibilityLabel("Reading direction")
 
             Divider()
                 .frame(height: 20)

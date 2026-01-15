@@ -51,5 +51,6 @@ struct QuickReaderSettingsMenu: View {
         } label: {
             Image(systemName: "textformat.size.ja")
         }
+        .accessibilityLabel("Reader settings")
     }
 }
