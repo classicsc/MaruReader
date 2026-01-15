@@ -73,6 +73,7 @@ enum BookSortOption: String, CaseIterable, Identifiable {
 struct BookLibraryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
+    @AppStorage("selectedLibraryType") private var selectedLibraryType = LibraryType.books.rawValue
     @State private var sortOption: BookSortOption = .dateAdded
     @State private var showingFilePicker = false
     @State private var importError: Error?
@@ -92,12 +93,28 @@ struct BookLibraryView: View {
         )
     }
 
+    private var libraryTypeBinding: Binding<LibraryType> {
+        Binding(
+            get: { LibraryType(rawValue: selectedLibraryType) ?? .books },
+            set: { selectedLibraryType = $0.rawValue }
+        )
+    }
+
     var body: some View {
         NavigationStack {
             contentView
-                .navigationTitle("Library")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Picker("Library", selection: libraryTypeBinding) {
+                            ForEach(LibraryType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: { showingFilePicker = true }) {
                             Image(systemName: "plus")

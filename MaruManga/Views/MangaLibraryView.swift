@@ -24,6 +24,11 @@ import CoreData
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum MangaLibraryType: String, CaseIterable {
+    case books = "Books"
+    case manga = "Manga"
+}
+
 enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     case title = "Title"
     case author = "Author"
@@ -73,6 +78,7 @@ enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
 public struct MangaArchiveLibraryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
+    @AppStorage("selectedLibraryType") private var selectedLibraryType = MangaLibraryType.manga.rawValue
     @State private var sortOption: MangaArchiveSortOption = .dateAdded
     @State private var showingFilePicker = false
     @State private var importError: Error?
@@ -93,12 +99,28 @@ public struct MangaArchiveLibraryView: View {
         )
     }
 
+    private var libraryTypeBinding: Binding<MangaLibraryType> {
+        Binding(
+            get: { MangaLibraryType(rawValue: selectedLibraryType) ?? .manga },
+            set: { selectedLibraryType = $0.rawValue }
+        )
+    }
+
     public var body: some View {
         NavigationStack {
             contentView
-                .navigationTitle("Manga")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Picker("Library", selection: libraryTypeBinding) {
+                            ForEach(MangaLibraryType.allCases, id: \.self) { type in
+                                Text(type.rawValue).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: { showingFilePicker = true }) {
                             Image(systemName: "plus")

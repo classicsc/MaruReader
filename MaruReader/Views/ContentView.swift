@@ -23,9 +23,7 @@ import MaruWeb
 import SwiftUI
 
 struct ContentView: View {
-    private let bookPersistenceController = BookDataPersistenceController.shared
     private let dictionaryPersistenceController = DictionaryPersistenceController.shared
-    private let mangaPersistenceController = MangaDataPersistenceController.shared
 
     @State private var searchViewModel = DictionarySearchViewModel()
     @State private var query: String = ""
@@ -33,13 +31,8 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
-            Tab("Library", systemImage: "books.vertical") {
-                BookLibraryView()
-                    .environment(\.managedObjectContext, bookPersistenceController.container.viewContext)
-            }
-            Tab("Manga", systemImage: "book.closed") {
-                MangaArchiveLibraryView()
-                    .environment(\.managedObjectContext, mangaPersistenceController.container.viewContext)
+            Tab("Read", systemImage: "books.vertical") {
+                ReadLibraryView()
             }
             Tab("Scan", systemImage: "doc.text.viewfinder") {
                 OCRScanView()
@@ -70,6 +63,7 @@ struct ContentView: View {
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .tabViewSearchActivation(.searchTabSelection)
     }
 }
