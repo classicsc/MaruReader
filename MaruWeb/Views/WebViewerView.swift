@@ -1,0 +1,187 @@
+// WebViewerView.swift
+// MaruReader
+// Copyright (c) 2025  Sam Smoker
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import MaruDictionaryUICommon
+import MaruVision
+import MaruVisionUICommon
+import SwiftUI
+import WebKit
+
+public struct WebViewerView: View {
+    @State private var viewModel: WebViewerViewModel
+    @State private var selectedCluster: TextCluster?
+    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
+    @State private var webViewSize: CGSize = .zero
+    @State private var isEditingAddress = false
+    @Environment(\.dismiss) private var dismiss
+
+    public init(initialURL: URL? = nil) {
+        _viewModel = State(wrappedValue: WebViewerViewModel(initialURL: initialURL))
+    }
+
+    public var body: some View {
+        ZStack(alignment: .bottom) {
+            // Main web content area
+            VStack(spacing: 0) {
+                ZStack {
+                    WebView(viewModel.page)
+                        .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
+                            geometry.contentOffset.y
+                        } action: { oldOffset, newOffset in
+                            viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                        }
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear
+                                    .onAppear {
+                                        webViewSize = proxy.size
+                                    }
+                                    .onChange(of: proxy.size) { _, newSize in
+                                        webViewSize = newSize
+                                    }
+                            }
+                        )
+
+                    if viewModel.readingModeEnabled {
+                        WebReadingModeOverlay(
+                            isProcessing: viewModel.ocrViewModel.isProcessing,
+                            pagingMode: viewModel.pagingMode,
+                            onTap: { location, size in
+                                Task {
+                                    if let cluster = await viewModel.lookupCluster(at: location, in: size) {
+                                        selectedCluster = cluster
+                                    }
+                                }
+                            },
+                            onVerticalSwipe: { direction in
+                                viewModel.scrollByPage(direction: direction)
+                            },
+                            onHorizontalSwipe: { isLeft in
+                                viewModel.sendArrowKey(isLeft: isLeft)
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Floating toggle button (always visible)
+            floatingToggleButton
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 16)
+                .padding(.bottom, viewModel.overlayState.shouldShowToolbars ? 100 : 16)
+
+            // Bottom toolbar (conditionally visible)
+            if viewModel.overlayState.shouldShowToolbars {
+                WebToolbarView(
+                    addressText: $viewModel.addressBarText,
+                    isLoading: viewModel.page.isLoading,
+                    estimatedProgress: viewModel.page.estimatedProgress,
+                    canGoBack: !viewModel.page.backForwardList.backList.isEmpty,
+                    canGoForward: !viewModel.page.backForwardList.forwardList.isEmpty,
+                    isReadingModeEnabled: viewModel.readingModeEnabled,
+                    pagingMode: viewModel.pagingMode,
+                    isBookmarked: viewModel.isBookmarked,
+                    onAddressEditingChanged: { isEditing in
+                        isEditingAddress = isEditing
+                    },
+                    onSubmitAddress: {
+                        viewModel.navigate(to: viewModel.addressBarText)
+                    },
+                    onBack: {
+                        viewModel.goBack()
+                    },
+                    onForward: {
+                        viewModel.goForward()
+                    },
+                    onReload: {
+                        viewModel.reload()
+                    },
+                    onStopLoading: {
+                        viewModel.stopLoading()
+                    },
+                    onBookmark: {
+                        viewModel.toggleBookmark()
+                    },
+                    onToggleReadingMode: {
+                        viewModel.readingModeEnabled.toggle()
+                    },
+                    onTogglePagingMode: {
+                        viewModel.togglePagingMode()
+                    },
+                    onExit: {
+                        dismiss()
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
+        .onAppear {
+            viewModel.loadInitialURLIfNeeded()
+        }
+        .onChange(of: viewModel.page.url) { _, newValue in
+            if !isEditingAddress {
+                viewModel.updateAddressBar(from: newValue)
+            }
+            viewModel.refreshBookmarkState()
+        }
+        .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
+            // Auto-hide toolbar when entering reading mode
+            if isEnabled {
+                viewModel.overlayState = .none
+            }
+        }
+        .sheet(item: $selectedCluster) { cluster in
+            NavigationStack {
+                DictionarySearchView()
+                    .environment(searchSheetViewModel)
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                selectedCluster = nil
+                            }
+                        }
+                    }
+            }
+            .onAppear {
+                searchSheetViewModel.performSearch(cluster.transcript)
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .toolbar(.hidden, for: .tabBar)
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle(viewModel.overlayState.shouldShowToolbars ? viewModel.page.title : "")
+        .navigationBarBackButtonHidden()
+        .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .navigationBar)
+    }
+
+    private var floatingToggleButton: some View {
+        Button {
+            viewModel.toggleOverlay()
+        } label: {
+            Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.down" : "chevron.up")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 36, height: 36)
+        }
+        .glassEffect(in: .circle)
+        .animation(.easeInOut(duration: 0.2), value: viewModel.overlayState)
+    }
+}

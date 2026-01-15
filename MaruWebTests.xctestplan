@@ -1,0 +1,30 @@
+{
+  "configurations" : [
+    {
+      "id" : "D62CEEDD-16D7-4233-A5C6-E0BDDA70E5F1",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "commandLineArgumentEntries" : [
+      {
+        "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+      }
+    ],
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DBDCEC092F0F65AF00B42F93",
+        "name" : "MaruWebTests"
+      }
+    }
+  ],
+  "version" : 1
+}

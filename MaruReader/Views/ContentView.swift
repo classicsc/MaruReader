@@ -19,6 +19,7 @@ import CoreData
 import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
+import MaruWeb
 import SwiftUI
 
 struct ContentView: View {
@@ -42,6 +43,9 @@ struct ContentView: View {
             }
             Tab("Scan", systemImage: "doc.text.viewfinder") {
                 OCRScanView()
+            }
+            Tab("Web", systemImage: "globe") {
+                MaruWebRootView()
             }
             Tab("Settings", systemImage: "gear") {
                 SettingsView()
