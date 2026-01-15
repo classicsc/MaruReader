@@ -35,6 +35,12 @@ public struct MangaReaderView: View {
                 // Main page content
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
+                if viewModel.overlayState.shouldShowToolbars {
+                    floatingBackButton
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(.leading, 16)
+                        .padding(.top, 8)
+                }
             }
             .overlay(alignment: .top) {
                 if viewModel.overlayState.shouldShowToolbars {
@@ -138,27 +144,28 @@ public struct MangaReaderView: View {
     // MARK: - Top Floating Bar
 
     private var topFloatingBar: some View {
-        HStack(spacing: 10) {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.primary)
-            }
+        Text(viewModel.manga.title ?? "Manga")
+            .font(.headline)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(.clear)
+                    .glassEffect()
+            )
+    }
 
-            Text(viewModel.manga.title ?? "Manga")
-                .font(.headline)
-                .lineLimit(1)
-                .truncationMode(.tail)
+    private var floatingBackButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 14, weight: .semibold))
+                .frame(width: 36, height: 36)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(
-            Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
-        )
+        .glassEffect(in: .circle)
     }
 
     // MARK: - Bottom Toolbar
@@ -214,8 +221,8 @@ public struct MangaReaderView: View {
         .padding(.vertical, 12)
         .background(
             Capsule()
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 10, x: 0, y: 5)
+                .fill(.clear)
+                .glassEffect()
         )
         .frame(maxWidth: .infinity, alignment: .center)
     }
