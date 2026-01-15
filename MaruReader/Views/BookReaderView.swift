@@ -227,7 +227,6 @@ struct BookReaderView: View {
                 .fill(.clear)
                 .glassEffect()
         )
-        .tint(viewModel.readerPreferences.currentInterfaceForegroundColor ?? .primary)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.bottom, 20)
     }
