@@ -27,6 +27,7 @@ struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.dismiss) private var dismiss
 
     init(book: Book) {
         _viewModel = State(wrappedValue: BookReaderViewModel(book: book))
@@ -173,14 +174,24 @@ struct BookReaderView: View {
                         }
                     }
                 }
-                .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
+                .navigationBarBackButtonHidden(true)
                 .applyThemeColors(preferences: viewModel.readerPreferences)
 
+                // Floating back button (top-leading)
+                if viewModel.overlayState.shouldShowToolbars {
+                    floatingBackButton
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .padding(.leading, 16)
+                        .padding(.top, 8)
+                }
+
+                // Bottom toolbar
                 if viewModel.overlayState.shouldShowToolbars {
                     bottomToolbarOverlay
                         .frame(maxHeight: .infinity, alignment: .bottom)
                 }
             }
+            .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         }
     }
 
@@ -213,13 +224,26 @@ struct BookReaderView: View {
         .buttonStyle(.plain)
         .background(
             Capsule()
-                .fill(viewModel.readerPreferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground))
-                .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
+                .fill(.clear)
                 .glassEffect()
         )
         .tint(viewModel.readerPreferences.currentInterfaceForegroundColor ?? .primary)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.bottom, 20)
+    }
+
+    private var floatingBackButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "chevron.left")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(
+                    viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
+                )
+                .frame(width: 36, height: 36)
+        }
+        .glassEffect(in: .circle)
     }
 
     private func errorView(error: Error) -> some View {
