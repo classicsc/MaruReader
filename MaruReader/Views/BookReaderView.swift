@@ -174,7 +174,6 @@ struct BookReaderView: View {
                     }
                 }
                 .navigationBarBackButtonHidden(!viewModel.overlayState.shouldShowNavigationBackButton)
-                .disableInteractivePop()
                 .applyThemeColors(preferences: viewModel.readerPreferences)
 
                 if viewModel.overlayState.shouldShowToolbars {
@@ -261,45 +260,6 @@ private extension View {
         self
             .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .navigationBar)
             .tint(preferences.currentInterfaceForegroundColor ?? .primary)
-    }
-}
-
-// MARK: - Navigation Gesture Modifier
-
-private extension View {
-    /// Disables the interactive pop gesture to prevent conflicts with custom swipe gestures
-    func disableInteractivePop() -> some View {
-        background(NavigationPopDisabler())
-    }
-}
-
-private struct NavigationPopDisabler: UIViewControllerRepresentable {
-    func makeUIViewController(context _: Context) -> NavigationPopDisablerViewController {
-        NavigationPopDisablerViewController()
-    }
-
-    func updateUIViewController(_ uiViewController: NavigationPopDisablerViewController, context _: Context) {
-        uiViewController.disableGesture()
-    }
-}
-
-private class NavigationPopDisablerViewController: UIViewController {
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        disableGesture()
-    }
-
-    override func didMove(toParent parent: UIViewController?) {
-        super.didMove(toParent: parent)
-        disableGesture()
-    }
-
-    func disableGesture() {
-        if let navigationController {
-            navigationController.interactivePopGestureRecognizer?.isEnabled = false
-        } else if let navigationController = parent?.navigationController {
-            navigationController.interactivePopGestureRecognizer?.isEnabled = false
-        }
     }
 }
 
