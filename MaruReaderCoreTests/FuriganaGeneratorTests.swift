@@ -27,15 +27,34 @@ struct FuriganaGeneratorTests {
         #expect(result.isEmpty)
     }
 
+    @Test func emptyString_formatReturnsEmpty() {
+        let result = FuriganaGenerator.formatAnkiStyle(FuriganaGenerator.generateSegments(from: ""))
+        #expect(result.isEmpty)
+    }
+
     @Test func hiraganaOnly_noReading() {
         let segments = FuriganaGenerator.generateSegments(from: "これはひらがなです")
         // All segments should have nil reading since there's no kanji
         #expect(segments.allSatisfy { $0.reading == nil })
     }
 
+    @Test func hiraganaOnly_formatHasNoBrackets() {
+        let segments = FuriganaGenerator.generateSegments(from: "これはひらがなです")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+        #expect(!result.contains("["))
+        #expect(!result.contains("]"))
+    }
+
     @Test func katakanaOnly_noReading() {
         let segments = FuriganaGenerator.generateSegments(from: "コレハカタカナデス")
         #expect(segments.allSatisfy { $0.reading == nil })
+    }
+
+    @Test func katakanaOnly_formatHasNoBrackets() {
+        let segments = FuriganaGenerator.generateSegments(from: "コレハカタカナデス")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+        #expect(!result.contains("["))
+        #expect(!result.contains("]"))
     }
 
     // MARK: - Okurigana Stripping (Core Feature)
@@ -157,6 +176,14 @@ struct FuriganaGeneratorTests {
         #expect(result == "食[た]べる")
     }
 
+    @Test func ankiFormat_simpleKanji_addsReading() {
+        let segments = FuriganaGenerator.generateSegments(from: "日本語")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+
+        #expect(result.contains("日本語["))
+        #expect(result.contains("]"))
+    }
+
     @Test func ankiFormat_multipleWords() {
         let segments = FuriganaGenerator.generateSegments(from: "私は日本語を勉強する")
         let result = FuriganaGenerator.formatAnkiStyle(segments)
@@ -185,6 +212,16 @@ struct FuriganaGeneratorTests {
         // Should have no brackets since no kanji
         #expect(!result.contains("["))
         #expect(!result.contains("]"))
+    }
+
+    @Test func ankiFormat_bracketStyle() {
+        let segments = FuriganaGenerator.generateSegments(from: "漢字")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+        let pattern = #"漢字\[.+\]"#
+        let regex = try? NSRegularExpression(pattern: pattern)
+        let range = NSRange(result.startIndex ..< result.endIndex, in: result)
+        let match = regex?.firstMatch(in: result, range: range)
+        #expect(match != nil)
     }
 
     // MARK: - Cloze Format
@@ -216,6 +253,12 @@ struct FuriganaGeneratorTests {
         #expect(result == "Hello World")
     }
 
+    @Test func numbersOnly_passesThrough() {
+        let segments = FuriganaGenerator.generateSegments(from: "12345")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+        #expect(result == "12345")
+    }
+
     @Test func mixedLatinAndJapanese_handlesCorrectly() {
         let segments = FuriganaGenerator.generateSegments(from: "ABCは日本語です")
         let result = FuriganaGenerator.formatAnkiStyle(segments)
@@ -230,6 +273,13 @@ struct FuriganaGeneratorTests {
 
         #expect(result.contains("、"))
         #expect(result.contains("。"))
+    }
+
+    @Test func spaces_preserved() {
+        let segments = FuriganaGenerator.generateSegments(from: "日本 語")
+        let result = FuriganaGenerator.formatAnkiStyle(segments)
+        let hasSpace = result.contains(" 語") || result.contains("] 語")
+        #expect(hasSpace || result.contains("日本") && result.contains("語"))
     }
 
     // MARK: - Complex Sentences

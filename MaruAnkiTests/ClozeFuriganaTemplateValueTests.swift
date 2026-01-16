@@ -73,7 +73,7 @@ struct ClozeFuriganaTemplateValueTests {
         let suffix = await resolver.resolve(.clozeFuriganaSuffix).text ?? ""
 
         let combined = prefix + body + suffix
-        let expected = SentenceFuriganaGenerator.generate(from: context)
+        let expected = FuriganaGenerator.formatAnkiStyle(FuriganaGenerator.generateSegments(from: context))
 
         #expect(combined == expected)
         #expect(body.contains("["))
