@@ -28,9 +28,9 @@ public struct WebViewerView: View {
     @State private var viewModel: WebViewerViewModel
     @State private var selectedCluster: TextCluster?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
-    @State private var webViewSize: CGSize = .zero
     @State private var isEditingAddress = false
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.pixelLength) var onePixel
 
     public init(initialURL: URL? = nil) {
         _viewModel = State(wrappedValue: WebViewerViewModel(initialURL: initialURL))
@@ -47,22 +47,13 @@ public struct WebViewerView: View {
                         } action: { oldOffset, newOffset in
                             viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                         }
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear
-                                    .onAppear {
-                                        webViewSize = proxy.size
-                                    }
-                                    .onChange(of: proxy.size) { _, newSize in
-                                        webViewSize = newSize
-                                    }
-                            }
-                        )
+                        .padding(.top, onePixel)
 
                     if viewModel.readingModeEnabled {
                         WebReadingModeOverlay(
                             isProcessing: viewModel.ocrViewModel.isProcessing,
-                            pagingMode: viewModel.pagingMode,
+                            pagingAxis: viewModel.pagingAxis,
+                            pagingBehavior: viewModel.pagingBehavior,
                             onTap: { location, size in
                                 Task {
                                     if let cluster = await viewModel.lookupCluster(at: location, in: size) {
@@ -70,11 +61,8 @@ public struct WebViewerView: View {
                                     }
                                 }
                             },
-                            onVerticalSwipe: { direction in
-                                viewModel.scrollByPage(direction: direction)
-                            },
-                            onHorizontalSwipe: { isLeft in
-                                viewModel.sendArrowKey(isLeft: isLeft)
+                            onPageAction: { axis, behavior, direction in
+                                viewModel.performPagingAction(axis: axis, behavior: behavior, direction: direction)
                             }
                         )
                     }
@@ -96,7 +84,8 @@ public struct WebViewerView: View {
                     canGoBack: !viewModel.page.backForwardList.backList.isEmpty,
                     canGoForward: !viewModel.page.backForwardList.forwardList.isEmpty,
                     isReadingModeEnabled: viewModel.readingModeEnabled,
-                    pagingMode: viewModel.pagingMode,
+                    pagingAxis: viewModel.pagingAxis,
+                    pagingBehavior: viewModel.pagingBehavior,
                     isBookmarked: viewModel.isBookmarked,
                     onAddressEditingChanged: { isEditing in
                         isEditingAddress = isEditing
@@ -122,8 +111,11 @@ public struct WebViewerView: View {
                     onToggleReadingMode: {
                         viewModel.readingModeEnabled.toggle()
                     },
-                    onTogglePagingMode: {
-                        viewModel.togglePagingMode()
+                    onTogglePagingAxis: {
+                        viewModel.togglePagingAxis()
+                    },
+                    onTogglePagingBehavior: {
+                        viewModel.togglePagingBehavior()
                     },
                     onExit: {
                         dismiss()
@@ -168,11 +160,9 @@ public struct WebViewerView: View {
             }
             .presentationDetents([.medium, .large])
         }
-        .toolbar(.hidden, for: .tabBar)
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationTitle(viewModel.overlayState.shouldShowToolbars ? viewModel.page.title : "")
+        .toolbarVisibility(.hidden, for: .tabBar)
+        .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
-        .toolbarVisibility(viewModel.overlayState.shouldShowToolbars ? .visible : .hidden, for: .navigationBar)
     }
 
     private var floatingToggleButton: some View {

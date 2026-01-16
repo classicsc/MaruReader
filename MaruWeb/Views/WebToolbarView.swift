@@ -26,7 +26,8 @@ struct WebToolbarView: View {
     let canGoBack: Bool
     let canGoForward: Bool
     let isReadingModeEnabled: Bool
-    let pagingMode: ReadingPagingMode
+    let pagingAxis: ReadingPagingAxis
+    let pagingBehavior: ReadingPagingBehavior
     let isBookmarked: Bool
     var onAddressEditingChanged: ((Bool) -> Void)?
     let onSubmitAddress: () -> Void
@@ -36,7 +37,8 @@ struct WebToolbarView: View {
     let onStopLoading: () -> Void
     let onBookmark: () -> Void
     let onToggleReadingMode: () -> Void
-    let onTogglePagingMode: () -> Void
+    let onTogglePagingAxis: () -> Void
+    let onTogglePagingBehavior: () -> Void
     let onExit: () -> Void
 
     var body: some View {
@@ -70,28 +72,30 @@ struct WebToolbarView: View {
 
                 // Second row: Additional controls
                 HStack(spacing: 16) {
-                    // Navigation buttons
-                    Button(action: onBack) {
-                        Image(systemName: "chevron.backward")
-                            .font(.system(size: iconSize, weight: .medium))
-                    }
-                    .disabled(!canGoBack)
-                    .accessibilityLabel("Back")
-                    Spacer()
+                    if !isReadingModeEnabled {
+                        // Navigation buttons
+                        Button(action: onBack) {
+                            Image(systemName: "chevron.backward")
+                                .font(.system(size: iconSize, weight: .medium))
+                        }
+                        .disabled(!canGoBack)
+                        .accessibilityLabel("Back")
+                        Spacer()
 
-                    Button(action: onForward) {
-                        Image(systemName: "chevron.forward")
-                            .font(.system(size: iconSize, weight: .medium))
+                        Button(action: onForward) {
+                            Image(systemName: "chevron.forward")
+                                .font(.system(size: iconSize, weight: .medium))
+                        }
+                        .disabled(!canGoForward)
+                        .accessibilityLabel("Forward")
+                        Spacer()
+                        Button(action: onExit) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: iconSize, weight: .medium))
+                        }
+                        .accessibilityLabel("Exit Web Viewer")
+                        Spacer()
                     }
-                    .disabled(!canGoForward)
-                    .accessibilityLabel("Forward")
-                    Spacer()
-                    Button(action: onExit) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: iconSize, weight: .medium))
-                    }
-                    .accessibilityLabel("Exit Web Viewer")
-                    Spacer()
                     Button(action: onBookmark) {
                         Image(systemName: isBookmarked ? "bookmark.fill" : "bookmark")
                             .font(.system(size: iconSize, weight: .medium))
@@ -101,18 +105,23 @@ struct WebToolbarView: View {
 
                     Spacer()
                     Button(action: onToggleReadingMode) {
-                        Image(systemName: isReadingModeEnabled ? "hand.tap.fill" : "hand.tap")
+                        Image(systemName: isReadingModeEnabled ? "xmark" : "hand.tap")
                             .font(.system(size: iconSize, weight: .medium))
                     }
-                    .foregroundStyle(isReadingModeEnabled ? Color.accentColor : .primary)
                     .accessibilityLabel(isReadingModeEnabled ? "Disable Reading Mode" : "Enable Reading Mode")
 
                     if isReadingModeEnabled {
-                        Button(action: onTogglePagingMode) {
-                            Image(systemName: pagingMode == .horizontalPaging ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
+                        Button(action: onTogglePagingAxis) {
+                            Image(systemName: pagingAxis == .horizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
                                 .font(.system(size: iconSize, weight: .medium))
                         }
-                        .accessibilityLabel(pagingMode == .horizontalPaging ? "Switch to Vertical Scrolling" : "Switch to Horizontal Paging")
+                        .accessibilityLabel(pagingAxis == .horizontal ? "Switch to Vertical Paging" : "Switch to Horizontal Paging")
+
+                        Button(action: onTogglePagingBehavior) {
+                            Image(systemName: pagingBehavior == .scroll ? "hand.draw" : "keyboard")
+                                .font(.system(size: iconSize, weight: .medium))
+                        }
+                        .accessibilityLabel(pagingBehavior == .scroll ? "Switch to Keypress Paging" : "Switch to Scroll Paging")
                     }
                 }
             }

@@ -36,15 +36,18 @@ enum WebOverlayState {
     }
 }
 
-// MARK: - ReadingPagingMode
+// MARK: - Reading Paging
 
-/// Determines how swipe gestures behave in reading mode.
-enum ReadingPagingMode: String, CaseIterable {
-    /// Vertical swipes scroll content one screen at a time (for articles/blogs).
-    case verticalScroll
+/// Determines the swipe axis in reading mode.
+enum ReadingPagingAxis: String, CaseIterable {
+    case vertical
+    case horizontal
+}
 
-    /// Horizontal swipes send arrow key presses for paged readers (ebooks/manga).
-    case horizontalPaging
+/// Determines how paging is triggered for a given axis.
+enum ReadingPagingBehavior: String, CaseIterable {
+    case scroll
+    case keypress
 }
 
 // MARK: - WebViewerViewModel
@@ -60,7 +63,8 @@ final class WebViewerViewModel {
     var readingModeEnabled = false
     var isBookmarked = false
     var overlayState: WebOverlayState = .showingToolbars
-    var pagingMode: ReadingPagingMode = .verticalScroll
+    var pagingAxis: ReadingPagingAxis = .vertical
+    var pagingBehavior: ReadingPagingBehavior = .scroll
 
     private let session: WebSession
     private var initialURL: URL?
@@ -95,13 +99,12 @@ final class WebViewerViewModel {
         }
     }
 
-    func togglePagingMode() {
-        switch pagingMode {
-        case .verticalScroll:
-            pagingMode = .horizontalPaging
-        case .horizontalPaging:
-            pagingMode = .verticalScroll
-        }
+    func togglePagingAxis() {
+        pagingAxis = pagingAxis == .vertical ? .horizontal : .vertical
+    }
+
+    func togglePagingBehavior() {
+        pagingBehavior = pagingBehavior == .scroll ? .keypress : .scroll
     }
 
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
@@ -298,26 +301,54 @@ final class WebViewerViewModel {
 
     // MARK: - Reading Mode Paging
 
-    /// Scrolls the page by a specified amount relative to the viewport height.
-    /// - Parameter direction: Positive scrolls down, negative scrolls up.
-    func scrollByPage(direction: Int) {
-        let script = """
-        window.scrollBy({
-            top: window.innerHeight * \(direction) * 0.9,
-            behavior: 'smooth'
-        });
-        """
+    func performPagingAction(axis: ReadingPagingAxis, behavior: ReadingPagingBehavior, direction: Int) {
+        switch behavior {
+        case .scroll:
+            scrollByPage(axis: axis, direction: direction)
+        case .keypress:
+            sendPagingKey(axis: axis, direction: direction)
+        }
+    }
+
+    /// Scrolls the page by a specified amount relative to the viewport.
+    /// - Parameter direction: Positive scrolls down/right, negative scrolls up/left.
+    func scrollByPage(axis: ReadingPagingAxis, direction: Int) {
+        let script = switch axis {
+        case .vertical:
+            """
+            window.scrollBy({
+                top: window.innerHeight * \(direction) * 0.9,
+                behavior: 'smooth'
+            });
+            """
+        case .horizontal:
+            """
+            window.scrollBy({
+                left: window.innerWidth * \(direction) * 0.9,
+                behavior: 'smooth'
+            });
+            """
+        }
         Task { @MainActor in
             _ = try? await self.page.callJavaScript(script)
         }
     }
 
-    /// Sends an arrow key press to the page for horizontal paging.
+    /// Sends an arrow key press to the page for paging.
     /// Tries multiple dispatch targets and event types to maximize compatibility with web readers.
-    /// - Parameter isLeft: true for left arrow (previous), false for right arrow (next).
-    func sendArrowKey(isLeft: Bool) {
-        let key = isLeft ? "ArrowLeft" : "ArrowRight"
-        let keyCode = isLeft ? 37 : 39
+    /// - Parameter direction: Positive moves down/right, negative moves up/left.
+    func sendPagingKey(axis: ReadingPagingAxis, direction: Int) {
+        let (key, keyCode): (String, Int)
+        switch axis {
+        case .horizontal:
+            let isLeft = direction < 0
+            key = isLeft ? "ArrowLeft" : "ArrowRight"
+            keyCode = isLeft ? 37 : 39
+        case .vertical:
+            let isUp = direction < 0
+            key = isUp ? "ArrowUp" : "ArrowDown"
+            keyCode = isUp ? 38 : 40
+        }
         let script = """
         if (!document.activeElement || document.activeElement === document.body) {
           document.body.tabIndex = document.body.tabIndex || 0;

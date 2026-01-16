@@ -19,10 +19,10 @@ import SwiftUI
 
 struct WebReadingModeOverlay: View {
     let isProcessing: Bool
-    let pagingMode: ReadingPagingMode
+    let pagingAxis: ReadingPagingAxis
+    let pagingBehavior: ReadingPagingBehavior
     let onTap: (CGPoint, CGSize) -> Void
-    let onVerticalSwipe: (_ direction: Int) -> Void
-    let onHorizontalSwipe: (_ isLeft: Bool) -> Void
+    let onPageAction: (_ axis: ReadingPagingAxis, _ behavior: ReadingPagingBehavior, _ direction: Int) -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -58,18 +58,16 @@ struct WebReadingModeOverlay: View {
                 let horizontalDistance = value.translation.width
                 let verticalDistance = value.translation.height
 
-                switch pagingMode {
-                case .verticalScroll:
-                    // Vertical swipes scroll by page
+                switch pagingAxis {
+                case .vertical:
                     if abs(verticalDistance) > abs(horizontalDistance) {
                         let direction = verticalDistance < 0 ? 1 : -1
-                        onVerticalSwipe(direction)
+                        onPageAction(pagingAxis, pagingBehavior, direction)
                     }
-                case .horizontalPaging:
-                    // Horizontal swipes send arrow keys
+                case .horizontal:
                     if abs(horizontalDistance) > abs(verticalDistance) {
-                        let isLeft = horizontalDistance > 0
-                        onHorizontalSwipe(isLeft)
+                        let direction = horizontalDistance < 0 ? 1 : -1
+                        onPageAction(pagingAxis, pagingBehavior, direction)
                     }
                 }
             }
