@@ -595,34 +595,31 @@ extension StructuredElement {
         return string
     }
 
-    private func keyToCamelCase(_ key: String) -> String {
-        let lowerKey = key.lowercased()
-        let parts = lowerKey.components(separatedBy: "-").filter { !$0.isEmpty }
-        guard !parts.isEmpty else { return "" }
-        let camelParts = parts.enumerated().map { index, part -> String in
-            if index == 0 {
-                return part
+    private func dataAttributeName(for key: String) -> String? {
+        guard !key.isEmpty else { return nil }
+        let normalizedKey = key.prefix(1).uppercased() + key.dropFirst()
+        let scKey = "sc\(normalizedKey)"
+        var kebab = ""
+        for character in scKey {
+            if character.isUppercase {
+                if !kebab.isEmpty {
+                    kebab.append("-")
+                }
+                kebab.append(character.lowercased())
             } else {
-                guard part.count > 0 else { return "" }
-                return String(part.prefix(1)).uppercased() + part.dropFirst()
+                kebab.append(character)
             }
         }
-        let camel = camelParts.joined(separator: "")
-        guard camel.count > 0 else { return "" }
-        return String(camel.prefix(1)).uppercased() + camel.dropFirst()
+        return "data-\(kebab)"
     }
 
     private func transformedDataAttrs(data: [String: String]?) -> [String] {
         guard let data, !data.isEmpty else { return [] }
         var attrs: [String] = []
         for (key, value) in data {
-            if key.isEmpty { continue }
-            let camel = keyToCamelCase(key)
-            if !camel.isEmpty {
-                let scKey = "sc\(camel)"
-                let attr = "data-\(scKey)=\"\(escapeHTML(value))\""
-                attrs.append(attr)
-            }
+            guard let attributeName = dataAttributeName(for: key) else { continue }
+            let attr = "\(attributeName)=\"\(escapeHTML(value))\""
+            attrs.append(attr)
         }
         return attrs
     }

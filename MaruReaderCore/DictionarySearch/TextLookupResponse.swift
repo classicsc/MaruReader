@@ -138,10 +138,69 @@ public struct TextLookupResponse: Sendable {
             --font-family: "\(fontFamilyEsc)";
             --content-font-size-multiplier: \(styles.contentFontSize);
             --popup-font-size-multiplier: \(styles.popupFontSize);
+            --font-size-no-units: calc(16 * var(--content-font-size-multiplier));
             --deinflection-display: \(styles.showDeinflection ? "inline-block" : "none");
         }
         </style>
         """
+    }
+
+    private func dictionaryStylesHTML() -> String {
+        Self.dictionaryStylesHTML(for: results, stylesheetProvider: Self.loadDictionaryStylesheet)
+    }
+
+    static func dictionaryStylesHTML(
+        for results: [GroupedSearchResults],
+        stylesheetProvider: (UUID) -> String?
+    ) -> String {
+        let dictionaries = results.flatMap(\.dictionariesResults)
+        var seen: Set<UUID> = []
+        var scopedStyles: [String] = []
+
+        for dictionary in dictionaries {
+            guard seen.insert(dictionary.dictionaryUUID).inserted else { continue }
+            guard let stylesheet = stylesheetProvider(dictionary.dictionaryUUID) else { continue }
+            let trimmedStylesheet = stylesheet.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedStylesheet.isEmpty else { continue }
+
+            let escapedTitle = dictionary.dictionaryTitle.cssEscape()
+            scopedStyles.append("""
+            [data-dictionary="\(escapedTitle)"] {
+            \(trimmedStylesheet)
+            }
+            """)
+        }
+
+        guard !scopedStyles.isEmpty else { return "" }
+
+        return """
+        <style id="dictionary-styles">
+        \(scopedStyles.joined(separator: "\n"))
+        </style>
+        """
+    }
+
+    private static func loadDictionaryStylesheet(for dictionaryID: UUID) -> String? {
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            return nil
+        }
+
+        let stylesheetURL = appGroupDir
+            .appendingPathComponent("Media", isDirectory: true)
+            .appendingPathComponent(dictionaryID.uuidString, isDirectory: true)
+            .appendingPathComponent("styles.css", isDirectory: false)
+
+        guard (try? stylesheetURL.checkResourceIsReachable()) == true else {
+            return nil
+        }
+
+        guard let data = try? Data(contentsOf: stylesheetURL) else {
+            return nil
+        }
+
+        return String(decoding: data, as: UTF8.self)
     }
 
     private func termFrequencyHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
@@ -663,10 +722,11 @@ public struct TextLookupResponse: Sendable {
                     let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
                         "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>"
                     }.joined(separator: "") ?? ""
+                    let dictionaryTitleEsc = dictionaryResult.dictionaryTitle.escapeHTML()
 
                     return """
-                    <div class="popup-dictionary-section">
-                        <h3 class="popup-dictionary-header">\(defTagsHTML)\(dictionaryResult.dictionaryTitle.escapeHTML())</h3>
+                    <div class="popup-dictionary-section" data-dictionary="\(dictionaryTitleEsc)">
+                        <h3 class="popup-dictionary-header">\(defTagsHTML)\(dictionaryTitleEsc)</h3>
                         <div class="popup-dictionary-content">
                             \(dictionaryResult.combinedHTML)
                         </div>
@@ -685,6 +745,7 @@ public struct TextLookupResponse: Sendable {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
             <link rel="stylesheet" href="marureader-resource://popup.css">
+            \(dictionaryStylesHTML())
             <script src="marureader-resource://audioDisplay.js"></script>
             <script src="marureader-resource://ankiDisplay.js"></script>
             <script>
@@ -747,10 +808,11 @@ public struct TextLookupResponse: Sendable {
                     let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
                         "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>"
                     }.joined(separator: "") ?? ""
+                    let dictionaryTitleEsc = dictionaryResult.dictionaryTitle.escapeHTML()
 
                     return """
-                    <section class="dictionary-section">
-                        <h3 class="dictionary-header">\(defTagsHTML)\(dictionaryResult.dictionaryTitle.escapeHTML())</h3>
+                    <section class="dictionary-section" data-dictionary="\(dictionaryTitleEsc)">
+                        <h3 class="dictionary-header">\(defTagsHTML)\(dictionaryTitleEsc)</h3>
                         <div class="dictionary-content">
                             \(dictionaryResult.combinedHTML)
                         </div>
@@ -768,6 +830,7 @@ public struct TextLookupResponse: Sendable {
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <link rel="stylesheet" href="marureader-resource://structured-content.css">
+            \(dictionaryStylesHTML())
             <script src="marureader-resource://domUtilities.js"></script>
             <script src="marureader-resource://textScanning.js"></script>
             <script src="marureader-resource://textHighlighting.js"></script>

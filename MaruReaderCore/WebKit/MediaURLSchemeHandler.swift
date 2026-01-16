@@ -131,6 +131,8 @@ public struct MediaURLSchemeHandler: URLSchemeHandler {
 
         // Fallback for common media types
         switch pathExtension {
+        case "css":
+            return "text/css"
         case "png":
             return "image/png"
         case "jpg", "jpeg":

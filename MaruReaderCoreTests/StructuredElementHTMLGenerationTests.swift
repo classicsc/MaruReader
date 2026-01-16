@@ -385,8 +385,8 @@ struct DictionaryContentMarkupTests {
 
         let html = element.toHTML()
         #expect(html.contains("<div class=\"gloss-sc-div\" "))
-        #expect(html.contains("data-scId=\"123\""))
-        #expect(html.contains("data-scType=\"example\""))
+        #expect(html.contains("data-sc-id=\"123\""))
+        #expect(html.contains("data-sc-type=\"example\""))
         #expect(!html.contains("style="))
     }
 
@@ -432,7 +432,7 @@ struct DictionaryContentMarkupTests {
         #expect(hrHtml.contains("class=\"gloss-sc-hr gloss-border-partial\""))
         #expect(hrHtml.contains("<hr "))
         #expect(hrHtml.contains("/>"))
-        #expect(!hrHtml.contains("data-scBorderWidth=\"1px\""))
+        #expect(!hrHtml.contains("data-sc-border-width=\"1px\""))
         #expect(hrHtml.contains("style=\"border-width:"))
     }
 
@@ -569,10 +569,10 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = divElement.toHTML()
-        #expect(html.contains("lang=\"en\" class=\"gloss-sc-div gloss-background gloss-padding\" style=\"background-color: #f0f0f0; padding: 10px\" data-scSection=\"main\">"))
+        #expect(html.contains("lang=\"en\" class=\"gloss-sc-div gloss-background gloss-padding\" style=\"background-color: #f0f0f0; padding: 10px\" data-sc-section=\"main\">"))
         #expect(html.contains("padding: 10px"))
         #expect(html.contains("style=\"background-color:"))
-        #expect(html.contains("data-scSection=\"main\""))
+        #expect(html.contains("data-sc-section=\"main\""))
         #expect(html.contains("<a class=\"gloss-link gloss-text-underline\" style=\"color: #0000FF; text-decoration-line: underline\" href=\"https://example.com\" "))
         #expect(html.contains("gloss-text-underline"))
         #expect(!html.contains("style=\"color: #0000FF\""))
