@@ -336,12 +336,12 @@ struct DataBankProcessingTask {
         skipCRC32: Bool = true,
         body: (URL) async throws -> T
     ) async throws -> T {
-        guard archiveURL.startAccessingSecurityScopedResource() else {
-            throw DictionaryImportError.fileAccessDenied
-        }
-
+        // Access security scoped resource if needed (returns false for in-sandbox files)
+        let didStartAccess = archiveURL.startAccessingSecurityScopedResource()
         defer {
-            archiveURL.stopAccessingSecurityScopedResource()
+            if didStartAccess {
+                archiveURL.stopAccessingSecurityScopedResource()
+            }
         }
 
         let archive: Archive

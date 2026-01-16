@@ -56,13 +56,12 @@ struct MetadataProcessingTask {
 
         try Task.checkCancellation()
 
-        // Access security scoped resource
-        guard fileURL.startAccessingSecurityScopedResource() else {
-            throw BookImportError.fileAccessDenied
-        }
-
+        // Access security scoped resource if needed (returns false for in-sandbox files)
+        let didStartAccess = fileURL.startAccessingSecurityScopedResource()
         defer {
-            fileURL.stopAccessingSecurityScopedResource()
+            if didStartAccess {
+                fileURL.stopAccessingSecurityScopedResource()
+            }
         }
 
         // Check if file exists and is accessible

@@ -74,12 +74,12 @@ struct MediaCopyProcessingTask {
             try fileManager.createDirectory(at: mediaDir, withIntermediateDirectories: true, attributes: nil)
         }
 
-        guard archiveURL.startAccessingSecurityScopedResource() else {
-            throw DictionaryImportError.fileAccessDenied
-        }
-
+        // Access security scoped resource if needed (returns false for in-sandbox files)
+        let didStartAccess = archiveURL.startAccessingSecurityScopedResource()
         defer {
-            archiveURL.stopAccessingSecurityScopedResource()
+            if didStartAccess {
+                archiveURL.stopAccessingSecurityScopedResource()
+            }
         }
 
         let archive: Archive

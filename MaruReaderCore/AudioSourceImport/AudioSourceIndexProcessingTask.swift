@@ -62,12 +62,12 @@ struct AudioSourceIndexProcessingTask {
             return jobURL
         }
 
-        guard jobURL.startAccessingSecurityScopedResource() else {
-            throw AudioSourceImportError.fileAccessDenied
-        }
-
+        // Access security scoped resource if needed (returns false for in-sandbox files)
+        let didStartAccess = jobURL.startAccessingSecurityScopedResource()
         defer {
-            jobURL.stopAccessingSecurityScopedResource()
+            if didStartAccess {
+                jobURL.stopAccessingSecurityScopedResource()
+            }
         }
 
         guard FileManager.default.fileExists(atPath: jobURL.path) else {

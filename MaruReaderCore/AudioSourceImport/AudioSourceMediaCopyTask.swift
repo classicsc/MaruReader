@@ -81,12 +81,12 @@ struct AudioSourceMediaCopyTask {
             try fileManager.createDirectory(at: destMediaDir, withIntermediateDirectories: true, attributes: nil)
         }
 
-        guard archiveURL.startAccessingSecurityScopedResource() else {
-            throw AudioSourceImportError.fileAccessDenied
-        }
-
+        // Access security scoped resource if needed (returns false for in-sandbox files)
+        let didStartAccess = archiveURL.startAccessingSecurityScopedResource()
         defer {
-            archiveURL.stopAccessingSecurityScopedResource()
+            if didStartAccess {
+                archiveURL.stopAccessingSecurityScopedResource()
+            }
         }
 
         let archive: Archive
