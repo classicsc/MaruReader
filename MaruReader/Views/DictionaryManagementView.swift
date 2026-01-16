@@ -30,6 +30,8 @@ struct DictionaryManagementView: View {
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
+    @State private var updateError: Error?
+    @State private var showingUpdateError = false
     @State private var dictionaryToDelete: Dictionary?
     @State private var showingDeleteConfirmation = false
 
@@ -38,9 +40,20 @@ struct DictionaryManagementView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.title, ascending: true),
         ],
+        predicate: NSPredicate(format: "pendingDeletion == NO"),
         animation: .default
     )
     private var dictionaries: FetchedResults<Dictionary>
+
+    @FetchRequest(
+        entity: DictionaryUpdateTask.entity(),
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \DictionaryUpdateTask.timeQueued, ascending: true),
+        ],
+        predicate: NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO"),
+        animation: .default
+    )
+    private var updateTasks: FetchedResults<DictionaryUpdateTask>
 
     private var unifiedDictionaries: [Dictionary] {
         let incomplete = dictionaries
@@ -59,8 +72,24 @@ struct DictionaryManagementView: View {
         return incomplete + complete
     }
 
+    private var updateReadyDictionaries: [Dictionary] {
+        unifiedDictionaries.filter { $0.isComplete && $0.updateReady }
+    }
+
+    private var hasUpdatesAvailable: Bool {
+        !updateReadyDictionaries.isEmpty
+    }
+
     var body: some View {
         List {
+            if !updateTasks.isEmpty {
+                Section("Updates") {
+                    ForEach(updateTasks, id: \.objectID) { task in
+                        DictionaryUpdateTaskRow(task: task)
+                    }
+                }
+            }
+
             Section("Dictionaries") {
                 if dictionaries.isEmpty {
                     ContentUnavailableView(
@@ -77,7 +106,8 @@ struct DictionaryManagementView: View {
                             onDelete: {
                                 dictionaryToDelete = dictionary
                                 showingDeleteConfirmation = true
-                            }
+                            },
+                            onUpdate: { startUpdate(dictionary) }
                         )
                     }
                 }
@@ -87,8 +117,20 @@ struct DictionaryManagementView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .secondaryAction) {
+                Button(action: checkForUpdates) {
+                    Label("Check Updates", systemImage: "arrow.triangle.2.circlepath")
+                }
+            }
+            ToolbarItem(placement: .secondaryAction) {
                 NavigationLink(destination: DictionaryPriorityView()) {
                     Label("Priorities", systemImage: "arrow.up.arrow.down")
+                }
+            }
+            if hasUpdatesAvailable {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: updateAll) {
+                        Label("Update All", systemImage: "arrow.down.circle")
+                    }
                 }
             }
             ToolbarItem(placement: .primaryAction) {
@@ -111,6 +153,16 @@ struct DictionaryManagementView: View {
             }
         } message: {
             if let error = importError {
+                Text(error.localizedDescription)
+            }
+        }
+        .alert("Update Error", isPresented: $showingUpdateError) {
+            Button("OK") {
+                showingUpdateError = false
+                updateError = nil
+            }
+        } message: {
+            if let error = updateError {
                 Text(error.localizedDescription)
             }
         }
@@ -163,6 +215,32 @@ struct DictionaryManagementView: View {
             await DictionaryImportManager.shared.deleteDictionary(dictionaryID: dictionary.objectID)
         }
     }
+
+    private func checkForUpdates() {
+        Task {
+            _ = await DictionaryUpdateManager.shared.checkForUpdates()
+        }
+    }
+
+    private func updateAll() {
+        let dictionaryIDs = updateReadyDictionaries.map(\.objectID)
+        Task {
+            await DictionaryUpdateManager.shared.enqueueUpdates(for: dictionaryIDs)
+        }
+    }
+
+    private func startUpdate(_ dictionary: Dictionary) {
+        Task {
+            do {
+                _ = try await DictionaryUpdateManager.shared.enqueueUpdate(for: dictionary.objectID)
+            } catch {
+                await MainActor.run {
+                    updateError = error
+                    showingUpdateError = true
+                }
+            }
+        }
+    }
 }
 
 struct DictionaryListRow: View {
@@ -170,10 +248,11 @@ struct DictionaryListRow: View {
     let onCancel: () -> Void
     let onRemove: () -> Void
     let onDelete: () -> Void
+    let onUpdate: () -> Void
 
     var body: some View {
         if dictionary.isComplete {
-            DictionaryRow(dictionary: dictionary, onDelete: onDelete)
+            DictionaryRow(dictionary: dictionary, onDelete: onDelete, onUpdate: onUpdate)
         } else if dictionary.isFailed || dictionary.isCancelled {
             FailedDictionaryRow(dictionary: dictionary, onRemove: onRemove)
         } else {
@@ -321,6 +400,7 @@ struct FailedDictionaryRow: View {
 struct DictionaryRow: View {
     let dictionary: Dictionary
     let onDelete: () -> Void
+    let onUpdate: () -> Void
     @State private var showExpandedMetadata = false
 
     var body: some View {
@@ -362,6 +442,12 @@ struct DictionaryRow: View {
                 }
 
                 Spacer()
+
+                if dictionary.updateReady, !dictionary.pendingDeletion {
+                    Button("Update", action: onUpdate)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
 
                 Button(action: { showExpandedMetadata.toggle() }) {
                     Image(systemName: showExpandedMetadata ? "chevron.up" : "chevron.down")
@@ -420,5 +506,55 @@ struct DictionaryRow: View {
             }
         }
         .disabled(dictionary.pendingDeletion)
+    }
+}
+
+struct DictionaryUpdateTaskRow: View {
+    @ObservedObject var task: DictionaryUpdateTask
+
+    private var progressValue: Double? {
+        guard task.totalBytes > 0 else { return nil }
+        return Double(task.bytesReceived) / Double(task.totalBytes)
+    }
+
+    private var progressText: String? {
+        guard task.totalBytes > 0 else { return nil }
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        let received = formatter.string(fromByteCount: task.bytesReceived)
+        let total = formatter.string(fromByteCount: task.totalBytes)
+        return "\(received) of \(total)"
+    }
+
+    private var statusMessage: String {
+        if let message = task.displayProgressMessage, !message.isEmpty {
+            return message
+        }
+        return task.isStarted ? "Updating..." : "Queued for update."
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(task.dictionaryTitle ?? "Dictionary Update")
+                .font(.headline)
+                .lineLimit(1)
+
+            Text(statusMessage)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if let progressValue {
+                ProgressView(value: progressValue)
+            } else {
+                ProgressView()
+            }
+
+            if let progressText {
+                Text(progressText)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }

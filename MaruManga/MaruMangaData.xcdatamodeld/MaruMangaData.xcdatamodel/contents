@@ -14,6 +14,7 @@
         <attribute name="lastReadPage" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="localFileName" optional="YES" attributeType="String"/>
         <attribute name="originalFileName" optional="YES" attributeType="String"/>
+        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="readingDirection" optional="YES" attributeType="String"/>
         <attribute name="readingMode" optional="YES" attributeType="String"/>
         <attribute name="readingOrientation" optional="YES" attributeType="String"/>

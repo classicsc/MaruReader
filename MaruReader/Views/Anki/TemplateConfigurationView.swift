@@ -120,7 +120,7 @@ struct TemplateConfigurationView: View {
         let context = DictionaryPersistenceController.shared.newBackgroundContext()
         let termDicts = await context.perform {
             let request = NSFetchRequest<Dictionary>(entityName: "Dictionary")
-            request.predicate = NSPredicate(format: "isComplete == YES AND termCount > 0")
+            request.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO AND termCount > 0")
             request.sortDescriptors = [
                 NSSortDescriptor(key: "termDisplayPriority", ascending: true),
                 NSSortDescriptor(key: "title", ascending: true),

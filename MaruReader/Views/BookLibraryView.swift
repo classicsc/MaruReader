@@ -88,7 +88,7 @@ struct BookLibraryView: View {
         books = FetchRequest<Book>(
             entity: Book.entity(),
             sortDescriptors: initialSortOption.nsSortDescriptors,
-            predicate: nil,
+            predicate: NSPredicate(format: "pendingDeletion == NO"),
             animation: .default
         )
     }

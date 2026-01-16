@@ -30,6 +30,47 @@ struct DictionaryPersistenceTests {
         case missingFile(String)
     }
 
+    final class MockUpdateNetworkProvider: NetworkProviding, @unchecked Sendable {
+        private(set) var requestedURLs: [URL] = []
+        private var responses: [URL: (Data, URLResponse)] = [:]
+
+        func queueResponse(url: URL, data: Data, statusCode: Int = 200, expectedLength: Int64? = nil) {
+            let headers: [String: String]? = if let expectedLength {
+                ["Content-Length": "\(expectedLength)"]
+            } else {
+                nil
+            }
+            let response = HTTPURLResponse(
+                url: url,
+                statusCode: statusCode,
+                httpVersion: nil,
+                headerFields: headers
+            )!
+            responses[url] = (data, response)
+        }
+
+        func data(from url: URL) async throws -> (Data, URLResponse) {
+            requestedURLs.append(url)
+            if let response = responses[url] {
+                return response
+            }
+            let response = HTTPURLResponse(url: url, statusCode: 404, httpVersion: nil, headerFields: nil)!
+            return (Data(), response)
+        }
+    }
+
+    actor MockAnkiUpdater: DictionaryUpdateAnkiPreferencesUpdating {
+        private(set) var replacements: [(UUID, UUID)] = []
+
+        func replaceDictionaryIDs(oldID: UUID, newID: UUID) async {
+            replacements.append((oldID, newID))
+        }
+
+        func lastReplacement() -> (UUID, UUID)? {
+            replacements.last
+        }
+    }
+
     // Helper: Create a mock ZIP file with given JSON contents
     private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -1245,5 +1286,259 @@ struct DictionaryPersistenceTests {
         if let mediaDir {
             #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Media directory should be deleted")
         }
+    }
+
+    @Test @MainActor func checkForUpdates_MarksUpdateReadyAndStoresDownloadURL() async throws {
+        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let networkProvider = MockUpdateNetworkProvider()
+        let updateManager = DictionaryUpdateManager(
+            container: persistenceController.container,
+            importManager: importManager,
+            networkProvider: networkProvider
+        )
+
+        let indexURL = URL(string: "https://example.com/index.json")!
+        let indexJSON = """
+        {
+            "title": "Test Dictionary",
+            "revision": "2.0",
+            "format": 3,
+            "downloadUrl": "https://example.com/new.zip",
+            "indexUrl": "https://example.com/index.json",
+            "isUpdatable": true
+        }
+        """
+        networkProvider.queueResponse(url: indexURL, data: Data(indexJSON.utf8))
+
+        let context = persistenceController.container.newBackgroundContext()
+        let dictionaryID = try await context.perform {
+            let dictionary = Dictionary(context: context)
+            dictionary.id = UUID()
+            dictionary.title = "Test Dictionary"
+            dictionary.timeQueued = Date()
+            dictionary.isComplete = true
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.pendingDeletion = false
+            dictionary.isUpdatable = true
+            dictionary.indexURL = "https://example.com/index.json"
+            dictionary.downloadURL = "https://example.com/old.zip"
+            dictionary.revision = "1.0"
+            try context.save()
+            return dictionary.objectID
+        }
+
+        let updateCount = await updateManager.checkForUpdates()
+
+        let viewContext = persistenceController.container.viewContext
+        let dictionary = getDictionary(from: viewContext, importID: dictionaryID)
+        #expect(updateCount == 1)
+        #expect(dictionary?.updateReady == true)
+        #expect(dictionary?.downloadURL == "https://example.com/new.zip")
+    }
+
+    @Test @MainActor func updateDictionary_CopiesPreferencesAndUpdatesAnki() async throws {
+        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let networkProvider = MockUpdateNetworkProvider()
+        let updateManager = DictionaryUpdateManager(
+            container: persistenceController.container,
+            importManager: importManager,
+            networkProvider: networkProvider
+        )
+        let ankiUpdater = MockAnkiUpdater()
+        await updateManager.setAnkiPreferencesUpdater(ankiUpdater)
+
+        let updatedIndexJSON = """
+        {
+            "title": "Updated Dictionary",
+            "revision": "2.0",
+            "format": 3,
+            "downloadUrl": "https://example.com/update.zip",
+            "indexUrl": "https://example.com/index.json",
+            "isUpdatable": true
+        }
+        """
+        let termJSON = """
+        [
+            ["更新", "こうしん", "", "", 0, ["update"], 1, ""]
+        ]
+        """
+        let termMetaJSON = """
+        [
+            [
+                "更新",
+                "freq",
+                {"value": 1200, "displayValue": "1200"}
+            ],
+            [
+                "更新",
+                "pitch",
+                {
+                    "reading": "こうしん",
+                    "pitches": [
+                        {"position": 2}
+                    ]
+                }
+            ],
+            [
+                "更新",
+                "ipa",
+                {
+                    "reading": "こうしん",
+                    "transcriptions": [
+                        {"ipa": "/koːɕin/"}
+                    ]
+                }
+            ]
+        ]
+        """
+        let kanjiJSON = """
+        [
+            [
+                "更",
+                "コウ",
+                "さら",
+                "",
+                ["renew"],
+                {"freq": "500"}
+            ]
+        ]
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: updatedIndexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: termMetaJSON,
+            kanjiJSON: kanjiJSON,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let downloadURL = URL(string: "https://example.com/update.zip")!
+        let zipData = try Data(contentsOf: zipURL)
+        networkProvider.queueResponse(url: downloadURL, data: zipData, expectedLength: Int64(zipData.count))
+
+        let oldDictionaryUUID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        let oldDictionaryID = try await context.perform {
+            let dictionary = Dictionary(context: context)
+            dictionary.id = oldDictionaryUUID
+            dictionary.title = "Old Dictionary"
+            dictionary.timeQueued = Date()
+            dictionary.isComplete = true
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.pendingDeletion = false
+            dictionary.isUpdatable = true
+            dictionary.updateReady = true
+            dictionary.downloadURL = "https://example.com/update.zip"
+            dictionary.indexURL = "https://example.com/index.json"
+            dictionary.revision = "1.0"
+            dictionary.termDisplayPriority = 2
+            dictionary.kanjiDisplayPriority = 3
+            dictionary.ipaDisplayPriority = 4
+            dictionary.pitchDisplayPriority = 5
+            dictionary.termFrequencyDisplayPriority = 6
+            dictionary.kanjiFrequencyDisplayPriority = 7
+            dictionary.termResultsEnabled = true
+            dictionary.kanjiResultsEnabled = true
+            dictionary.termFrequencyEnabled = true
+            dictionary.kanjiFrequencyEnabled = false
+            dictionary.pitchAccentEnabled = true
+            dictionary.ipaEnabled = true
+            dictionary.termCount = 1
+            dictionary.kanjiCount = 1
+            dictionary.termFrequencyCount = 1
+            dictionary.kanjiFrequencyCount = 1
+            dictionary.pitchesCount = 1
+            dictionary.ipaCount = 1
+            try context.save()
+            return dictionary.objectID
+        }
+
+        let taskID = try await updateManager.enqueueUpdate(for: oldDictionaryID)
+        await updateManager.waitForCompletion(taskID: taskID)
+
+        let viewContext = persistenceController.container.viewContext
+        let dictionaries = fetchDictionaries(from: viewContext)
+        let oldDictionary = dictionaries.first { $0.id == oldDictionaryUUID }
+        let newDictionary = dictionaries.first { $0.id != oldDictionaryUUID && $0.isComplete }
+        #expect(oldDictionary == nil || oldDictionary?.pendingDeletion == true)
+        #expect(newDictionary != nil)
+
+        if let newDictionary {
+            #expect(newDictionary.termDisplayPriority == 2)
+            #expect(newDictionary.kanjiDisplayPriority == 3)
+            #expect(newDictionary.ipaDisplayPriority == 4)
+            #expect(newDictionary.pitchDisplayPriority == 5)
+            #expect(newDictionary.termFrequencyDisplayPriority == 6)
+            #expect(newDictionary.kanjiFrequencyDisplayPriority == 7)
+            #expect(newDictionary.termResultsEnabled == true)
+            #expect(newDictionary.kanjiResultsEnabled == true)
+            #expect(newDictionary.termFrequencyEnabled == true)
+            #expect(newDictionary.kanjiFrequencyEnabled == false)
+            #expect(newDictionary.pitchAccentEnabled == true)
+            #expect(newDictionary.ipaEnabled == true)
+        }
+
+        let replacement = await ankiUpdater.lastReplacement()
+        #expect(replacement?.0 == oldDictionaryUUID)
+        #expect(replacement?.1 == newDictionary?.id)
+    }
+
+    @Test @MainActor func cleanupInterruptedUpdateImports_RetriesInsteadOfFailing() async throws {
+        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+
+        let indexJSON = """
+        {
+            "title": "Retry Dictionary",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["再試行", "さいしこう", "", "", 0, ["retry"], 1, ""]
+        ]
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let dictionaryUUID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        let importID = try await context.perform {
+            let dictionary = Dictionary(context: context)
+            dictionary.id = dictionaryUUID
+            dictionary.title = "Retry Dictionary"
+            dictionary.file = zipURL
+            dictionary.timeQueued = Date()
+            dictionary.isComplete = false
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.isStarted = true
+            dictionary.updateTaskID = UUID()
+            dictionary.displayProgressMessage = "Importing..."
+            dictionary.termCount = 1
+            try context.save()
+            return dictionary.objectID
+        }
+
+        await importManager.cleanupInterruptedImports()
+        await importManager.waitForCompletion(jobID: importID)
+
+        let viewContext = persistenceController.container.viewContext
+        let dictionary = getDictionary(from: viewContext, importID: importID)
+        #expect(dictionary?.isComplete == true)
+        #expect(dictionary?.isFailed == false)
     }
 }

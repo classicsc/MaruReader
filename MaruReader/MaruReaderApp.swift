@@ -32,10 +32,19 @@ struct MaruReaderApp: App {
         }
 
         Task {
+            await DictionaryUpdateManager.shared.setAnkiPreferencesUpdater(DictionaryUpdateAnkiPreferencesUpdater())
+        }
+
+        Task {
             await BookImportManager.shared.cleanupInterruptedImports()
             await DictionaryImportManager.shared.cleanupInterruptedImports()
             await AudioSourceImportManager.shared.cleanupInterruptedImports()
             await MangaImportManager.shared.cleanupInterruptedImports()
+            await BookImportManager.shared.cleanupPendingDeletions()
+            await DictionaryImportManager.shared.cleanupPendingDeletions()
+            await AudioSourceImportManager.shared.cleanupPendingDeletions()
+            await MangaImportManager.shared.cleanupPendingDeletions()
+            await DictionaryUpdateManager.shared.resumePendingUpdates()
         }
     }
 

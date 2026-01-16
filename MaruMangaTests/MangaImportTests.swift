@@ -173,6 +173,18 @@ struct MangaImportTests {
         }
     }
 
+    private func getMangaDTO(from context: NSManagedObjectContext, mangaUUID: UUID) async -> MangaArchiveDTO? {
+        await context.perform {
+            let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", mangaUUID as CVarArg)
+            request.fetchLimit = 1
+            guard let manga = try? context.fetch(request).first else {
+                return nil
+            }
+            return MangaArchiveDTO(from: manga)
+        }
+    }
+
     private func fetchAllManga(from context: NSManagedObjectContext) async -> [MangaArchiveDTO] {
         await context.perform {
             let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
@@ -463,6 +475,56 @@ struct MangaImportTests {
         #expect(mangaDTO?.localPath == nil)
         #expect(mangaDTO?.coverImage == nil)
         #expect(!fileManager.fileExists(atPath: localURL.path), "Manga archive should be deleted")
+        #expect(!fileManager.fileExists(atPath: coverURL.path), "Cover image should be deleted")
+    }
+
+    @Test func cleanupPendingMangaDeletions_RemovesMangaAndFiles() async throws {
+        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let importManager = MangaImportManager(container: persistenceController.container)
+
+        let fileManager = FileManager.default
+        let mangaDir = try fileManager.url(
+            for: .documentDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("Manga")
+        let coversDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("Covers")
+        try fileManager.createDirectory(at: mangaDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: coversDir, withIntermediateDirectories: true)
+
+        let localFileName = "pending-\(UUID().uuidString).cbz"
+        let coverFileName = "pending-\(UUID().uuidString).png"
+        let localURL = mangaDir.appendingPathComponent(localFileName)
+        let coverURL = coversDir.appendingPathComponent(coverFileName)
+        try Data("manga".utf8).write(to: localURL)
+        try Data("cover".utf8).write(to: coverURL)
+
+        let mangaUUID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        let mangaID = try await context.perform {
+            let manga = MangaArchive(context: context)
+            manga.id = mangaUUID
+            manga.title = "Pending Manga"
+            manga.localFileName = localFileName
+            manga.coverFileName = coverFileName
+            manga.importComplete = true
+            manga.pendingDeletion = true
+            try context.save()
+            return manga.objectID
+        }
+
+        await importManager.cleanupPendingDeletions()
+
+        let verificationContext = persistenceController.container.newBackgroundContext()
+        let mangaDTO = await getMangaDTO(from: verificationContext, mangaUUID: mangaUUID)
+        #expect(mangaDTO == nil, "Pending deletion manga should be removed")
+        #expect(!fileManager.fileExists(atPath: localURL.path), "Archive file should be deleted")
         #expect(!fileManager.fileExists(atPath: coverURL.path), "Cover image should be deleted")
     }
 

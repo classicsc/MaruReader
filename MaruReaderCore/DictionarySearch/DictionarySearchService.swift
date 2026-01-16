@@ -73,7 +73,7 @@ public actor DictionarySearchService {
     private func refreshDictionaryMetadata() async throws {
         let cache = try await backgroundContext.perform {
             let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "isComplete == YES")
+            fetchRequest.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO")
 
             let dictionaries = try self.backgroundContext.fetch(fetchRequest)
 

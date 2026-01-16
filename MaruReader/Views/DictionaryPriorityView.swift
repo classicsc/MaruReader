@@ -33,7 +33,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.termDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND termCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND termCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var termDictionaries: FetchedResults<Dictionary>
@@ -43,7 +43,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.kanjiDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND kanjiCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND kanjiCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var kanjiDictionaries: FetchedResults<Dictionary>
@@ -53,7 +53,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.ipaDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND ipaCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND ipaCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var ipaDictionaries: FetchedResults<Dictionary>
@@ -63,7 +63,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.pitchDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND pitchesCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND pitchesCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var pitchDictionaries: FetchedResults<Dictionary>
@@ -73,7 +73,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.termFrequencyDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND termFrequencyCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND termFrequencyCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var termFrequencyDictionaries: FetchedResults<Dictionary>
@@ -83,7 +83,7 @@ struct DictionaryPriorityView: View {
         sortDescriptors: [
             NSSortDescriptor(keyPath: \Dictionary.kanjiFrequencyDisplayPriority, ascending: true),
         ],
-        predicate: NSPredicate(format: "isComplete == %@ AND kanjiFrequencyCount > 0", NSNumber(value: true)),
+        predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND kanjiFrequencyCount > 0", NSNumber(value: true)),
         animation: .default
     )
     private var kanjiFrequencyDictionaries: FetchedResults<Dictionary>

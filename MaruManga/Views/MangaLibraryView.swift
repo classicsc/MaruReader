@@ -94,7 +94,7 @@ public struct MangaArchiveLibraryView: View {
         books = FetchRequest<MangaArchive>(
             entity: MangaArchive.entity(),
             sortDescriptors: initialSortOption.nsSortDescriptors,
-            predicate: nil,
+            predicate: NSPredicate(format: "pendingDeletion == NO"),
             animation: .default
         )
     }

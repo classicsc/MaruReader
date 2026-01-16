@@ -44,7 +44,14 @@ public actor DictionaryImportManager {
     /// Enqueue a new dictionary import from the given ZIP file URL.
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
     public func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
-        // Create Dictionary in Core Data (on MainActor)
+        try await enqueueImport(from: zipURL, updateTaskID: nil)
+    }
+
+    /// Enqueue a dictionary import tied to an update task.
+    /// - Parameters:
+    ///   - zipURL: The file URL of the ZIP archive to import.
+    ///   - updateTaskID: The update task UUID, if this import is part of an update.
+    func enqueueImport(from zipURL: URL, updateTaskID: UUID?) async throws -> NSManagedObjectID {
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
             let dictionary = Dictionary(context: context)
@@ -60,10 +67,10 @@ public actor DictionaryImportManager {
             dictionary.isCancelled = false
             dictionary.isStarted = false
             dictionary.errorMessage = nil
+            dictionary.updateReady = false
+            dictionary.updateTaskID = updateTaskID
             try context.save()
-            let importJob = dictionary.objectID
-
-            return importJob
+            return dictionary.objectID
         }
         queue.append(importJob)
         processNextIfIdle()
@@ -118,24 +125,39 @@ public actor DictionaryImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let cleanupIDs: [UUID] = await context.perform {
+        let (cleanupIDs, retryJobIDs): ([UUID], [NSManagedObjectID]) = await context.perform {
             let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
             let dictionaries = (try? context.fetch(request)) ?? []
-            guard !dictionaries.isEmpty else { return [] }
+            guard !dictionaries.isEmpty else { return ([], []) }
 
             let now = Date()
             var ids: [UUID] = []
+            var retryJobIDs: [NSManagedObjectID] = []
             for dictionary in dictionaries {
                 if let dictionaryID = dictionary.id {
                     ids.append(dictionaryID)
                 }
-                dictionary.isFailed = true
-                dictionary.isCancelled = false
-                dictionary.isComplete = false
-                dictionary.displayProgressMessage = "Import interrupted."
-                dictionary.errorMessage = "Import interrupted."
-                dictionary.timeFailed = now
+                if dictionary.updateTaskID != nil {
+                    dictionary.isFailed = false
+                    dictionary.isCancelled = false
+                    dictionary.isComplete = false
+                    dictionary.isStarted = false
+                    dictionary.displayProgressMessage = "Retrying update import."
+                    dictionary.errorMessage = nil
+                    dictionary.timeQueued = now
+                    dictionary.timeStarted = nil
+                    dictionary.timeFailed = nil
+                    dictionary.timeCancelled = nil
+                    retryJobIDs.append(dictionary.objectID)
+                } else {
+                    dictionary.isFailed = true
+                    dictionary.isCancelled = false
+                    dictionary.isComplete = false
+                    dictionary.displayProgressMessage = "Import interrupted."
+                    dictionary.errorMessage = "Import interrupted."
+                    dictionary.timeFailed = now
+                }
                 dictionary.termCount = 0
                 dictionary.kanjiCount = 0
                 dictionary.termFrequencyCount = 0
@@ -149,7 +171,7 @@ public actor DictionaryImportManager {
             }
 
             try? context.save()
-            return ids
+            return (ids, retryJobIDs)
         }
 
         guard !cleanupIDs.isEmpty else { return }
@@ -159,6 +181,12 @@ public actor DictionaryImportManager {
             try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
             Self.cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
         }
+
+        guard !retryJobIDs.isEmpty else { return }
+        for jobID in retryJobIDs where currentJobID != jobID && !queue.contains(jobID) {
+            queue.append(jobID)
+        }
+        processNextIfIdle()
     }
 
     private func processNextIfIdle() {
@@ -390,6 +418,28 @@ public actor DictionaryImportManager {
     /// Set test error injection for controlled testing
     func setTestErrorInjection(_ injection: (() throws -> Void)?) {
         testErrorInjection = injection
+    }
+
+    /// Clean up dictionaries marked for deletion but not yet removed.
+    public func cleanupPendingDeletions(batchSize: Int = 10000) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let dictionaries = (try? context.fetch(request)) ?? []
+            return dictionaries.map(\.objectID)
+        }
+
+        guard !pendingIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(pendingIDs.count, privacy: .public) pending dictionary deletions")
+
+        for dictionaryID in pendingIDs {
+            await deleteDictionary(dictionaryID: dictionaryID, batchSize: batchSize)
+        }
     }
 
     /// Delete a dictionary and all its associated data using batch deletions for performance.

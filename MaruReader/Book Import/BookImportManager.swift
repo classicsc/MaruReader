@@ -47,6 +47,7 @@ actor BookImportManager {
             book.id = UUID()
             book.importFile = epubURL
             book.originalFileName = epubURL.lastPathComponent
+            book.pendingDeletion = false
             let now = Date()
             book.timeQueued = now
             book.added = now
@@ -110,7 +111,7 @@ actor BookImportManager {
 
         let cleanupInfos: [(UUID, String?, String?)] = await context.perform {
             let request: NSFetchRequest<Book> = Book.fetchRequest()
-            request.predicate = NSPredicate(format: "isComplete == NO AND isCancelled == NO AND (errorMessage == nil OR errorMessage == '')")
+            request.predicate = NSPredicate(format: "isComplete == NO AND isCancelled == NO AND pendingDeletion == NO AND (errorMessage == nil OR errorMessage == '')")
             let books = (try? context.fetch(request)) ?? []
             guard !books.isEmpty else { return [] }
 
@@ -142,6 +143,32 @@ actor BookImportManager {
 
         for (uuid, fileName, coverFileName) in cleanupInfos {
             Self.cleanupBookFilesByUUID(bookUUID: uuid, fileName: fileName, coverFileName: coverFileName)
+        }
+    }
+
+    /// Clean up books that were marked for deletion but not yet removed.
+    func cleanupPendingDeletions() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<Book> = Book.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let books = (try? context.fetch(request)) ?? []
+            return books.map(\.objectID)
+        }
+
+        guard !pendingIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(pendingIDs.count, privacy: .public) pending book deletions")
+
+        for bookID in pendingIDs {
+            do {
+                try await deleteBookEntity(bookID: bookID)
+            } catch {
+                logger.error("Pending book deletion cleanup failed for \(bookID): \(error.localizedDescription)")
+            }
         }
     }
 
@@ -344,31 +371,63 @@ actor BookImportManager {
     func deleteBook(bookID: NSManagedObjectID) async {
         logger.debug("Starting book deletion for \(bookID)")
 
-        let context = container.newBackgroundContext()
+        let taskContext = container.newBackgroundContext()
+        taskContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        taskContext.undoManager = nil
+        taskContext.shouldDeleteInaccessibleFaults = true
+
         do {
-            try await context.perform {
-                guard let book = try? context.existingObject(with: bookID) as? Book else {
+            try await taskContext.perform {
+                guard let book = try? taskContext.existingObject(with: bookID) as? Book else {
                     throw BookImportError.databaseError
                 }
+                book.pendingDeletion = true
+                book.displayProgressMessage = nil
+                try taskContext.save()
+            }
+        } catch {
+            logger.error("Failed to mark book for deletion \(bookID): \(error.localizedDescription)")
+            return
+        }
 
-                // Get file names before deletion
-                let fileName = book.fileName
-                let coverFileName = book.coverFileName
-                let bookUUID = book.id
-
-                // Delete the book entity
-                context.delete(book)
-                try context.save()
-
-                // Clean up files
-                if let uuid = bookUUID {
-                    Self.cleanupBookFilesByUUID(bookUUID: uuid, fileName: fileName, coverFileName: coverFileName)
+        Task {
+            do {
+                try await deleteBookEntity(bookID: bookID)
+                logger.debug("Book deletion completed for \(bookID)")
+            } catch {
+                logger.error("Book deletion failed for \(bookID): \(error.localizedDescription)")
+                await taskContext.perform {
+                    guard let book = try? taskContext.existingObject(with: bookID) as? Book else {
+                        return
+                    }
+                    book.pendingDeletion = false
+                    try? taskContext.save()
                 }
             }
-
-            logger.debug("Book deletion completed for \(bookID)")
-        } catch {
-            logger.error("Book deletion failed for \(bookID): \(error.localizedDescription)")
         }
+    }
+
+    private func deleteBookEntity(bookID: NSManagedObjectID) async throws {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupInfo = try await context.perform {
+            guard let book = try? context.existingObject(with: bookID) as? Book else {
+                throw BookImportError.databaseError
+            }
+
+            let fileName = book.fileName
+            let coverFileName = book.coverFileName
+            let bookUUID = book.id ?? UUID()
+
+            context.delete(book)
+            try context.save()
+
+            return (bookUUID, fileName, coverFileName)
+        }
+
+        Self.cleanupBookFilesByUUID(bookUUID: cleanupInfo.0, fileName: cleanupInfo.1, coverFileName: cleanupInfo.2)
     }
 }

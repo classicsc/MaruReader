@@ -349,6 +349,28 @@ public actor AudioSourceImportManager {
         testErrorInjection = injection
     }
 
+    /// Clean up audio sources marked for deletion but not yet removed.
+    public func cleanupPendingDeletions(batchSize: Int = 10000) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<AudioSource> = AudioSource.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let sources = (try? context.fetch(request)) ?? []
+            return sources.map(\.objectID)
+        }
+
+        guard !pendingIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(pendingIDs.count, privacy: .public) pending audio source deletions")
+
+        for sourceID in pendingIDs {
+            await deleteAudioSource(sourceID: sourceID, batchSize: batchSize)
+        }
+    }
+
     // MARK: - Deletion
 
     /// Delete an audio source and all its associated data.

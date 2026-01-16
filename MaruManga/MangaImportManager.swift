@@ -73,6 +73,7 @@ public actor MangaImportManager {
             manga.originalFileName = archiveURL.lastPathComponent
             manga.dateAdded = Date()
             manga.importComplete = false
+            manga.pendingDeletion = false
             try context.save()
             return manga.objectID
         }
@@ -127,7 +128,7 @@ public actor MangaImportManager {
 
         let cleanupInfos: [(URL?, URL?)] = await context.perform {
             let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
-            request.predicate = NSPredicate(format: "importComplete == NO AND (importErrorMessage == nil OR importErrorMessage == '')")
+            request.predicate = NSPredicate(format: "importComplete == NO AND pendingDeletion == NO AND (importErrorMessage == nil OR importErrorMessage == '')")
             let archives = (try? context.fetch(request)) ?? []
             guard !archives.isEmpty else { return [] }
 
@@ -162,29 +163,39 @@ public actor MangaImportManager {
     public func deleteManga(mangaID: NSManagedObjectID) async {
         logger.debug("Starting manga deletion for \(mangaID)")
 
-        let context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-        context.undoManager = nil
-        context.shouldDeleteInaccessibleFaults = true
+        let taskContext = container.newBackgroundContext()
+        taskContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        taskContext.undoManager = nil
+        taskContext.shouldDeleteInaccessibleFaults = true
 
         do {
-            try await context.perform {
-                guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+            try await taskContext.perform {
+                guard let manga = try? taskContext.existingObject(with: mangaID) as? MangaArchive else {
                     throw MangaImportError.databaseError
                 }
-
-                let localPath = manga.localPath
-                let coverImage = manga.coverImage
-
-                context.delete(manga)
-                try context.save()
-
-                Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
+                manga.pendingDeletion = true
+                manga.importErrorMessage = nil
+                try taskContext.save()
             }
-
-            logger.debug("Manga deletion completed for \(mangaID)")
         } catch {
-            logger.error("Manga deletion failed for \(mangaID): \(error.localizedDescription)")
+            logger.error("Failed to mark manga for deletion \(mangaID): \(error.localizedDescription)")
+            return
+        }
+
+        Task {
+            do {
+                try await deleteMangaEntity(mangaID: mangaID)
+                logger.debug("Manga deletion completed for \(mangaID)")
+            } catch {
+                logger.error("Manga deletion failed for \(mangaID): \(error.localizedDescription)")
+                await taskContext.perform {
+                    guard let manga = try? taskContext.existingObject(with: mangaID) as? MangaArchive else {
+                        return
+                    }
+                    manga.pendingDeletion = false
+                    try? taskContext.save()
+                }
+            }
         }
     }
 
@@ -198,6 +209,32 @@ public actor MangaImportManager {
     /// Set test error injection for controlled testing
     public func setTestErrorInjection(_ injection: (() throws -> Void)?) {
         testErrorInjection = injection
+    }
+
+    /// Clean up manga archives marked for deletion but not yet removed.
+    public func cleanupPendingDeletions() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let archives = (try? context.fetch(request)) ?? []
+            return archives.map(\.objectID)
+        }
+
+        guard !pendingIDs.isEmpty else { return }
+        logger.debug("Cleaning up \(pendingIDs.count, privacy: .public) pending manga deletions")
+
+        for mangaID in pendingIDs {
+            do {
+                try await deleteMangaEntity(mangaID: mangaID)
+            } catch {
+                logger.error("Pending manga deletion cleanup failed for \(mangaID): \(error.localizedDescription)")
+            }
+        }
     }
 
     // MARK: - Private Implementation
@@ -473,6 +510,29 @@ public actor MangaImportManager {
     }
 
     // MARK: - File Cleanup
+
+    private func deleteMangaEntity(mangaID: NSManagedObjectID) async throws {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupInfo = try await context.perform {
+            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                throw MangaImportError.databaseError
+            }
+
+            let localPath = manga.localPath
+            let coverImage = manga.coverImage
+
+            context.delete(manga)
+            try context.save()
+
+            return (localPath, coverImage)
+        }
+
+        Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1)
+    }
 
     static func cleanupMangaFiles(localPath: URL?, coverImage: URL?) {
         let fileManager = FileManager.default

@@ -174,7 +174,7 @@ struct FieldMappingEditorView: View {
         let context = DictionaryPersistenceController.shared.newBackgroundContext()
         let (termDicts, freqDicts) = await context.perform {
             let request = NSFetchRequest<Dictionary>(entityName: "Dictionary")
-            request.predicate = NSPredicate(format: "isComplete == YES")
+            request.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO")
             request.sortDescriptors = [
                 NSSortDescriptor(key: "termDisplayPriority", ascending: true),
                 NSSortDescriptor(key: "title", ascending: true),

@@ -282,6 +282,18 @@ struct BookImportTests {
         }
     }
 
+    private func getBookDTO(from context: NSManagedObjectContext, bookUUID: UUID) async -> BookDTO? {
+        await context.perform {
+            let request: NSFetchRequest<Book> = Book.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", bookUUID as CVarArg)
+            request.fetchLimit = 1
+            guard let book = try? context.fetch(request).first else {
+                return nil
+            }
+            return BookDTO(from: book)
+        }
+    }
+
     private func fetchAllBooks(from context: NSManagedObjectContext) async -> [BookDTO] {
         await context.perform {
             let request: NSFetchRequest<Book> = Book.fetchRequest()
@@ -692,6 +704,50 @@ struct BookImportTests {
         #expect(bookDTO?.coverExtracted == false)
         #expect(bookDTO?.fileName == nil)
         #expect(bookDTO?.coverFileName == nil)
+        #expect(!fileManager.fileExists(atPath: bookFile.path), "Book file should be deleted")
+        #expect(!fileManager.fileExists(atPath: coverFile.path), "Cover file should be deleted")
+    }
+
+    @Test func cleanupPendingBookDeletions_RemovesBookAndFiles() async throws {
+        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let importManager = BookImportManager(container: persistenceController.container)
+
+        let fileManager = FileManager.default
+        let appSupportDir = try fileManager.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        )
+        let booksDir = appSupportDir.appendingPathComponent("Books")
+        let coversDir = appSupportDir.appendingPathComponent("Covers")
+        try fileManager.createDirectory(at: booksDir, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: coversDir, withIntermediateDirectories: true)
+
+        let fileName = "pending-\(UUID().uuidString).epub"
+        let coverFileName = "pending-\(UUID().uuidString).png"
+        let bookFile = booksDir.appendingPathComponent(fileName)
+        let coverFile = coversDir.appendingPathComponent(coverFileName)
+        try Data("book".utf8).write(to: bookFile)
+        try Data("cover".utf8).write(to: coverFile)
+
+        let bookUUID = UUID()
+        let context = persistenceController.container.newBackgroundContext()
+        try await context.perform {
+            let book = Book(context: context)
+            book.id = bookUUID
+            book.fileName = fileName
+            book.coverFileName = coverFileName
+            book.pendingDeletion = true
+            book.isComplete = true
+            try context.save()
+        }
+
+        await importManager.cleanupPendingDeletions()
+
+        let verificationContext = persistenceController.container.newBackgroundContext()
+        let bookDTO = await getBookDTO(from: verificationContext, bookUUID: bookUUID)
+        #expect(bookDTO == nil, "Pending deletion book should be removed")
         #expect(!fileManager.fileExists(atPath: bookFile.path), "Book file should be deleted")
         #expect(!fileManager.fileExists(atPath: coverFile.path), "Cover file should be deleted")
     }
