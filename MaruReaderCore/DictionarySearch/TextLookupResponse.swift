@@ -110,8 +110,62 @@ public struct TextLookupResponse: Sendable {
     public var effectiveContext: String { editedContext ?? request.context }
 
     /// The effective highlight range for display (edited or original).
+    /// Returns nil only when context was edited but the term is no longer found.
     public var effectivePrimaryResultSourceRange: Range<String.Index>? {
-        editedPrimaryResultSourceRange ?? primaryResultSourceRange
+        if editedContext != nil {
+            // When context is edited, only use the edited range (may be nil if term not found)
+            return editedPrimaryResultSourceRange
+        }
+        return primaryResultSourceRange
+    }
+
+    /// Attempts to locate the primary result in the edited context and update the edited range.
+    /// When the term appears multiple times, prefers the occurrence at a similar proportional position.
+    /// - Parameter newContext: The new edited context string.
+    /// - Returns: `true` if the term was found in the new context, `false` otherwise.
+    public mutating func updateEditedRange(for newContext: String) -> Bool {
+        editedContext = newContext
+
+        guard let firstRange = newContext.range(of: primaryResult) else {
+            editedPrimaryResultSourceRange = nil
+            return false
+        }
+
+        // Find all occurrences
+        var allRanges: [Range<String.Index>] = []
+        var searchStart = newContext.startIndex
+        while let range = newContext.range(of: primaryResult, range: searchStart ..< newContext.endIndex) {
+            allRanges.append(range)
+            searchStart = range.upperBound
+        }
+
+        if allRanges.count == 1 {
+            editedPrimaryResultSourceRange = firstRange
+            return true
+        }
+
+        // Multiple occurrences: pick closest to original proportional position
+        let originalContext = request.context
+        let originalStart = originalContext.distance(
+            from: originalContext.startIndex,
+            to: primaryResultSourceRange.lowerBound
+        )
+        let originalProportion = Double(originalStart) / Double(max(1, originalContext.count))
+        let targetPosition = Int(originalProportion * Double(newContext.count))
+
+        var bestRange = firstRange
+        var bestDistance = Int.max
+        for range in allRanges {
+            let position = newContext.distance(from: newContext.startIndex, to: range.lowerBound)
+            let distance = abs(position - targetPosition)
+            if distance < bestDistance {
+                bestDistance = distance
+                bestRange = range
+            }
+        }
+
+        editedPrimaryResultSourceRange = bestRange
+        return true
     }
 
     /// Start offset of the matched text within the context (UTF-16 code units for JS compatibility)
@@ -128,6 +182,22 @@ public struct TextLookupResponse: Sendable {
             return 0
         }
         return context.utf16.distance(from: context.utf16.startIndex, to: utf16Upper)
+    }
+
+    /// Start offset of match in effective context (UTF-16 for JS compatibility)
+    public var effectiveMatchStartInContext: Int? {
+        guard let range = effectivePrimaryResultSourceRange else { return nil }
+        let ctx = effectiveContext
+        guard let utf16Lower = range.lowerBound.samePosition(in: ctx.utf16) else { return nil }
+        return ctx.utf16.distance(from: ctx.utf16.startIndex, to: utf16Lower)
+    }
+
+    /// End offset of match in effective context (UTF-16 for JS compatibility)
+    public var effectiveMatchEndInContext: Int? {
+        guard let range = effectivePrimaryResultSourceRange else { return nil }
+        let ctx = effectiveContext
+        guard let utf16Upper = range.upperBound.samePosition(in: ctx.utf16) else { return nil }
+        return ctx.utf16.distance(from: ctx.utf16.startIndex, to: utf16Upper)
     }
 
     private func generateCSS() -> String {

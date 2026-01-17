@@ -228,10 +228,14 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Perform a search at a specific offset within the current context
     public func performSearchAtOffset(_ offset: Int) {
         guard let currentRequest else { return }
+
+        // Use effective context (edited if available)
+        let effectiveContext = currentResponse?.effectiveContext ?? currentRequest.context
+
         let newRequest = TextLookupRequest(
-            context: currentRequest.context,
+            context: effectiveContext,
             offset: offset,
-            contextStartOffset: currentRequest.contextStartOffset,
+            contextStartOffset: 0, // Reset for edited context
             rubyContext: currentRequest.rubyContext,
             cssSelector: currentRequest.cssSelector,
             contextValues: currentRequest.contextValues
@@ -448,11 +452,12 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 logger.debug("Received navigateToTerm message for term: \(term)")
                 // If we have a popup response with context, use it to preserve context
                 if let popupResponse = currentPopupResponse {
-                    // Reconstruct request from the popup response to preserve context (including contextValues)
+                    // Use effective context and offset to preserve any edits
+                    let effectiveOffset = popupResponse.effectiveMatchStartInContext ?? popupResponse.matchStartInContext
                     let request = TextLookupRequest(
-                        context: popupResponse.context,
-                        offset: popupResponse.matchStartInContext,
-                        contextStartOffset: popupResponse.contextStartOffset,
+                        context: popupResponse.effectiveContext,
+                        offset: effectiveOffset,
+                        contextStartOffset: 0, // Reset for effective context
                         rubyContext: nil,
                         cssSelector: nil,
                         contextValues: popupResponse.request.contextValues
@@ -770,7 +775,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Commit the edited context text
     public func commitContextEdit() {
         guard isEditingContext else { return }
-        currentResponse?.editedContext = editContextText
+        guard var response = currentResponse else {
+            isEditingContext = false
+            return
+        }
+
+        // Update context and recompute range
+        let termFound = response.updateEditedRange(for: editContextText)
+
+        if !termFound {
+            logger.info("Primary result '\(response.primaryResult)' not found in edited context")
+        }
+
+        currentResponse = response
 
         // Invalidate furigana cache since context changed
         cachedFuriganaContext = nil

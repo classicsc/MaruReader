@@ -205,8 +205,10 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
     private func resolveClozePrefix() -> TemplateResolvedValue {
         let context = response.effectiveContext
-        let range = response.primaryResultSourceRange
-        guard range.lowerBound >= context.startIndex else {
+        guard let range = response.effectivePrimaryResultSourceRange,
+              range.lowerBound >= context.startIndex,
+              range.lowerBound <= context.endIndex
+        else {
             return .text("")
         }
         let prefix = String(context[context.startIndex ..< range.lowerBound])
@@ -215,8 +217,10 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
     private func resolveClozeSuffix() -> TemplateResolvedValue {
         let context = response.effectiveContext
-        let range = response.primaryResultSourceRange
-        guard range.upperBound <= context.endIndex else {
+        guard let range = response.effectivePrimaryResultSourceRange,
+              range.upperBound >= context.startIndex,
+              range.upperBound <= context.endIndex
+        else {
             return .text("")
         }
         let suffix = String(context[range.upperBound ..< context.endIndex])
@@ -240,7 +244,11 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
     private func resolveClozeFuriganaSegments() -> (prefix: String?, body: String?, suffix: String?) {
         let context = response.effectiveContext
-        let range = response.primaryResultSourceRange
+        guard let range = response.effectivePrimaryResultSourceRange else {
+            // No valid range - entire context as prefix
+            let segments = FuriganaGenerator.generateSegments(from: context)
+            return (FuriganaGenerator.formatAnkiStyle(segments), nil, nil)
+        }
         let furiganaSegments = FuriganaGenerator.generateSegments(from: context)
         let cloze = FuriganaGenerator.formatCloze(furiganaSegments, selectionRange: range, in: context)
         return (
