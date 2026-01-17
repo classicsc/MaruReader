@@ -245,6 +245,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     /// Perform a search with a specific TextLookupRequest
     private func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
+        resetContextEditingState()
         searchTask?.cancel()
         searchTask = Task {
             if Task.isCancelled { return }
@@ -298,6 +299,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     public func performSearch(_ searchQuery: String, contextValues: LookupContextValues? = nil) {
         // Cancel any existing search
         searchTask?.cancel()
+        resetContextEditingState()
 
         // Handle empty query
         guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -770,6 +772,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else { return }
         editContextText = context
         isEditingContext = true
+    }
+
+    private func resetContextEditingState() {
+        isEditingContext = false
+        editContextText = ""
     }
 
     /// Commit the edited context text
