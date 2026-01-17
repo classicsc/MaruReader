@@ -60,7 +60,7 @@ struct ContextImageConfigurationTests {
     @Test func preferredImage_dictionarySource_returnsNil() {
         let config = ContextImageConfiguration.default
 
-        #expect(config.preferredImage(for: .dictionary) == nil)
+        #expect(config.preferredImage(for: .dictionary) == .screenshot)
     }
 
     // MARK: - Encoding/Decoding Tests

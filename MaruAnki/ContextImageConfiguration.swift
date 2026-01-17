@@ -64,8 +64,8 @@ public struct ContextImageConfiguration: Sendable, Codable, Equatable {
             // Web lookups only have screenshots available
             return .screenshot
         case .dictionary:
-            // Dictionary lookups have no images available
-            return nil
+            // Dictionary lookups only have screenshots available
+            return .screenshot
         @unknown default:
             return nil
         }

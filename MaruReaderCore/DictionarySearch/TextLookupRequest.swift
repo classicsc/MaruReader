@@ -68,12 +68,27 @@ public struct LookupContextValues: Sendable {
     ///
     /// This is useful when transitioning from one lookup context to another,
     /// such as when tapping on a term within dictionary results.
-    public func withSourceType(_ newType: ContextSourceType) -> LookupContextValues {
-        LookupContextValues(
-            documentTitle: self.documentTitle,
+    public func withSourceType(
+        _ newType: ContextSourceType,
+        documentTitle: String? = nil,
+        screenshotURL: URL? = nil
+    ) -> LookupContextValues {
+        if newType == .dictionary {
+            // TODO: Use dictionary title + headword for more specific context.
+            return LookupContextValues(
+                documentTitle: documentTitle ?? "Maru Dictionary",
+                documentURL: nil,
+                documentCoverImageURL: nil,
+                screenshotURL: screenshotURL,
+                sourceType: newType
+            )
+        }
+
+        return LookupContextValues(
+            documentTitle: documentTitle ?? self.documentTitle,
             documentURL: self.documentURL,
             documentCoverImageURL: self.documentCoverImageURL,
-            screenshotURL: self.screenshotURL,
+            screenshotURL: screenshotURL ?? self.screenshotURL,
             sourceType: newType
         )
     }

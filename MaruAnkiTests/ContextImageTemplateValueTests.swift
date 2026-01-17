@@ -209,8 +209,7 @@ struct ContextImageTemplateValueTests {
 
         let result = await resolver.resolve(.contextImage)
 
-        #expect(result.text == nil)
-        #expect(result.mediaFiles.isEmpty)
+        #expect(result.mediaFiles.values.first == testScreenshotURL)
     }
 
     // MARK: - Fallback Tests

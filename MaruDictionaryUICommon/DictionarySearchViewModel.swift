@@ -336,6 +336,87 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    private struct ViewportInfo {
+        let rect: CGRect
+        let snapshotWidth: CGFloat
+    }
+
+    private func captureSearchScreenshotURL() async -> URL? {
+        do {
+            let imageData = try await captureSearchSnapshotData()
+            return await writeContextImage(imageData, fileExtension: "png", prefix: "dictionary_search")
+        } catch {
+            logger.error("Failed to capture search screenshot: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    private func captureSearchSnapshotData() async throws -> Data {
+        if let viewportInfo = try await fetchViewportInfo() {
+            let configuration = WebPage.ExportedContentConfiguration.image(
+                region: .rect(viewportInfo.rect),
+                snapshotWidth: viewportInfo.snapshotWidth
+            )
+            return try await page.exported(as: configuration)
+        }
+
+        let configuration = WebPage.ExportedContentConfiguration.image(
+            region: .contents,
+            snapshotWidth: nil
+        )
+        return try await page.exported(as: configuration)
+    }
+
+    private func fetchViewportInfo() async throws -> ViewportInfo? {
+        let script = """
+        (() => ({
+            scrollX: window.scrollX,
+            scrollY: window.scrollY,
+            width: window.innerWidth,
+            height: window.innerHeight
+        }))()
+        """
+
+        let result = try await page.callJavaScript(script)
+        guard let dictionary = result as? [String: Any] else { return nil }
+
+        guard let scrollX = doubleValue(dictionary["scrollX"]),
+              let scrollY = doubleValue(dictionary["scrollY"]),
+              let width = doubleValue(dictionary["width"]),
+              let height = doubleValue(dictionary["height"])
+        else {
+            return nil
+        }
+
+        let rect = CGRect(x: scrollX, y: scrollY, width: width, height: height)
+        return ViewportInfo(rect: rect, snapshotWidth: CGFloat(width))
+    }
+
+    private func doubleValue(_ value: Any?) -> Double? {
+        if let value = value as? Double {
+            return value
+        }
+        if let value = value as? NSNumber {
+            return value.doubleValue
+        }
+        return nil
+    }
+
+    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+        await Task.detached {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
+                let fileURL = directory.appendingPathComponent(filename)
+                try data.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                return nil
+            }
+        }.value
+    }
+
     private func handleTextScan(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
@@ -350,18 +431,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             return
         }
 
-        // When scanning text within dictionary results, transition source type to .dictionary
-        // This ensures contextImage returns empty for nested lookups
-        let transitionedContextValues = currentRequest?.contextValues?.withSourceType(.dictionary)
-        let lookupRequest = TextLookupRequest(
-            context: context,
-            offset: offset,
-            contextStartOffset: contextStartOffset,
-            cssSelector: cssSelector,
-            contextValues: transitionedContextValues
-        )
+        let baseContextValues = currentRequest?.contextValues ?? LookupContextValues()
         popupSearchTask?.cancel()
         popupSearchTask = Task {
+            // When scanning text within dictionary results, transition source type to .dictionary.
+            let screenshotURL = await captureSearchScreenshotURL()
+            let transitionedContextValues = baseContextValues.withSourceType(
+                .dictionary,
+                screenshotURL: screenshotURL
+            )
+            let lookupRequest = TextLookupRequest(
+                context: context,
+                offset: offset,
+                contextStartOffset: contextStartOffset,
+                cssSelector: cssSelector,
+                contextValues: transitionedContextValues
+            )
             guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 return
             }

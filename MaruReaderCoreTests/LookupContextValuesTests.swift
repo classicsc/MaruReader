@@ -48,13 +48,17 @@ struct LookupContextValuesTests {
             sourceType: .book
         )
 
-        let transitioned = original.withSourceType(.dictionary)
+        let dictionaryScreenshotURL = URL(string: "file:///dictionary.png")
+        let transitioned = original.withSourceType(
+            .dictionary,
+            screenshotURL: dictionaryScreenshotURL
+        )
 
         #expect(transitioned.sourceType == .dictionary)
-        #expect(transitioned.documentTitle == original.documentTitle)
-        #expect(transitioned.documentURL == original.documentURL)
-        #expect(transitioned.documentCoverImageURL == original.documentCoverImageURL)
-        #expect(transitioned.screenshotURL == original.screenshotURL)
+        #expect(transitioned.documentTitle == "Maru Dictionary")
+        #expect(transitioned.documentURL == nil)
+        #expect(transitioned.documentCoverImageURL == nil)
+        #expect(transitioned.screenshotURL == dictionaryScreenshotURL)
     }
 
     @Test func lookupContextValues_withSourceType_bookToManga() {
@@ -79,8 +83,8 @@ struct LookupContextValuesTests {
         let transitioned = original.withSourceType(.dictionary)
 
         #expect(transitioned.sourceType == .dictionary)
-        #expect(transitioned.documentTitle == "Web Page")
-        #expect(transitioned.documentURL?.absoluteString == "https://example.com")
+        #expect(transitioned.documentTitle == "Maru Dictionary")
+        #expect(transitioned.documentURL == nil)
     }
 
     // MARK: - All Source Types Tests
