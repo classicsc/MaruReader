@@ -292,7 +292,7 @@ final class MangaReaderViewModel {
     // MARK: - OCR / Dictionary Integration
 
     /// Handles a tap on a text cluster, showing highlight and opening dictionary
-    func handleClusterTap(_ cluster: TextCluster) {
+    func handleClusterTap(_ cluster: TextCluster, pageIndex: Int) {
         Task {
             // Set highlighted cluster for visual feedback
             highlightedCluster = cluster
@@ -301,16 +301,60 @@ final class MangaReaderViewModel {
             try? await Task.sleep(nanoseconds: 250_000_000)
 
             // Perform dictionary lookup
-            await performDictionaryLookup(text: cluster.transcript)
+            await performDictionaryLookup(text: cluster.transcript, pageIndex: pageIndex)
 
             // Clear highlight after sheet opens
             highlightedCluster = nil
         }
     }
 
-    private func performDictionaryLookup(text: String) async {
-        dictionarySearchViewModel.performSearch(text)
+    private func performDictionaryLookup(text: String, pageIndex: Int) async {
+        let contextValues = await lookupContextValues(for: pageIndex)
+        dictionarySearchViewModel.performSearch(text, contextValues: contextValues)
         showingDictionarySheet = true
+    }
+
+    private func lookupContextValues(for pageIndex: Int) async -> LookupContextValues {
+        let screenshotURL = await makeScreenshotURL(for: pageIndex)
+        return LookupContextValues(
+            documentTitle: manga.title,
+            documentURL: nil,
+            documentCoverImageURL: manga.coverImage,
+            screenshotURL: screenshotURL
+        )
+    }
+
+    private func makeScreenshotURL(for pageIndex: Int) async -> URL? {
+        guard let pageData = pageDataCache[pageIndex] else { return nil }
+
+        if let image = UIImage(data: pageData.imageData),
+           let pngData = image.pngData()
+        {
+            return await writeContextImage(pngData, fileExtension: "png", prefix: "manga_page")
+        }
+
+        if let fileExtension = pageData.imageFileExtension,
+           !fileExtension.isEmpty
+        {
+            return await writeContextImage(pageData.imageData, fileExtension: fileExtension, prefix: "manga_page")
+        }
+
+        return nil
+    }
+
+    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+        await Task.detached {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
+                let fileURL = directory.appendingPathComponent(filename)
+                try data.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                return nil
+            }
+        }.value
     }
 
     // MARK: - Persistence

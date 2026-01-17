@@ -25,12 +25,16 @@ public struct MangaPageData: Sendable {
     /// The raw image data for the page.
     public let imageData: Data
 
+    /// The file extension for the page image, if known.
+    public let imageFileExtension: String?
+
     /// Text clusters detected by OCR, sorted by reading order.
     /// Empty if OCR has not been performed on this page.
     public let textClusters: [TextCluster]
 
-    public init(imageData: Data, textClusters: [TextCluster] = []) {
+    public init(imageData: Data, imageFileExtension: String? = nil, textClusters: [TextCluster] = []) {
         self.imageData = imageData
+        self.imageFileExtension = imageFileExtension
         self.textClusters = textClusters
     }
 }
@@ -159,9 +163,14 @@ public actor MangaArchiveReader {
         let entry = sortedPages[index]
         let imageData = try await extractPage(entry)
         let clusters = try await ocr.performOCR(imageData: imageData)
+        let fileExtension = (entry.path as NSString).pathExtension.lowercased()
 
         // Create page data with empty text clusters
-        let pageData = MangaPageData(imageData: imageData, textClusters: clusters)
+        let pageData = MangaPageData(
+            imageData: imageData,
+            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension,
+            textClusters: clusters
+        )
 
         // Store in cache with cost = byte count
         cache.setValue(pageData, forKey: index, cost: imageData.count)

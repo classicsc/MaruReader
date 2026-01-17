@@ -17,6 +17,7 @@
 
 import CoreGraphics
 import Foundation
+import MaruReaderCore
 import MaruVision
 import Observation
 import WebKit
@@ -48,6 +49,18 @@ enum ReadingPagingAxis: String, CaseIterable {
 enum ReadingPagingBehavior: String, CaseIterable {
     case scroll
     case keypress
+}
+
+struct WebLookupSelection: Identifiable {
+    let id: UUID
+    let cluster: TextCluster
+    let contextValues: LookupContextValues
+
+    init(cluster: TextCluster, contextValues: LookupContextValues) {
+        self.id = cluster.id
+        self.cluster = cluster
+        self.contextValues = contextValues
+    }
 }
 
 // MARK: - WebViewerViewModel
@@ -198,12 +211,13 @@ final class WebViewerViewModel {
         }
     }
 
-    func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> TextCluster? {
+    func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
         guard !ocrViewModel.isProcessing else { return nil }
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
 
         do {
             let imageData = try await captureViewportSnapshot(viewportSize: viewSize)
+            let screenshotURL = await writeContextImage(imageData, fileExtension: "png", prefix: "web_snapshot")
             let clusters = await ocrViewModel.performOCR(imageData: imageData)
             guard !clusters.isEmpty else { return nil }
 
@@ -211,7 +225,15 @@ final class WebViewerViewModel {
                 x: location.x / viewSize.width,
                 y: 1 - (location.y / viewSize.height)
             )
-            return ocrViewModel.nearestCluster(to: normalized)
+            guard let cluster = ocrViewModel.nearestCluster(to: normalized) else { return nil }
+
+            let contextValues = LookupContextValues(
+                documentTitle: page.title,
+                documentURL: page.url,
+                documentCoverImageURL: nil,
+                screenshotURL: screenshotURL
+            )
+            return WebLookupSelection(cluster: cluster, contextValues: contextValues)
         } catch {
             ocrViewModel.errorMessage = error.localizedDescription
             return nil
@@ -297,6 +319,21 @@ final class WebViewerViewModel {
             return value.doubleValue
         }
         return nil
+    }
+
+    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+        await Task.detached {
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
+                let fileURL = directory.appendingPathComponent(filename)
+                try data.write(to: fileURL, options: .atomic)
+                return fileURL
+            } catch {
+                return nil
+            }
+        }.value
     }
 
     // MARK: - Reading Mode Paging

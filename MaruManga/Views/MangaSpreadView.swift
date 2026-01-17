@@ -291,7 +291,7 @@ struct MangaSpreadView: View {
         }
 
         if let match = bestMatch {
-            viewModel.handleClusterTap(match)
+            viewModel.handleClusterTap(match, pageIndex: pageIndex)
         } else {
             viewModel.toggleToolbars()
         }

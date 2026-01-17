@@ -257,7 +257,7 @@ struct MangaPageView: View {
         }
 
         if let match = bestMatch {
-            viewModel.handleClusterTap(match)
+            viewModel.handleClusterTap(match, pageIndex: pageIndex)
         } else {
             // Tap outside clusters toggles toolbar
             viewModel.toggleToolbars()

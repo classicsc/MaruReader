@@ -291,7 +291,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
-    public func performSearch(_ searchQuery: String) {
+    public func performSearch(_ searchQuery: String, contextValues: LookupContextValues? = nil) {
         // Cancel any existing search
         searchTask?.cancel()
 
@@ -308,7 +308,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
             if Task.isCancelled { return }
 
-            let lookupRequest = TextLookupRequest(context: searchQuery)
+            let resolvedContextValues = contextValues ?? currentRequest?.contextValues
+            let lookupRequest = TextLookupRequest(context: searchQuery, contextValues: resolvedContextValues)
             performSearchWithRequest(lookupRequest)
         }
     }
@@ -343,7 +344,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             return
         }
 
-        let lookupRequest = TextLookupRequest(context: context, offset: offset, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
+        let lookupRequest = TextLookupRequest(
+            context: context,
+            offset: offset,
+            contextStartOffset: contextStartOffset,
+            cssSelector: cssSelector,
+            contextValues: currentRequest?.contextValues
+        )
         popupSearchTask?.cancel()
         popupSearchTask = Task {
             guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {

@@ -26,7 +26,7 @@ public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
 
     @State private var viewModel: WebViewerViewModel
-    @State private var selectedCluster: TextCluster?
+    @State private var selectedLookup: WebLookupSelection?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var isEditingAddress = false
     @Environment(\.dismiss) private var dismiss
@@ -56,8 +56,8 @@ public struct WebViewerView: View {
                             pagingBehavior: viewModel.pagingBehavior,
                             onTap: { location, size in
                                 Task {
-                                    if let cluster = await viewModel.lookupCluster(at: location, in: size) {
-                                        selectedCluster = cluster
+                                    if let selection = await viewModel.lookupCluster(at: location, in: size) {
+                                        selectedLookup = selection
                                     }
                                 }
                             },
@@ -140,7 +140,7 @@ public struct WebViewerView: View {
                 viewModel.overlayState = .none
             }
         }
-        .sheet(item: $selectedCluster) { cluster in
+        .sheet(item: $selectedLookup) { selection in
             NavigationStack {
                 DictionarySearchView()
                     .environment(searchSheetViewModel)
@@ -150,13 +150,16 @@ public struct WebViewerView: View {
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Done") {
-                                selectedCluster = nil
+                                selectedLookup = nil
                             }
                         }
                     }
             }
             .onAppear {
-                searchSheetViewModel.performSearch(cluster.transcript)
+                searchSheetViewModel.performSearch(
+                    selection.cluster.transcript,
+                    contextValues: selection.contextValues
+                )
             }
             .presentationDetents([.medium, .large])
         }
