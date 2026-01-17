@@ -49,17 +49,6 @@ struct ContextImageSettingsView: View {
                 } footer: {
                     Text("Choose which image to use for the Context Image template value based on where the lookup originated.")
                 }
-
-                Section("Fixed Sources") {
-                    LabeledContent("Web Viewer") {
-                        Text("Screenshot")
-                            .foregroundStyle(.secondary)
-                    }
-                    LabeledContent("Dictionary") {
-                        Text("No Image")
-                            .foregroundStyle(.secondary)
-                    }
-                }
             }
         }
         .navigationTitle("Context Image")
