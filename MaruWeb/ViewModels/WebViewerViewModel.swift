@@ -231,7 +231,8 @@ final class WebViewerViewModel {
                 documentTitle: page.title,
                 documentURL: page.url,
                 documentCoverImageURL: nil,
-                screenshotURL: screenshotURL
+                screenshotURL: screenshotURL,
+                sourceType: .web
             )
             return WebLookupSelection(cluster: cluster, contextValues: contextValues)
         } catch {

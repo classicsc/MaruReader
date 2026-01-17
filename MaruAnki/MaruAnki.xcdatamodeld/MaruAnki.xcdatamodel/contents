@@ -16,6 +16,7 @@
     <entity name="MaruAnkiSettings" representedClassName="MaruAnkiSettings" syncable="YES" codeGenerationType="class">
         <attribute name="ankiEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="connectConfiguration" optional="YES" attributeType="Composite" composite="AnkiConnectConfiguration"/>
+        <attribute name="contextImageConfiguration" optional="YES" attributeType="String"/>
         <attribute name="defaultDeckName" attributeType="String"/>
         <attribute name="defaultModelName" attributeType="String"/>
         <attribute name="defaultProfileName" attributeType="String"/>

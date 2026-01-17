@@ -43,6 +43,7 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case documentURL
     case screenshot
     case documentCoverImage
+    case contextImage
     case documentTitle
     case singlePitchAccent
     case singlePitchAccentDictionary(dictionaryID: UUID)

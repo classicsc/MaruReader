@@ -17,6 +17,18 @@
 
 import Foundation
 
+/// The source type where a dictionary lookup originated.
+public enum ContextSourceType: String, Sendable, Codable, CaseIterable {
+    /// Lookup from the ePub book reader
+    case book
+    /// Lookup from the manga/comic reader
+    case manga
+    /// Lookup from the web viewer
+    case web
+    /// Lookup from the dictionary search (standalone or nested lookups)
+    case dictionary
+}
+
 /// Context values provided by the caller for template resolution.
 ///
 /// These are values that come from the lookup scenario (reader, share extension, OCR, etc.)
@@ -35,16 +47,35 @@ public struct LookupContextValues: Sendable {
     /// URL to a screenshot taken at lookup time (for OCR or visual context).
     public let screenshotURL: URL?
 
+    /// The source type where the lookup originated.
+    public let sourceType: ContextSourceType
+
     public init(
         documentTitle: String? = nil,
         documentURL: URL? = nil,
         documentCoverImageURL: URL? = nil,
-        screenshotURL: URL? = nil
+        screenshotURL: URL? = nil,
+        sourceType: ContextSourceType = .dictionary
     ) {
         self.documentTitle = documentTitle
         self.documentURL = documentURL
         self.documentCoverImageURL = documentCoverImageURL
         self.screenshotURL = screenshotURL
+        self.sourceType = sourceType
+    }
+
+    /// Creates a copy of this context values with a different source type.
+    ///
+    /// This is useful when transitioning from one lookup context to another,
+    /// such as when tapping on a term within dictionary results.
+    public func withSourceType(_ newType: ContextSourceType) -> LookupContextValues {
+        LookupContextValues(
+            documentTitle: self.documentTitle,
+            documentURL: self.documentURL,
+            documentCoverImageURL: self.documentCoverImageURL,
+            screenshotURL: self.screenshotURL,
+            sourceType: newType
+        )
     }
 }
 

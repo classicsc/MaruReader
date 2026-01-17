@@ -135,7 +135,7 @@ public enum ConfigurableProfileTemplates {
                 .customHTMLValue(value: "</b>"),
                 .clozeFuriganaSuffix,
             ],
-            "Picture": [.screenshot],
+            "Picture": [.contextImage],
             "Glossary": [.multiDictionaryGlossary],
             "PitchPosition": [.pitchAccentList],
             "PitchCategories": [.pitchAccentCategories],

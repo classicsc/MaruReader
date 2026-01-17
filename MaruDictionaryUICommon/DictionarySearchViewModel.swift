@@ -350,12 +350,15 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             return
         }
 
+        // When scanning text within dictionary results, transition source type to .dictionary
+        // This ensures contextImage returns empty for nested lookups
+        let transitionedContextValues = currentRequest?.contextValues?.withSourceType(.dictionary)
         let lookupRequest = TextLookupRequest(
             context: context,
             offset: offset,
             contextStartOffset: contextStartOffset,
             cssSelector: cssSelector,
-            contextValues: currentRequest?.contextValues
+            contextValues: transitionedContextValues
         )
         popupSearchTask?.cancel()
         popupSearchTask = Task {

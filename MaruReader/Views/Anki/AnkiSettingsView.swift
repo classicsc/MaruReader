@@ -50,6 +50,9 @@ struct AnkiSettingsView: View {
                         Button("Manage Field Mappings") {
                             showingFieldMappingManagement = true
                         }
+                        NavigationLink("Context Image Settings") {
+                            ContextImageSettingsView()
+                        }
                     }
                 } else if currentSettings == nil {
                     Section {

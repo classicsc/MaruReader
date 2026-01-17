@@ -141,7 +141,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             documentTitle: book.title,
             documentURL: nil,
             documentCoverImageURL: bookCoverURL,
-            screenshotURL: nil
+            screenshotURL: nil,
+            sourceType: .book
         )
     }
 

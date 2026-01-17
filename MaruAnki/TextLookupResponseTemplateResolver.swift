@@ -26,6 +26,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private let response: TextLookupResponse
     private let selectedGroup: GroupedSearchResults
     private let selectedDictionaryID: UUID?
+    private let contextImageConfiguration: ContextImageConfiguration
 
     /// Creates a resolver for the given response and selected term.
     ///
@@ -33,14 +34,17 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     ///   - response: The search response containing all results and context.
     ///   - selectedGroup: The specific term group to extract values from.
     ///   - selectedDictionaryID: Optional dictionary ID to prefer for dictionary-specific values.
+    ///   - contextImageConfiguration: Configuration for resolving the contextImage template value.
     public init(
         response: TextLookupResponse,
         selectedGroup: GroupedSearchResults,
-        selectedDictionaryID: UUID? = nil
+        selectedDictionaryID: UUID? = nil,
+        contextImageConfiguration: ContextImageConfiguration = .default
     ) {
         self.response = response
         self.selectedGroup = selectedGroup
         self.selectedDictionaryID = selectedDictionaryID
+        self.contextImageConfiguration = contextImageConfiguration
     }
 
     public func resolve(_ templateValue: TemplateValue) async -> TemplateResolvedValue {
@@ -84,6 +88,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
                 return TemplateResolvedValue(mediaFiles: [fileID: url])
             }
             return .empty
+
+        case .contextImage:
+            return resolveContextImage()
 
         // MARK: - Cloze deletion values
 
@@ -377,6 +384,37 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return .text(dictResult.dictionaryTitle)
         }
         return .text(selectedGroup.dictionariesResults.first?.dictionaryTitle)
+    }
+
+    private func resolveContextImage() -> TemplateResolvedValue {
+        guard let contextValues = response.request.contextValues else {
+            return .empty
+        }
+
+        let sourceType = contextValues.sourceType
+        guard let preference = contextImageConfiguration.preferredImage(for: sourceType) else {
+            // No images available for this source type (e.g., dictionary)
+            return .empty
+        }
+
+        let coverURL = contextValues.documentCoverImageURL
+        let screenshotURL = contextValues.screenshotURL
+
+        // Determine which URL to use based on preference, with fallback
+        let selectedURL: URL? = switch preference {
+        case .cover:
+            coverURL ?? screenshotURL
+        case .screenshot:
+            screenshotURL ?? coverURL
+        }
+
+        guard let url = selectedURL else {
+            return .empty
+        }
+
+        let shortID = UUID().uuidString.prefix(8)
+        let fileID = "maru_context_\(shortID)"
+        return TemplateResolvedValue(mediaFiles: [fileID: url])
     }
 
     private func resolvePronunciationAudio() -> TemplateResolvedValue {

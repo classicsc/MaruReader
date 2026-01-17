@@ -320,7 +320,8 @@ final class MangaReaderViewModel {
             documentTitle: manga.title,
             documentURL: nil,
             documentCoverImageURL: manga.coverImage,
-            screenshotURL: screenshotURL
+            screenshotURL: screenshotURL,
+            sourceType: .manga
         )
     }
 

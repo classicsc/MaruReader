@@ -425,6 +425,7 @@ private enum TemplateValueCategory: CaseIterable {
                 .documentURL,
                 .documentCoverImage,
                 .screenshot,
+                .contextImage,
             ]
         case .frequency:
             [.frequencyList, .singleFrequency, .frequencyRankHarmonicMeanSortField, .frequencyOccurrenceHarmonicMeanSortField]
@@ -468,6 +469,7 @@ extension TemplateValue {
         case .documentURL: return "Document URL"
         case .screenshot: return "Screenshot"
         case .documentCoverImage: return "Document Cover"
+        case .contextImage: return "Context Image"
         case .documentTitle: return "Document Title"
         case .singlePitchAccent: return "Single Pitch Accent"
         case .singlePitchAccentDictionary: return "Pitch Accent (Dictionary)"
