@@ -202,7 +202,7 @@ struct BookReaderView: View {
             Button {
                 viewModel.isDictionaryActive.toggle()
             } label: {
-                Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill" : "character.book.closed")
+                Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
             }
             .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
 
