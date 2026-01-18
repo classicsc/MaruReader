@@ -20,10 +20,11 @@ import SwiftUI
 
 /// The main manga reader view with paging, toolbars, and dictionary integration.
 public struct MangaReaderView: View {
-    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 16
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 42
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
 
     @State private var viewModel: MangaReaderViewModel
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
     public init(manga: MangaArchive) {
@@ -34,25 +35,21 @@ public struct MangaReaderView: View {
         GeometryReader { geometry in
             let isLandscape = geometry.size.width > geometry.size.height
 
-            ZStack {
-                // Main page content
+            ZStack(alignment: .topLeading) {
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
+            }
+            .safeAreaInset(edge: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
-                    floatingBackButton
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .padding(.leading, 16)
+                    bottomToolbarOverlay
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    bottomToolbarOverlay.hidden()
                 }
             }
-            .overlay(alignment: .top) {
-                if viewModel.overlayState.shouldShowToolbars {
-                    topFloatingBar
-                }
-            }
-            .overlay(alignment: .bottom) {
-                if viewModel.overlayState.shouldShowToolbars {
-                    bottomToolbar
-                }
+            .safeAreaInset(edge: .top) {
+                topToolbarOverlay
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
             .onAppear {
                 viewModel.updateOrientation(isLandscape)
@@ -145,18 +142,29 @@ public struct MangaReaderView: View {
 
     // MARK: - Top Floating Bar
 
-    private var topFloatingBar: some View {
-        Text(viewModel.manga.title ?? "Manga")
-            .font(.headline)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(
-                Capsule()
-                    .fill(.clear)
-                    .glassEffect()
-            )
+    private var topToolbarOverlay: some View {
+        HStack {
+            if viewModel.overlayState.shouldShowToolbars {
+                floatingBackButton
+            } else {
+                floatingBackButton.hidden()
+            }
+            Spacer()
+            Button { viewModel.toggleToolbars() } label: {
+                HStack {
+                    Text(viewModel.manga.title ?? "Manga Reader")
+                        .font(.headline)
+                        .foregroundColor(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
+                        .lineLimit(1)
+                    Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.up" : "chevron.down")
+                        .font(.headline)
+                        .foregroundColor(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
+                }
+            }
+            Spacer()
+            Spacer().frame(width: floatingButtonFrameSize)
+        }
+        .padding(.horizontal)
     }
 
     private var floatingBackButton: some View {
@@ -165,7 +173,7 @@ public struct MangaReaderView: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .foregroundStyle(.secondary)
+                .foregroundColor(toolbarForegroundColor(isPrimary: true))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)
@@ -174,7 +182,7 @@ public struct MangaReaderView: View {
 
     // MARK: - Bottom Toolbar
 
-    private var bottomToolbar: some View {
+    private var bottomToolbarOverlay: some View {
         HStack(spacing: 20) {
             // Bounding box toggle
             Button {
@@ -228,12 +236,15 @@ public struct MangaReaderView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+        .buttonStyle(.plain)
         .background(
             Capsule()
                 .fill(.clear)
                 .glassEffect()
         )
+        .foregroundStyle(toolbarForegroundColor(isPrimary: true))
         .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.bottom, 20)
     }
 
     private var pageIndicator: some View {
@@ -249,7 +260,7 @@ public struct MangaReaderView: View {
         return Text(displayText)
             .font(.caption)
             .monospacedDigit()
-            .foregroundStyle(.secondary)
+            .foregroundStyle(toolbarSecondaryColor)
     }
 
     // MARK: - Dictionary Sheet
@@ -269,5 +280,30 @@ public struct MangaReaderView: View {
                 }
         }
         .presentationDetents([.medium, .large])
+    }
+
+    // MARK: - Interface Colors
+
+    private var interfaceForegroundColor: Color {
+        colorScheme == .dark ? .white : .black
+    }
+
+    private var toolbarSecondaryColor: Color {
+        if colorScheme == .dark {
+            return Color(
+                red: Double(0x98) / 255.0,
+                green: Double(0x98) / 255.0,
+                blue: Double(0x9D) / 255.0
+            )
+        }
+        return Color(
+            red: Double(0x6C) / 255.0,
+            green: Double(0x6C) / 255.0,
+            blue: Double(0x70) / 255.0
+        )
+    }
+
+    private func toolbarForegroundColor(isPrimary: Bool) -> Color {
+        isPrimary ? interfaceForegroundColor : interfaceForegroundColor.opacity(0.6)
     }
 }
