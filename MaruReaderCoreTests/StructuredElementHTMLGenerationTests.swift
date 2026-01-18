@@ -832,8 +832,8 @@ struct DictionaryContentMarkupTests {
         )
 
         let html2 = element2.toHTML()
-        // Convert 120px to em using default 14px base: 120/14 ≈ 8.5714
-        let expectedWidth2Em = 120.0 / 14.0
+        // Width uses the raw pixel value expressed in em for layout.
+        let expectedWidth2Em = 120.0
         let formattedWidth2 = formatNumber(expectedWidth2Em)
         #expect(html2.contains("width: \(formattedWidth2)em"))
         let expectedPaddingTop2 = (80.0 / 120.0) * 100 // (height/width) * 100
@@ -952,8 +952,8 @@ struct DictionaryContentMarkupTests {
 
         let html = element.toHTML()
 
-        // Default dimensions: 380px / 14px (default em size) ≈ 27.1429em
-        let expectedWidthEm = 380.0 / 14.0
+        // Default dimensions: 380px expressed in em for layout.
+        let expectedWidthEm = 380.0
         let formattedWidth = formatNumber(expectedWidthEm)
         #expect(html.contains("width: \(formattedWidth)em"))
 

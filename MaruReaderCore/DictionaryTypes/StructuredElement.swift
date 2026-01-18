@@ -182,18 +182,7 @@ extension StructuredElement {
 
         let attributeString = attributes.joined(separator: " ")
 
-        // Calculate width in em units
-        let widthInEm: String
-        if sizeUnits == "em" {
-            widthInEm = "\(formatNumber(usedWidth))em"
-        } else if hasPreferredWidth || hasPreferredHeight {
-            widthInEm = "\(formatNumber(usedWidth))em"
-        } else {
-            // Convert px to em using provided base font size or default 14px
-            let baseFontSize = emSize ?? 14.0
-            let emWidth = usedWidth / baseFontSize
-            widthInEm = "\(formatNumber(emWidth))em"
-        }
+        let widthInEm = "\(formatNumber(usedWidth))em"
 
         var containerAttributes: [String] = []
 

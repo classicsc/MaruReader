@@ -99,7 +99,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
         #expect(html.contains("data-has-aspect-ratio=\"true\""))
         #expect(html.contains("data-image-rendering=\"pixelated\""))
-        #expect(html.contains("<span class=\"gloss-image-container\" data-width-em=\"8.5714em\""))
+        #expect(html.contains("<span class=\"gloss-image-container\" data-width-em=\"120em\""))
         #expect(html.contains("title=\"Example\""))
         #expect(html.contains("data-aspect-ratio=\"66.6667\""))
         #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\">"))
@@ -109,7 +109,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
         #expect(html.contains("</div>"))
         #expect(!html.contains("style=\"border:"))
-        #expect(html.contains("style=\"width: 8.5714em\""))
+        #expect(html.contains("style=\"width: 120em\""))
     }
 
     @Test func imageDefinition_toHTML_skipsAbsoluteSource() throws {
@@ -419,7 +419,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border=\"2px solid red\""))
-        #expect(html.contains("data-width-em=\"7.1429em\""))
+        #expect(html.contains("data-width-em=\"100em\""))
         #expect(!html.contains("style=\"border:"))
     }
 
@@ -450,7 +450,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border-radius=\"8px\""))
-        #expect(html.contains("data-width-em=\"7.1429em\""))
+        #expect(html.contains("data-width-em=\"100em\""))
         #expect(!html.contains("style=\"border-radius:"))
     }
 
@@ -480,7 +480,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width-em=\"7.1429em\""))
+        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width-em=\"100em\""))
         #expect(html.contains("style=\"width: 100%; height: 100%\""))
         #expect(html.contains("data-vertical-align=\"top\""))
         #expect(!html.contains("style=\"image-rendering:"))
@@ -582,7 +582,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 7.1429em\""))
+        #expect(html.contains("style=\"width: 100em\""))
     }
 
     // MARK: - Description Tests
@@ -749,7 +749,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 150em\""))
     }
 
-    @Test func imageDefinition_toHTML_dynamicEmCalculationWithCustomBaseFontSize() throws {
+    @Test func imageDefinition_toHTML_usesPixelWidthForLayoutWithCustomBaseFontSize() throws {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -775,10 +775,10 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 18.0)
 
-        // Should convert 200px to em using baseFontSize=18: 200/18 = 11.1111
+        // Width uses the raw pixel value expressed in em for layout.
         #expect(html.contains("width=\"200\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 11.1111em\""))
+        #expect(html.contains("style=\"width: 200em\""))
     }
 
     @Test func imageDefinition_toHTML_preferredDimensionsAlwaysUseEmUnits() throws {
@@ -840,8 +840,8 @@ struct DefinitionHTMLGenerationTests {
         // No device pixel ratio scaling because sizeUnits != "em" and no preferred dimensions
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        // Should convert to EM: 100/12 = 8.3333
-        #expect(html.contains("style=\"width: 8.3333em\""))
+        // Width uses the raw pixel value expressed in em for layout.
+        #expect(html.contains("style=\"width: 100em\""))
     }
 
     @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() throws {

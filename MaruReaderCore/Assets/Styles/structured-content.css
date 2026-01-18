@@ -457,7 +457,7 @@ body {
     list-style-position: outside;
 }
 
-/* Glossary images (adapted from Yomitan, removed -moz- prefixes) */
+/* Glossary images */
 .gloss-image-container {
     display: inline-block;
     white-space: nowrap;
@@ -466,7 +466,6 @@ body {
     position: relative;
     vertical-align: baseline;
     line-height: 0;
-    font-size: calc(1em / var(--font-size-no-units));
     overflow: hidden;
     width: attr(data-width-em length, 6.25em);
     border: attr(data-border, none);
