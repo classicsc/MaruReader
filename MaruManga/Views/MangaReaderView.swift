@@ -20,8 +20,8 @@ import SwiftUI
 
 /// The main manga reader view with paging, toolbars, and dictionary integration.
 public struct MangaReaderView: View {
-    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 14
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 42
 
     @State private var viewModel: MangaReaderViewModel
     @Environment(\.dismiss) private var dismiss
@@ -42,7 +42,6 @@ public struct MangaReaderView: View {
                     floatingBackButton
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(.leading, 16)
-                        .padding(.top, 8)
                 }
             }
             .overlay(alignment: .top) {
@@ -164,8 +163,9 @@ public struct MangaReaderView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
+                .foregroundStyle(.secondary)
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)

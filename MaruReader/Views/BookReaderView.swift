@@ -24,8 +24,8 @@ import WebKit
 // MARK: - BookReaderView
 
 struct BookReaderView: View {
-    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 14
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 16
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 42
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 48
 
     @State private var viewModel: BookReaderViewModel
@@ -186,7 +186,6 @@ struct BookReaderView: View {
                     floatingBackButton
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                         .padding(.leading, 16)
-                        .padding(.top, 8)
                 }
 
                 // Bottom toolbar
@@ -242,7 +241,7 @@ struct BookReaderView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "chevron.left")
+            Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .foregroundStyle(
                     viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
