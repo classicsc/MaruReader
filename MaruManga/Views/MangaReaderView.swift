@@ -38,6 +38,11 @@ public struct MangaReaderView: View {
             ZStack(alignment: .topLeading) {
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
+                if viewModel.overlayState.shouldShowToolbars {
+                    floatingBackButton
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .padding()
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
@@ -46,10 +51,6 @@ public struct MangaReaderView: View {
                 } else {
                     bottomToolbarOverlay.hidden()
                 }
-            }
-            .safeAreaInset(edge: .top) {
-                topToolbarOverlay
-                    .transition(.move(edge: .top).combined(with: .opacity))
             }
             .onAppear {
                 viewModel.updateOrientation(isLandscape)
@@ -138,33 +139,6 @@ public struct MangaReaderView: View {
             }
             .ignoresSafeArea()
         }
-    }
-
-    // MARK: - Top Floating Bar
-
-    private var topToolbarOverlay: some View {
-        HStack {
-            if viewModel.overlayState.shouldShowToolbars {
-                floatingBackButton
-            } else {
-                floatingBackButton.hidden()
-            }
-            Spacer()
-            Button { viewModel.toggleToolbars() } label: {
-                HStack {
-                    Text(viewModel.manga.title ?? "Manga Reader")
-                        .font(.headline)
-                        .foregroundColor(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
-                        .lineLimit(1)
-                    Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.up" : "chevron.down")
-                        .font(.headline)
-                        .foregroundColor(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
-                }
-            }
-            Spacer()
-            Spacer().frame(width: floatingButtonFrameSize)
-        }
-        .padding(.horizontal)
     }
 
     private var floatingBackButton: some View {
