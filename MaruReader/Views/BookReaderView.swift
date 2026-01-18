@@ -213,9 +213,19 @@ struct BookReaderView: View {
             }
             .accessibilityLabel("Add bookmark")
 
-            QuickReaderSettingsMenu(preferences: viewModel.readerPreferences) {
-                viewModel.overlayState = .showingQuickSettings
+            Button {
+                viewModel.readerPreferences.decreaseFontSize()
+            } label: {
+                Image(systemName: "textformat.size.smaller.ja")
             }
+            .accessibilityLabel("Decrease font size")
+
+            Button {
+                viewModel.readerPreferences.increaseFontSize()
+            } label: {
+                Image(systemName: "textformat.size.larger.ja")
+            }
+            .accessibilityLabel("Increase font size")
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)

@@ -458,6 +458,26 @@ final class ReaderPreferences {
         submitToNavigator()
     }
 
+    /// Increase the font size within reasonable bounds
+    func increaseFontSize() {
+        guard let profile else { return }
+        let newSize = min(profile.fontSize + 10.0, 200.0)
+        profile.fontSize = newSize
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
+    /// Decrease the font size within reasonable bounds
+    func decreaseFontSize() {
+        guard let profile else { return }
+        let newSize = max(profile.fontSize - 10.0, 50.0)
+        profile.fontSize = newSize
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
     /// Enables or disables follow system theme mode
     /// When enabled, both light and dark themes should be set
     /// When disabled, clears the dark theme
