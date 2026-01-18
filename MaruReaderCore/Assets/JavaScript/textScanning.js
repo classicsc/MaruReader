@@ -40,6 +40,18 @@ window.MaruReader.textScanning = {
             return;
         }
 
+        var freqButton = event.target.closest('.freq-button');
+        if (freqButton) {
+            return;
+        }
+
+        var collapsibleImage = event.target.closest(
+            '.gloss-image-link[data-collapsible="true"], .gloss-image-link[data-collapsed="true"]'
+        );
+        if (collapsibleImage) {
+            return;
+        }
+
         // Prevent default behavior to avoid interfering with text scanning
         event.preventDefault();
         event.stopPropagation();
