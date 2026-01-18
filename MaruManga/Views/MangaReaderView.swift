@@ -24,6 +24,7 @@ public struct MangaReaderView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
 
     @State private var viewModel: MangaReaderViewModel
+    @State private var searchSheetViewModel: DictionarySearchViewModel?
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -63,7 +64,33 @@ public struct MangaReaderView: View {
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $viewModel.showingDictionarySheet) {
-            dictionarySheet
+            NavigationStack {
+                if let sheetViewModel = searchSheetViewModel {
+                    DictionarySearchView()
+                        .environment(sheetViewModel)
+                        .navigationTitle("Dictionary")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Done") {
+                                    viewModel.showingDictionarySheet = false
+                                }
+                            }
+                        }
+                }
+            }
+            .onAppear {
+                if let text = viewModel.pendingSearchText {
+                    let vm = DictionarySearchViewModel(resultState: .searching)
+                    vm.performSearch(text, contextValues: viewModel.pendingContextValues)
+                    searchSheetViewModel = vm
+                    viewModel.clearPendingSearch()
+                }
+            }
+            .onDisappear {
+                searchSheetViewModel = nil
+            }
+            .presentationDetents([.medium, .large])
         }
         .task {
             await viewModel.loadArchive()
@@ -235,25 +262,6 @@ public struct MangaReaderView: View {
             .font(.caption)
             .monospacedDigit()
             .foregroundStyle(toolbarSecondaryColor)
-    }
-
-    // MARK: - Dictionary Sheet
-
-    private var dictionarySheet: some View {
-        NavigationStack {
-            DictionarySearchView()
-                .environment(viewModel.dictionarySearchViewModel)
-                .navigationTitle("Dictionary")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done") {
-                            viewModel.showingDictionarySheet = false
-                        }
-                    }
-                }
-        }
-        .presentationDetents([.medium, .large])
     }
 
     // MARK: - Interface Colors

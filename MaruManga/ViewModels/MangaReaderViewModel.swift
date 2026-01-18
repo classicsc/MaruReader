@@ -17,7 +17,6 @@
 
 import CoreData
 import Foundation
-import MaruDictionaryUICommon
 import MaruReaderCore
 import MaruVision
 import Observation
@@ -131,15 +130,15 @@ final class MangaReaderViewModel {
     /// Whether dictionary sheet is showing
     var showingDictionarySheet: Bool = false
 
-    /// View model for the dictionary search sheet
-    var dictionarySearchViewModel = DictionarySearchViewModel(resultState: .searching)
+    /// Pending search data for lazy dictionary view model initialization
+    private(set) var pendingSearchText: String?
+    private(set) var pendingContextValues: LookupContextValues?
 
     // MARK: - Private State
 
     let manga: MangaArchive
     private(set) var archiveReader: MangaArchiveReader?
     private let persistenceController: MangaDataPersistenceController
-    private let searchService: DictionarySearchService
 
     private var saveTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaReaderViewModel")
@@ -152,7 +151,6 @@ final class MangaReaderViewModel {
     ) {
         self.manga = manga
         self.persistenceController = persistenceController
-        self.searchService = DictionarySearchService()
 
         // Load persisted state
         loadPersistedState()
@@ -309,9 +307,15 @@ final class MangaReaderViewModel {
     }
 
     private func performDictionaryLookup(text: String, pageIndex: Int) async {
-        let contextValues = await lookupContextValues(for: pageIndex)
-        dictionarySearchViewModel.performSearch(text, contextValues: contextValues)
+        pendingSearchText = text
+        pendingContextValues = await lookupContextValues(for: pageIndex)
         showingDictionarySheet = true
+    }
+
+    /// Clears pending search data after the dictionary sheet has initialized
+    func clearPendingSearch() {
+        pendingSearchText = nil
+        pendingContextValues = nil
     }
 
     private func lookupContextValues(for pageIndex: Int) async -> LookupContextValues {
