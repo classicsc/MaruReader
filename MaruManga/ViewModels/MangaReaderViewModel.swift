@@ -141,6 +141,8 @@ final class MangaReaderViewModel {
     private let persistenceController: MangaDataPersistenceController
 
     private var saveTask: Task<Void, Never>?
+    /// Tracks the page index that was last successfully saved
+    private var lastSavedPageIndex: Int?
     private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaReaderViewModel")
 
     // MARK: - Initialization
@@ -366,7 +368,9 @@ final class MangaReaderViewModel {
 
     private func loadPersistedState() {
         // Load last read page
-        currentPageIndex = Int(manga.lastReadPage)
+        let savedPage = Int(manga.lastReadPage)
+        currentPageIndex = savedPage
+        lastSavedPageIndex = savedPage // Prevent initial save trigger
 
         // Load reading direction
         if let directionRaw = manga.readingDirection,
@@ -390,9 +394,15 @@ final class MangaReaderViewModel {
     }
 
     private func saveReadingProgress() async {
-        let mangaID = manga.objectID
         let pageIndex = currentPageIndex
 
+        // Only save if page actually changed from last save
+        guard lastSavedPageIndex != pageIndex else { return }
+
+        logger.debug("Saving reading progress: page \(pageIndex)")
+        lastSavedPageIndex = pageIndex
+
+        let mangaID = manga.objectID
         let context = persistenceController.newBackgroundContext()
         await context.perform {
             guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
