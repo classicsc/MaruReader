@@ -775,13 +775,13 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 18.0)
 
-        // Width uses the raw pixel value expressed in em for layout.
+        // Width uses the raw pixel value expressed in px for layout when sizeUnits is not "em".
         #expect(html.contains("width=\"200\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 200em\""))
+        #expect(html.contains("style=\"width: 200px\""))
     }
 
-    @Test func imageDefinition_toHTML_preferredDimensionsAlwaysUseEmUnits() throws {
+    @Test func imageDefinition_toHTML_preferredDimensionsWithoutSizeUnitsUsePx() throws {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -801,14 +801,14 @@ struct DefinitionHTMLGenerationTests {
             verticalAlign: nil,
             border: nil,
             borderRadius: nil,
-            sizeUnits: nil // No explicit size units, but should use EM because of preferred dimensions
+            sizeUnits: nil // No explicit size units, so use pixel dimensions
         )
         let definition = Definition.detailed(.image(image))
 
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 14.0)
 
-        // Should use EM units due to preferred dimensions, even without explicit sizeUnits="em"
-        #expect(html.contains("style=\"width: 150em\""))
+        // Should use px units when sizeUnits is not explicitly "em"
+        #expect(html.contains("style=\"width: 150px\""))
     }
 
     @Test func imageDefinition_toHTML_noDevicePixelRatioScalingWithoutEmAndPreferredDimensions() throws {
@@ -840,8 +840,8 @@ struct DefinitionHTMLGenerationTests {
         // No device pixel ratio scaling because sizeUnits != "em" and no preferred dimensions
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        // Width uses the raw pixel value expressed in em for layout.
-        #expect(html.contains("style=\"width: 100em\""))
+        // Width uses the raw pixel value expressed in px for layout when sizeUnits is not "em".
+        #expect(html.contains("style=\"width: 100px\""))
     }
 
     @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() throws {

@@ -182,7 +182,11 @@ extension StructuredElement {
 
         let attributeString = attributes.joined(separator: " ")
 
-        let widthInEm = "\(formatNumber(usedWidth))em"
+        let widthValue = if sizeUnits == "em" {
+            "\(formatNumber(usedWidth))em"
+        } else {
+            "\(formatNumber(usedWidth))px"
+        }
 
         var containerAttributes: [String] = []
 
@@ -192,7 +196,7 @@ extension StructuredElement {
         if let borderRadius {
             containerAttributes.append("data-border-radius=\"\(escapeHTML(borderRadius))\"")
         }
-        containerAttributes.append("data-width-em=\"\(widthInEm)\"")
+        containerAttributes.append("data-width=\"\(widthValue)\"")
         if let title {
             containerAttributes.append("title=\"\(escapeHTML(title))\"")
         }
@@ -240,7 +244,7 @@ extension StructuredElement {
 
         return """
         <a \(attributeString)>
-            <span class="gloss-image-container"\(containerAttributeString) style="width: \(widthInEm)">
+            <span class="gloss-image-container"\(containerAttributeString) style="width: \(widthValue)">
                 <span class="gloss-image-sizer" style="padding-top: \(formatNumber(paddingTopValue))%"></span>
                 <span class="gloss-image-background"></span>
                 \(imageHTML)

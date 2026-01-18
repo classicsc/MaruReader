@@ -467,7 +467,7 @@ body {
     vertical-align: baseline;
     line-height: 0;
     overflow: hidden;
-    width: attr(data-width-em length, 6.25em);
+    width: attr(data-width length, 100px);
     border: attr(data-border, none);
     border-radius: attr(data-border-radius, 0);
 }

@@ -164,7 +164,7 @@ struct DictionaryContentMarkupTests {
         let html = element.toHTML()
         // New image structure should be Yomitan-compatible
         #expect(html.contains("class=\"gloss-image-link\""))
-        #expect(html.contains("class=\"gloss-image-container\" data-width-em"))
+        #expect(html.contains("class=\"gloss-image-container\" data-width"))
         #expect(!html.contains("<span class=\"gloss-image-sizer\"></span>"))
         #expect(html.contains("class=\"gloss-image-background\""))
         #expect(html.contains("class=\"gloss-image\""))
@@ -206,7 +206,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("alt=\"Local Image\""))
         #expect(html.contains("class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"images/test.png\""))
-        #expect(html.contains("data-width-em"))
+        #expect(html.contains("data-width"))
         #expect(html.contains("style=\"width:"))
     }
 
@@ -236,7 +236,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("href="))
         #expect(html.contains("class=\"gloss-image-link\""))
         #expect(html.contains("data-path=\"https://example.com/image.jpg\""))
-        #expect(html.contains("data-width-em"))
+        #expect(html.contains("data-width"))
     }
 
     @Test func structuredElement_toHTML_ImageWithBorderDataAttr() throws {
@@ -607,7 +607,7 @@ struct DictionaryContentMarkupTests {
         let expectedPaddingTop = expectedAspectRatio * 100
         let formattedPaddingTop = formatNumber(expectedPaddingTop)
         #expect(html.contains("padding-top: \(formattedPaddingTop)%"))
-        #expect(html.contains("width: 150em")) // Should use preferredWidth
+        #expect(html.contains("width: 150px")) // Should use preferredWidth
     }
 
     @Test func structuredElement_toHTML_ImageWithPixelatedRendering() throws {
@@ -811,7 +811,7 @@ struct DictionaryContentMarkupTests {
         // Should calculate width from preferredHeight and aspect ratio (height/width = 100/200 = 0.5)
         let expectedWidth1 = 150.0 / (100.0 / 200.0) // preferredHeight / invAspectRatio = 300
         let formattedWidth1 = formatNumber(expectedWidth1)
-        #expect(html1.contains("width: \(formattedWidth1)em"))
+        #expect(html1.contains("width: \(formattedWidth1)px"))
 
         // Test with neither preferred dimension (should use width/height)
         let element2 = StructuredElement(
@@ -832,10 +832,10 @@ struct DictionaryContentMarkupTests {
         )
 
         let html2 = element2.toHTML()
-        // Width uses the raw pixel value expressed in em for layout.
-        let expectedWidth2Em = 120.0
-        let formattedWidth2 = formatNumber(expectedWidth2Em)
-        #expect(html2.contains("width: \(formattedWidth2)em"))
+        // Width uses the raw pixel value expressed in px for layout.
+        let expectedWidth2Px = 120.0
+        let formattedWidth2 = formatNumber(expectedWidth2Px)
+        #expect(html2.contains("width: \(formattedWidth2)px"))
         let expectedPaddingTop2 = (80.0 / 120.0) * 100 // (height/width) * 100
         let formattedPaddingTop2 = formatNumber(expectedPaddingTop2)
         #expect(html2.contains("padding-top: \(formattedPaddingTop2)%"))
@@ -952,10 +952,10 @@ struct DictionaryContentMarkupTests {
 
         let html = element.toHTML()
 
-        // Default dimensions: 380px expressed in em for layout.
-        let expectedWidthEm = 380.0
-        let formattedWidth = formatNumber(expectedWidthEm)
-        #expect(html.contains("width: \(formattedWidth)em"))
+        // Default dimensions: 380px expressed in px for layout.
+        let expectedWidthPx = 380.0
+        let formattedWidth = formatNumber(expectedWidthPx)
+        #expect(html.contains("width: \(formattedWidth)px"))
 
         // Aspect ratio should be 100% (square 380:380)
         #expect(html.contains("padding-top: 100%"))
