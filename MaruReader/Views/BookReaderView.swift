@@ -24,8 +24,8 @@ import WebKit
 // MARK: - BookReaderView
 
 struct BookReaderView: View {
-    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 16
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 42
+    @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 48
 
     @State private var viewModel: BookReaderViewModel
@@ -108,12 +108,13 @@ struct BookReaderView: View {
     }
 
     private var readerView: some View {
-        GeometryReader { geometry in
+        GeometryReader { _ in
             ZStack(alignment: .topLeading) {
+                Color(.systemBackground)
                 EPUBNavigatorWrapper(
                     viewModel: viewModel
                 )
-                .padding(viewModel.readerPreferences.horizontalMargin)
+                .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
                 .overlay {
                     if viewModel.isDictionaryActive {
                         DictionaryGestureOverlay(
@@ -148,54 +149,45 @@ struct BookReaderView: View {
                         .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                         .presentationCompactAdaptation(.popover)
                 }
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar(.hidden, for: .tabBar)
-                .toolbar(.hidden, for: .bottomBar)
-                .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        Button {
-                            viewModel.toggleOverlay()
-                        } label: {
-                            HStack {
-                                Text(viewModel.book.title ?? "")
-                                    .font(.headline)
-                                    .foregroundStyle(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-
-                                switch viewModel.overlayState.shouldShowToolbars {
-                                case true:
-                                    Image(systemName: "chevron.up")
-                                        .font(.headline)
-                                        .foregroundStyle(toolbarSecondaryColor)
-                                case false:
-                                    Image(systemName: "chevron.down")
-                                        .font(.headline)
-                                        .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
-                                }
-                            }
-                            .frame(maxWidth: geometry.size.width * 0.7)
-                        }
-                    }
-                }
-                .navigationBarBackButtonHidden(true)
-                .applyThemeColors(preferences: viewModel.readerPreferences)
-
-                // Floating back button (top-leading)
-                if viewModel.overlayState.shouldShowToolbars {
-                    floatingBackButton
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                        .padding(.leading, 16)
-                }
-
-                // Bottom toolbar
+            }
+            .safeAreaInset(edge: .bottom) {
                 if viewModel.overlayState.shouldShowToolbars {
                     bottomToolbarOverlay
-                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    bottomToolbarOverlay.hidden()
                 }
             }
-            .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
+            .safeAreaInset(edge: .top) {
+                topToolbarOverlay
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
         }
+    }
+
+    private var topToolbarOverlay: some View {
+        HStack {
+            if viewModel.overlayState.shouldShowToolbars {
+                floatingBackButton
+            } else {
+                floatingBackButton.hidden()
+            }
+            Spacer()
+            Button { viewModel.toggleOverlay() } label: {
+                HStack {
+                    Text(viewModel.book.title ?? "Book Reader")
+                        .font(.headline)
+                        .foregroundColor(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
+                        .lineLimit(1)
+                    Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.up" : "chevron.down")
+                        .font(.headline)
+                        .foregroundColor(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
+                }
+            }
+            Spacer()
+            Spacer().frame(width: floatingButtonFrameSize)
+        }
+        .padding(.horizontal)
     }
 
     private var bottomToolbarOverlay: some View {
@@ -243,9 +235,7 @@ struct BookReaderView: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .foregroundStyle(
-                    viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
-                )
+                .foregroundColor(toolbarForegroundColor(isPrimary: true))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
         .glassEffect(in: .circle)
@@ -253,19 +243,23 @@ struct BookReaderView: View {
     }
 
     private func errorView(error: Error) -> some View {
-        VStack(spacing: 16) {
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: errorIconSize))
-                .foregroundStyle(.red)
-            Text("Failed to load book")
-                .font(.headline)
-            Text(error.localizedDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
+        ZStack {
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.system(size: errorIconSize))
+                    .foregroundStyle(.red)
+                Text("Failed to load book")
+                    .font(.headline)
+                Text(error.localizedDescription)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            floatingBackButton
+                .padding()
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Theme Color Helpers
@@ -279,17 +273,6 @@ struct BookReaderView: View {
 
     private var toolbarSecondaryColor: Color {
         viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
-    }
-}
-
-// MARK: - Theme Color View Modifier
-
-private extension View {
-    @ViewBuilder
-    func applyThemeColors(preferences: ReaderPreferences) -> some View {
-        self
-            .toolbarBackground(preferences.currentInterfaceBackgroundColor ?? Color(uiColor: .systemBackground), for: .navigationBar)
-            .tint(preferences.currentInterfaceForegroundColor ?? .primary)
     }
 }
 

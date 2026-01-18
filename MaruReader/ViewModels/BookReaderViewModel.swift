@@ -287,6 +287,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         popupSearchTask?.cancel()
         popupSearchTask = Task {
             guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+                logger.debug("No search results found for lookup")
                 return
             }
 
@@ -375,7 +376,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         }
 
         let rectInNavigator = webView.convert(rect, to: navigator.view)
-        return rectInNavigator.offsetBy(dx: readerPreferences.horizontalMargin, dy: readerPreferences.horizontalMargin)
+        return rectInNavigator.offsetBy(dx: readerPreferences.horizontalMargin, dy: 0)
     }
 
     func hidePopup() {
