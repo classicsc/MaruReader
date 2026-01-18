@@ -65,8 +65,10 @@ public struct WebBookmarksView: View {
             }
             .padding()
             .navigationTitle("Bookmarks")
-            .navigationDestination(item: $navigationTarget) { target in
-                WebViewerView(initialURL: target)
+            .fullScreenCover(isPresented: isShowingWebView) {
+                if let target = navigationTarget {
+                    WebViewerView(initialURL: target)
+                }
             }
             .toolbar {
                 if !bookmarks.isEmpty {
@@ -74,6 +76,13 @@ public struct WebBookmarksView: View {
                 }
             }
         }
+    }
+
+    private var isShowingWebView: Binding<Bool> {
+        Binding(
+            get: { navigationTarget != nil },
+            set: { if !$0 { navigationTarget = nil } }
+        )
     }
 
     private func openAddress() {

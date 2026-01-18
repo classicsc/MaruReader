@@ -80,6 +80,7 @@ struct BookLibraryView: View {
     @State private var showingError = false
     @State private var bookToDelete: Book?
     @State private var showingDeleteConfirmation = false
+    @State private var selectedBook: Book?
 
     private var books: FetchRequest<Book>
 
@@ -97,6 +98,13 @@ struct BookLibraryView: View {
         Binding(
             get: { LibraryType(rawValue: selectedLibraryType) ?? .books },
             set: { selectedLibraryType = $0.rawValue }
+        )
+    }
+
+    private var isShowingReader: Binding<Bool> {
+        Binding(
+            get: { selectedBook != nil },
+            set: { if !$0 { selectedBook = nil } }
         )
     }
 
@@ -162,6 +170,11 @@ struct BookLibraryView: View {
                 } message: { book in
                     Text("Are you sure you want to delete \"\(book.title ?? "Unknown Book")\"? This action cannot be undone.")
                 }
+                .fullScreenCover(isPresented: isShowingReader) {
+                    if let book = selectedBook {
+                        BookReaderView(book: book)
+                    }
+                }
                 .onChange(of: sortOption) { _, newValue in
                     books.wrappedValue.sortDescriptors = newValue.sortDescriptors
                 }
@@ -200,7 +213,9 @@ struct BookLibraryView: View {
                 let state = BookImportState(book: book)
                 Group {
                     if state.isComplete {
-                        NavigationLink(destination: BookReaderView(book: book)) {
+                        Button {
+                            selectedBook = book
+                        } label: {
                             BookGridItem(book: book, state: state, onCancel: {}, onRemove: {})
                         }
                         .buttonStyle(.plain)

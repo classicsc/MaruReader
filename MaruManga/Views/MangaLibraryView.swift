@@ -86,6 +86,7 @@ public struct MangaArchiveLibraryView: View {
     @State private var bookToDelete: MangaArchive?
     @State private var showingDeleteConfirmation = false
     @State private var metadataEditorBook: MangaArchive?
+    @State private var selectedManga: MangaArchive?
 
     private var books: FetchRequest<MangaArchive>
 
@@ -103,6 +104,13 @@ public struct MangaArchiveLibraryView: View {
         Binding(
             get: { MangaLibraryType(rawValue: selectedLibraryType) ?? .manga },
             set: { selectedLibraryType = $0.rawValue }
+        )
+    }
+
+    private var isShowingReader: Binding<Bool> {
+        Binding(
+            get: { selectedManga != nil },
+            set: { if !$0 { selectedManga = nil } }
         )
     }
 
@@ -179,11 +187,13 @@ public struct MangaArchiveLibraryView: View {
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
                     MangaMetadataEditorView(manga: book)
                 }
+                .fullScreenCover(isPresented: isShowingReader) {
+                    if let manga = selectedManga {
+                        MangaReaderView(manga: manga)
+                    }
+                }
                 .onChange(of: sortOption) { _, newValue in
                     books.wrappedValue.sortDescriptors = newValue.sortDescriptors
-                }
-                .navigationDestination(for: MangaArchive.self) { manga in
-                    MangaReaderView(manga: manga)
                 }
         }
     }
@@ -220,7 +230,9 @@ public struct MangaArchiveLibraryView: View {
                 let state = MangaArchiveImportState(book: book)
                 Group {
                     if state.isComplete {
-                        NavigationLink(value: book) {
+                        Button {
+                            selectedManga = book
+                        } label: {
                             MangaArchiveGridItem(book: book, state: state, onCancel: {}, onRemove: {})
                         }
                         .buttonStyle(.plain)
