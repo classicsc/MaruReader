@@ -377,14 +377,11 @@ body {
 .gloss-sc-table-container {
     display: block;
     overflow-x: auto;
-    max-width: 100%;
 }
 
 .gloss-sc-table {
-    table-layout: fixed;
+    table-layout: auto;
     border-collapse: collapse;
-    width: 100%;
-    max-width: 100%;
 }
 
 .gloss-sc-thead,
