@@ -46,11 +46,16 @@ enum AnkiFieldValueFormatter {
             var pieces: [String] = []
 
             for value in values {
+                var usedMediaKeys: Set<String> = []
+
                 if let text = value.text, !text.isEmpty {
-                    pieces.append(text)
+                    let inlineResult = inlineMediaLinks(in: text, mediaFiles: value.mediaFiles)
+                    usedMediaKeys = inlineResult.usedKeys
+                    pieces.append(inlineResult.text)
                 }
 
-                let mediaLinks = value.mediaFiles.values.compactMap { formatMediaLink(from: $0) }
+                let remainingMedia = value.mediaFiles.filter { !usedMediaKeys.contains($0.key) }
+                let mediaLinks = remainingMedia.values.compactMap { formatMediaLink(from: $0) }
                 pieces.append(contentsOf: mediaLinks)
             }
 
@@ -58,6 +63,40 @@ enum AnkiFieldValueFormatter {
         }
 
         return output
+    }
+
+    private static func inlineMediaLinks(
+        in text: String,
+        mediaFiles: [String: URL]
+    ) -> (text: String, usedKeys: Set<String>) {
+        var updated = text
+        var usedKeys: Set<String> = []
+
+        for (key, url) in mediaFiles {
+            guard let link = formatMediaLink(from: url) else {
+                continue
+            }
+
+            let escapedKey = escapeHTMLAttribute(key)
+            let patterns = [
+                "src=\"\(escapedKey)\"",
+                "src='\(escapedKey)'",
+                "src=\"\(key)\"",
+                "src='\(key)'",
+            ]
+
+            var replaced = false
+            for pattern in patterns where updated.contains(pattern) {
+                updated = updated.replacingOccurrences(of: pattern, with: "src=\"\(link)\"")
+                replaced = true
+            }
+
+            if replaced {
+                usedKeys.insert(key)
+            }
+        }
+
+        return (updated, usedKeys)
     }
 
     private static func formatMediaLink(from url: URL) -> String? {
@@ -106,5 +145,14 @@ enum AnkiFieldValueFormatter {
         }
 
         return fallbackMIMETypes[ext]
+    }
+
+    private static func escapeHTMLAttribute(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+            .replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: "'", with: "&#39;")
     }
 }

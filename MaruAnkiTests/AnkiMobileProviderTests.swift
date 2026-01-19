@@ -172,6 +172,47 @@ struct AnkiMobileProviderTests {
         #expect(!(frontValue?.contains("file://") ?? false))
     }
 
+    @Test func addNote_inlinesLocalMediaInHTML() async throws {
+        let opener = TestURLOpener()
+        let provider = AnkiMobileProvider(urlOpener: opener)
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let localURL = tempDir.appendingPathComponent("glossary.png")
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+        try imageData.write(to: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        let html = "<div><img src=\"glossary.png\"></div>"
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Front": [
+                TemplateResolvedValue(text: html, mediaFiles: ["glossary.png": localURL]),
+            ],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let url = try #require(await opener.lastURL)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let items = components.queryItems ?? []
+        let frontValue = items.first { $0.name == "fldFront" }?.value
+
+        let expectedDataURL = "data:image/png;base64,\(imageData.base64EncodedString())"
+        #expect(frontValue == "<div><img src=\"\(expectedDataURL)\"></div>")
+    }
+
     @Test func addNote_includesLocalImageDataURL() async throws {
         let opener = TestURLOpener()
         let provider = AnkiMobileProvider(urlOpener: opener)
