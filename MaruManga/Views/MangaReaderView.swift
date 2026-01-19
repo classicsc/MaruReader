@@ -100,6 +100,7 @@ public struct MangaReaderView: View {
         .onDisappear {
             viewModel.saveOnDisappear()
         }
+        .statusBar(hidden: !viewModel.overlayState.shouldShowToolbars)
     }
 
     // MARK: - Page Container
