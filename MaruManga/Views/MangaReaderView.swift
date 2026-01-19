@@ -37,6 +37,8 @@ public struct MangaReaderView: View {
             let isLandscape = geometry.size.width > geometry.size.height
 
             ZStack(alignment: .topLeading) {
+                Color(.systemBackground)
+                    .ignoresSafeArea()
                 pageContainer
                     .ignoresSafeArea(.all, edges: .bottom)
                 if viewModel.overlayState.shouldShowToolbars {
@@ -164,7 +166,7 @@ public struct MangaReaderView: View {
                     }
                 }
             }
-            .ignoresSafeArea()
+            .ignoresSafeArea(edges: .bottom)
         }
     }
 
@@ -237,13 +239,7 @@ public struct MangaReaderView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
-        .buttonStyle(.plain)
-        .background(
-            Capsule()
-                .fill(.clear)
-                .glassEffect()
-        )
-        .foregroundStyle(toolbarForegroundColor(isPrimary: true))
+        .glassEffect(in: .capsule)
         .frame(maxWidth: .infinity, alignment: .center)
         .padding(.bottom, 20)
     }
