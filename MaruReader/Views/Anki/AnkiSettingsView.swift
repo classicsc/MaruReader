@@ -28,6 +28,7 @@ struct AnkiSettingsView: View {
     @State private var showingFieldMappingManagement = false
     @State private var isLoading = true
     @State private var pendingCount = 0
+    @State private var duplicateOptions: DuplicateDetectionOptions?
 
     var body: some View {
         Form {
@@ -110,12 +111,24 @@ struct AnkiSettingsView: View {
 
     private func loadSettings() async {
         let context = persistence.container.viewContext
-        let fetchedSettings: MaruAnkiSettings? = await context.perform {
+        let (fetchedSettings, parsedDuplicateOptions): (MaruAnkiSettings?, DuplicateDetectionOptions?) = await context.perform {
             let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
             request.fetchLimit = 1
-            return try? context.fetch(request).first
+            guard let settings = try? context.fetch(request).first else {
+                return (nil, nil)
+            }
+
+            var options: DuplicateDetectionOptions?
+            if let duplicateJSON = settings.duplicateNoteSettings,
+               let data = duplicateJSON.data(using: .utf8)
+            {
+                options = try? JSONDecoder().decode(DuplicateDetectionOptions.self, from: data)
+            }
+
+            return (settings, options)
         }
         currentSettings = fetchedSettings
+        duplicateOptions = parsedDuplicateOptions
         pendingCount = await noteService.pendingNoteCount()
         isLoading = false
     }
@@ -150,6 +163,37 @@ struct AnkiSettingsView: View {
             if let fieldMapping = settings.modelConfiguration?.displayName, !fieldMapping.isEmpty {
                 LabeledContent("Field Mapping", value: fieldMapping)
             }
+        }
+
+        Section("Duplicate Detection") {
+            NavigationLink {
+                DuplicateSettingsEditorView(
+                    isAnkiConnect: settings.isAnkiConnect,
+                    decks: [],
+                    selectedDeckName: settings.defaultDeckName
+                )
+            } label: {
+                LabeledContent("Scope", value: duplicateScopeDisplayName)
+            }
+        }
+    }
+
+    private var duplicateScopeDisplayName: String {
+        guard let options = duplicateOptions else {
+            return "Not Configured"
+        }
+        switch options.scope {
+        case .none:
+            return "Allow Duplicates"
+        case .deck:
+            if let deckName = options.deckName {
+                return "Check in \(deckName)"
+            }
+            return "Check in Target Deck"
+        case .collection:
+            return "Check Entire Collection"
+        @unknown default:
+            return "Unknown"
         }
     }
 

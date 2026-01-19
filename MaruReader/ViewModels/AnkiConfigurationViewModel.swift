@@ -60,7 +60,8 @@ final class AnkiConfigurationViewModel {
         case deckSelection = 4
         case modelSelection = 5
         case fieldMappingSelection = 6
-        case templateConfiguration = 7
+        case duplicateSettings = 7
+        case templateConfiguration = 8
     }
 
     enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
@@ -99,6 +100,12 @@ final class AnkiConfigurationViewModel {
     var templateDictionaryID: UUID?
     var templateCardType: LapisCardType = .vocabularyCard
     var templateConfiguredProfiles: [String: Bool] = [:] // templateID -> isConfigured
+
+    // Duplicate detection settings
+    var duplicateScope: DuplicateNoteScope = .deck
+    var duplicateDeckName: String? // nil = use target deck
+    var duplicateIncludeChildDecks: Bool = false
+    var duplicateCheckAllModels: Bool = false
 
     // Loading/Error state
     var isLoading: Bool = false
@@ -162,6 +169,8 @@ final class AnkiConfigurationViewModel {
             selectedModelName != nil
         case .fieldMappingSelection:
             selectedFieldMappingProfileID != nil || selectedTemplateID != nil
+        case .duplicateSettings:
+            true // Duplicate settings always has valid defaults
         case .templateConfiguration:
             templateDictionaryID != nil
         }
@@ -204,6 +213,9 @@ final class AnkiConfigurationViewModel {
             await fetchFieldMappingProfiles()
 
         case .fieldMappingSelection:
+            currentStep = .duplicateSettings
+
+        case .duplicateSettings:
             if selectedTemplateID != nil {
                 // User selected a template, go to configuration step
                 await loadTemplateConfiguration()
@@ -243,12 +255,13 @@ final class AnkiConfigurationViewModel {
             case .ankiMobile:
                 currentStep = .mobileDetails
             }
+        case .duplicateSettings:
+            currentStep = .fieldMappingSelection
         case .templateConfiguration:
-            // Clear template selection and go back to field mapping selection
-            selectedTemplateID = nil
+            // Clear template configuration and go back to duplicate settings
             templateDictionaryID = nil
             templateCardType = .vocabularyCard
-            currentStep = .fieldMappingSelection
+            currentStep = .duplicateSettings
         }
     }
 
@@ -418,6 +431,10 @@ final class AnkiConfigurationViewModel {
         let selectedDeckName = selectedDeckName
         let selectedModelName = selectedModelName
         let portValue = portInt
+        let duplicateScopeValue = duplicateScope
+        let duplicateDeckNameValue = duplicateDeckName
+        let duplicateIncludeChildDecksValue = duplicateIncludeChildDecks
+        let duplicateCheckAllModelsValue = duplicateCheckAllModels
 
         do {
             try await context.perform {
@@ -482,12 +499,12 @@ final class AnkiConfigurationViewModel {
                     settings.modelConfiguration = profile
                 }
 
-                // Set default duplicate detection options
+                // Set duplicate detection options from user configuration
                 let duplicateOptions = DuplicateDetectionOptions(
-                    scope: .deck,
-                    deckName: nil,
-                    includeChildDecks: false,
-                    checkAllModels: false
+                    scope: duplicateScopeValue,
+                    deckName: duplicateDeckNameValue,
+                    includeChildDecks: duplicateIncludeChildDecksValue,
+                    checkAllModels: duplicateCheckAllModelsValue
                 )
                 let encoder = JSONEncoder()
                 let duplicateData = try encoder.encode(duplicateOptions)

@@ -39,6 +39,8 @@ struct AnkiConfigurationFlowView: View {
                 ModelSelectionView(viewModel: viewModel)
             case .fieldMappingSelection:
                 FieldMappingSelectionView(viewModel: viewModel)
+            case .duplicateSettings:
+                DuplicateSettingsView(viewModel: viewModel)
             case .templateConfiguration:
                 TemplateConfigurationView(viewModel: viewModel)
             }
