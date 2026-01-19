@@ -197,6 +197,8 @@ public struct MangaReaderView: View {
                 }
             } label: {
                 Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+                    .frame(width: 44, height: 44)
+                    .contentShape(.rect)
             }
             .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
 
@@ -211,6 +213,8 @@ public struct MangaReaderView: View {
                     }
                 } label: {
                     Image(systemName: viewModel.forceSinglePage ? "rectangle" : "rectangle.split.2x1")
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
                 .accessibilityLabel(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
             }
@@ -264,9 +268,9 @@ public struct MangaReaderView: View {
                 .font(.caption)
                 .monospacedDigit()
                 .foregroundStyle(toolbarSecondaryColor)
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
         }
-        .buttonStyle(.plain)
-        .contentShape(.rect)
         .accessibilityLabel("Page \(displayText)")
         .accessibilityHint("Jump to a page")
         .alert("Go to Page", isPresented: $isShowingPageJumpDialog) {
