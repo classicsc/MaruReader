@@ -330,6 +330,13 @@ struct MangaArchiveGridItem: View {
         return nil
     }
 
+    private var displayProgress: String? {
+        if book.lastReadPage > 1 {
+            return "\(book.lastReadPage) / \(book.totalPages) Read"
+        }
+        return nil
+    }
+
     private var statusMessage: String? {
         switch state.status {
         case .complete:
@@ -385,6 +392,13 @@ struct MangaArchiveGridItem: View {
 
                 if let author = displayAuthor {
                     Text(author)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                if let progress = displayProgress {
+                    Text(progress)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
