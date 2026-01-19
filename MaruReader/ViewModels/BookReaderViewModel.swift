@@ -89,6 +89,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var book: Book
     var readerPreferences: ReaderPreferences
     var navigator: EPUBNavigatorViewController?
+    /// Current reading location, if available.
+    var currentLocator: Locator?
     var popupAnchorPosition: CGRect = .zero
     private var currentPopupResponse: TextLookupResponse?
 
@@ -482,11 +484,6 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     func readingProgression() -> ReadiumNavigator.ReadingProgression {
         guard let navigator else { return .ltr }
         return navigator.settings.readingProgression
-    }
-
-    /// Current reading location, if available.
-    var currentLocator: Locator? {
-        navigator?.currentLocation
     }
 
     /// Navigate to a table of contents link.

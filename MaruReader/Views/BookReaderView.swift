@@ -30,6 +30,7 @@ struct BookReaderView: View {
 
     @State private var viewModel: BookReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
+    @State private var progressDisplayMode: ProgressDisplayMode = .book
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -156,7 +157,8 @@ struct BookReaderView: View {
                     bottomToolbarOverlay
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 } else {
-                    bottomToolbarOverlay.hidden()
+                    progressDisplayOverlay
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .safeAreaInset(edge: .top) {
@@ -240,6 +242,31 @@ struct BookReaderView: View {
         .padding(.bottom, 20)
     }
 
+    private var progressDisplayOverlay: some View {
+        let availableModes = availableProgressDisplayModes
+        return Group {
+            if let text = progressDisplayText {
+                Button {
+                    cycleProgressDisplayMode(availableModes: availableModes)
+                } label: {
+                    Text(text)
+                        .font(.caption)
+                        .foregroundColor(toolbarForegroundColor(isPrimary: true))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 12)
+                .accessibilityLabel("Reading progress")
+                .accessibilityValue(text)
+                .onChange(of: availableModes) {
+                    syncProgressDisplayMode(with: availableModes)
+                }
+            }
+        }
+    }
+
     private var floatingBackButton: some View {
         Button {
             dismiss()
@@ -284,6 +311,70 @@ struct BookReaderView: View {
 
     private var toolbarSecondaryColor: Color {
         viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
+    }
+
+    private enum ProgressDisplayMode: CaseIterable {
+        case book
+        case chapter
+        case position
+    }
+
+    private var availableProgressDisplayModes: [ProgressDisplayMode] {
+        guard let locator = viewModel.currentLocator else { return [] }
+        var modes: [ProgressDisplayMode] = []
+        if locator.locations.totalProgression != nil {
+            modes.append(.book)
+        }
+        if locator.locations.progression != nil {
+            modes.append(.chapter)
+        }
+        if locator.locations.position != nil {
+            modes.append(.position)
+        }
+        return modes
+    }
+
+    private var progressDisplayText: String? {
+        guard let locator = viewModel.currentLocator else { return nil }
+        guard let displayMode = resolvedProgressDisplayMode(from: availableProgressDisplayModes) else { return nil }
+        switch displayMode {
+        case .book:
+            guard let totalProgression = locator.locations.totalProgression else { return nil }
+            return "Book \(formatProgress(totalProgression))"
+        case .chapter:
+            guard let progression = locator.locations.progression else { return nil }
+            return "Chapter \(formatProgress(progression))"
+        case .position:
+            guard let position = locator.locations.position else { return nil }
+            return "Position \(position)"
+        }
+    }
+
+    private func resolvedProgressDisplayMode(from availableModes: [ProgressDisplayMode]) -> ProgressDisplayMode? {
+        guard let first = availableModes.first else { return nil }
+        return availableModes.contains(progressDisplayMode) ? progressDisplayMode : first
+    }
+
+    private func formatProgress(_ value: Double) -> String {
+        let clampedValue = min(max(value, 0), 1)
+        return clampedValue.formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    private func cycleProgressDisplayMode(availableModes: [ProgressDisplayMode]) {
+        guard !availableModes.isEmpty else { return }
+        guard let currentIndex = availableModes.firstIndex(of: progressDisplayMode) else {
+            progressDisplayMode = availableModes[0]
+            return
+        }
+        let nextIndex = (currentIndex + 1) % availableModes.count
+        progressDisplayMode = availableModes[nextIndex]
+    }
+
+    private func syncProgressDisplayMode(with availableModes: [ProgressDisplayMode]) {
+        guard let first = availableModes.first else { return }
+        if !availableModes.contains(progressDisplayMode) {
+            progressDisplayMode = first
+        }
     }
 }
 

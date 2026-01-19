@@ -42,6 +42,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
         // Serialize locator to JSON and save to Book.lastOpenedPage
         Task { @MainActor in
             do {
+                viewModel.currentLocator = locator
                 let locatorJSON = locator.jsonString
                 viewModel.book.lastOpenedPage = locatorJSON
                 try viewContext.save()

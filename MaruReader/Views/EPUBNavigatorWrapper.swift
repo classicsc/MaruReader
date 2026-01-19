@@ -62,6 +62,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             navigator.delegate = context.coordinator
 
             viewModel.navigator = navigator
+            viewModel.currentLocator = navigator.currentLocation ?? viewModel.initialLocation
 
             // Set navigator reference on readerPreferences for future updates
             viewModel.readerPreferences.navigator = navigator
