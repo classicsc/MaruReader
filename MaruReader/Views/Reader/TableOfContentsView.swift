@@ -18,17 +18,22 @@
 import ReadiumShared
 import SwiftUI
 
+@MainActor
 struct TableOfContentsView: View {
     let publication: Publication
     let bookTitle: String?
+    let bookAuthor: String?
     let coverImage: UIImage?
     let currentLocator: Locator?
     let onNavigate: (ReadiumShared.Link) -> Void
+    let onNavigateToPosition: (Int) -> Void
     let onDismiss: () -> Void
 
     @State private var tableOfContents: [ReadiumShared.Link] = []
     @State private var expandedItems: Set<String> = []
     @State private var isLoading = true
+    @State private var isShowingPositionPrompt = false
+    @State private var positionInput = ""
 
     var body: some View {
         NavigationStack {
@@ -51,6 +56,16 @@ struct TableOfContentsView: View {
                 } else {
                     tocListView
                 }
+            }
+            .alert("Go to position", isPresented: $isShowingPositionPrompt) {
+                TextField("Position", text: $positionInput)
+                    .keyboardType(.numberPad)
+                Button("Go") {
+                    handlePositionJump()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text(positionPromptMessage)
             }
             .navigationTitle("Contents")
             .navigationBarTitleDisplayMode(.inline)
@@ -87,6 +102,26 @@ struct TableOfContentsView: View {
                 Text(bookTitle ?? "Unknown Title")
                     .font(.headline)
                     .lineLimit(2)
+
+                Text(displayAuthor)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(bookProgressText ?? "Book --")
+                    Text(chapterProgressText ?? "Chapter --")
+                    HStack(spacing: 8) {
+                        Text(positionText)
+                        Button("Go to...") {
+                            presentPositionPrompt()
+                        }
+                        .controlSize(.mini)
+                        .accessibilityLabel("Go to position")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
 
             Spacer()
@@ -149,6 +184,54 @@ struct TableOfContentsView: View {
                 proxy.scrollTo(currentHref, anchor: .center)
             }
         }
+    }
+
+    private var displayAuthor: String {
+        let trimmedAuthor = bookAuthor?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedAuthor.isEmpty ? "Unknown Author" : trimmedAuthor
+    }
+
+    private var bookProgressText: String? {
+        guard let totalProgression = currentLocator?.locations.totalProgression else { return nil }
+        return "Book \(formatProgress(totalProgression))"
+    }
+
+    private var chapterProgressText: String? {
+        guard let progression = currentLocator?.locations.progression else { return nil }
+        return "Chapter \(formatProgress(progression))"
+    }
+
+    private var positionText: String {
+        guard let position = currentLocator?.locations.position else { return "Position --" }
+        return "Position \(position.formatted())"
+    }
+
+    private var positionPromptMessage: String {
+        "Enter a position number."
+    }
+
+    private func formatProgress(_ value: Double) -> String {
+        let clampedValue = min(max(value, 0), 1)
+        return clampedValue.formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    private func presentPositionPrompt() {
+        if let position = currentLocator?.locations.position {
+            positionInput = String(position)
+        } else {
+            positionInput = ""
+        }
+        isShowingPositionPrompt = true
+    }
+
+    private func clampPosition(_ position: Int) -> Int {
+        max(position, 1)
+    }
+
+    private func handlePositionJump() {
+        let trimmedInput = positionInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let position = Int(trimmedInput) else { return }
+        onNavigateToPosition(clampPosition(position))
     }
 }
 

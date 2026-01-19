@@ -90,10 +90,14 @@ struct BookReaderView: View {
                         TableOfContentsView(
                             publication: publication,
                             bookTitle: viewModel.book.title,
+                            bookAuthor: viewModel.book.author,
                             coverImage: viewModel.coverImage,
                             currentLocator: viewModel.currentLocator,
                             onNavigate: { link in
                                 viewModel.navigateToLink(link)
+                            },
+                            onNavigateToPosition: { position in
+                                viewModel.navigateToPosition(position)
                             },
                             onDismiss: {
                                 viewModel.overlayState = .showingToolbars

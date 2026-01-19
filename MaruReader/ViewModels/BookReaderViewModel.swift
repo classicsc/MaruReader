@@ -505,6 +505,39 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    /// Navigate to a 1-based position in the publication.
+    func navigateToPosition(_ position: Int) {
+        guard position > 0 else {
+            logger.warning("Cannot navigate: invalid position \(position)")
+            return
+        }
+        guard let publication, let navigator else {
+            logger.warning("Cannot navigate: publication or navigator not ready")
+            return
+        }
+
+        Task {
+            let positions = await publication.positions().getOrNil() ?? []
+            guard !positions.isEmpty else {
+                logger.warning("Cannot navigate: positions list unavailable")
+                return
+            }
+
+            let locator = positions.first(where: { $0.locations.position == position })
+                ?? positions.getOrNil(position - 1)
+
+            guard let locator else {
+                logger.warning("Cannot navigate: position \(position) out of range")
+                return
+            }
+
+            _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
+            await MainActor.run {
+                overlayState = .none
+            }
+        }
+    }
+
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
