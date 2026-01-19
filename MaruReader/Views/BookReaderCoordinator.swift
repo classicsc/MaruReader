@@ -45,11 +45,19 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 viewModel.currentLocator = locator
                 let locatorJSON = locator.jsonString
                 viewModel.book.lastOpenedPage = locatorJSON
+                if let totalProgression = locator.locations.totalProgression {
+                    viewModel.book.progressPercent = formatProgress(totalProgression)
+                }
                 try viewContext.save()
             } catch {
                 logger.error("Error saving last read location: \(error)")
             }
         }
+    }
+
+    private func formatProgress(_ value: Double) -> String {
+        let clampedValue = min(max(value, 0), 1)
+        return clampedValue.formatted(.percent.precision(.fractionLength(0)))
     }
 
     func navigator(_: Navigator, presentError error: NavigatorError) {

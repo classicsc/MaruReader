@@ -281,7 +281,7 @@ struct BookLibraryView: View {
 }
 
 struct BookGridItem: View {
-    let book: Book
+    @ObservedObject var book: Book
     let state: BookImportState
     let onCancel: () -> Void
     let onRemove: () -> Void
@@ -317,6 +317,13 @@ struct BookGridItem: View {
     private var displayAuthor: String? {
         if let author = book.author, !author.isEmpty {
             return author
+        }
+        return nil
+    }
+
+    private var displayProgress: String? {
+        if let progressPercent = book.progressPercent, !progressPercent.isEmpty {
+            return progressPercent
         }
         return nil
     }
@@ -376,6 +383,13 @@ struct BookGridItem: View {
 
                 if let author = displayAuthor {
                     Text(author)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                if let progressPercent = displayProgress {
+                    Text("\(progressPercent) Read")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

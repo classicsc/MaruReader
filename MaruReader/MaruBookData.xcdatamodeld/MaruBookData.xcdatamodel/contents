@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
     <entity name="Book" representedClassName="Book" syncable="YES" codeGenerationType="class">
         <attribute name="added" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="author" optional="YES" attributeType="String"/>
@@ -14,12 +14,13 @@
         <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="language" optional="YES" attributeType="String"/>
         <attribute name="lastOpenedPage" optional="YES" attributeType="String"/>
         <attribute name="mediaType" optional="YES" attributeType="String"/>
         <attribute name="metadataSaved" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="originalFileName" optional="YES" attributeType="String"/>
+        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="progressPercent" optional="YES" attributeType="String"/>
         <attribute name="scroll" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="spread" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="textDirection" optional="YES" attributeType="Transformable" valueTransformerName="ReadingProgressionTransformer"/>
