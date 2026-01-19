@@ -134,7 +134,11 @@ struct AnkiMobileProviderTests {
         let provider = AnkiMobileProvider(urlOpener: opener)
 
         let remoteURL = try #require(URL(string: "https://example.com/image.jpg"))
-        let localURL = URL(fileURLWithPath: "/tmp/audio.mp3")
+        let tempDir = FileManager.default.temporaryDirectory
+        let localURL = tempDir.appendingPathComponent("audio.mp3")
+        let audioData = Data([0x01, 0x02, 0x03])
+        try audioData.write(to: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
 
         let fields: [String: [TemplateResolvedValue]] = [
             "Front": [
@@ -163,8 +167,49 @@ struct AnkiMobileProviderTests {
         let items = components.queryItems ?? []
         let frontValue = items.first { $0.name == "fldFront" }?.value
 
-        #expect(frontValue == "Text<br>https://example.com/image.jpg")
+        let expectedDataURL = "data:audio/mpeg;base64,\(audioData.base64EncodedString())"
+        #expect(frontValue == "Text<br>https://example.com/image.jpg<br>\(expectedDataURL)")
         #expect(!(frontValue?.contains("file://") ?? false))
+    }
+
+    @Test func addNote_includesLocalImageDataURL() async throws {
+        let opener = TestURLOpener()
+        let provider = AnkiMobileProvider(urlOpener: opener)
+
+        let tempDir = FileManager.default.temporaryDirectory
+        let localURL = tempDir.appendingPathComponent("image.png")
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+        try imageData.write(to: localURL)
+        defer { try? FileManager.default.removeItem(at: localURL) }
+
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Front": [
+                TemplateResolvedValue(mediaFiles: ["image": localURL]),
+            ],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let url = try #require(await opener.lastURL)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let items = components.queryItems ?? []
+        let frontValue = items.first { $0.name == "fldFront" }?.value
+
+        let expectedDataURL = "data:image/png;base64,\(imageData.base64EncodedString())"
+        #expect(frontValue == expectedDataURL)
     }
 
     @Test func addNote_withoutOpener_marksPending() async throws {

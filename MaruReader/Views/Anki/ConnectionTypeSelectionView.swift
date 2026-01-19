@@ -68,7 +68,7 @@ struct ConnectionTypeSelectionView: View {
         case .ankiConnect:
             "Advanced: Connect to Anki running on your computer via the Anki-Connect add-on. Requires Anki open with the addon installed, and a valid SSL certificate."
         case .ankiMobile:
-            "Add notes to AnkiMobile on this device. Easy to set up, but notes will not contain images embedded in dictionary definitions, local audio, or context media like book cover images and content screenshots."
+            "Add notes to AnkiMobile on this device. Easiest to set up, but not compatible with all image types and duplicate note detection options."
         }
     }
 }
