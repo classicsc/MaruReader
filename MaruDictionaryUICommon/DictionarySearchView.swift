@@ -93,6 +93,17 @@ public struct DictionarySearchView: View {
                                 )
                                 .presentationCompactAdaptation(.popover)
                             }
+                            // Tooltip popover for title attributes
+                            .popover(
+                                isPresented: $viewModel.showTooltip,
+                                attachmentAnchor: .rect(.rect(viewModel.tooltipAnchorRect))
+                            ) {
+                                Text(viewModel.tooltipText)
+                                    .font(.callout)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .presentationCompactAdaptation(.popover)
+                            }
                     case let .noResults(query):
                         ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
                     case .startPage:

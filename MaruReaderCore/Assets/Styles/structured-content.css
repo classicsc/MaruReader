@@ -756,6 +756,15 @@ body:not([data-links-active="true"]) .gloss-link {
     cursor: text;
 }
 
+/* Title attribute tooltip indicators */
+[title]:not([title=""]):not(.gloss-image-link):not(.gloss-image-container) {
+    cursor: help;
+    text-decoration-line: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--text-color-light2);
+    text-underline-offset: 2px;
+}
+
 /* ContentStyle classes */
 .gloss-font-bold {
     font-weight: bold;

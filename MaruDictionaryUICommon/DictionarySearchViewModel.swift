@@ -87,6 +87,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var externalLinkAnchorRect: CGRect = .zero
     var showExternalLinkConfirmation: Bool = false
 
+    // Tooltip display state
+    var tooltipText: String = ""
+    var tooltipAnchorRect: CGRect = .zero
+    var showTooltip: Bool = false
+
     // Context editing state
     var isEditingContext: Bool = false
     var editContextText: String = ""
@@ -206,6 +211,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         userContentController.add(self, name: "ankiAdd")
         userContentController.add(self, name: "internalLink")
         userContentController.add(self, name: "externalLink")
+        userContentController.add(self, name: "tooltip")
         config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
@@ -604,6 +610,28 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
             pendingExternalURL = url
             showExternalLinkConfirmation = true
+        } else if message.name == "tooltip" {
+            logger.debug("Received tooltip message: \(String(describing: message.body))")
+            guard let messageObject = message.body as? [String: Any],
+                  let title = messageObject["title"] as? String,
+                  !title.isEmpty
+            else {
+                logger.error("Invalid message body for tooltip")
+                return
+            }
+
+            // Parse anchor rect for popover positioning
+            if let anchorRect = messageObject["anchorRect"] as? [String: Double],
+               let x = anchorRect["x"],
+               let y = anchorRect["y"],
+               let width = anchorRect["width"],
+               let height = anchorRect["height"]
+            {
+                tooltipAnchorRect = CGRect(x: x, y: y, width: width, height: height)
+            }
+
+            tooltipText = title
+            showTooltip = true
         }
     }
 

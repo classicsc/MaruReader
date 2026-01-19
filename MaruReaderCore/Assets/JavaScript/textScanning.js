@@ -52,6 +52,15 @@ window.MaruReader.textScanning = {
             return;
         }
 
+        // Check for elements with title attributes - show tooltip instead of text scanning
+        var titleElement = this.findTitleElement(event.target);
+        if (titleElement) {
+            event.preventDefault();
+            event.stopPropagation();
+            this.showTooltip(titleElement);
+            return;
+        }
+
         // Prevent default behavior to avoid interfering with text scanning
         event.preventDefault();
         event.stopPropagation();
@@ -62,6 +71,49 @@ window.MaruReader.textScanning = {
         var contextLevel = 0; // Default context level (0=current sentence)
 
         this.extractTextAtPoint(x, y, contextLevel, maxChars);
+    },
+
+    /**
+     * Find the nearest ancestor (or self) with a non-empty title attribute.
+     * Excludes image links/containers which have their own handling.
+     * @param {Element} element - Starting element
+     * @returns {Element|null} Element with title, or null
+     */
+    findTitleElement: function(element) {
+        var current = element;
+        while (current && current !== document.body) {
+            if (current.nodeType === Node.ELEMENT_NODE &&
+                current.hasAttribute('title') &&
+                current.getAttribute('title').trim() !== '' &&
+                !current.classList.contains('gloss-image-link') &&
+                !current.classList.contains('gloss-image-container')) {
+                return current;
+            }
+            current = current.parentElement;
+        }
+        return null;
+    },
+
+    /**
+     * Show tooltip via Swift message handler.
+     * @param {Element} element - The element with the title attribute
+     */
+    showTooltip: function(element) {
+        var title = element.getAttribute('title');
+        if (!title || !window.webkit || !window.webkit.messageHandlers || !window.webkit.messageHandlers.tooltip) {
+            return;
+        }
+
+        var rect = element.getBoundingClientRect();
+        window.webkit.messageHandlers.tooltip.postMessage({
+            title: title,
+            anchorRect: {
+                x: rect.x,
+                y: rect.y,
+                width: rect.width,
+                height: rect.height
+            }
+        });
     },
 
     /**
