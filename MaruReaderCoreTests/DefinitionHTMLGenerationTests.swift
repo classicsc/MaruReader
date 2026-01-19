@@ -99,7 +99,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
         #expect(html.contains("data-has-aspect-ratio=\"true\""))
         #expect(html.contains("data-image-rendering=\"pixelated\""))
-        #expect(html.contains("<span class=\"gloss-image-container\" data-width-em=\"120em\""))
+        #expect(html.contains("<span class=\"gloss-image-container\" data-width=\"120px\""))
         #expect(html.contains("title=\"Example\""))
         #expect(html.contains("data-aspect-ratio=\"66.6667\""))
         #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\">"))
@@ -109,7 +109,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
         #expect(html.contains("</div>"))
         #expect(!html.contains("style=\"border:"))
-        #expect(html.contains("style=\"width: 120em\""))
+        #expect(html.contains("style=\"width: 120px\""))
     }
 
     @Test func imageDefinition_toHTML_skipsAbsoluteSource() throws {
@@ -289,7 +289,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=150 and calculate height=75 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
-        #expect(html.contains("data-width-em=\"150em\""))
+        #expect(html.contains("data-width=\"150px\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -322,7 +322,7 @@ struct DefinitionHTMLGenerationTests {
         // Should calculate width=120 from preferredHeight=60 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"120\""))
         #expect(html.contains("height=\"60\""))
-        #expect(html.contains("data-width-em=\"120em\""))
+        #expect(html.contains("data-width=\"120px\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -355,7 +355,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=180 and calculate height from preferred aspect ratio (90/180 = 0.5)
         #expect(html.contains("width=\"180\""))
         #expect(html.contains("height=\"90\""))
-        #expect(html.contains("data-width-em=\"180em\""))
+        #expect(html.contains("data-width=\"180px\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -419,7 +419,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border=\"2px solid red\""))
-        #expect(html.contains("data-width-em=\"100em\""))
+        #expect(html.contains("data-width=\"100px\""))
         #expect(!html.contains("style=\"border:"))
     }
 
@@ -450,7 +450,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border-radius=\"8px\""))
-        #expect(html.contains("data-width-em=\"100em\""))
+        #expect(html.contains("data-width=\"100px\""))
         #expect(!html.contains("style=\"border-radius:"))
     }
 
@@ -480,7 +480,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width-em=\"100em\""))
+        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width=\"100px\""))
         #expect(html.contains("style=\"width: 100%; height: 100%\""))
         #expect(html.contains("data-vertical-align=\"top\""))
         #expect(!html.contains("style=\"image-rendering:"))
@@ -518,7 +518,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("width=\"120\"")) // HTML attributes still use pixel values
         #expect(html.contains("height=\"80\""))
         #expect(!html.contains("data-size-units=\"em\""))
-        #expect(html.contains("data-width-em=\"120em\""))
+        #expect(html.contains("data-width=\"120em\""))
     }
 
     @Test func imageDefinition_toHTML_sizeUnitsEmWithPreferredDimensions() throws {
@@ -551,7 +551,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
         #expect(html.contains("data-size-units=\"em\""))
-        #expect(html.contains("data-width-em=\"150em\""))
+        #expect(html.contains("data-width=\"150em\""))
     }
 
     @Test func imageDefinition_toHTML_sizeUnitsPxDoesNotApplyEmStyles() throws {
@@ -582,7 +582,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 100em\""))
+        #expect(html.contains("style=\"width: 100px\""))
     }
 
     // MARK: - Description Tests
