@@ -25,6 +25,8 @@ public struct MangaReaderView: View {
 
     @State private var viewModel: MangaReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
+    @State private var isShowingPageJumpDialog: Bool = false
+    @State private var pageJumpInput: String = ""
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -255,10 +257,44 @@ public struct MangaReaderView: View {
             "\(viewModel.currentPageIndex + 1) / \(viewModel.pageCount)"
         }
 
-        return Text(displayText)
-            .font(.caption)
-            .monospacedDigit()
-            .foregroundStyle(toolbarSecondaryColor)
+        return Button {
+            preparePageJump()
+        } label: {
+            Text(displayText)
+                .font(.caption)
+                .monospacedDigit()
+                .foregroundStyle(toolbarSecondaryColor)
+        }
+        .buttonStyle(.plain)
+        .contentShape(.rect)
+        .accessibilityLabel("Page \(displayText)")
+        .accessibilityHint("Jump to a page")
+        .alert("Go to Page", isPresented: $isShowingPageJumpDialog) {
+            TextField("Page number", text: $pageJumpInput)
+                .keyboardType(.numberPad)
+                .onChange(of: pageJumpInput) { _, newValue in
+                    pageJumpInput = newValue.filter(\.isNumber)
+                }
+            Button("Go") {
+                performPageJump()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter a page number between 1 and \(viewModel.pageCount).")
+        }
+    }
+
+    private func preparePageJump() {
+        guard viewModel.pageCount > 0 else { return }
+        pageJumpInput = String(viewModel.currentPageIndex + 1)
+        isShowingPageJumpDialog = true
+    }
+
+    private func performPageJump() {
+        let trimmed = pageJumpInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let pageNumber = Int(trimmed), viewModel.pageCount > 0 else { return }
+        let clampedPage = min(max(pageNumber, 1), viewModel.pageCount)
+        viewModel.goToPage(clampedPage - 1)
     }
 
     // MARK: - Interface Colors
