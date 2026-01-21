@@ -43,20 +43,20 @@ public struct MangaReaderView: View {
                     .ignoresSafeArea()
                 pageContainer
                     .ignoresSafeArea()
-                if viewModel.overlayState.shouldShowToolbars {
-                    floatingBackButton
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                        .padding(.top, 30)
-                        .padding(.leading, 20)
-                }
-            }
-            .safeAreaInset(edge: .bottom) {
-                if viewModel.overlayState.shouldShowToolbars {
-                    bottomToolbarOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    bottomToolbarOverlay.hidden()
-                }
+                    .safeAreaInset(edge: .top) {
+                        if viewModel.overlayState.shouldShowToolbars {
+                            floatingBackButton
+                        } else {
+                            floatingBackButton.hidden()
+                        }
+                    }
+                    .safeAreaInset(edge: .bottom) {
+                        if viewModel.overlayState.shouldShowToolbars {
+                            bottomToolbarOverlay
+                        } else {
+                            bottomToolbarOverlay.hidden()
+                        }
+                    }
             }
             .onAppear {
                 viewModel.updateOrientation(isLandscape)
@@ -65,7 +65,6 @@ public struct MangaReaderView: View {
                 viewModel.updateOrientation(newValue)
             }
         }
-        .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
@@ -105,6 +104,23 @@ public struct MangaReaderView: View {
             viewModel.saveOnDisappear()
         }
         .statusBar(hidden: !viewModel.overlayState.shouldShowToolbars)
+        .overlay(alignment: .top) {
+            if viewModel.overlayState.shouldShowToolbars {
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect()
+                    .ignoresSafeArea(edges: .top)
+                    .frame(height: 0)
+            } else {
+                Rectangle()
+                    .fill(.clear)
+                    .glassEffect()
+                    .ignoresSafeArea(edges: .top)
+                    .frame(height: 0)
+                    .hidden()
+            }
+        }
+        .animation(.easeInOut, value: viewModel.overlayState.shouldShowToolbars)
     }
 
     // MARK: - Page Container
@@ -171,9 +187,7 @@ public struct MangaReaderView: View {
                     }
                 }
             }
-            .ignoresSafeArea(edges: .bottom)
         }
-        .ignoresSafeArea()
     }
 
     private var floatingBackButton: some View {
@@ -187,6 +201,10 @@ public struct MangaReaderView: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .padding(.top, 20)
     }
 
     // MARK: - Bottom Toolbar
