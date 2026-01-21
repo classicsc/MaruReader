@@ -109,7 +109,6 @@ struct BookReaderView: View {
                 .onChange(of: colorScheme) {
                     viewModel.readerPreferences.submitToNavigator()
                 }
-                .statusBar(hidden: !viewModel.overlayState.shouldShowToolbars)
         }
     }
 
