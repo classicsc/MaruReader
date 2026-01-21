@@ -176,7 +176,7 @@ extension StructuredElement {
             attributes.append("data-vertical-align=\"\(escapeHTML(verticalAlign))\"")
         }
 
-        if let sizeUnits, hasPreferredWidth || hasPreferredHeight {
+        if let sizeUnits {
             attributes.append("data-size-units=\"\(escapeHTML(sizeUnits))\"")
         }
 
@@ -367,8 +367,9 @@ extension StructuredElement {
         return createElementByType(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
     }
 
-    /// Generate Anki-compatible HTML with inline styles (no CSS class dependencies).
-    /// Images use absolute URLs, links are rendered as plain text, and styles are inlined.
+    /// Generate Anki-compatible HTML with CSS classes for styling via embedded stylesheets.
+    /// Uses the same class structure as Yomitan for compatibility with existing Anki card templates.
+    /// Images use Anki's flat filename structure for media files.
     func toAnkiHTML(mediaBaseURL: URL? = nil) -> String {
         if tag == "img" {
             return createAnkiImageElement(mediaBaseURL: mediaBaseURL)
@@ -383,84 +384,143 @@ extension StructuredElement {
         // The actual file will be uploaded separately via the picture/audio/video arrays.
         let filename = (path as NSString).lastPathComponent
 
-        var imageAttributes = ["src=\"\(escapeHTML(filename))\""]
+        // Get original dimensions with defaults
+        let originalWidth = self.width ?? 380.0
+        let originalHeight = self.height ?? 380.0
 
-        if let alt {
-            imageAttributes.append("alt=\"\(escapeHTML(alt))\"")
-        }
+        let hasPreferredWidth = preferredWidth != nil
+        let hasPreferredHeight = preferredHeight != nil
 
-        if let title {
-            imageAttributes.append("title=\"\(escapeHTML(title))\"")
-        }
+        // Calculate effective dimensions based on preferences and original aspect ratio
+        let effectiveWidth: Double
+        let effectiveHeight: Double
 
-        // Add inline styles
-        var styles: [String] = []
+        if hasPreferredWidth, hasPreferredHeight {
+            effectiveWidth = preferredWidth!
+            effectiveHeight = preferredHeight!
+        } else if hasPreferredWidth {
+            effectiveWidth = preferredWidth!
+            let originalAspectRatio = originalHeight / originalWidth
+            effectiveHeight = effectiveWidth * originalAspectRatio
+        } else if hasPreferredHeight {
+            effectiveHeight = preferredHeight!
+            let originalAspectRatio = originalHeight / originalWidth
+            effectiveWidth = effectiveHeight / originalAspectRatio
+        } else if sizeUnits == "em" {
+            let hasDirectWidth = width != nil
+            let hasDirectHeight = height != nil
 
-        if let verticalAlign {
-            styles.append("vertical-align: \(verticalAlign)")
-        }
-
-        if let border {
-            styles.append("border: \(border)")
-        }
-
-        if let borderRadius {
-            styles.append("border-radius: \(borderRadius)")
-        }
-
-        let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : nil)
-        if let imageRenderingValue {
-            styles.append("image-rendering: \(imageRenderingValue)")
-        }
-
-        // Handle em-based sizing for Anki
-        if sizeUnits == "em" {
-            // For em-based images, use em units in CSS rather than pixel dimensions.
-            // This preserves the intended sizing relative to font size.
-            let originalWidth = width ?? 1.0
-            let originalHeight = height ?? 1.0
-
-            let effectiveWidth: Double
-            let effectiveHeight: Double
-
-            if let preferredWidth, let preferredHeight {
-                effectiveWidth = preferredWidth
-                effectiveHeight = preferredHeight
-            } else if let preferredWidth {
-                effectiveWidth = preferredWidth
-                effectiveHeight = preferredWidth * (originalHeight / originalWidth)
-            } else if let preferredHeight {
-                effectiveHeight = preferredHeight
-                effectiveWidth = preferredHeight / (originalHeight / originalWidth)
-            } else if width != nil, height != nil {
+            if hasDirectWidth, hasDirectHeight {
                 effectiveWidth = originalWidth
                 effectiveHeight = originalHeight
-            } else if width != nil {
+            } else if hasDirectWidth {
                 effectiveWidth = originalWidth
                 effectiveHeight = originalWidth
-            } else if height != nil {
+            } else if hasDirectHeight {
                 effectiveWidth = originalHeight
                 effectiveHeight = originalHeight
             } else {
                 effectiveWidth = 1.0
                 effectiveHeight = 1.0
             }
-
-            styles.append("width: \(formatNumber(effectiveWidth))em")
-            styles.append("height: \(formatNumber(effectiveHeight))em")
         } else {
-            // For pixel-based images, include width/height attributes
-            let effectiveWidth = preferredWidth ?? width ?? 200.0
-            let effectiveHeight = preferredHeight ?? height ?? 200.0
+            effectiveWidth = originalWidth
+            effectiveHeight = originalHeight
+        }
+
+        let invAspectRatio = effectiveHeight / effectiveWidth
+        let usedWidth = effectiveWidth
+
+        // Build link attributes with data attributes for CSS targeting
+        var linkAttributes: [String] = [
+            "class=\"gloss-image-link\"",
+        ]
+
+        linkAttributes.append("data-path=\"\(escapeHTML(path))\"")
+        linkAttributes.append("data-has-aspect-ratio=\"true\"")
+
+        let imageRenderingValue = imageRendering ?? (pixelated == true ? "pixelated" : "auto")
+        linkAttributes.append("data-image-rendering=\"\(imageRenderingValue)\"")
+
+        let appearanceValue = appearance ?? "auto"
+        linkAttributes.append("data-appearance=\"\(appearanceValue)\"")
+
+        let backgroundValue = background ?? true
+        linkAttributes.append("data-background=\"\(backgroundValue)\"")
+
+        let collapsedValue = collapsed ?? false
+        linkAttributes.append("data-collapsed=\"\(collapsedValue)\"")
+
+        if let verticalAlign {
+            linkAttributes.append("data-vertical-align=\"\(escapeHTML(verticalAlign))\"")
+        }
+
+        if let sizeUnits {
+            linkAttributes.append("data-size-units=\"\(escapeHTML(sizeUnits))\"")
+        }
+
+        // Container attributes
+        var containerAttributes = ["class=\"gloss-image-container\""]
+
+        if let border {
+            containerAttributes.append("data-border=\"\(escapeHTML(border))\"")
+        }
+        if let borderRadius {
+            containerAttributes.append("data-border-radius=\"\(escapeHTML(borderRadius))\"")
+        }
+        if let title {
+            containerAttributes.append("title=\"\(escapeHTML(title))\"")
+        }
+
+        // Container inline style for width
+        let widthValue = if sizeUnits == "em" {
+            "\(formatNumber(usedWidth))em"
+        } else {
+            "\(formatNumber(usedWidth))px"
+        }
+        containerAttributes.append("style=\"width: \(widthValue)\"")
+
+        // Aspect ratio for sizer
+        let paddingTopValue = invAspectRatio * 100
+
+        // Build image element
+        var imageAttributes = [
+            "class=\"gloss-image\"",
+            "src=\"\(escapeHTML(filename))\"",
+            "style=\"width: 100%; height: 100%\"",
+        ]
+
+        if sizeUnits == "em" {
+            imageAttributes.append("width=\"\(Int(effectiveWidth * 16 * 2))\"")
+            imageAttributes.append("height=\"\(Int(effectiveHeight * 16 * 2))\"")
+        } else {
             imageAttributes.append("width=\"\(Int(effectiveWidth))\"")
             imageAttributes.append("height=\"\(Int(effectiveHeight))\"")
         }
 
-        if !styles.isEmpty {
-            imageAttributes.append("style=\"\(styles.joined(separator: "; "))\"")
+        if let alt {
+            imageAttributes.append("alt=\"\(escapeHTML(alt))\"")
         }
 
-        return "<img \(imageAttributes.joined(separator: " "))>"
+        if let verticalAlign {
+            imageAttributes.append("data-vertical-align=\"\(escapeHTML(verticalAlign))\"")
+        }
+
+        let linkAttrString = linkAttributes.joined(separator: " ")
+        let containerAttrString = containerAttributes.joined(separator: " ")
+        let imageAttrString = imageAttributes.joined(separator: " ")
+
+        return """
+        <a \(linkAttrString)>\
+        <span \(containerAttrString)>\
+        <span class="gloss-image-sizer" style="padding-top: \(formatNumber(paddingTopValue))%"></span>\
+        <span class="gloss-image-background"></span>\
+        <img \(imageAttrString)>\
+        <span class="gloss-image-container-overlay"></span>\
+        </span>\
+        <span class="gloss-image-link-text">Image</span>\
+        </a>
+        """
     }
 
     private func createAnkiElementByType(mediaBaseURL: URL?) -> String {
@@ -473,53 +533,51 @@ extension StructuredElement {
             attributes.append("lang=\"\(escapeHTML(lang))\"")
         }
 
-        // Add inline styles instead of classes
-        var inlineStyles: [String] = []
+        // Add base class with style classes (same as toHTML)
+        let baseClass = if tag == "a" {
+            "gloss-link"
+        } else {
+            "gloss-sc-\(tag)"
+        }
+        let extraClasses = style?.toCSSClasses().joined(separator: " ") ?? ""
+        let fullClass = [baseClass, extraClasses].filter { !$0.isEmpty }.joined(separator: " ")
+        attributes.append("class=\"\(fullClass)\"")
 
-        // Include styles from ContentStyle if present
-        if let style {
-            let css = style.toCSSString()
-            if !css.isEmpty {
-                inlineStyles.append(css)
-            }
+        // Add inline styles from ContentStyle if present (for custom colors, margins, etc.)
+        if let style, !style.toCSSString().isEmpty {
+            attributes.append("style=\"\(escapeHTML(style.toCSSString()))\"")
         }
 
         // Specialized handling
         switch tag {
         case "br":
             return "<br>"
-        case "ruby", "rt", "rp":
-            // Keep ruby elements simple
+        case "ruby", "rt", "rp", "div", "span", "ol", "ul", "li", "summary", "thead", "tbody", "tfoot", "tr":
+            // Simple elements: base class applied above
             break
-        case "div":
-            inlineStyles.append("display: block")
-        case "span":
-            // No additional styles needed for span
-            break
-        case "ol":
-            inlineStyles.append("list-style-type: decimal; margin: 0; padding-left: 1.5em")
-        case "ul":
-            inlineStyles.append("list-style-type: disc; margin: 0; padding-left: 1.5em")
-        case "li":
-            inlineStyles.append("display: list-item")
         case "table":
-            inlineStyles.append("border-collapse: collapse")
+            // Will wrap in container below
+            break
         case "th", "td":
-            inlineStyles.append("border: 1px solid #ccc; padding: 4px 8px")
             if let colSpan, colSpan > 1 {
                 attributes.append("colspan=\"\(colSpan)\"")
             }
             if let rowSpan, rowSpan > 1 {
                 attributes.append("rowspan=\"\(rowSpan)\"")
             }
-        case "thead":
-            inlineStyles.append("font-weight: bold")
         case "a":
-            // For Anki, render links as underlined text without the href
-            inlineStyles.append("text-decoration: underline; color: #0066cc")
-        case "summary", "details":
-            // Render details as simple content for Anki
-            break
+            // Keep href for Anki (external links can still work)
+            if let href {
+                let isInternal = href.hasPrefix("?")
+                if !isInternal {
+                    attributes.append("href=\"\(escapeHTML(href))\"")
+                }
+                attributes.append("data-external=\"\(isInternal ? "false" : "true")\"")
+            }
+        case "details":
+            if let open, open {
+                attributes.append("open")
+            }
         case "img":
             return createAnkiImageElement(mediaBaseURL: mediaBaseURL)
         default:
@@ -533,12 +591,6 @@ extension StructuredElement {
         // Add data attributes (important for Lapis/Yomitan compatibility)
         attributes.append(contentsOf: transformedDataAttrs(data: data))
 
-        // Build style attribute
-        if !inlineStyles.isEmpty {
-            let styleString = inlineStyles.joined(separator: "; ")
-            attributes.append("style=\"\(escapeHTML(styleString))\"")
-        }
-
         let attributeString = attributes.isEmpty ? "" : " " + attributes.joined(separator: " ")
 
         if isSelfClosing {
@@ -547,17 +599,19 @@ extension StructuredElement {
 
         let contentHTML = content?.toAnkiHTML(mediaBaseURL: mediaBaseURL) ?? ""
 
-        // For 'details' tag, just render the content without the details wrapper
+        // For 'details' tag in Anki, render content without the wrapper (Anki may not support <details>)
         if tag == "details" {
             return contentHTML
         }
 
-        // For 'a' tag, just render the content text styled as a link
-        if tag == "a" {
-            return "<span\(attributeString)>\(contentHTML)</span>"
+        let elementHTML = "<\(tag)\(attributeString)>\(contentHTML)</\(tag)>"
+
+        // Wrap tables in a container for overflow handling
+        if tag == "table" {
+            return "<div class=\"gloss-sc-table-container\">\(elementHTML)</div>"
         }
 
-        return "<\(tag)\(attributeString)>\(contentHTML)</\(tag)>"
+        return elementHTML
     }
 
     private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {

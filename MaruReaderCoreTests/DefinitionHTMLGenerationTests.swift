@@ -517,7 +517,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"120\"")) // HTML attributes still use pixel values
         #expect(html.contains("height=\"80\""))
-        #expect(!html.contains("data-size-units=\"em\""))
+        #expect(html.contains("data-size-units=\"em\"")) // Should be present for CSS font-size override
         #expect(html.contains("data-width=\"120em\""))
     }
 

@@ -967,6 +967,114 @@ struct DictionaryContentMarkupTests {
 
     // MARK: - Anki HTML Generation Tests
 
+    @Test func structuredElement_toAnkiHTML_SimpleElement() throws {
+        let element = StructuredElement(
+            tag: "p",
+            content: .text("Hello World"),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        // Anki HTML uses CSS classes instead of inline styles
+        #expect(html.contains("class=\"gloss-sc-p\""))
+        #expect(html.contains(">Hello World</p>"))
+    }
+
+    @Test func structuredElement_toAnkiHTML_TableWithClasses() throws {
+        let cell = StructuredElement(
+            tag: "td",
+            content: .text("Cell"),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: 2,
+            rowSpan: nil,
+            open: nil
+        )
+        let row = StructuredElement(
+            tag: "tr",
+            content: .element(cell),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+        let table = StructuredElement(
+            tag: "table",
+            content: .element(row),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = table.toAnkiHTML()
+        // Should use CSS classes for Yomitan compatibility
+        #expect(html.contains("class=\"gloss-sc-table-container\""))
+        #expect(html.contains("class=\"gloss-sc-table\""))
+        #expect(html.contains("class=\"gloss-sc-tr\""))
+        #expect(html.contains("class=\"gloss-sc-td\""))
+        #expect(html.contains("colspan=\"2\""))
+    }
+
+    @Test func structuredElement_toAnkiHTML_LinkWithHref() throws {
+        let element = StructuredElement(
+            tag: "a",
+            content: .text("Click me"),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: "https://example.com",
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        // Anki links keep href and use CSS classes
+        #expect(html.contains("class=\"gloss-link\""))
+        #expect(html.contains("href=\"https://example.com\""))
+        #expect(html.contains(">Click me</a>"))
+    }
+
     @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnits() throws {
         // Test that em-based images produce em-based CSS dimensions for Anki
         let element = StructuredElement(
@@ -988,12 +1096,14 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toAnkiHTML()
+        // Should use filename only (Anki stores media flat)
         #expect(html.contains("src=\"平板.svg\""))
+        // Should use Yomitan-compatible structure
+        #expect(html.contains("class=\"gloss-image-link\""))
+        #expect(html.contains("class=\"gloss-image-container\""))
+        #expect(html.contains("class=\"gloss-image\""))
+        // Em-based sizing in container style
         #expect(html.contains("width: 0.7em"))
-        #expect(html.contains("height: 1em"))
-        // Should NOT have pixel-based width/height attributes
-        #expect(!html.contains("width=\"0\""))
-        #expect(!html.contains("height=\"1\""))
     }
 
     @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnitsAndPreferredDimensions() throws {
@@ -1017,13 +1127,13 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toAnkiHTML()
-        // preferredWidth is 0.5, aspect ratio is 2:1, so height should be 1.0
+        // preferredWidth is 0.5, aspect ratio is 2:1, so container width should be 0.5em
         #expect(html.contains("width: 0.5em"))
-        #expect(html.contains("height: 1em"))
+        #expect(html.contains("class=\"gloss-image-link\""))
     }
 
     @Test func structuredElement_toAnkiHTML_ImageWithPixelDimensions() throws {
-        // Test that pixel-based images still use width/height attributes
+        // Test that pixel-based images use px units in container
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -1042,10 +1152,15 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toAnkiHTML()
+        // Should use Yomitan-compatible structure with classes
+        #expect(html.contains("class=\"gloss-image-link\""))
+        #expect(html.contains("class=\"gloss-image-container\""))
+        #expect(html.contains("class=\"gloss-image\""))
+        // Pixel dimensions in container
+        #expect(html.contains("width: 100px"))
+        // Image element has width/height attributes for intrinsic sizing
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"50\""))
-        #expect(!html.contains("width:"))
-        #expect(!html.contains("height:"))
     }
 
     @Test func structuredElement_toAnkiHTML_ImageWithVerticalAlign() throws {
@@ -1069,8 +1184,113 @@ struct DictionaryContentMarkupTests {
         )
 
         let html = element.toAnkiHTML()
-        #expect(html.contains("vertical-align: text-bottom"))
+        // Vertical align should be in data attribute for CSS targeting
+        #expect(html.contains("data-vertical-align=\"text-bottom\""))
+        // Em units
         #expect(html.contains("width: 0.7em"))
-        #expect(html.contains("height: 1em"))
+    }
+
+    @Test func structuredElement_toAnkiHTML_ImageYomitanCompatibleStructure() throws {
+        let element = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "image.png",
+            width: 100,
+            height: 100,
+            title: "Image Title",
+            alt: "Alt text",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+
+        // Should have Yomitan-compatible structure
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(html.contains("<span class=\"gloss-image-container\""))
+        #expect(html.contains("<span class=\"gloss-image-sizer\""))
+        #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
+        #expect(html.contains("<img class=\"gloss-image\""))
+        #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
+        #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
+        #expect(html.contains("</a>"))
+
+        // Data attributes for CSS styling
+        #expect(html.contains("data-has-aspect-ratio=\"true\""))
+        #expect(html.contains("data-appearance=\"auto\""))
+    }
+
+    @Test func structuredElement_toAnkiHTML_WithStyleClasses() throws {
+        let style = ContentStyle(
+            fontWeight: "bold",
+            textAlign: "center"
+        )
+
+        let element = StructuredElement(
+            tag: "div",
+            content: .text("Bold centered text"),
+            data: nil,
+            style: style,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = element.toAnkiHTML()
+        // Should have both base class and style classes
+        #expect(html.contains("class=\"gloss-sc-div gloss-font-bold gloss-text-center\""))
+        // Should also have inline style for the style properties
+        #expect(html.contains("style=\"font-weight: bold; text-align: center\""))
+    }
+
+    @Test func structuredElement_toAnkiHTML_ListElements() throws {
+        let li = StructuredElement(
+            tag: "li",
+            content: .text("Item"),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+        let ol = StructuredElement(
+            tag: "ol",
+            content: .element(li),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = ol.toAnkiHTML()
+        #expect(html.contains("class=\"gloss-sc-ol\""))
+        #expect(html.contains("class=\"gloss-sc-li\""))
     }
 }

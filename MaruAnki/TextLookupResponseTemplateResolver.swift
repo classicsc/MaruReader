@@ -293,16 +293,21 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             return .empty
         }
 
-        // Use Anki-compatible HTML with inline styles
+        // Use Anki-compatible HTML with CSS classes
         let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
 
         // Extract and resolve image paths
         let imagePaths = dictResult.results.extractImagePaths()
         let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
 
-        // Wrap in yomitan-glossary div with data-dictionary for Lapis compatibility
+        // Generate style tag with base styles and dictionary-specific styles
+        let styleTag = AnkiStyleProvider.generateStyleTag(
+            dictionaryResults: [(uuid: dictResult.dictionaryUUID, title: dictResult.dictionaryTitle)]
+        )
+
+        // Wrap in yomitan-glossary div with data-dictionary for Yomitan/Lapis compatibility
         let wrappedHTML = """
-        <div style="text-align: left;" class="yomitan-glossary"><ol><li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())">\(ankiHTML)</li></ol></div>
+        <div style="text-align: left;" class="yomitan-glossary"><ol><li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())">\(ankiHTML)</li></ol>\(styleTag)</div>
         """
 
         return TemplateResolvedValue(text: wrappedHTML, mediaFiles: mediaFiles)
@@ -311,9 +316,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private func resolveMultiDictionaryGlossary() -> TemplateResolvedValue {
         var allMediaFiles: [String: URL] = [:]
 
-        // Build list items with data-dictionary attributes for Lapis compatibility
+        // Build list items with data-dictionary attributes for Yomitan/Lapis compatibility
         let listItems = selectedGroup.dictionariesResults.map { dictResult in
-            // Use Anki-compatible HTML with inline styles
+            // Use Anki-compatible HTML with CSS classes
             let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
 
             // Extract and resolve image paths for this dictionary
@@ -327,9 +332,13 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             """
         }.joined()
 
-        // Wrap in yomitan-glossary div for Lapis compatibility
+        // Generate style tag with base styles and all dictionary-specific styles
+        let dictionaryInfo = selectedGroup.dictionariesResults.map { (uuid: $0.dictionaryUUID, title: $0.dictionaryTitle) }
+        let styleTag = AnkiStyleProvider.generateStyleTag(dictionaryResults: dictionaryInfo)
+
+        // Wrap in yomitan-glossary div for Yomitan/Lapis compatibility
         let html = """
-        <div style="text-align: left;" class="yomitan-glossary"><ol>\(listItems)</ol></div>
+        <div style="text-align: left;" class="yomitan-glossary"><ol>\(listItems)</ol>\(styleTag)</div>
         """
 
         return TemplateResolvedValue(text: html, mediaFiles: allMediaFiles)
@@ -339,14 +348,24 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         guard let firstDict = selectedGroup.dictionariesResults.first else {
             return .empty
         }
-        // Use Anki-compatible HTML with inline styles
+        // Use Anki-compatible HTML with CSS classes
         let ankiHTML = firstDict.results.generateCombinedAnkiHTML(dictionaryUUID: firstDict.dictionaryUUID)
 
         // Extract and resolve image paths
         let imagePaths = firstDict.results.extractImagePaths()
         let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: firstDict.dictionaryUUID)
 
-        return TemplateResolvedValue(text: ankiHTML, mediaFiles: mediaFiles)
+        // Generate style tag with base styles and dictionary-specific styles
+        let styleTag = AnkiStyleProvider.generateStyleTag(
+            dictionaryResults: [(uuid: firstDict.dictionaryUUID, title: firstDict.dictionaryTitle)]
+        )
+
+        // Wrap in yomitan-glossary div for styling (even without dictionary label)
+        let wrappedHTML = """
+        <div style="text-align: left;" class="yomitan-glossary">\(ankiHTML)\(styleTag)</div>
+        """
+
+        return TemplateResolvedValue(text: wrappedHTML, mediaFiles: mediaFiles)
     }
 
     /// Resolves image paths to actual file URLs in the Media directory.
