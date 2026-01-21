@@ -179,10 +179,10 @@ public struct MangaReaderView: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .foregroundColor(toolbarForegroundColor(isPrimary: true))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
-        .glassEffect(in: .circle)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
     }
 
