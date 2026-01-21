@@ -42,7 +42,7 @@ public struct MangaReaderView: View {
                 Color(.systemBackground)
                     .ignoresSafeArea()
                 pageContainer
-                    .ignoresSafeArea(.all, edges: .bottom)
+                    .ignoresSafeArea()
                 if viewModel.overlayState.shouldShowToolbars {
                     floatingBackButton
                         .transition(.move(edge: .top).combined(with: .opacity))
@@ -64,6 +64,7 @@ public struct MangaReaderView: View {
                 viewModel.updateOrientation(newValue)
             }
         }
+        .ignoresSafeArea()
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .toolbar(.hidden, for: .tabBar)
@@ -146,7 +147,7 @@ public struct MangaReaderView: View {
     private var verticalScrollView: some View {
         GeometryReader { geometry in
             // Use full height including safe areas so toolbar changes don't affect page size
-            let pageHeight = geometry.size.height + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
+            let pageHeight = geometry.size.height
 
             ScrollViewReader { proxy in
                 ScrollView(.vertical, showsIndicators: false) {
@@ -171,6 +172,7 @@ public struct MangaReaderView: View {
             }
             .ignoresSafeArea(edges: .bottom)
         }
+        .ignoresSafeArea()
     }
 
     private var floatingBackButton: some View {

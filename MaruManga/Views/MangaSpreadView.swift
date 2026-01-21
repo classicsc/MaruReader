@@ -58,6 +58,7 @@ struct MangaSpreadView: View {
                     handleSpreadTap(at: location, containerSize: containerSize)
                 }
         }
+        .ignoresSafeArea()
         .task {
             // Load all pages in this spread
             for pageIndex in spreadItem.pageIndices {

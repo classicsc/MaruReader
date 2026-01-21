@@ -58,6 +58,7 @@ struct MangaPageView: View {
                 )
             }
         }
+        .ignoresSafeArea()
         .task {
             await viewModel.loadPage(at: pageIndex)
         }
