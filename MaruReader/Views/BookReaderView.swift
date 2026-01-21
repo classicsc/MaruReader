@@ -157,12 +157,17 @@ struct BookReaderView: View {
                 }
             }
             .safeAreaInset(edge: .bottom) {
-                if viewModel.overlayState.shouldShowToolbars {
-                    bottomToolbarOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    progressDisplayOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                ZStack(alignment: .bottom) {
+                    // Invisible spacer to reserve consistent height
+                    bottomToolbarOverlay.hidden()
+
+                    if viewModel.overlayState.shouldShowToolbars {
+                        bottomToolbarOverlay
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    } else {
+                        progressDisplayOverlay
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                    }
                 }
             }
             .safeAreaInset(edge: .top) {
