@@ -44,7 +44,10 @@ public enum AnkiStyleProvider {
             return nil
         }
 
-        let trimmed = stylesheet.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Sanitize to prevent script injection (GHSA-g3p8-q34q-x686)
+        let sanitized = CSSSanitizer.sanitize(stylesheet)
+
+        let trimmed = sanitized.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return nil
         }

@@ -230,7 +230,11 @@ public struct TextLookupResponse: Sendable {
         for dictionary in dictionaries {
             guard seen.insert(dictionary.dictionaryUUID).inserted else { continue }
             guard let stylesheet = stylesheetProvider(dictionary.dictionaryUUID) else { continue }
-            let trimmedStylesheet = stylesheet.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Sanitize to prevent script injection (GHSA-g3p8-q34q-x686)
+            let sanitizedStylesheet = CSSSanitizer.sanitize(stylesheet)
+
+            let trimmedStylesheet = sanitizedStylesheet.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmedStylesheet.isEmpty else { continue }
 
             let escapedTitle = dictionary.dictionaryTitle.cssEscape()
