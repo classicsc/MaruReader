@@ -46,7 +46,8 @@ public struct MangaReaderView: View {
                 if viewModel.overlayState.shouldShowToolbars {
                     floatingBackButton
                         .transition(.move(edge: .top).combined(with: .opacity))
-                        .padding()
+                        .padding(.top, 30)
+                        .padding(.leading, 20)
                 }
             }
             .safeAreaInset(edge: .bottom) {
