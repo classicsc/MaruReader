@@ -24,11 +24,18 @@ import WebKit
 public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var addressAccessorySize: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var collapsedAddressMaxWidth: CGFloat = 180
 
     @State private var viewModel: WebViewerViewModel
     @State private var selectedLookup: WebLookupSelection?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var isEditingAddress = false
+    @State private var readingModeMenuExpanded = false
+    @State private var addressSelection: TextSelection?
+    @State private var isAddressFocused = false
+    @Namespace private var glassNamespace
+
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
     @Environment(\.pixelLength) var onePixel
@@ -67,23 +74,23 @@ public struct WebViewerView: View {
                                 viewModel.performPagingAction(axis: axis, behavior: behavior, direction: direction)
                             }
                         )
-                        readingModeToolbarToggleButton
-                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                            .padding(.trailing, 16)
-                            .padding(.top, 16)
                     }
                 }
             }
-        }
-        .safeAreaInset(edge: .bottom) {
-            if viewModel.overlayState.shouldShowToolbars {
-                bottomToolbarOverlay
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-            } else {
-                bottomToolbarOverlay.hidden()
+
+            if shouldShowDismissButton {
+                floatingDismissButton
+                    .transition(.opacity.combined(with: .scale))
             }
+
+            bottomControlsOverlay
+        }
+        .overlay(alignment: .top) {
+            loadingProgressOverlay
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
+        .animation(.easeInOut(duration: 0.25), value: readingModeMenuExpanded)
         .onAppear {
             viewModel.loadInitialURLIfNeeded()
         }
@@ -94,9 +101,27 @@ public struct WebViewerView: View {
             viewModel.refreshBookmarkState()
         }
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
-            // Auto-hide toolbar when entering reading mode
             if isEnabled {
                 viewModel.overlayState = .none
+            } else {
+                readingModeMenuExpanded = false
+                viewModel.overlayState = .showingToolbars
+            }
+        }
+        .onChange(of: isAddressFocused) { _, newValue in
+            if isEditingAddress != newValue {
+                isEditingAddress = newValue
+            }
+            if newValue, viewModel.overlayState != .showingToolbars {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    viewModel.overlayState = .showingToolbars
+                }
+            }
+            if newValue, !viewModel.addressBarText.isEmpty {
+                // Defer selection until after focus change propagates to TextField
+                Task { @MainActor in
+                    addressSelection = TextSelection(range: viewModel.addressBarText.startIndex ..< viewModel.addressBarText.endIndex)
+                }
             }
         }
         .sheet(item: $selectedLookup) { selection in
@@ -127,99 +152,403 @@ public struct WebViewerView: View {
         .navigationBarBackButtonHidden()
     }
 
-    private var bottomToolbarOverlay: some View {
-        WebToolbarView(
+    private var bottomControlsOverlay: some View {
+        GlassEffectContainer(spacing: 10) {
+            ZStack {
+                if shouldShowCollapsedAddress {
+                    collapsedAddressCapsule
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
+                if shouldShowFullControls {
+                    bottomControlsRow
+                }
+
+                if readingModeMenuExpanded {
+                    readingModeMenu
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                } else if shouldShowReadingModeButtonOnly {
+                    readingModeButton
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 16)
+    }
+
+    private var bottomControlsRow: some View {
+        HStack(alignment: .bottom) {
+            if canGoBack || canGoForward {
+                navigationCluster
+            }
+
+            Spacer()
+
+            addressCluster
+
+            Spacer()
+
+            readingModeButton
+        }
+    }
+
+    private var navigationCluster: some View {
+        HStack(spacing: 12) {
+            if canGoBack {
+                navigationButton(
+                    systemName: "chevron.backward",
+                    accessibilityLabel: "Back",
+                    action: viewModel.goBack
+                )
+                .glassEffectID("navBack", in: glassNamespace)
+                .glassEffectTransition(.matchedGeometry)
+            }
+
+            if canGoForward {
+                navigationButton(
+                    systemName: "chevron.forward",
+                    accessibilityLabel: "Forward",
+                    action: viewModel.goForward
+                )
+                .glassEffectID("navForward", in: glassNamespace)
+                .glassEffectTransition(.matchedGeometry)
+            }
+        }
+    }
+
+    private var addressCluster: some View {
+        HStack(spacing: 12) {
+            addressBarCapsule
+            bookmarkButton
+        }
+    }
+
+    private var addressBarCapsule: some View {
+        AddressBarCapsuleView(
             addressText: $viewModel.addressBarText,
+            addressSelection: $addressSelection,
+            shouldFocus: $isAddressFocused,
+            isEditingAddress: isEditingAddress,
+            displayText: addressDisplayText,
             isLoading: viewModel.page.isLoading,
-            estimatedProgress: viewModel.page.estimatedProgress,
-            canGoBack: !viewModel.page.backForwardList.backList.isEmpty,
-            canGoForward: !viewModel.page.backForwardList.forwardList.isEmpty,
-            isReadingModeEnabled: viewModel.readingModeEnabled,
-            pagingAxis: viewModel.pagingAxis,
-            pagingBehavior: viewModel.pagingBehavior,
-            isBookmarked: viewModel.isBookmarked,
-            onAddressEditingChanged: { isEditing in
-                isEditingAddress = isEditing
-            },
-            onSubmitAddress: {
-                viewModel.navigate(to: viewModel.addressBarText)
-            },
-            onBack: {
-                viewModel.goBack()
-            },
-            onForward: {
-                viewModel.goForward()
-            },
-            onReload: {
-                viewModel.reload()
-            },
-            onStopLoading: {
-                viewModel.stopLoading()
-            },
-            onBookmark: {
-                viewModel.toggleBookmark()
-            },
-            onToggleReadingMode: {
-                viewModel.readingModeEnabled.toggle()
-            },
-            onTogglePagingAxis: {
-                viewModel.togglePagingAxis()
-            },
-            onTogglePagingBehavior: {
-                viewModel.togglePagingBehavior()
-            },
-            onExit: {
-                dismiss()
+            namespace: glassNamespace,
+            iconSize: floatingButtonIconSize,
+            accessorySize: addressAccessorySize,
+            onBeginEditing: beginAddressEditing,
+            onSubmit: submitAddress,
+            onReload: viewModel.reload,
+            onStopLoading: viewModel.stopLoading
+        )
+    }
+
+    private var collapsedAddressCapsule: some View {
+        CollapsedAddressCapsuleView(
+            displayText: addressDisplayText,
+            namespace: glassNamespace,
+            iconSize: floatingButtonIconSize,
+            maxWidth: collapsedAddressMaxWidth,
+            onTap: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    viewModel.overlayState = .showingToolbars
+                }
             }
         )
-        .foregroundStyle(toolbarForegroundColor(isPrimary: true))
-        .padding(.bottom, 12)
     }
 
-    private var readingModeToolbarToggleButton: some View {
+    private var bookmarkButton: some View {
         Button {
-            viewModel.toggleOverlay()
+            viewModel.toggleBookmark()
         } label: {
-            Image(systemName: "ellipsis.circle")
+            Image(systemName: viewModel.isBookmarked ? "bookmark.fill" : "bookmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .foregroundStyle(toolbarForegroundColor(isPrimary: true))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .glassEffectID("bookmark", in: glassNamespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel(viewModel.isBookmarked ? "Remove Bookmark" : "Add Bookmark")
+    }
+
+    private var readingModeButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                isAddressFocused = false
+                viewModel.readingModeEnabled = true
+                readingModeMenuExpanded = true
+                viewModel.overlayState = .none
+            }
+        } label: {
+            Image(systemName: "hand.tap")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .glassEffectID("readingMode", in: glassNamespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel(viewModel.readingModeEnabled ? "Reading Mode Options" : "Enable Reading Mode")
+    }
+
+    private var readingModeMenu: some View {
+        VStack(alignment: .trailing, spacing: 12) {
+            Button {
+                viewModel.togglePagingAxis()
+            } label: {
+                Image(systemName: viewModel.pagingAxis == .horizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
+                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
+            }
+            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(in: Circle())
+            .glassEffectTransition(GlassEffectTransition.materialize)
+            .accessibilityLabel(viewModel.pagingAxis == .horizontal ? "Switch to Vertical Paging" : "Switch to Horizontal Paging")
+
+            Button {
+                viewModel.togglePagingBehavior()
+            } label: {
+                Image(systemName: viewModel.pagingBehavior == .scroll ? "hand.draw" : "keyboard")
+                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
+            }
+            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(in: Circle())
+            .glassEffectTransition(GlassEffectTransition.materialize)
+            .accessibilityLabel(viewModel.pagingBehavior == .scroll ? "Switch to Keypress Paging" : "Switch to Scroll Paging")
+
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        readingModeMenuExpanded = false
+                        viewModel.readingModeEnabled = false
+                        viewModel.overlayState = .showingToolbars
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: floatingButtonIconSize, weight: .semibold))
+                }
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+                .contentShape(.circle)
+                .buttonStyle(.plain)
+                .glassEffect(in: Circle())
+                .glassEffectTransition(GlassEffectTransition.materialize)
+                .accessibilityLabel("Exit Reading Mode")
+
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) {
+                        readingModeMenuExpanded = false
+                    }
+                } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: floatingButtonIconSize, weight: .semibold))
+                }
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+                .contentShape(.circle)
+                .buttonStyle(.plain)
+                .glassEffect(in: Circle())
+                .glassEffectID("readingMode", in: glassNamespace)
+                .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+                .accessibilityLabel("Collapse Reading Mode Menu")
+            }
+        }
+    }
+
+    private var floatingDismissButton: some View {
+        Button {
+            dismiss()
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
-        .glassEffect(in: .circle)
-        .accessibilityLabel("Toggle Toolbar")
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("Exit Web Viewer")
+        .padding(.horizontal, 20)
+        .padding(.top, 20)
     }
 
-    private var displayTitle: String {
-        let title = viewModel.page.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !title.isEmpty {
-            return title
+    private var loadingProgressOverlay: some View {
+        Group {
+            if viewModel.page.isLoading {
+                ProgressView(value: viewModel.page.estimatedProgress)
+                    .progressViewStyle(.linear)
+                    .tint(.accentColor)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .transition(.opacity)
+            }
         }
+        .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private var addressDisplayText: String {
         if let host = viewModel.page.url?.host, !host.isEmpty {
             return host
+        }
+        let trimmed = viewModel.addressBarText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            return trimmed
         }
         return "Web Viewer"
     }
 
-    private var interfaceForegroundColor: Color {
-        colorScheme == .dark ? .white : .black
+    private var canGoBack: Bool {
+        !viewModel.page.backForwardList.backList.isEmpty
     }
 
-    private var toolbarSecondaryColor: Color {
-        if colorScheme == .dark {
-            return Color(
-                red: Double(0x98) / 255.0,
-                green: Double(0x98) / 255.0,
-                blue: Double(0x9D) / 255.0
-            )
+    private var canGoForward: Bool {
+        !viewModel.page.backForwardList.forwardList.isEmpty
+    }
+
+    private var shouldShowFullControls: Bool {
+        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
+    }
+
+    private var shouldShowCollapsedAddress: Bool {
+        !viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
+    }
+
+    private var shouldShowReadingModeButtonOnly: Bool {
+        viewModel.readingModeEnabled && !readingModeMenuExpanded
+    }
+
+    private var shouldShowDismissButton: Bool {
+        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
+    }
+
+    private func navigationButton(
+        systemName: String,
+        accessibilityLabel: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
         }
-        return Color(
-            red: Double(0x6C) / 255.0,
-            green: Double(0x6C) / 255.0,
-            blue: Double(0x70) / 255.0
-        )
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .accessibilityLabel(accessibilityLabel)
     }
 
-    private func toolbarForegroundColor(isPrimary: Bool) -> Color {
-        isPrimary ? interfaceForegroundColor : interfaceForegroundColor.opacity(0.6)
+    private func beginAddressEditing() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            viewModel.overlayState = .showingToolbars
+        }
+        isEditingAddress = true
+        isAddressFocused = true
+    }
+
+    private func submitAddress() {
+        viewModel.navigate(to: viewModel.addressBarText)
+        isAddressFocused = false
+    }
+}
+
+private struct AddressBarCapsuleView: View {
+    @Binding var addressText: String
+    @Binding var addressSelection: TextSelection?
+    @Binding var shouldFocus: Bool
+    let isEditingAddress: Bool
+    let displayText: String
+    let isLoading: Bool
+    let namespace: Namespace.ID
+    let iconSize: CGFloat
+    let accessorySize: CGFloat
+    let onBeginEditing: () -> Void
+    let onSubmit: () -> Void
+    let onReload: () -> Void
+    let onStopLoading: () -> Void
+
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "globe")
+                .font(.system(size: iconSize - 2, weight: .semibold))
+
+            ZStack(alignment: .leading) {
+                if !isEditingAddress {
+                    Text(displayText)
+                        .font(.subheadline)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                        .onTapGesture(perform: onBeginEditing)
+                }
+
+                TextField("Enter URL", text: $addressText, selection: $addressSelection)
+                    .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.go)
+                    .focused($isFocused)
+                    .opacity(isEditingAddress ? 1 : 0)
+                    .disabled(!isEditingAddress)
+                    .onSubmit(onSubmit)
+                    .onChange(of: isFocused) { _, newValue in
+                        if shouldFocus != newValue {
+                            shouldFocus = newValue
+                        }
+                    }
+                    .onChange(of: shouldFocus) { _, newValue in
+                        if isFocused != newValue {
+                            isFocused = newValue
+                        }
+                    }
+            }
+            .padding(.vertical, 10)
+
+            Button(action: isLoading ? onStopLoading : onReload) {
+                Image(systemName: isLoading ? "xmark" : "arrow.clockwise")
+                    .font(.system(size: iconSize, weight: .semibold))
+            }
+            .frame(width: accessorySize, height: accessorySize)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .accessibilityLabel(isLoading ? "Stop Loading" : "Reload")
+        }
+        .padding(.horizontal, 14)
+        .glassEffect(in: Capsule())
+        .glassEffectID("address", in: namespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+    }
+}
+
+private struct CollapsedAddressCapsuleView: View {
+    let displayText: String
+    let namespace: Namespace.ID
+    let iconSize: CGFloat
+    let maxWidth: CGFloat
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Image(systemName: "globe")
+                    .font(.system(size: iconSize - 2, weight: .semibold))
+                Text(displayText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(maxWidth: maxWidth)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(in: Capsule())
+        .glassEffectID("address", in: namespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel("Show Controls")
     }
 }
