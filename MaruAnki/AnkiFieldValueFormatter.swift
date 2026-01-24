@@ -59,7 +59,7 @@ enum AnkiFieldValueFormatter {
                 pieces.append(contentsOf: mediaLinks)
             }
 
-            output[fieldName] = pieces.joined(separator: "<br>")
+            output[fieldName] = pieces.joined()
         }
 
         return output
