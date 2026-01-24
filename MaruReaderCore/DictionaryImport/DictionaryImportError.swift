@@ -17,7 +17,7 @@
 
 import Foundation
 
-enum DictionaryImportError: Error, Equatable {
+enum DictionaryImportError: Error, Equatable, LocalizedError {
     case notADictionary
     case unsupportedFormat
     case importNotFound
@@ -30,7 +30,7 @@ enum DictionaryImportError: Error, Equatable {
     case deletionFailed
     case mediaDirectoryCreationFailed
 
-    var localizedDescription: String {
+    var errorDescription: String {
         switch self {
         case .notADictionary:
             "The selected file is not a valid dictionary."
