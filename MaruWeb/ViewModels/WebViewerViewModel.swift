@@ -217,7 +217,7 @@ final class WebViewerViewModel {
 
         do {
             let imageData = try await captureViewportSnapshot(viewportSize: viewSize)
-            let screenshotURL = await writeContextImage(imageData, fileExtension: "png", prefix: "web_snapshot")
+            let screenshotURL = await writeJPEGContextImage(imageData, prefix: "web_snapshot")
             let clusters = await ocrViewModel.performOCR(imageData: imageData)
             guard !clusters.isEmpty else { return nil }
 
@@ -322,14 +322,17 @@ final class WebViewerViewModel {
         return nil
     }
 
-    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+    private func writeJPEGContextImage(_ data: Data, prefix: String) async -> URL? {
         await Task.detached {
+            guard let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9) else {
+                return nil
+            }
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
+                let filename = "\(prefix)_\(UUID().uuidString).jpg"
                 let fileURL = directory.appendingPathComponent(filename)
-                try data.write(to: fileURL, options: .atomic)
+                try jpegData.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
                 return nil

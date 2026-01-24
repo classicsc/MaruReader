@@ -322,10 +322,11 @@ final class MangaReaderViewModel {
 
     private func lookupContextValues(for pageIndex: Int) async -> LookupContextValues {
         let screenshotURL = await makeScreenshotURL(for: pageIndex)
+        let coverImageURL = await makeCoverContextImageURL()
         return LookupContextValues(
             documentTitle: manga.title,
             documentURL: nil,
-            documentCoverImageURL: manga.coverImage,
+            documentCoverImageURL: coverImageURL,
             screenshotURL: screenshotURL,
             sourceType: .manga
         )
@@ -333,35 +334,45 @@ final class MangaReaderViewModel {
 
     private func makeScreenshotURL(for pageIndex: Int) async -> URL? {
         guard let pageData = pageDataCache[pageIndex] else { return nil }
-
-        if let image = UIImage(data: pageData.imageData),
-           let pngData = image.pngData()
-        {
-            return await writeContextImage(pngData, fileExtension: "png", prefix: "manga_page")
-        }
-
-        if let fileExtension = pageData.imageFileExtension,
-           !fileExtension.isEmpty
-        {
-            return await writeContextImage(pageData.imageData, fileExtension: fileExtension, prefix: "manga_page")
-        }
-
-        return nil
+        return await writeJPEGContextImage(pageData.imageData, prefix: "manga_page")
     }
 
-    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+    private func makeCoverContextImageURL() async -> URL? {
+        guard let coverURL = manga.coverImage else { return nil }
+        return await writeJPEGContextImage(from: coverURL, prefix: "manga_cover")
+    }
+
+    private func writeJPEGContextImage(_ data: Data, prefix: String) async -> URL? {
         await Task.detached {
-            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
-            do {
-                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
-                let fileURL = directory.appendingPathComponent(filename)
-                try data.write(to: fileURL, options: .atomic)
-                return fileURL
-            } catch {
+            guard let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9) else {
                 return nil
             }
+            return Self.writeContextJPEGData(jpegData, prefix: prefix)
         }.value
+    }
+
+    private func writeJPEGContextImage(from sourceURL: URL, prefix: String) async -> URL? {
+        await Task.detached {
+            guard let data = try? Data(contentsOf: sourceURL),
+                  let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9)
+            else {
+                return nil
+            }
+            return Self.writeContextJPEGData(jpegData, prefix: prefix)
+        }.value
+    }
+
+    private nonisolated static func writeContextJPEGData(_ data: Data, prefix: String) -> URL? {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let filename = "\(prefix)_\(UUID().uuidString).jpg"
+            let fileURL = directory.appendingPathComponent(filename)
+            try data.write(to: fileURL, options: .atomic)
+            return fileURL
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Persistence

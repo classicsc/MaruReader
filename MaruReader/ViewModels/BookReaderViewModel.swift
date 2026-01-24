@@ -138,11 +138,12 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     /// Context values for dictionary lookups, populated with book metadata.
-    private var lookupContextValues: LookupContextValues {
-        LookupContextValues(
+    private func makeLookupContextValues() async -> LookupContextValues {
+        let coverImageURL = await makeCoverContextImageURL()
+        return LookupContextValues(
             documentTitle: book.title,
             documentURL: nil,
-            documentCoverImageURL: bookCoverURL,
+            documentCoverImageURL: coverImageURL,
             screenshotURL: nil,
             sourceType: .book
         )
@@ -279,15 +280,15 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             return
         }
 
-        let lookupRequest = TextLookupRequest(
-            context: context,
-            offset: offset,
-            contextStartOffset: contextStartOffset,
-            cssSelector: cssSelector,
-            contextValues: lookupContextValues
-        )
         popupSearchTask?.cancel()
         popupSearchTask = Task {
+            let lookupRequest = await TextLookupRequest(
+                context: context,
+                offset: offset,
+                contextStartOffset: contextStartOffset,
+                cssSelector: cssSelector,
+                contextValues: makeLookupContextValues()
+            )
             guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
                 logger.debug("No search results found for lookup")
                 return
@@ -324,6 +325,35 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                     self.showPopup = true
                 }
             }
+        }
+    }
+
+    private func makeCoverContextImageURL() async -> URL? {
+        guard let coverURL = bookCoverURL else { return nil }
+        return await writeJPEGContextImage(from: coverURL, prefix: "book_cover")
+    }
+
+    private func writeJPEGContextImage(from sourceURL: URL, prefix: String) async -> URL? {
+        await Task.detached {
+            guard let data = try? Data(contentsOf: sourceURL),
+                  let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9)
+            else {
+                return nil
+            }
+            return Self.writeContextJPEGData(jpegData, prefix: prefix)
+        }.value
+    }
+
+    private nonisolated static func writeContextJPEGData(_ data: Data, prefix: String) -> URL? {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let filename = "\(prefix)_\(UUID().uuidString).jpg"
+            let fileURL = directory.appendingPathComponent(filename)
+            try data.write(to: fileURL, options: .atomic)
+            return fileURL
+        } catch {
+            return nil
         }
     }
 

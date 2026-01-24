@@ -350,7 +350,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private func captureSearchScreenshotURL() async -> URL? {
         do {
             let imageData = try await captureSearchSnapshotData()
-            return await writeContextImage(imageData, fileExtension: "png", prefix: "dictionary_search")
+            return await writeJPEGContextImage(imageData, prefix: "dictionary_search")
         } catch {
             logger.error("Failed to capture search screenshot: \(error.localizedDescription)")
             return nil
@@ -408,14 +408,17 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         return nil
     }
 
-    private func writeContextImage(_ data: Data, fileExtension: String, prefix: String) async -> URL? {
+    private func writeJPEGContextImage(_ data: Data, prefix: String) async -> URL? {
         await Task.detached {
+            guard let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9) else {
+                return nil
+            }
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                let filename = "\(prefix)_\(UUID().uuidString).\(fileExtension)"
+                let filename = "\(prefix)_\(UUID().uuidString).jpg"
                 let fileURL = directory.appendingPathComponent(filename)
-                try data.write(to: fileURL, options: .atomic)
+                try jpegData.write(to: fileURL, options: .atomic)
                 return fileURL
             } catch {
                 return nil
