@@ -21,7 +21,6 @@
 		DB4A77342F01407400DBCAD9 /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
-		DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */; };
 		DB58C8F62EAB134800CE59FD /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB58C8F72EAB134800CE59FD /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C8FA2EAB137600CE59FD /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB58C8F92EAB137600CE59FD /* Zip */; };
@@ -31,13 +30,13 @@
 		DB58C9182EAB173700CE59FD /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C9252EAB186800CE59FD /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB58C9262EAB186800CE59FD /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB6F30342F2329E000B2B1FA /* uBOLite.safari in Resources */ = {isa = PBXBuildFile; fileRef = DB6F30332F2329E000B2B1FA /* uBOLite.safari */; };
 		DB6FDFAE2EAB4BB6005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB6FDFAF2EAB4BB6005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB6FDFB32EAB4BCD005DF219 /* Zip */; };
 		DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
 		DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DB7D634C2EF48144005A60B8 /* MaruAnkiTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -46,7 +45,6 @@
 		DBCFB1762EAAAE8B00B4F27D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C72EAAC56800B4F27D /* JsonStream */; };
 		DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */; };
-		DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD2EE9A2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan */; };
 		DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755662F120EF3000AFED1 /* Mecab-Swift */; };
 		DBD755692F120EF8000AFED1 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755682F120EF8000AFED1 /* IPADic */; };
 		DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */; };
@@ -59,14 +57,12 @@
 		DBD7767A2F148E3F000AFED1 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBD7767D2F148E43000AFED1 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 		DBD7767E2F148E43000AFED1 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		DBD776822F148FA2000AFED1 /* MaruWebTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBD776812F148FA2000AFED1 /* MaruWebTests.xctestplan */; };
 		DBDCE1112F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11C2F0C98CC00B42F93 /* MaruManga.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBDCE1282F0C9F2700B42F93 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE1272F0C9F2700B42F93 /* ReadiumZIPFoundation */; };
 		DBDCE12E2F0CAC3700B42F93 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE12D2F0CAC3700B42F93 /* LRUCache */; };
 		DBDCE1302F0CAC4700B42F93 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE12F2F0CAC4700B42F93 /* LRUCache */; };
-		DBDCE1432F0CC62A00B42F93 /* MaruMangaTests.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = DBDCE1422F0CC62A00B42F93 /* MaruMangaTests.xctestplan */; };
 		DBDCE1452F0CC72F00B42F93 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE1442F0CC72F00B42F93 /* Zip */; };
 		DBDCE3172F0EBF8B00B42F93 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DBDCE3182F0EBF8B00B42F93 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -492,6 +488,7 @@
 		DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderCoreTests.xctestplan; sourceTree = "<group>"; };
 		DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruDictionaryUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruDictionaryUICommonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB6F30332F2329E000B2B1FA /* uBOLite.safari */ = {isa = PBXFileReference; lastKnownFileType = folder; name = uBOLite.safari; path = External/uBlock/dist/build/uBOLite.safari; sourceTree = "<group>"; };
 		DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MaruShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruAnkiTests.xctestplan; sourceTree = "<group>"; };
 		DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruReaderCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -789,6 +786,7 @@
 		DB2B69832E660F8B00EDA656 = {
 			isa = PBXGroup;
 			children = (
+				DB6F30332F2329E000B2B1FA /* uBOLite.safari */,
 				DBD776812F148FA2000AFED1 /* MaruWebTests.xctestplan */,
 				DBDCE1422F0CC62A00B42F93 /* MaruMangaTests.xctestplan */,
 				DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */,
@@ -1473,11 +1471,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DBDCE1432F0CC62A00B42F93 /* MaruMangaTests.xctestplan in Resources */,
-				DBD2EE9B2E77C6FB00DE5C28 /* MaruReaderTests.xctestplan in Resources */,
-				DB58C8F52EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan in Resources */,
-				DB7D634C2EF48144005A60B8 /* MaruAnkiTests.xctestplan in Resources */,
-				DBD776822F148FA2000AFED1 /* MaruWebTests.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1548,6 +1541,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DB6F30342F2329E000B2B1FA /* uBOLite.safari in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2569,6 +2563,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
@@ -2608,6 +2603,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
@@ -2689,6 +2685,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
@@ -2728,6 +2725,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUILD_LIBRARY_FOR_DISTRIBUTION = YES;
+				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;

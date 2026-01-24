@@ -1,0 +1,73 @@
+[
+  {
+    "id": "ublock-filters",
+    "name": "uBlock filters – Ads, trackers, and more",
+    "group": "default",
+    "enabled": true,
+    "trusted": true,
+    "urls": [
+      "https://ublockorigin.github.io/uAssets/filters/quick-fixes.min.txt",
+      "https://ublockorigin.github.io/uAssets/filters/unbreak.min.txt",
+      "https://ublockorigin.github.io/uAssets/filters/filters.min.txt",
+      "https://ublockorigin.github.io/uAssets/filters/privacy.min.txt",
+      "https://ublockorigin.github.io/uAssets/filters/ubol-filters.txt"
+    ],
+    "homeURL": "https://github.com/uBlockOrigin/uAssets"
+  },
+  {
+    "id": "easylist",
+    "name": "EasyList",
+    "group": "default",
+    "enabled": true,
+    "urls": [
+      "https://ublockorigin.github.io/uAssets/thirdparties/easylist.txt"
+    ],
+    "homeURL": "https://easylist.to/"
+  },
+  {
+    "id": "easyprivacy",
+    "name": "EasyPrivacy",
+    "group": "default",
+    "enabled": true,
+    "urls": [
+      "https://ublockorigin.github.io/uAssets/thirdparties/easyprivacy.txt"
+    ],
+    "homeURL": "https://easylist.to/"
+  },
+  {
+    "id": "ublock-badware",
+    "name": "uBlock filters – Badware risks",
+    "group": "malware",
+    "enabled": true,
+    "trusted": true,
+    "urls": [
+      "https://ublockorigin.github.io/uAssets/filters/badware.min.txt"
+    ],
+    "homeURL": "https://github.com/uBlockOrigin/uAssets"
+  },
+  {
+    "id": "adguard-mobile",
+    "name": "AdGuard/uBO – Mobile Ads",
+    "group": "ads",
+    "enabled": true,
+    "tags": "mobile",
+    "urls": [
+      "https://ublockorigin.github.io/uAssets/filters/filters-mobile.txt",
+      "https://filters.adtidy.org/extension/ublock/filters/11.txt"
+    ],
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters#adguard-filters"
+  },
+  {
+    "id": "jpn-1",
+    "group": "regions",
+    "lang": "ja",
+    "name": "🇯🇵jp: AdGuard Japanese",
+    "tags": "ads japanese 日本語",
+    "enabled": true,
+    "urls": [
+      "https://filters.adtidy.org/extension/ublock/filters/7.txt"
+    ],
+    "homeURL": "https://github.com/AdguardTeam/AdguardFilters#adguard-filters"
+  }
+]
+

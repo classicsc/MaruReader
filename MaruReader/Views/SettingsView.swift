@@ -22,12 +22,15 @@
 //
 import MaruAnki
 import MaruManga
+import MaruWeb
 import SwiftUI
 
 struct SettingsView: View {
     @State private var pendingCount = 0
     @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
     private var smartMetadataExtractionEnabled = MangaMetadataExtractionSettings.smartExtractionEnabledDefault
+    @AppStorage(WebContentBlockingSettings.contentBlockingEnabledKey)
+    private var webContentBlockingEnabled = WebContentBlockingSettings.contentBlockingEnabledDefault
     private let noteService = AnkiNoteService()
     private var isMetadataExtractorAvailable: Bool {
         MangaImportManager.isMetadataExtractorAvailable
@@ -56,6 +59,12 @@ struct SettingsView: View {
                     ) {
                         Toggle("Smart Metadata Extraction", isOn: $smartMetadataExtractionEnabled)
                     }
+                }
+                Section(
+                    header: Text("Web"),
+                    footer: Text("Blocks distracting ads and trackers in the web reader.")
+                ) {
+                    Toggle("Content Blocking", isOn: $webContentBlockingEnabled)
                 }
                 Section("Integrations") {
                     if pendingCount > 0 {

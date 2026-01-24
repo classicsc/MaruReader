@@ -71,6 +71,7 @@ final class WebViewerViewModel {
     let page: WebPage
     let ocrViewModel: WebOCRViewModel
     private let bookmarkManager: WebBookmarkManager
+    private let session: WebSession
 
     var addressBarText: String = ""
     var readingModeEnabled = false
@@ -79,7 +80,6 @@ final class WebViewerViewModel {
     var pagingAxis: ReadingPagingAxis = .vertical
     var pagingBehavior: ReadingPagingBehavior = .scroll
 
-    private let session: WebSession
     private var initialURL: URL?
 
     /// Tracks the last scroll offset for scroll direction detection
@@ -89,14 +89,14 @@ final class WebViewerViewModel {
 
     init(
         initialURL: URL? = nil,
-        session: WebSession = WebSession(),
         ocrViewModel: WebOCRViewModel = WebOCRViewModel(),
         bookmarkManager: WebBookmarkManager = .shared
     ) {
+        let session = WebSession(enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled)
         self.session = session
+        self.page = session.page
         self.ocrViewModel = ocrViewModel
         self.bookmarkManager = bookmarkManager
-        self.page = session.page
         self.initialURL = initialURL
         if let initialURL {
             addressBarText = initialURL.absoluteString

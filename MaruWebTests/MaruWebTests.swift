@@ -63,4 +63,41 @@ struct MaruWebTests {
         let bookmarks = try await manager.fetchBookmarks()
         #expect(bookmarks.isEmpty)
     }
+
+    @Test func contentBlockingDefaultsToEnabled() async throws {
+        let defaults = UserDefaults.standard
+        let key = WebContentBlockingSettings.contentBlockingEnabledKey
+        let previousValue = defaults.object(forKey: key)
+        defer {
+            if let previousValue {
+                defaults.set(previousValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        defaults.removeObject(forKey: key)
+        #expect(
+            WebContentBlockingSettings.contentBlockingEnabled
+                == WebContentBlockingSettings.contentBlockingEnabledDefault
+        )
+    }
+
+    @Test func contentBlockingPersistsChanges() async throws {
+        let defaults = UserDefaults.standard
+        let key = WebContentBlockingSettings.contentBlockingEnabledKey
+        let previousValue = defaults.object(forKey: key)
+        defer {
+            if let previousValue {
+                defaults.set(previousValue, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
+        }
+
+        WebContentBlockingSettings.contentBlockingEnabled = false
+        #expect(WebContentBlockingSettings.contentBlockingEnabled == false)
+        WebContentBlockingSettings.contentBlockingEnabled = true
+        #expect(WebContentBlockingSettings.contentBlockingEnabled == true)
+    }
 }
