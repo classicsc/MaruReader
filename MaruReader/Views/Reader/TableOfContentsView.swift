@@ -343,7 +343,7 @@ private struct BookmarksListView: View {
 // MARK: - BookmarkRowView
 
 private struct BookmarkRowView: View {
-    let bookmark: Bookmark
+    @ObservedObject var bookmark: Bookmark
     let publication: Publication
     let currentLocator: Locator?
 
