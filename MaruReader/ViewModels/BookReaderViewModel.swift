@@ -275,6 +275,14 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         showingDictionarySheet = true
     }
 
+    /// Returns the bookmark at the current location, if any
+    var currentLocationBookmark: Bookmark? {
+        guard let locator = currentLocator,
+              let currentJSON = locator.jsonString
+        else { return nil }
+        return bookmarks.first { $0.location == currentJSON }
+    }
+
     func bookmarkCurrentLocation() {
         guard let locator = currentLocator else {
             logger.warning("Cannot bookmark: no current location")
@@ -304,6 +312,14 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                 self.logger.error("Failed to save bookmark: \(error.localizedDescription)")
             }
         }
+    }
+
+    func removeBookmarkAtCurrentLocation() {
+        guard let bookmark = currentLocationBookmark else {
+            logger.warning("Cannot remove bookmark: no bookmark at current location")
+            return
+        }
+        deleteBookmark(bookmark)
     }
 
     func navigateToBookmark(_ bookmark: Bookmark) {

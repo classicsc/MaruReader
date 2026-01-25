@@ -295,11 +295,20 @@ struct BookReaderView: View {
 
     @ViewBuilder
     private var bookmarkButton: some View {
+        let isCurrentLocationBookmarked = viewModel.currentLocationBookmark != nil
         Menu {
-            Button {
-                viewModel.bookmarkCurrentLocation()
-            } label: {
-                Label("Add Bookmark", systemImage: "bookmark.fill")
+            if isCurrentLocationBookmarked {
+                Button(role: .destructive) {
+                    viewModel.removeBookmarkAtCurrentLocation()
+                } label: {
+                    Label("Remove Bookmark", systemImage: "bookmark.slash")
+                }
+            } else {
+                Button {
+                    viewModel.bookmarkCurrentLocation()
+                } label: {
+                    Label("Add Bookmark", systemImage: "bookmark.fill")
+                }
             }
 
             if !viewModel.bookmarks.isEmpty {
@@ -324,9 +333,7 @@ struct BookReaderView: View {
                 }
             }
         } label: {
-            Image(systemName: "bookmark")
-        } primaryAction: {
-            viewModel.bookmarkCurrentLocation()
+            Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
         }
         .accessibilityLabel("Bookmarks")
     }
