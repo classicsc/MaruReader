@@ -100,4 +100,12 @@ struct MaruWebTests {
         WebContentBlockingSettings.contentBlockingEnabled = true
         #expect(WebContentBlockingSettings.contentBlockingEnabled == true)
     }
+
+    @Test @MainActor func webSessionStoreConsumesPrewarm() async throws {
+        let store = WebSessionStore()
+        store.prewarm(enableContentBlocking: false)
+        let firstSession = await store.makeSession(enableContentBlocking: false)
+        let secondSession = await store.makeSession(enableContentBlocking: false)
+        #expect(firstSession !== secondSession)
+    }
 }

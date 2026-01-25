@@ -45,37 +45,13 @@ public struct WebViewerView: View {
     }
 
     public var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Main web content area
-            VStack(spacing: 0) {
-                ZStack {
-                    WebView(viewModel.page)
-                        .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
-                            geometry.contentOffset.y
-                        } action: { oldOffset, newOffset in
-                            viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
-                        }
-                        .padding(.top, onePixel)
-                        .ignoresSafeArea(edges: .bottom)
+        let page = viewModel.page
 
-                    if viewModel.readingModeEnabled {
-                        WebReadingModeOverlay(
-                            isProcessing: viewModel.ocrViewModel.isProcessing,
-                            pagingAxis: viewModel.pagingAxis,
-                            pagingBehavior: viewModel.pagingBehavior,
-                            onTap: { location, size in
-                                Task {
-                                    if let selection = await viewModel.lookupCluster(at: location, in: size) {
-                                        selectedLookup = selection
-                                    }
-                                }
-                            },
-                            onPageAction: { axis, behavior, direction in
-                                viewModel.performPagingAction(axis: axis, behavior: behavior, direction: direction)
-                            }
-                        )
-                    }
-                }
+        ZStack(alignment: .topLeading) {
+            if let page {
+                webContent(for: page)
+            } else {
+                webSessionLoadingView
             }
 
             if shouldShowDismissButton {
@@ -83,18 +59,22 @@ public struct WebViewerView: View {
                     .transition(.opacity.combined(with: .scale))
             }
 
-            bottomControlsOverlay
+            if page != nil {
+                bottomControlsOverlay
+            }
         }
         .overlay(alignment: .top) {
-            loadingProgressOverlay
+            if let page {
+                loadingProgressOverlay(for: page)
+            }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
         .animation(.easeInOut(duration: 0.25), value: readingModeMenuExpanded)
-        .onAppear {
-            viewModel.loadInitialURLIfNeeded()
+        .task {
+            await viewModel.prepareSessionIfNeeded()
         }
-        .onChange(of: viewModel.page.url) { _, newValue in
+        .onChange(of: viewModel.page?.url) { _, newValue in
             if !isEditingAddress {
                 viewModel.updateAddressBar(from: newValue)
             }
@@ -150,6 +130,45 @@ public struct WebViewerView: View {
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
+    }
+
+    private func webContent(for page: WebPage) -> some View {
+        VStack(spacing: 0) {
+            ZStack {
+                WebView(page)
+                    .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.contentOffset.y
+                    } action: { oldOffset, newOffset in
+                        viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                    }
+                    .padding(.top, onePixel)
+                    .ignoresSafeArea(edges: .bottom)
+
+                if viewModel.readingModeEnabled {
+                    WebReadingModeOverlay(
+                        isProcessing: viewModel.ocrViewModel.isProcessing,
+                        pagingAxis: viewModel.pagingAxis,
+                        pagingBehavior: viewModel.pagingBehavior,
+                        onTap: { location, size in
+                            Task {
+                                if let selection = await viewModel.lookupCluster(at: location, in: size) {
+                                    selectedLookup = selection
+                                }
+                            }
+                        },
+                        onPageAction: { axis, behavior, direction in
+                            viewModel.performPagingAction(axis: axis, behavior: behavior, direction: direction)
+                        }
+                    )
+                }
+            }
+        }
+    }
+
+    private var webSessionLoadingView: some View {
+        ProgressView("Preparing Web Viewer")
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(.background)
     }
 
     private var bottomControlsOverlay: some View {
@@ -232,7 +251,7 @@ public struct WebViewerView: View {
             shouldFocus: $isAddressFocused,
             isEditingAddress: isEditingAddress,
             displayText: addressDisplayText,
-            isLoading: viewModel.page.isLoading,
+            isLoading: viewModel.page?.isLoading ?? false,
             namespace: glassNamespace,
             iconSize: floatingButtonIconSize,
             accessorySize: addressAccessorySize,
@@ -374,10 +393,10 @@ public struct WebViewerView: View {
         .padding(.top, 20)
     }
 
-    private var loadingProgressOverlay: some View {
+    private func loadingProgressOverlay(for page: WebPage) -> some View {
         Group {
-            if viewModel.page.isLoading {
-                ProgressView(value: viewModel.page.estimatedProgress)
+            if page.isLoading {
+                ProgressView(value: page.estimatedProgress)
                     .progressViewStyle(.linear)
                     .tint(.accentColor)
                     .padding(.horizontal, 20)
@@ -389,7 +408,7 @@ public struct WebViewerView: View {
     }
 
     private var addressDisplayText: String {
-        if let host = viewModel.page.url?.host, !host.isEmpty {
+        if let host = viewModel.page?.url?.host, !host.isEmpty {
             return host
         }
         let trimmed = viewModel.addressBarText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -400,11 +419,11 @@ public struct WebViewerView: View {
     }
 
     private var canGoBack: Bool {
-        !viewModel.page.backForwardList.backList.isEmpty
+        viewModel.page?.backForwardList.backList.isEmpty == false
     }
 
     private var canGoForward: Bool {
-        !viewModel.page.backForwardList.forwardList.isEmpty
+        viewModel.page?.backForwardList.forwardList.isEmpty == false
     }
 
     private var shouldShowFullControls: Bool {

@@ -36,35 +36,40 @@ final class WebSession {
     let dataStore: WKWebsiteDataStore
     private let extensionController: WKWebExtensionController?
 
-    init(
+    private init(
+        page: WebPage,
+        dataStore: WKWebsiteDataStore,
+        extensionController: WKWebExtensionController?
+    ) {
+        self.page = page
+        self.dataStore = dataStore
+        self.extensionController = extensionController
+    }
+
+    static func make(
         dataStore: WKWebsiteDataStore = WebsiteDataStore.main,
         enableContentBlocking: Bool = true
-    ) {
-        self.dataStore = dataStore
-
+    ) async -> WebSession {
         var configuration = WebPage.Configuration()
         configuration.websiteDataStore = dataStore
 
-        // Configure extension controller if content blocking is enabled
+        var extensionController: WKWebExtensionController?
         if enableContentBlocking {
             let controller = WKWebExtensionController()
-            self.extensionController = controller
+            extensionController = controller
             configuration.webExtensionController = controller
-            Task { @MainActor in
-                if let extensionContext = await Self.loadContentBlockerExtension() {
-                    do {
-                        try controller.load(extensionContext)
-                    } catch {
-                        print("Failed to load content blocker: \(error)")
-                    }
+            if let extensionContext = await Self.loadContentBlockerExtension() {
+                do {
+                    try controller.load(extensionContext)
+                } catch {
+                    print("Failed to load content blocker: \(error)")
                 }
             }
-        } else {
-            self.extensionController = nil
         }
 
-        page = WebPage(configuration: configuration)
+        let page = WebPage(configuration: configuration)
         page.isInspectable = true
+        return WebSession(page: page, dataStore: dataStore, extensionController: extensionController)
     }
 
     private static func loadContentBlockerExtension() async -> WKWebExtensionContext? {

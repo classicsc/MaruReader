@@ -75,6 +75,11 @@ public struct WebBookmarksView: View {
                     EditButton()
                 }
             }
+            .onAppear {
+                WebSessionStore.shared.prewarm(
+                    enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
+                )
+            }
         }
     }
 

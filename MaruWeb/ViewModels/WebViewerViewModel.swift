@@ -68,10 +68,12 @@ struct WebLookupSelection: Identifiable {
 @MainActor
 @Observable
 final class WebViewerViewModel {
-    let page: WebPage
+    var page: WebPage?
     let ocrViewModel: WebOCRViewModel
     private let bookmarkManager: WebBookmarkManager
-    private let session: WebSession
+    private let sessionStore: WebSessionStore
+    private var session: WebSession?
+    private var isPreparingSession = false
 
     var addressBarText: String = ""
     var readingModeEnabled = false
@@ -90,17 +92,30 @@ final class WebViewerViewModel {
     init(
         initialURL: URL? = nil,
         ocrViewModel: WebOCRViewModel = WebOCRViewModel(),
-        bookmarkManager: WebBookmarkManager = .shared
+        bookmarkManager: WebBookmarkManager = .shared,
+        sessionStore: WebSessionStore = .shared
     ) {
-        let session = WebSession(enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled)
-        self.session = session
-        self.page = session.page
         self.ocrViewModel = ocrViewModel
         self.bookmarkManager = bookmarkManager
+        self.sessionStore = sessionStore
         self.initialURL = initialURL
         if let initialURL {
             addressBarText = initialURL.absoluteString
         }
+    }
+
+    func prepareSessionIfNeeded() async {
+        guard session == nil, !isPreparingSession else { return }
+        isPreparingSession = true
+        defer { isPreparingSession = false }
+        let session = await sessionStore.makeSession(
+            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
+        )
+        guard !Task.isCancelled else { return }
+        self.session = session
+        page = session.page
+        loadInitialURLIfNeeded()
+        refreshBookmarkState()
     }
 
     func toggleOverlay() {
@@ -143,7 +158,7 @@ final class WebViewerViewModel {
     }
 
     func loadInitialURLIfNeeded() {
-        guard let initialURL else { return }
+        guard let initialURL, page != nil else { return }
         self.initialURL = nil
         navigate(to: initialURL)
     }
@@ -154,6 +169,7 @@ final class WebViewerViewModel {
     }
 
     func navigate(to url: URL) {
+        guard let page else { return }
         addressBarText = url.absoluteString
         Task {
             let loadSequence = page.load(url)
@@ -164,7 +180,7 @@ final class WebViewerViewModel {
     }
 
     func goBack() {
-        guard let item = page.backForwardList.backList.last else { return }
+        guard let page, let item = page.backForwardList.backList.last else { return }
         Task {
             let loadSequence = page.load(item)
             for try await _ in loadSequence {
@@ -174,7 +190,7 @@ final class WebViewerViewModel {
     }
 
     func goForward() {
-        guard let item = page.backForwardList.forwardList.first else { return }
+        guard let page, let item = page.backForwardList.forwardList.first else { return }
         Task {
             let loadSequence = page.load(item)
             for try await _ in loadSequence {
@@ -184,6 +200,7 @@ final class WebViewerViewModel {
     }
 
     func reload() {
+        guard let page else { return }
         Task {
             let loadSequence = page.reload()
             for try await _ in loadSequence {
@@ -193,11 +210,11 @@ final class WebViewerViewModel {
     }
 
     func stopLoading() {
-        page.stopLoading()
+        page?.stopLoading()
     }
 
     func toggleBookmark() {
-        guard let url = page.url else { return }
+        guard let page, let url = page.url else { return }
         let title = page.title
         Task {
             do {
@@ -214,9 +231,10 @@ final class WebViewerViewModel {
     func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
         guard !ocrViewModel.isProcessing else { return nil }
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
+        guard let page else { return nil }
 
         do {
-            let imageData = try await captureViewportSnapshot(viewportSize: viewSize)
+            let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
             let screenshotURL = await writeJPEGContextImage(imageData, prefix: "web_snapshot")
             let clusters = await ocrViewModel.performOCR(imageData: imageData)
             guard !clusters.isEmpty else { return nil }
@@ -247,6 +265,11 @@ final class WebViewerViewModel {
     }
 
     func refreshBookmarkState() {
+        guard let page else {
+            isBookmarked = false
+            return
+        }
+
         Task {
             guard let url = page.url else {
                 await MainActor.run {
@@ -271,8 +294,8 @@ final class WebViewerViewModel {
         let snapshotWidth: CGFloat
     }
 
-    private func captureViewportSnapshot(viewportSize: CGSize) async throws -> Data {
-        if let viewportInfo = try await fetchViewportInfo() {
+    private func captureViewportSnapshot(page: WebPage, viewportSize: CGSize) async throws -> Data {
+        if let viewportInfo = try await fetchViewportInfo(page: page) {
             let configuration = WebPage.ExportedContentConfiguration.image(
                 region: .rect(viewportInfo.rect),
                 snapshotWidth: viewportInfo.snapshotWidth
@@ -287,7 +310,7 @@ final class WebViewerViewModel {
         return try await page.exported(as: configuration)
     }
 
-    private func fetchViewportInfo() async throws -> ViewportInfo? {
+    private func fetchViewportInfo(page: WebPage) async throws -> ViewportInfo? {
         let script = """
         (() => ({
             scrollX: window.scrollX,
@@ -354,6 +377,7 @@ final class WebViewerViewModel {
     /// Scrolls the page by a specified amount relative to the viewport.
     /// - Parameter direction: Positive scrolls down/right, negative scrolls up/left.
     func scrollByPage(axis: ReadingPagingAxis, direction: Int) {
+        guard let page else { return }
         let script = switch axis {
         case .vertical:
             """
@@ -371,7 +395,7 @@ final class WebViewerViewModel {
             """
         }
         Task { @MainActor in
-            _ = try? await self.page.callJavaScript(script)
+            _ = try? await page.callJavaScript(script)
         }
     }
 
@@ -379,6 +403,7 @@ final class WebViewerViewModel {
     /// Tries multiple dispatch targets and event types to maximize compatibility with web readers.
     /// - Parameter direction: Positive moves down/right, negative moves up/left.
     func sendPagingKey(axis: ReadingPagingAxis, direction: Int) {
+        guard let page else { return }
         let (key, keyCode): (String, Int)
         switch axis {
         case .horizontal:
@@ -409,7 +434,7 @@ final class WebViewerViewModel {
         target.dispatchEvent(new KeyboardEvent('keyup', opts));
         """
         Task { @MainActor in
-            _ = try? await self.page.callJavaScript(script)
+            _ = try? await page.callJavaScript(script)
         }
     }
 }
