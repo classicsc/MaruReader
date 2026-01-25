@@ -18,6 +18,11 @@
 import ReadiumShared
 import SwiftUI
 
+private enum ContentTab: String, CaseIterable {
+    case contents = "Contents"
+    case bookmarks = "Bookmarks"
+}
+
 @MainActor
 struct TableOfContentsView: View {
     let publication: Publication
@@ -25,10 +30,15 @@ struct TableOfContentsView: View {
     let bookAuthor: String?
     let coverImage: UIImage?
     let currentLocator: Locator?
+    let bookmarks: [Bookmark]
     let onNavigate: (ReadiumShared.Link) -> Void
     let onNavigateToPosition: (Int) -> Void
+    let onNavigateToBookmark: (Bookmark) -> Void
+    let onDeleteBookmark: (Bookmark) -> Void
+    let onUpdateBookmarkTitle: (Bookmark, String) -> Void
     let onDismiss: () -> Void
 
+    @State private var selectedTab: ContentTab = .contents
     @State private var tableOfContents: [ReadiumShared.Link] = []
     @State private var expandedItems: Set<String> = []
     @State private var isLoading = true
@@ -44,17 +54,27 @@ struct TableOfContentsView: View {
 
                 Divider()
 
-                if isLoading {
-                    ProgressView()
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if tableOfContents.isEmpty {
-                    ContentUnavailableView(
-                        "No Table of Contents",
-                        systemImage: "list.bullet",
-                        description: Text("This book doesn't have a table of contents")
+                Picker("Tab", selection: $selectedTab) {
+                    ForEach(ContentTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+
+                switch selectedTab {
+                case .contents:
+                    contentsTabView
+                case .bookmarks:
+                    BookmarksListView(
+                        bookmarks: bookmarks,
+                        publication: publication,
+                        currentLocator: currentLocator,
+                        onNavigate: onNavigateToBookmark,
+                        onDelete: onDeleteBookmark,
+                        onUpdateTitle: onUpdateBookmarkTitle
                     )
-                } else {
-                    tocListView
                 }
             }
             .alert("Go to position", isPresented: $isShowingPositionPrompt) {
@@ -67,7 +87,7 @@ struct TableOfContentsView: View {
             } message: {
                 Text(positionPromptMessage)
             }
-            .navigationTitle("Contents")
+            .navigationTitle(selectedTab.rawValue)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -77,6 +97,22 @@ struct TableOfContentsView: View {
         }
         .task {
             await loadTableOfContents()
+        }
+    }
+
+    @ViewBuilder
+    private var contentsTabView: some View {
+        if isLoading {
+            ProgressView()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if tableOfContents.isEmpty {
+            ContentUnavailableView(
+                "No Table of Contents",
+                systemImage: "list.bullet",
+                description: Text("This book doesn't have a table of contents")
+            )
+        } else {
+            tocListView
         }
     }
 
@@ -149,7 +185,6 @@ struct TableOfContentsView: View {
     }
 
     private func loadTableOfContents() async {
-        // Use manifest.tableOfContents directly to avoid concurrency issues
         let toc = publication.manifest.tableOfContents
         if !toc.isEmpty {
             tableOfContents = toc
@@ -234,6 +269,165 @@ struct TableOfContentsView: View {
         onNavigateToPosition(clampPosition(position))
     }
 }
+
+// MARK: - BookmarksListView
+
+private struct BookmarksListView: View {
+    let bookmarks: [Bookmark]
+    let publication: Publication
+    let currentLocator: Locator?
+    let onNavigate: (Bookmark) -> Void
+    let onDelete: (Bookmark) -> Void
+    let onUpdateTitle: (Bookmark, String) -> Void
+
+    @State private var editingBookmark: Bookmark?
+    @State private var editingTitle: String = ""
+
+    var body: some View {
+        if bookmarks.isEmpty {
+            ContentUnavailableView(
+                "No Bookmarks",
+                systemImage: "bookmark",
+                description: Text("Tap the bookmark button to save your place")
+            )
+        } else {
+            List {
+                ForEach(bookmarks, id: \.id) { bookmark in
+                    BookmarkRowView(
+                        bookmark: bookmark,
+                        publication: publication,
+                        currentLocator: currentLocator
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onNavigate(bookmark)
+                    }
+                    .contextMenu {
+                        Button {
+                            editingTitle = bookmark.title ?? ""
+                            editingBookmark = bookmark
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+
+                        Button(role: .destructive) {
+                            onDelete(bookmark)
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+            .listStyle(.plain)
+            .alert("Rename Bookmark", isPresented: .init(
+                get: { editingBookmark != nil },
+                set: { if !$0 { editingBookmark = nil } }
+            )) {
+                TextField("Title", text: $editingTitle)
+                Button("Save") {
+                    if let bookmark = editingBookmark {
+                        onUpdateTitle(bookmark, editingTitle)
+                    }
+                    editingBookmark = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    editingBookmark = nil
+                }
+            } message: {
+                Text("Enter a new title for this bookmark")
+            }
+        }
+    }
+}
+
+// MARK: - BookmarkRowView
+
+private struct BookmarkRowView: View {
+    let bookmark: Bookmark
+    let publication: Publication
+    let currentLocator: Locator?
+
+    private var locator: Locator? {
+        guard let locationJSON = bookmark.location else { return nil }
+        return try? Locator(jsonString: locationJSON)
+    }
+
+    private var displayTitle: String {
+        bookmark.title ?? "Bookmark"
+    }
+
+    private var chapterTitle: String? {
+        guard let locator else { return nil }
+        return findChapterTitle(for: locator, in: publication)
+    }
+
+    private var progressText: String? {
+        guard let locator else { return nil }
+        if let totalProgression = locator.locations.totalProgression {
+            let percent = Int(totalProgression * 100)
+            return "Book \(percent)%"
+        }
+        if let position = locator.locations.position {
+            return "Position \(position)"
+        }
+        return nil
+    }
+
+    private var isCurrent: Bool {
+        guard let locator, let currentLocator else { return false }
+        return locator.href.string == currentLocator.href.string
+    }
+
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayTitle)
+                    .font(.body)
+                    .fontWeight(isCurrent ? .semibold : .regular)
+                    .foregroundStyle(isCurrent ? Color.accentColor : Color.primary)
+                    .lineLimit(1)
+
+                HStack(spacing: 8) {
+                    if let chapter = chapterTitle {
+                        Text(chapter)
+                            .lineLimit(1)
+                    }
+                    if let progress = progressText {
+                        Text(progress)
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+
+            if isCurrent {
+                Image(systemName: "bookmark.fill")
+                    .font(.caption)
+                    .foregroundStyle(Color.accentColor)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func findChapterTitle(for locator: Locator, in publication: Publication) -> String? {
+        func searchLinks(_ links: [ReadiumShared.Link]) -> String? {
+            for link in links {
+                if link.href == locator.href.string, let title = link.title, !title.isEmpty {
+                    return title
+                }
+                if let found = searchLinks(link.children) {
+                    return found
+                }
+            }
+            return nil
+        }
+        return searchLinks(publication.manifest.tableOfContents)
+    }
+}
+
+// MARK: - TOCItemView
 
 private struct TOCItemView: View {
     let link: ReadiumShared.Link

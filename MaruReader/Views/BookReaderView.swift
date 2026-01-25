@@ -93,11 +93,21 @@ struct BookReaderView: View {
                             bookAuthor: viewModel.book.author,
                             coverImage: viewModel.coverImage,
                             currentLocator: viewModel.currentLocator,
+                            bookmarks: viewModel.bookmarks,
                             onNavigate: { link in
                                 viewModel.navigateToLink(link)
                             },
                             onNavigateToPosition: { position in
                                 viewModel.navigateToPosition(position)
+                            },
+                            onNavigateToBookmark: { bookmark in
+                                viewModel.navigateToBookmark(bookmark)
+                            },
+                            onDeleteBookmark: { bookmark in
+                                viewModel.deleteBookmark(bookmark)
+                            },
+                            onUpdateBookmarkTitle: { bookmark, title in
+                                viewModel.updateBookmarkTitle(bookmark, title: title)
                             },
                             onDismiss: {
                                 viewModel.overlayState = .showingToolbars
@@ -217,12 +227,7 @@ struct BookReaderView: View {
             }
             .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
 
-            Button {
-                viewModel.bookmarkCurrentLocation()
-            } label: {
-                Image(systemName: "bookmark")
-            }
-            .accessibilityLabel("Add bookmark")
+            bookmarkButton
 
             Button {
                 viewModel.readerPreferences.decreaseFontSize()
@@ -286,6 +291,44 @@ struct BookReaderView: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
+    }
+
+    @ViewBuilder
+    private var bookmarkButton: some View {
+        Menu {
+            Button {
+                viewModel.bookmarkCurrentLocation()
+            } label: {
+                Label("Add Bookmark", systemImage: "bookmark.fill")
+            }
+
+            if !viewModel.bookmarks.isEmpty {
+                Section("Bookmarks") {
+                    ForEach(viewModel.bookmarks, id: \.id) { bookmark in
+                        Button {
+                            viewModel.navigateToBookmark(bookmark)
+                        } label: {
+                            Text(bookmark.title ?? "Bookmark")
+                        }
+                    }
+                }
+            }
+
+            if viewModel.previousLocation != nil {
+                Section {
+                    Button {
+                        viewModel.returnToPreviousLocation()
+                    } label: {
+                        Label("Return to Previous Location", systemImage: "arrow.uturn.backward")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "bookmark")
+        } primaryAction: {
+            viewModel.bookmarkCurrentLocation()
+        }
+        .accessibilityLabel("Bookmarks")
     }
 
     private func errorView(error: Error) -> some View {

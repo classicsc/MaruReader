@@ -37,8 +37,10 @@
         </fetchIndex>
     </entity>
     <entity name="Bookmark" representedClassName="Bookmark" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="location" attributeType="String"/>
+        <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="bookmarks" inverseEntity="Book"/>
     </entity>
     <entity name="ReaderProfile" representedClassName="ReaderProfile" syncable="YES" codeGenerationType="class">

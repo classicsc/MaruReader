@@ -94,6 +94,11 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var popupAnchorPosition: CGRect = .zero
     private var currentPopupResponse: TextLookupResponse?
 
+    /// Bookmarks for the current book, sorted by creation date (newest first)
+    var bookmarks: [Bookmark] = []
+    /// Location before navigating to a bookmark, for "return" functionality
+    var previousLocation: Locator?
+
     private var popupSearchTask: Task<Void, Error>?
     private weak var activeNavigatorWebView: WKWebView?
 
@@ -154,6 +159,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         self.readerPreferences = ReaderPreferences(book: book)
         self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
         super.init()
+
+        // Load bookmarks
+        loadBookmarks()
 
         // Load audio providers asynchronously
         Task {
@@ -268,8 +276,157 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     func bookmarkCurrentLocation() {
-        // Stub: will be implemented later
-        logger.debug("Bookmarking current location")
+        guard let locator = currentLocator else {
+            logger.warning("Cannot bookmark: no current location")
+            return
+        }
+
+        // Generate title on main actor before crossing to context.perform
+        let title = generateDefaultBookmarkTitle(for: locator)
+        let bookObjectID = book.objectID
+
+        let context = BookDataPersistenceController.shared.container.viewContext
+        context.perform {
+            let bookmark = Bookmark(context: context)
+            bookmark.id = UUID()
+            bookmark.location = locator.jsonString ?? ""
+            bookmark.createdAt = Date()
+            bookmark.title = title
+            bookmark.book = context.object(with: bookObjectID) as? Book
+
+            do {
+                try context.save()
+                Task { @MainActor in
+                    self.loadBookmarks()
+                    self.logger.info("Bookmark created: \(title)")
+                }
+            } catch {
+                self.logger.error("Failed to save bookmark: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func navigateToBookmark(_ bookmark: Bookmark) {
+        guard let locationJSON = bookmark.location,
+              let locator = try? Locator(jsonString: locationJSON),
+              let navigator
+        else {
+            logger.warning("Cannot navigate to bookmark: invalid location or navigator not ready")
+            return
+        }
+
+        // Store current location before navigating
+        previousLocation = currentLocator
+
+        Task {
+            _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
+            await MainActor.run {
+                overlayState = .none
+            }
+        }
+    }
+
+    func returnToPreviousLocation() {
+        guard let locator = previousLocation, let navigator else {
+            logger.warning("Cannot return: no previous location or navigator not ready")
+            return
+        }
+
+        Task {
+            _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
+            await MainActor.run {
+                previousLocation = nil
+                overlayState = .none
+            }
+        }
+    }
+
+    func deleteBookmark(_ bookmark: Bookmark) {
+        let bookmarkObjectID = bookmark.objectID
+        let context = BookDataPersistenceController.shared.container.viewContext
+        context.perform {
+            let bookmarkToDelete = context.object(with: bookmarkObjectID)
+            context.delete(bookmarkToDelete)
+            do {
+                try context.save()
+                Task { @MainActor in
+                    self.loadBookmarks()
+                    self.logger.info("Bookmark deleted")
+                }
+            } catch {
+                self.logger.error("Failed to delete bookmark: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func updateBookmarkTitle(_ bookmark: Bookmark, title: String) {
+        let bookmarkObjectID = bookmark.objectID
+        let newTitle = title.isEmpty ? nil : title
+        let context = BookDataPersistenceController.shared.container.viewContext
+        context.perform {
+            guard let bookmarkToUpdate = context.object(with: bookmarkObjectID) as? Bookmark else { return }
+            bookmarkToUpdate.title = newTitle
+            do {
+                try context.save()
+                Task { @MainActor in
+                    self.loadBookmarks()
+                    self.logger.info("Bookmark title updated")
+                }
+            } catch {
+                self.logger.error("Failed to update bookmark title: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    func loadBookmarks() {
+        let context = BookDataPersistenceController.shared.container.viewContext
+        let request = NSFetchRequest<Bookmark>(entityName: "Bookmark")
+        request.predicate = NSPredicate(format: "book == %@", book)
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \Bookmark.createdAt, ascending: false)]
+
+        do {
+            bookmarks = try context.fetch(request)
+        } catch {
+            logger.error("Failed to fetch bookmarks: \(error.localizedDescription)")
+            bookmarks = []
+        }
+    }
+
+    private func generateDefaultBookmarkTitle(for locator: Locator) -> String {
+        // Try to get chapter title from publication TOC
+        if let publication,
+           let chapterTitle = findChapterTitle(for: locator, in: publication)
+        {
+            return chapterTitle
+        }
+
+        // Fall back to position
+        if let position = locator.locations.position {
+            return "Position \(position)"
+        }
+
+        // Fall back to total progression
+        if let totalProgression = locator.locations.totalProgression {
+            let percent = Int(totalProgression * 100)
+            return "Book \(percent)%"
+        }
+
+        return "Bookmark"
+    }
+
+    private func findChapterTitle(for locator: Locator, in publication: Publication) -> String? {
+        func searchLinks(_ links: [ReadiumShared.Link]) -> String? {
+            for link in links {
+                if link.href == locator.href.string, let title = link.title, !title.isEmpty {
+                    return title
+                }
+                if let found = searchLinks(link.children) {
+                    return found
+                }
+            }
+            return nil
+        }
+        return searchLinks(publication.manifest.tableOfContents)
     }
 
     func searchInPopup(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
