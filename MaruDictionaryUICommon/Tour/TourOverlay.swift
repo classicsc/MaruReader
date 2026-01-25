@@ -35,6 +35,7 @@ struct TourOverlayContent: View {
                 .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
             }
         }
+        .ignoresSafeArea()
     }
 
     private func resolveTargetRect(for step: TourStep, in geometry: GeometryProxy) -> CGRect {
@@ -55,99 +56,35 @@ struct TourOverlayContent: View {
             onNext: { manager.next() },
             onSkip: { manager.skip() }
         )
-        .position(placement.position)
+        .position(placement)
         .transition(.opacity)
     }
 
     private func calculatePlacement(
-        for step: TourStep,
+        for _: TourStep,
         targetRect: CGRect,
         in geometry: GeometryProxy
-    ) -> (position: CGPoint, edge: Edge) {
-        let coachMarkWidth: CGFloat = 320
+    ) -> CGPoint {
         let coachMarkHeight: CGFloat = 140
         let spacing: CGFloat = 16
-        let edgePadding: CGFloat = 16
 
         let screenBounds = geometry.frame(in: .local)
-
-        let preferredEdge = step.preferredCoachMarkPlacement
-        let edges: [Edge] = [preferredEdge] + Edge.allCases.filter { $0 != preferredEdge }
-
-        for edge in edges {
-            let position = positionForEdge(
-                edge,
-                targetRect: targetRect,
-                coachMarkSize: CGSize(width: coachMarkWidth, height: coachMarkHeight),
-                spacing: spacing
-            )
-
-            if isPositionValid(
-                position,
-                coachMarkSize: CGSize(width: coachMarkWidth, height: coachMarkHeight),
-                screenBounds: screenBounds,
-                edgePadding: edgePadding
-            ) {
-                return (position, edge)
-            }
-        }
-
         let centerX = screenBounds.midX
-        let centerY = screenBounds.midY
-        return (CGPoint(x: centerX, y: centerY), .bottom)
-    }
 
-    private func positionForEdge(
-        _ edge: Edge,
-        targetRect: CGRect,
-        coachMarkSize: CGSize,
-        spacing: CGFloat
-    ) -> CGPoint {
-        let centerX = targetRect.midX
-        let centerY = targetRect.midY
+        // Determine if target is in top or bottom half of screen
+        let targetCenterY = targetRect.midY
+        let isTargetInTopHalf = targetCenterY < screenBounds.midY
 
-        switch edge {
-        case .top:
-            return CGPoint(
-                x: centerX,
-                y: targetRect.minY - spacing - coachMarkSize.height / 2
-            )
-        case .bottom:
-            return CGPoint(
-                x: centerX,
-                y: targetRect.maxY + spacing + coachMarkSize.height / 2
-            )
-        case .leading:
-            return CGPoint(
-                x: targetRect.minX - spacing - coachMarkSize.width / 2,
-                y: centerY
-            )
-        case .trailing:
-            return CGPoint(
-                x: targetRect.maxX + spacing + coachMarkSize.width / 2,
-                y: centerY
-            )
+        // Place coach mark on opposite side of screen from target
+        let coachMarkY: CGFloat = if isTargetInTopHalf {
+            // Target in top half: place coach mark in bottom area
+            screenBounds.maxY - spacing - coachMarkHeight / 2 - 40
+        } else {
+            // Target in bottom half: place coach mark in top area
+            screenBounds.minY + spacing + coachMarkHeight / 2 + 60
         }
-    }
 
-    private func isPositionValid(
-        _ position: CGPoint,
-        coachMarkSize: CGSize,
-        screenBounds: CGRect,
-        edgePadding: CGFloat
-    ) -> Bool {
-        let halfWidth = coachMarkSize.width / 2
-        let halfHeight = coachMarkSize.height / 2
-
-        let minX = position.x - halfWidth
-        let maxX = position.x + halfWidth
-        let minY = position.y - halfHeight
-        let maxY = position.y + halfHeight
-
-        return minX >= edgePadding &&
-            maxX <= screenBounds.width - edgePadding &&
-            minY >= edgePadding &&
-            maxY <= screenBounds.height - edgePadding
+        return CGPoint(x: centerX, y: coachMarkY)
     }
 }
 

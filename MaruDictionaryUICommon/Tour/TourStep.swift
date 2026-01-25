@@ -22,18 +22,15 @@ public struct TourStep: Identifiable, Sendable {
     public let id: String
     public let title: String
     public let description: String
-    public let preferredCoachMarkPlacement: Edge
 
     public init(
         id: String,
         title: String,
-        description: String,
-        preferredCoachMarkPlacement: Edge = .bottom
+        description: String
     ) {
         self.id = id
         self.title = title
         self.description = description
-        self.preferredCoachMarkPlacement = preferredCoachMarkPlacement
     }
 }
 

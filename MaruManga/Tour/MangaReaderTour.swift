@@ -35,26 +35,22 @@ public enum MangaReaderTour: TourDefinition {
         TourStep(
             id: MangaReaderTourAnchor.backButton,
             title: "Return to Library",
-            description: "Tap here to close the manga and return to your library.",
-            preferredCoachMarkPlacement: .bottom
+            description: "Tap here to close the manga and return to your library."
         ),
         TourStep(
             id: MangaReaderTourAnchor.textRegions,
             title: "Text Recognition",
-            description: "Show detected text regions. Tap any region to look up the text in the dictionary.",
-            preferredCoachMarkPlacement: .top
+            description: "Show detected text regions. Tap any region to look up the text in the dictionary."
         ),
         TourStep(
             id: MangaReaderTourAnchor.readingDirection,
             title: "Reading Direction",
-            description: "Choose right-to-left for traditional manga, left-to-right, or vertical scrolling.",
-            preferredCoachMarkPlacement: .top
+            description: "Choose right-to-left for traditional manga, left-to-right, or vertical scrolling."
         ),
         TourStep(
             id: MangaReaderTourAnchor.pageIndicator,
             title: "Jump to Page",
-            description: "Tap to jump directly to any page number.",
-            preferredCoachMarkPlacement: .top
+            description: "Tap to jump directly to any page number."
         ),
     ]
 }

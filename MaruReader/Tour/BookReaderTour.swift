@@ -37,38 +37,32 @@ enum BookReaderTour: TourDefinition {
         TourStep(
             id: BookReaderTourAnchor.backButton,
             title: "Return to Library",
-            description: "Tap here to close the book and return to your library.",
-            preferredCoachMarkPlacement: .bottom
+            description: "Tap here to close the book and return to your library."
         ),
         TourStep(
             id: BookReaderTourAnchor.titleToggle,
             title: "Show or Hide Toolbar",
-            description: "Tap the title to show or hide the toolbar. You can also tap in the page margins.",
-            preferredCoachMarkPlacement: .bottom
+            description: "Tap the title to show or hide the toolbar. You can also tap in the page margins."
         ),
         TourStep(
             id: BookReaderTourAnchor.tableOfContents,
             title: "Table of Contents",
-            description: "View chapters, bookmarks, and jump to any position in the book.",
-            preferredCoachMarkPlacement: .top
+            description: "View chapters, bookmarks, and jump to any position in the book."
         ),
         TourStep(
             id: BookReaderTourAnchor.dictionaryMode,
             title: "Dictionary Lookup",
-            description: "Enable dictionary mode, then tap any word to look it up instantly.",
-            preferredCoachMarkPlacement: .top
+            description: "Enable dictionary mode, then tap any word to look it up instantly."
         ),
         TourStep(
             id: BookReaderTourAnchor.bookmark,
             title: "Bookmarks",
-            description: "Add a bookmark at your current position or jump to existing bookmarks.",
-            preferredCoachMarkPlacement: .top
+            description: "Add a bookmark at your current position or jump to existing bookmarks."
         ),
         TourStep(
             id: BookReaderTourAnchor.fontSizeLarger,
             title: "Adjust Text Size",
-            description: "Make text larger or smaller to suit your reading preference.",
-            preferredCoachMarkPlacement: .top
+            description: "Make text larger or smaller to suit your reading preference."
         ),
     ]
 }
