@@ -38,9 +38,7 @@ struct AnkiConnectSetupView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Make sure Anki is running on your computer with the Anki-Connect add-on installed.")
-                    Text("Default settings: localhost:8765")
-                        .foregroundStyle(.secondary)
+                    Text("Make sure Anki is running on your computer with the Anki-Connect add-on installed. Only SSL connections are supported.")
                 }
                 .font(.caption)
             }

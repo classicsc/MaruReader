@@ -78,7 +78,7 @@ final class AnkiConfigurationViewModel {
     var connectionType: ConnectionType = .ankiMobile
 
     // Connection settings (temporary, not saved until completion)
-    var host: String = "localhost"
+    var host: String = ""
     var port: String = "8765"
     var apiKey: String = ""
 
