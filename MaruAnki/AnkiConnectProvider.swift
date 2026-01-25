@@ -176,7 +176,7 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
             "deckName": deckName,
             "modelName": modelName,
             "fields": fieldContent,
-            "tags": [] as [String],
+            "tags": ["marureader"] as [String],
         ]
 
         // Configure duplicate handling
@@ -240,14 +240,6 @@ struct AnkiConnectProvider: AnkiProvider, Sendable {
 
     func getAnkiProfiles() async -> AnkiProfileListingResponse {
         do {
-            // The result will be an array containing two response objects
-            // 1. Response<[String]>
-            // 2. Response<String>
-            // Since they have different types, we decode as [Any] (via JSONSerialization) or use a custom decoding strategy.
-            // To keep it type-safe with Decodable, we can't easily decode heterogeneous arrays.
-            // So let's just make two separate requests for simplicity and robustness,
-            // or use a specific struct for this multi response if we really want to optimize.
-
             let profilesRequest = AnkiConnectRequest(action: "getProfiles")
             let profilesResponse: AnkiConnectResponse<[String]> = try await send(profilesRequest)
             guard let profiles = profilesResponse.result else {

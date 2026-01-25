@@ -157,6 +157,9 @@ enum AnkiMobileURLBuilder {
 
         if !tags.isEmpty {
             pairs.append(("tags", tags.joined(separator: " ")))
+        } else {
+            // default tag
+            pairs.append(("tags", "marureader"))
         }
 
         if allowDuplicate {
