@@ -40,7 +40,7 @@ public enum MangaReaderTour: TourDefinition {
         TourStep(
             id: MangaReaderTourAnchor.textRegions,
             title: "Text Recognition",
-            description: "Show detected text regions. Tap any region to look up the text in the dictionary."
+            description: "Tap on any text to start a dictionary lookup. Use this button if you want to see the exact detected text regions."
         ),
         TourStep(
             id: MangaReaderTourAnchor.readingDirection,

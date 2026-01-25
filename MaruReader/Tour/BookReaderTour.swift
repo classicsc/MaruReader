@@ -42,7 +42,7 @@ enum BookReaderTour: TourDefinition {
         TourStep(
             id: BookReaderTourAnchor.titleToggle,
             title: "Show or Hide Toolbar",
-            description: "Tap the title to show or hide the toolbar. You can also tap in the page margins."
+            description: "Tap the title to show or hide the toolbar."
         ),
         TourStep(
             id: BookReaderTourAnchor.tableOfContents,
@@ -52,7 +52,7 @@ enum BookReaderTour: TourDefinition {
         TourStep(
             id: BookReaderTourAnchor.dictionaryMode,
             title: "Dictionary Lookup",
-            description: "Enable dictionary mode, then tap any word to look it up instantly."
+            description: "In dictionary mode, tap any word to look it up instantly. Use this button to toggle dictionary mode on or off."
         ),
         TourStep(
             id: BookReaderTourAnchor.bookmark,

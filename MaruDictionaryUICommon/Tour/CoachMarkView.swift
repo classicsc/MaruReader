@@ -64,11 +64,6 @@ struct CoachMarkView: View {
             }
         }
         .padding(16)
-        .frame(maxWidth: 320)
-        .background {
-            RoundedRectangle(cornerRadius: 16)
-                .fill(.regularMaterial)
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 4)
-        }
+        .frame(width: 300)
     }
 }

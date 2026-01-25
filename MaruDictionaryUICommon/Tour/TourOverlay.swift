@@ -29,10 +29,20 @@ struct TourOverlayContent: View {
 
                 ZStack {
                     SpotlightView(targetRect: targetRect)
-
-                    coachMark(for: step, targetRect: targetRect, in: geometry)
+                        .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
+                    
+                    Color.clear
+                        .popover(isPresented: .constant(true), attachmentAnchor: .rect(.rect(targetRect))) {
+                            CoachMarkView(
+                                step: step,
+                                stepNumber: manager.currentStepIndex + 1,
+                                totalSteps: manager.currentTourSteps.count,
+                                onNext: { manager.next() },
+                                onSkip: { manager.skip() }
+                            )
+                            .presentationCompactAdaptation(.popover)
+                        }
                 }
-                .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
             }
         }
         .ignoresSafeArea()
@@ -43,48 +53,6 @@ struct TourOverlayContent: View {
             return geometry[anchor]
         }
         return CGRect(x: geometry.size.width / 2 - 50, y: geometry.size.height / 2 - 25, width: 100, height: 50)
-    }
-
-    @ViewBuilder
-    private func coachMark(for step: TourStep, targetRect: CGRect, in geometry: GeometryProxy) -> some View {
-        let placement = calculatePlacement(for: step, targetRect: targetRect, in: geometry)
-
-        CoachMarkView(
-            step: step,
-            stepNumber: manager.currentStepIndex + 1,
-            totalSteps: manager.currentTourSteps.count,
-            onNext: { manager.next() },
-            onSkip: { manager.skip() }
-        )
-        .position(placement)
-        .transition(.opacity)
-    }
-
-    private func calculatePlacement(
-        for _: TourStep,
-        targetRect: CGRect,
-        in geometry: GeometryProxy
-    ) -> CGPoint {
-        let coachMarkHeight: CGFloat = 140
-        let spacing: CGFloat = 16
-
-        let screenBounds = geometry.frame(in: .local)
-        let centerX = screenBounds.midX
-
-        // Determine if target is in top or bottom half of screen
-        let targetCenterY = targetRect.midY
-        let isTargetInTopHalf = targetCenterY < screenBounds.midY
-
-        // Place coach mark on opposite side of screen from target
-        let coachMarkY: CGFloat = if isTargetInTopHalf {
-            // Target in top half: place coach mark in bottom area
-            screenBounds.maxY - spacing - coachMarkHeight / 2 - 40
-        } else {
-            // Target in bottom half: place coach mark in top area
-            screenBounds.minY + spacing + coachMarkHeight / 2 + 60
-        }
-
-        return CGPoint(x: centerX, y: coachMarkY)
     }
 }
 
