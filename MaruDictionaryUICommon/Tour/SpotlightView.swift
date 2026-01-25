@@ -47,7 +47,6 @@ struct SpotlightView: View {
             .compositingGroup()
         }
         .ignoresSafeArea()
-        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 }

@@ -27,22 +27,18 @@ struct TourOverlayContent: View {
             if manager.isActive, let step = manager.currentStep {
                 let targetRect = resolveTargetRect(for: step, in: geometry)
 
-                ZStack {
-                    SpotlightView(targetRect: targetRect)
-                        .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
-                    
-                    Color.clear
-                        .popover(isPresented: .constant(true), attachmentAnchor: .rect(.rect(targetRect))) {
-                            CoachMarkView(
-                                step: step,
-                                stepNumber: manager.currentStepIndex + 1,
-                                totalSteps: manager.currentTourSteps.count,
-                                onNext: { manager.next() },
-                                onSkip: { manager.skip() }
-                            )
-                            .presentationCompactAdaptation(.popover)
-                        }
-                }
+                SpotlightView(targetRect: targetRect)
+                    .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
+                    .popover(isPresented: .constant(true), attachmentAnchor: .rect(.rect(targetRect))) {
+                        CoachMarkView(
+                            step: step,
+                            stepNumber: manager.currentStepIndex + 1,
+                            totalSteps: manager.currentTourSteps.count,
+                            onNext: { manager.next() },
+                            onSkip: { manager.skip() }
+                        )
+                        .presentationCompactAdaptation(.popover)
+                    }
             }
         }
         .ignoresSafeArea()
