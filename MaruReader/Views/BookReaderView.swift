@@ -31,6 +31,7 @@ struct BookReaderView: View {
     @State private var viewModel: BookReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @State private var progressDisplayMode: ProgressDisplayMode = .book
+    @State private var tourManager = TourManager()
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -119,6 +120,12 @@ struct BookReaderView: View {
                 .onChange(of: colorScheme) {
                     viewModel.readerPreferences.submitToNavigator()
                 }
+                .tourOverlay(manager: tourManager)
+                .onAppear {
+                    if tourManager.startIfNeeded(BookReaderTour.self) {
+                        viewModel.overlayState = .showingToolbars
+                    }
+                }
         }
     }
 
@@ -190,6 +197,7 @@ struct BookReaderView: View {
         HStack {
             if viewModel.overlayState.shouldShowToolbars {
                 floatingBackButton
+                    .tourAnchor(BookReaderTourAnchor.backButton)
             } else {
                 floatingBackButton.hidden()
             }
@@ -205,6 +213,7 @@ struct BookReaderView: View {
                         .foregroundColor(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
                 }
             }
+            .tourAnchor(BookReaderTourAnchor.titleToggle)
             Spacer()
             Spacer().frame(width: floatingButtonFrameSize)
         }
@@ -219,6 +228,7 @@ struct BookReaderView: View {
                 Image(systemName: "list.bullet")
             }
             .accessibilityLabel("Table of contents")
+            .tourAnchor(BookReaderTourAnchor.tableOfContents)
 
             Button {
                 viewModel.isDictionaryActive.toggle()
@@ -226,8 +236,10 @@ struct BookReaderView: View {
                 Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
             }
             .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
+            .tourAnchor(BookReaderTourAnchor.dictionaryMode)
 
             bookmarkButton
+                .tourAnchor(BookReaderTourAnchor.bookmark)
 
             Button {
                 viewModel.readerPreferences.decreaseFontSize()
@@ -235,6 +247,7 @@ struct BookReaderView: View {
                 Image(systemName: "textformat.size.smaller.ja")
             }
             .accessibilityLabel("Decrease font size")
+            .tourAnchor(BookReaderTourAnchor.fontSizeSmaller)
 
             Button {
                 viewModel.readerPreferences.increaseFontSize()
@@ -242,6 +255,7 @@ struct BookReaderView: View {
                 Image(systemName: "textformat.size.larger.ja")
             }
             .accessibilityLabel("Increase font size")
+            .tourAnchor(BookReaderTourAnchor.fontSizeLarger)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)

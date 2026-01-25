@@ -21,12 +21,14 @@
 //  Stub settings screen.
 //
 import MaruAnki
+import MaruDictionaryUICommon
 import MaruManga
 import MaruWeb
 import SwiftUI
 
 struct SettingsView: View {
     @State private var pendingCount = 0
+    @State private var showingResetToursConfirmation = false
     @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
     private var smartMetadataExtractionEnabled = MangaMetadataExtractionSettings.smartExtractionEnabledDefault
     @AppStorage(WebContentBlockingSettings.contentBlockingEnabledKey)
@@ -76,6 +78,22 @@ struct SettingsView: View {
                         NavigationLink(destination: AnkiSettingsView()) {
                             Label("Anki", systemImage: "rectangle.stack.badge.plus")
                         }
+                    }
+                }
+                Section(
+                    header: Text("Help"),
+                    footer: Text("Show the guided tours again the next time you open each reader.")
+                ) {
+                    Button("Reset Tours") {
+                        showingResetToursConfirmation = true
+                    }
+                    .confirmationDialog("Reset Tours", isPresented: $showingResetToursConfirmation) {
+                        Button("Reset Tours") {
+                            TourManager.resetAllTours()
+                        }
+                        Button("Cancel", role: .cancel) {}
+                    } message: {
+                        Text("This will show the guided tours again the next time you open each reader.")
                     }
                 }
                 Section("About") {

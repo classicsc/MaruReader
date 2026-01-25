@@ -27,6 +27,7 @@ public struct MangaReaderView: View {
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @State private var isShowingPageJumpDialog: Bool = false
     @State private var pageJumpInput: String = ""
+    @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -121,6 +122,12 @@ public struct MangaReaderView: View {
             }
         }
         .animation(.easeInOut, value: viewModel.overlayState.shouldShowToolbars)
+        .tourOverlay(manager: tourManager)
+        .onAppear {
+            if tourManager.startIfNeeded(MangaReaderTour.self) {
+                viewModel.overlayState = .showingToolbars
+            }
+        }
     }
 
     // MARK: - Page Container
@@ -201,6 +208,7 @@ public struct MangaReaderView: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
+        .tourAnchor(MangaReaderTourAnchor.backButton)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -222,6 +230,7 @@ public struct MangaReaderView: View {
                     .contentShape(.rect)
             }
             .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
+            .tourAnchor(MangaReaderTourAnchor.textRegions)
 
             // Spread mode toggle (only in landscape + horizontal mode)
             if viewModel.isLandscape, viewModel.readingDirection != .vertical {
@@ -238,6 +247,7 @@ public struct MangaReaderView: View {
                         .contentShape(.rect)
                 }
                 .accessibilityLabel(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
+                .tourAnchor(MangaReaderTourAnchor.spreadToggle)
             }
 
             Divider()
@@ -258,12 +268,14 @@ public struct MangaReaderView: View {
             .pickerStyle(.segmented)
             .frame(width: 120)
             .accessibilityLabel("Reading direction")
+            .tourAnchor(MangaReaderTourAnchor.readingDirection)
 
             Divider()
                 .frame(height: 20)
 
             // Page indicator
             pageIndicator
+                .tourAnchor(MangaReaderTourAnchor.pageIndicator)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
