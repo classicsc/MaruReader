@@ -22,15 +22,18 @@ public struct TourStep: Identifiable, Sendable {
     public let id: String
     public let title: String
     public let description: String
+    public let popoverEdge: Edge
 
     public init(
         id: String,
         title: String,
-        description: String
+        description: String,
+        popoverEdge: Edge = .bottom
     ) {
         self.id = id
         self.title = title
         self.description = description
+        self.popoverEdge = popoverEdge
     }
 }
 

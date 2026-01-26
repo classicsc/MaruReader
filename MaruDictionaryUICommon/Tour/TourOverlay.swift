@@ -26,10 +26,16 @@ struct TourOverlayContent: View {
         GeometryReader { geometry in
             if manager.isActive, let step = manager.currentStep {
                 let targetRect = resolveTargetRect(for: step, in: geometry)
+                let anchorPoint = attachmentPoint(for: step.popoverEdge, in: targetRect, geometry: geometry)
+                let arrowEdge = arrowEdge(for: step.popoverEdge)
 
                 SpotlightView(targetRect: targetRect)
                     .animation(.easeInOut(duration: 0.3), value: manager.currentStepIndex)
-                    .popover(isPresented: .constant(true), attachmentAnchor: .rect(.rect(targetRect))) {
+                    .popover(
+                        isPresented: .constant(true),
+                        attachmentAnchor: .point(anchorPoint),
+                        arrowEdge: arrowEdge
+                    ) {
                         CoachMarkView(
                             step: step,
                             stepNumber: manager.currentStepIndex + 1,
@@ -50,6 +56,31 @@ struct TourOverlayContent: View {
             return geometry[anchor]
         }
         return CGRect(x: geometry.size.width / 2 - 50, y: geometry.size.height / 2 - 25, width: 100, height: 50)
+    }
+
+    private func attachmentPoint(for edge: Edge, in rect: CGRect, geometry: GeometryProxy) -> UnitPoint {
+        let size = geometry.size
+        let normalizedMidX = rect.midX / size.width
+        let normalizedMidY = rect.midY / size.height
+        switch edge {
+        case .top:
+            return UnitPoint(x: normalizedMidX, y: rect.minY / size.height)
+        case .bottom:
+            return UnitPoint(x: normalizedMidX, y: rect.maxY / size.height)
+        case .leading:
+            return UnitPoint(x: rect.minX / size.width, y: normalizedMidY)
+        case .trailing:
+            return UnitPoint(x: rect.maxX / size.width, y: normalizedMidY)
+        }
+    }
+
+    private func arrowEdge(for popoverEdge: Edge) -> Edge {
+        switch popoverEdge {
+        case .top: .bottom
+        case .bottom: .top
+        case .leading: .trailing
+        case .trailing: .leading
+        }
     }
 }
 

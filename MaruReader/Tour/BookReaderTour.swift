@@ -37,32 +37,38 @@ enum BookReaderTour: TourDefinition {
         TourStep(
             id: BookReaderTourAnchor.backButton,
             title: "Return to Library",
-            description: "Tap here to close the book and return to your library."
+            description: "Tap here to close the book and return to your library.",
+            popoverEdge: .bottom
         ),
         TourStep(
             id: BookReaderTourAnchor.titleToggle,
             title: "Show or Hide Toolbar",
-            description: "Tap the title to show or hide the toolbar."
+            description: "Tap the title to show or hide the toolbar.",
+            popoverEdge: .bottom
         ),
         TourStep(
             id: BookReaderTourAnchor.tableOfContents,
             title: "Table of Contents",
-            description: "View chapters, bookmarks, and jump to any position in the book."
+            description: "View chapters, bookmarks, and jump to any position in the book.",
+            popoverEdge: .top
         ),
         TourStep(
             id: BookReaderTourAnchor.dictionaryMode,
             title: "Dictionary Lookup",
-            description: "In dictionary mode, tap any word to look it up instantly. Use this button to toggle dictionary mode on or off."
+            description: "In dictionary mode, tap any word to look it up instantly. Use this button to toggle dictionary mode on or off.",
+            popoverEdge: .top
         ),
         TourStep(
             id: BookReaderTourAnchor.bookmark,
             title: "Bookmarks",
-            description: "Add a bookmark at your current position or jump to existing bookmarks."
+            description: "Add a bookmark at your current position or jump to existing bookmarks.",
+            popoverEdge: .top
         ),
         TourStep(
             id: BookReaderTourAnchor.fontSizeLarger,
             title: "Adjust Text Size",
-            description: "Make text larger or smaller to suit your reading preference."
+            description: "Make text larger or smaller to suit your reading preference.",
+            popoverEdge: .top
         ),
     ]
 }
