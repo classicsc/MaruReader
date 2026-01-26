@@ -79,7 +79,6 @@ final class WebViewerViewModel {
     var readingModeEnabled = false
     var isBookmarked = false
     var overlayState: WebOverlayState = .showingToolbars
-    var pagingAxis: ReadingPagingAxis = .vertical
     var pagingBehavior: ReadingPagingBehavior = .scroll
 
     private var initialURL: URL?
@@ -125,10 +124,6 @@ final class WebViewerViewModel {
         case .showingToolbars:
             overlayState = .none
         }
-    }
-
-    func togglePagingAxis() {
-        pagingAxis = pagingAxis == .vertical ? .horizontal : .vertical
     }
 
     func togglePagingBehavior() {

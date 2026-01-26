@@ -19,7 +19,6 @@ import SwiftUI
 
 struct WebReadingModeOverlay: View {
     let isProcessing: Bool
-    let pagingAxis: ReadingPagingAxis
     let pagingBehavior: ReadingPagingBehavior
     let onTap: (CGPoint, CGSize) -> Void
     let onPageAction: (_ axis: ReadingPagingAxis, _ behavior: ReadingPagingBehavior, _ direction: Int) -> Void
@@ -57,19 +56,11 @@ struct WebReadingModeOverlay: View {
             .onEnded { value in
                 let horizontalDistance = value.translation.width
                 let verticalDistance = value.translation.height
-
-                switch pagingAxis {
-                case .vertical:
-                    if abs(verticalDistance) > abs(horizontalDistance) {
-                        let direction = verticalDistance < 0 ? 1 : -1
-                        onPageAction(pagingAxis, pagingBehavior, direction)
-                    }
-                case .horizontal:
-                    if abs(horizontalDistance) > abs(verticalDistance) {
-                        let direction = horizontalDistance < 0 ? 1 : -1
-                        onPageAction(pagingAxis, pagingBehavior, direction)
-                    }
-                }
+                let isHorizontal = abs(horizontalDistance) > abs(verticalDistance)
+                let axis: ReadingPagingAxis = isHorizontal ? .horizontal : .vertical
+                let primaryDistance = isHorizontal ? horizontalDistance : verticalDistance
+                let direction = primaryDistance < 0 ? 1 : -1
+                onPageAction(axis, pagingBehavior, direction)
             }
     }
 }

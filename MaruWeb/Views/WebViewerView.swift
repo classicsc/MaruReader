@@ -142,7 +142,6 @@ public struct WebViewerView: View {
                 if viewModel.readingModeEnabled {
                     WebReadingModeOverlay(
                         isProcessing: viewModel.ocrViewModel.isProcessing,
-                        pagingAxis: viewModel.pagingAxis,
                         pagingBehavior: viewModel.pagingBehavior,
                         onTap: { location, size in
                             Task {
@@ -312,19 +311,6 @@ public struct WebViewerView: View {
 
     private var readingModeMenu: some View {
         VStack(alignment: .trailing, spacing: 12) {
-            Button {
-                viewModel.togglePagingAxis()
-            } label: {
-                Image(systemName: viewModel.pagingAxis == .horizontal ? "arrow.left.arrow.right" : "arrow.up.arrow.down")
-                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
-            }
-            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-            .contentShape(.circle)
-            .buttonStyle(.plain)
-            .glassEffect(in: Circle())
-            .glassEffectTransition(GlassEffectTransition.materialize)
-            .accessibilityLabel(viewModel.pagingAxis == .horizontal ? "Switch to Vertical Paging" : "Switch to Horizontal Paging")
-
             Button {
                 viewModel.togglePagingBehavior()
             } label: {
