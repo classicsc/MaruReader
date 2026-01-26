@@ -54,11 +54,6 @@ public struct WebViewerView: View {
                 webSessionLoadingView
             }
 
-            if shouldShowDismissButton {
-                floatingDismissButton
-                    .transition(.opacity.combined(with: .scale))
-            }
-
             if page != nil {
                 bottomControlsOverlay
             }
@@ -199,6 +194,8 @@ public struct WebViewerView: View {
 
     private var bottomControlsRow: some View {
         HStack(alignment: .bottom) {
+            dismissButton
+
             if canGoBack || canGoForward {
                 navigationCluster
             }
@@ -378,19 +375,18 @@ public struct WebViewerView: View {
         }
     }
 
-    private var floatingDismissButton: some View {
+    private var dismissButton: some View {
         Button {
             dismiss()
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
         .accessibilityLabel("Exit Web Viewer")
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
     }
 
     private func loadingProgressOverlay(for page: WebPage) -> some View {
@@ -436,10 +432,6 @@ public struct WebViewerView: View {
 
     private var shouldShowReadingModeButtonOnly: Bool {
         viewModel.readingModeEnabled && !readingModeMenuExpanded
-    }
-
-    private var shouldShowDismissButton: Bool {
-        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
     }
 
     private func navigationButton(
