@@ -38,6 +38,7 @@ struct TourOverlayContent: View {
                             onSkip: { manager.skip() }
                         )
                         .presentationCompactAdaptation(.popover)
+                        .interactiveDismissDisabled(true)
                     }
             }
         }
