@@ -78,6 +78,7 @@ final class WebViewerViewModel {
     var addressBarText: String = ""
     var readingModeEnabled = false
     var isBookmarked = false
+    var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
     var pagingBehavior: ReadingPagingBehavior = .scroll
 
@@ -214,8 +215,43 @@ final class WebViewerViewModel {
         Task {
             do {
                 let isNowBookmarked = try await bookmarkManager.toggleBookmark(url: url, title: title)
+                let snapshots = try await bookmarkManager.fetchBookmarks()
                 await MainActor.run {
                     self.isBookmarked = isNowBookmarked
+                    self.bookmarks = snapshots
+                }
+            } catch {
+                return
+            }
+        }
+    }
+
+    func addBookmarkForCurrentPage() {
+        guard let page, let url = page.url else { return }
+        let title = page.title
+        Task {
+            do {
+                _ = try await bookmarkManager.addBookmark(url: url, title: title)
+                let snapshots = try await bookmarkManager.fetchBookmarks()
+                await MainActor.run {
+                    self.isBookmarked = true
+                    self.bookmarks = snapshots
+                }
+            } catch {
+                return
+            }
+        }
+    }
+
+    func removeBookmarkForCurrentPage() {
+        guard let page, let url = page.url else { return }
+        Task {
+            do {
+                try await bookmarkManager.removeBookmark(url: url)
+                let snapshots = try await bookmarkManager.fetchBookmarks()
+                await MainActor.run {
+                    self.isBookmarked = false
+                    self.bookmarks = snapshots
                 }
             } catch {
                 return
@@ -260,12 +296,25 @@ final class WebViewerViewModel {
     }
 
     func refreshBookmarkState() {
-        guard let page else {
-            isBookmarked = false
-            return
-        }
-
+        let page = page
         Task {
+            let snapshots: [WebBookmarkSnapshot]
+            do {
+                snapshots = try await bookmarkManager.fetchBookmarks()
+            } catch {
+                snapshots = []
+            }
+            await MainActor.run {
+                self.bookmarks = snapshots
+            }
+
+            guard let page else {
+                await MainActor.run {
+                    self.isBookmarked = false
+                }
+                return
+            }
+
             guard let url = page.url else {
                 await MainActor.run {
                     self.isBookmarked = false

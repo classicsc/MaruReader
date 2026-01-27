@@ -273,10 +273,35 @@ public struct WebViewerView: View {
     }
 
     private var bookmarkButton: some View {
-        Button {
-            viewModel.toggleBookmark()
+        let isCurrentLocationBookmarked = viewModel.isBookmarked
+        return Menu {
+            if isCurrentLocationBookmarked {
+                Button(role: .destructive) {
+                    viewModel.removeBookmarkForCurrentPage()
+                } label: {
+                    Label("Remove Bookmark", systemImage: "bookmark.slash")
+                }
+            } else {
+                Button {
+                    viewModel.addBookmarkForCurrentPage()
+                } label: {
+                    Label("Add Bookmark", systemImage: "bookmark.fill")
+                }
+            }
+
+            if !viewModel.bookmarks.isEmpty {
+                Section("Bookmarks") {
+                    ForEach(viewModel.bookmarks, id: \.id) { bookmark in
+                        Button {
+                            viewModel.navigate(to: bookmark.url)
+                        } label: {
+                            Text(bookmark.title)
+                        }
+                    }
+                }
+            }
         } label: {
-            Image(systemName: viewModel.isBookmarked ? "bookmark.fill" : "bookmark")
+            Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
         }
         .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
@@ -285,7 +310,7 @@ public struct WebViewerView: View {
         .glassEffect(in: Circle())
         .glassEffectID("bookmark", in: glassNamespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel(viewModel.isBookmarked ? "Remove Bookmark" : "Add Bookmark")
+        .accessibilityLabel("Bookmarks")
     }
 
     private var readingModeButton: some View {
