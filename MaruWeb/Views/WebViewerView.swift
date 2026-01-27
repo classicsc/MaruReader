@@ -38,7 +38,6 @@ public struct WebViewerView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.pixelLength) var onePixel
 
     public init(initialURL: URL? = nil) {
         _viewModel = State(wrappedValue: WebViewerViewModel(initialURL: initialURL))
@@ -50,12 +49,11 @@ public struct WebViewerView: View {
         ZStack(alignment: .topLeading) {
             if let page {
                 webContent(for: page)
+                    .safeAreaBar(edge: .bottom) {
+                        bottomControlsOverlay
+                    }
             } else {
                 webSessionLoadingView
-            }
-
-            if page != nil {
-                bottomControlsOverlay
             }
         }
         .overlay(alignment: .top) {
@@ -136,8 +134,6 @@ public struct WebViewerView: View {
                     } action: { oldOffset, newOffset in
                         viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
-                    .padding(.top, onePixel)
-                    .ignoresSafeArea(edges: .bottom)
 
                 if viewModel.readingModeEnabled {
                     WebReadingModeOverlay(
@@ -186,7 +182,6 @@ public struct WebViewerView: View {
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
     }
