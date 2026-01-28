@@ -106,7 +106,7 @@ struct AnkiConnectProviderTests {
         #expect(noteFields["Back"] == "Japanese")
 
         let tags = try #require(note["tags"] as? [String])
-        #expect(tags.isEmpty)
+        #expect(tags == ["marureader"])
 
         // Verify options for allowDuplicate
         let options = try #require(note["options"] as? [String: Any])
