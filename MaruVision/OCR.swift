@@ -33,7 +33,7 @@ public actor OCR {
     public init(clusteringConfiguration: ClusteringConfiguration = .default) {
         self.clusteringConfiguration = clusteringConfiguration
 
-        /// Initialize the request with default parameters.
+        // Initialize the request with default parameters.
         request = RecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = true
@@ -47,7 +47,7 @@ public actor OCR {
     }
 
     public func performOCR(imageData: Data) async throws -> [TextCluster] {
-        /// Perform the request on the image data and return the results.
+        // Perform the request on the image data and return the results.
         let results = try await request.perform(on: imageData)
 
         logger.debug("OCR found \(results.count) text observations.")
@@ -58,7 +58,7 @@ public actor OCR {
 
         logger.debug("Clustered into \(clusteredResults.count) clusters.")
 
-        /// Update the published arrays on main actor.
+        // Update the published arrays on main actor.
         observations = results
         return clusteredResults
     }

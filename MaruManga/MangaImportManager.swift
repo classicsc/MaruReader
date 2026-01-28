@@ -34,14 +34,14 @@ public actor MangaImportManager {
     private let metadataExtractor = MangaFilenameMetadataExtractor()
     private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaImport")
 
-    // Supported image extensions
+    /// Supported image extensions
     private static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "webp"]
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
 
-    // Initializer for both shared instance and testing with custom container
+    /// Initializer for both shared instance and testing with custom container
     public init(container: NSPersistentContainer) {
         self.container = container
     }

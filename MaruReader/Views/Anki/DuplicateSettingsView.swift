@@ -42,7 +42,6 @@ struct DuplicateSettingsView: View {
         }
     }
 
-    @ViewBuilder
     private var ankiMobileContent: some View {
         Section {
             Toggle("Allow Duplicate Notes", isOn: allowDuplicatesBinding)

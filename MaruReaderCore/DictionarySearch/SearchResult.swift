@@ -75,7 +75,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
         definitions.toHTML()
     }
 
-    // Unique identifier combining multiple properties
+    /// Unique identifier combining multiple properties
     public var id: String {
         "\(term)|\(reading ?? "")|\(dictionaryTitle)|\(candidate.text)|\(candidate.originalSubstring)|\(sequence)"
     }

@@ -23,7 +23,7 @@ import UIKit
 import Zip
 
 struct MangaImportTests {
-    // Custom errors for diagnostics
+    /// Custom errors for diagnostics
     enum MockArchiveError: Error {
         case fileWriteFailed(URL)
         case fileNotFound(URL)

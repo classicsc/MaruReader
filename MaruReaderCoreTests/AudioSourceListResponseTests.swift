@@ -30,7 +30,7 @@ struct AudioSourceListResponseTests {
             ]
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let response = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
 
         #expect(response.type == "audioSourceList")
@@ -50,7 +50,7 @@ struct AudioSourceListResponseTests {
             ]
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let response = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
 
         #expect(response.type == "audioSourceList")
@@ -66,14 +66,14 @@ struct AudioSourceListResponseTests {
             "audioSources": []
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         let response = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
 
         #expect(response.type == "audioSourceList")
         #expect(response.audioSources.isEmpty)
     }
 
-    @Test func failsWithMissingType() {
+    @Test func failsWithMissingType() throws {
         let json = """
         {
             "audioSources": [
@@ -81,25 +81,25 @@ struct AudioSourceListResponseTests {
             ]
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
         }
     }
 
-    @Test func failsWithMissingAudioSources() {
+    @Test func failsWithMissingAudioSources() throws {
         let json = """
         {
             "type": "audioSourceList"
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
         }
     }
 
-    @Test func failsWithMissingURL() {
+    @Test func failsWithMissingURL() throws {
         let json = """
         {
             "type": "audioSourceList",
@@ -108,7 +108,7 @@ struct AudioSourceListResponseTests {
             ]
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
         #expect(throws: DecodingError.self) {
             _ = try JSONDecoder().decode(AudioSourceListResponse.self, from: data)
         }

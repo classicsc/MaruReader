@@ -46,13 +46,19 @@ struct ContextDisplayView: View {
     private let maxHeight: CGFloat = 150
 
     /// Base font size for context text
-    private var baseFontSize: CGFloat { 17 * fontSize }
+    private var baseFontSize: CGFloat {
+        17 * fontSize
+    }
 
     /// Furigana font size (smaller than base)
-    private var furiganaFontSize: CGFloat { 10 * fontSize }
+    private var furiganaFontSize: CGFloat {
+        10 * fontSize
+    }
 
     /// Line height for text (base + furigana space + spacing)
-    private var furiganaLineHeight: CGFloat { baseFontSize + furiganaFontSize + 6 }
+    private var furiganaLineHeight: CGFloat {
+        baseFontSize + furiganaFontSize + 6
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

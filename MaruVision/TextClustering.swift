@@ -24,11 +24,19 @@ import Vision
 
 private extension CGFloat {
     /// Format with 2 decimal places (e.g., ratios)
-    func f2() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(2))) }
+    func f2() -> String {
+        formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(2)))
+    }
+
     /// Format with 3 decimal places (e.g., coordinates)
-    func f3() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(3))) }
+    func f3() -> String {
+        formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(3)))
+    }
+
     /// Format with 4 decimal places (e.g., line heights, gaps)
-    func f4() -> String { formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(4))) }
+    func f4() -> String {
+        formatted(FloatingPointFormatStyle<Double>().precision(.fractionLength(4)))
+    }
 }
 
 // MARK: - Text Direction

@@ -97,7 +97,7 @@ struct ContextImageConfigurationTests {
             "mangaPreference": "screenshot"
         }
         """
-        let data = json.data(using: .utf8)!
+        let data = try #require(json.data(using: .utf8))
 
         let config = try JSONDecoder().decode(ContextImageConfiguration.self, from: data)
 

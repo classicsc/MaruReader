@@ -29,7 +29,7 @@ struct TermParsingTests {
             ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1, "common"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let terms = try decoder.decode([TermBankV3Entry].self, from: data)
 
@@ -58,7 +58,7 @@ struct TermParsingTests {
             ["食べる", "たべる", "v1", "A", 100, [{"type": "structured-content", "content": "Detailed def"}], 1, "common"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let terms = try decoder.decode([TermBankV3Entry].self, from: data)
 
@@ -90,7 +90,7 @@ struct TermParsingTests {
             ["食べる", "たべる", "v1", "A", 100, ["to eat"], 1]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DecodingError.self) {

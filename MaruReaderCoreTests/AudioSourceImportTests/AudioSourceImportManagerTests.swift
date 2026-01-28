@@ -22,7 +22,7 @@ import Testing
 internal import ReadiumZIPFoundation
 
 struct AudioSourceImportManagerTests {
-    // Custom errors for diagnostics
+    /// Custom errors for diagnostics
     enum MockZipError: Error {
         case invalidJSON(String)
         case fileWriteFailed(URL)

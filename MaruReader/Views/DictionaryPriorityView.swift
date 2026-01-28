@@ -263,7 +263,7 @@ struct DictionaryPriorityView: View {
 
     // MARK: - Helper Methods
 
-    private func reorderDictionaries<T>(_ dictionaries: T, from source: IndexSet, to destination: Int, priorityKey: ReferenceWritableKeyPath<Dictionary, Int64>) where T: RandomAccessCollection, T.Element == Dictionary {
+    private func reorderDictionaries<T: RandomAccessCollection>(_ dictionaries: T, from source: IndexSet, to destination: Int, priorityKey: ReferenceWritableKeyPath<Dictionary, Int64>) where T.Element == Dictionary {
         var dictionariesArray = Array(dictionaries)
 
         // Perform the move

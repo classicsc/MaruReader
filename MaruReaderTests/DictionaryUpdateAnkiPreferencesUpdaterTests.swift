@@ -36,7 +36,7 @@ struct DictionaryUpdateAnkiPreferencesUpdaterTests {
             ],
         ])
         let fieldMapData = try JSONEncoder().encode(fieldMap)
-        let fieldMapString = String(data: fieldMapData, encoding: .utf8)!
+        let fieldMapString = try #require(String(data: fieldMapData, encoding: .utf8))
 
         let config = ConfiguredProfileData(
             templateID: "lapis",
@@ -44,7 +44,7 @@ struct DictionaryUpdateAnkiPreferencesUpdaterTests {
             cardType: .vocabularyCard
         )
         let configData = try JSONEncoder().encode(config)
-        let configString = String(data: configData, encoding: .utf8)!
+        let configString = try #require(String(data: configData, encoding: .utf8))
 
         let context = persistenceController.newBackgroundContext()
         try await context.perform {

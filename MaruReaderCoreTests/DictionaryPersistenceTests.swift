@@ -22,7 +22,7 @@ import Testing
 internal import ReadiumZIPFoundation
 
 struct DictionaryPersistenceTests {
-    // Custom errors for diagnostics
+    /// Custom errors for diagnostics
     enum MockZipError: Error {
         case invalidJSON(String)
         case fileWriteFailed(URL)
@@ -1298,7 +1298,7 @@ struct DictionaryPersistenceTests {
             networkProvider: networkProvider
         )
 
-        let indexURL = URL(string: "https://example.com/index.json")!
+        let indexURL = try #require(URL(string: "https://example.com/index.json"))
         let indexJSON = """
         {
             "title": "Test Dictionary",
@@ -1416,7 +1416,7 @@ struct DictionaryPersistenceTests {
         )
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let downloadURL = URL(string: "https://example.com/update.zip")!
+        let downloadURL = try #require(URL(string: "https://example.com/update.zip"))
         let zipData = try Data(contentsOf: zipURL)
         networkProvider.queueResponse(url: downloadURL, data: zipData, expectedLength: Int64(zipData.count))
 

@@ -44,7 +44,7 @@ struct TourManagerTests {
         TourManager.resetAllTours()
     }
 
-    @Test func startTourSetsActiveState() async {
+    @Test func startTourSetsActiveState() {
         let manager = TourManager()
 
         manager.start(MockTour.self)
@@ -54,7 +54,7 @@ struct TourManagerTests {
         #expect(manager.currentTourSteps.count == 3)
     }
 
-    @Test func currentStepReturnsCorrectStep() async {
+    @Test func currentStepReturnsCorrectStep() {
         let manager = TourManager()
         manager.start(MockTour.self)
 
@@ -63,7 +63,7 @@ struct TourManagerTests {
         #expect(currentStep?.title == "Step 1")
     }
 
-    @Test func nextAdvancesToNextStep() async {
+    @Test func nextAdvancesToNextStep() {
         let manager = TourManager()
         manager.start(MockTour.self)
 
@@ -73,7 +73,7 @@ struct TourManagerTests {
         #expect(manager.currentStep?.id == "step2")
     }
 
-    @Test func nextOnLastStepCompletesTour() async {
+    @Test func nextOnLastStepCompletesTour() {
         let manager = TourManager()
         manager.start(MockTour.self)
 
@@ -85,7 +85,7 @@ struct TourManagerTests {
         #expect(manager.isCompleted(MockTour.self))
     }
 
-    @Test func skipCompletesTourImmediately() async {
+    @Test func skipCompletesTourImmediately() {
         let manager = TourManager()
         manager.start(MockTour.self)
 
@@ -95,7 +95,7 @@ struct TourManagerTests {
         #expect(manager.isCompleted(MockTour.self))
     }
 
-    @Test func startIfNeededDoesNotStartCompletedTour() async {
+    @Test func startIfNeededDoesNotStartCompletedTour() {
         let manager = TourManager()
         manager.start(MockTour.self)
         manager.skip()
@@ -106,7 +106,7 @@ struct TourManagerTests {
         #expect(!manager.isActive)
     }
 
-    @Test func startIfNeededStartsUncompletedTour() async {
+    @Test func startIfNeededStartsUncompletedTour() {
         let manager = TourManager()
 
         let started = manager.startIfNeeded(MockTour.self)
@@ -115,7 +115,7 @@ struct TourManagerTests {
         #expect(manager.isActive)
     }
 
-    @Test func completionPersistsAcrossInstances() async {
+    @Test func completionPersistsAcrossInstances() {
         let manager1 = TourManager()
         manager1.start(MockTour.self)
         manager1.skip()
@@ -124,7 +124,7 @@ struct TourManagerTests {
         #expect(manager2.isCompleted(MockTour.self))
     }
 
-    @Test func resetAllToursClearsCompletion() async {
+    @Test func resetAllToursClearsCompletion() {
         let manager = TourManager()
         manager.start(MockTour.self)
         manager.skip()
@@ -138,7 +138,7 @@ struct TourManagerTests {
         #expect(!newManager.isCompleted(AnotherMockTour.self))
     }
 
-    @Test func resetSpecificTourOnlyClearsThatTour() async {
+    @Test func resetSpecificTourOnlyClearsThatTour() {
         let manager = TourManager()
         manager.start(MockTour.self)
         manager.skip()
@@ -152,13 +152,13 @@ struct TourManagerTests {
         #expect(newManager.isCompleted(AnotherMockTour.self))
     }
 
-    @Test func currentStepIsNilWhenNotActive() async {
+    @Test func currentStepIsNilWhenNotActive() {
         let manager = TourManager()
 
         #expect(manager.currentStep == nil)
     }
 
-    @Test func startForcesRestartEvenIfCompleted() async {
+    @Test func startForcesRestartEvenIfCompleted() {
         let manager = TourManager()
         manager.start(MockTour.self)
         manager.skip()

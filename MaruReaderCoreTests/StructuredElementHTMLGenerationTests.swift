@@ -22,7 +22,7 @@ import Testing
 struct DictionaryContentMarkupTests {
     // MARK: - StructuredElement HTML Tests
 
-    @Test func structuredElement_toHTML_SimpleElement() throws {
+    @Test func structuredElement_toHTML_SimpleElement() {
         let element = StructuredElement(
             tag: "p",
             content: .text("Hello World"),
@@ -45,7 +45,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_WithStyle() throws {
+    @Test func structuredElement_toHTML_WithStyle() {
         let style = ContentStyle(
             fontStyle: "italic",
             fontWeight: "bold",
@@ -76,7 +76,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_NoStyleAddsOnlyBaseClass() throws {
+    @Test func structuredElement_toHTML_NoStyleAddsOnlyBaseClass() {
         let element = StructuredElement(
             tag: "div",
             content: .text("Plain Text"),
@@ -100,7 +100,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func contentStyle_toCSSClasses_GeneratesExpectedClasses() throws {
+    @Test func contentStyle_toCSSClasses_GeneratesExpectedClasses() {
         let style = ContentStyle(
             fontStyle: "italic",
             fontWeight: "bold",
@@ -115,7 +115,7 @@ struct DictionaryContentMarkupTests {
         #expect(classes.contains("gloss-font-italic"))
     }
 
-    @Test func structuredElement_toHTML_LinkWithHref() throws {
+    @Test func structuredElement_toHTML_LinkWithHref() {
         let element = StructuredElement(
             tag: "a",
             content: .text("Click me"),
@@ -143,7 +143,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_ImageWithPath() throws {
+    @Test func structuredElement_toHTML_ImageWithPath() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -181,7 +181,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style=\"border:"))
     }
 
-    @Test func structuredElement_toHTML_ImageWithBaseURL() throws {
+    @Test func structuredElement_toHTML_ImageWithBaseURL() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -210,7 +210,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("style=\"width:"))
     }
 
-    @Test func structuredElement_toHTML_ImageWithAbsolutePath_SkipsSrc() throws {
+    @Test func structuredElement_toHTML_ImageWithAbsolutePath_SkipsSrc() {
         // Absolute URLs in dictionary content should be treated as errors
         // and the src attribute should be omitted
         let element = StructuredElement(
@@ -239,7 +239,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-width"))
     }
 
-    @Test func structuredElement_toHTML_ImageWithBorderDataAttr() throws {
+    @Test func structuredElement_toHTML_ImageWithBorderDataAttr() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -266,7 +266,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style=\"border-radius:"))
     }
 
-    @Test func structuredElement_toHTML_ImageNoStyleNoInline() throws {
+    @Test func structuredElement_toHTML_ImageNoStyleNoInline() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -293,7 +293,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style=\"image-rendering:"))
     }
 
-    @Test func structuredElement_toHTML_TableCellWithSpans() throws {
+    @Test func structuredElement_toHTML_TableCellWithSpans() {
         let element = StructuredElement(
             tag: "td",
             content: .text("Cell Content"),
@@ -318,7 +318,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_DetailsElement() throws {
+    @Test func structuredElement_toHTML_DetailsElement() {
         let element = StructuredElement(
             tag: "details",
             content: .text("Details Content"),
@@ -342,7 +342,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_WithLanguage() throws {
+    @Test func structuredElement_toHTML_WithLanguage() {
         let element = StructuredElement(
             tag: "span",
             content: .text("日本語"),
@@ -365,7 +365,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains(">日本語</span>"))
     }
 
-    @Test func structuredElement_toHTML_WithDataAttributes() throws {
+    @Test func structuredElement_toHTML_WithDataAttributes() {
         let element = StructuredElement(
             tag: "div",
             content: .text("Content"),
@@ -390,7 +390,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("style="))
     }
 
-    @Test func structuredElement_toHTML_SelfClosingTags() throws {
+    @Test func structuredElement_toHTML_SelfClosingTags() {
         let br = StructuredElement(
             tag: "br",
             content: nil,
@@ -436,7 +436,7 @@ struct DictionaryContentMarkupTests {
         #expect(hrHtml.contains("style=\"border-width:"))
     }
 
-    @Test func structuredElement_toHTML_NestedContent() throws {
+    @Test func structuredElement_toHTML_NestedContent() {
         let innerElement = StructuredElement(
             tag: "strong",
             content: .text("Bold"),
@@ -479,7 +479,7 @@ struct DictionaryContentMarkupTests {
         #expect(html == "<p class=\"gloss-sc-p\">This is <strong class=\"gloss-sc-strong\">Bold</strong> text.</p>")
     }
 
-    @Test func structuredElement_toHTML_EscapesHTMLCharacters() throws {
+    @Test func structuredElement_toHTML_EscapesHTMLCharacters() {
         let element = StructuredElement(
             tag: "p",
             content: .text("Text with <special> & \"quoted\" 'characters'"),
@@ -504,7 +504,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("&#39;characters&#39;"))
     }
 
-    @Test func structuredElement_toHTML_EscapesAttributeValues() throws {
+    @Test func structuredElement_toHTML_EscapesAttributeValues() {
         let element = StructuredElement(
             tag: "a",
             content: .text("Link"),
@@ -527,7 +527,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("title=\"Title with &quot;quotes&quot; &amp; &#39;apostrophes&#39;\""))
     }
 
-    @Test func structuredElement_toHTML_ComplexNestedStructure() throws {
+    @Test func structuredElement_toHTML_ComplexNestedStructure() {
         let linkStyle = ContentStyle(color: "#0000FF", textDecorationLine: ["underline"])
         let linkElement = StructuredElement(
             tag: "a",
@@ -581,7 +581,7 @@ struct DictionaryContentMarkupTests {
 
     // MARK: - Enhanced Image Element Tests
 
-    @Test func structuredElement_toHTML_ImageWithPreferredDimensions() throws {
+    @Test func structuredElement_toHTML_ImageWithPreferredDimensions() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -610,7 +610,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("width: 150px")) // Should use preferredWidth
     }
 
-    @Test func structuredElement_toHTML_ImageWithPixelatedRendering() throws {
+    @Test func structuredElement_toHTML_ImageWithPixelatedRendering() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -633,7 +633,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-image-rendering=\"pixelated\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithCustomImageRendering() throws {
+    @Test func structuredElement_toHTML_ImageWithCustomImageRendering() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -656,7 +656,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-image-rendering=\"crisp-edges\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithAppearanceAndBackground() throws {
+    @Test func structuredElement_toHTML_ImageWithAppearanceAndBackground() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -681,7 +681,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-background=\"false\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithCollapsibleState() throws {
+    @Test func structuredElement_toHTML_ImageWithCollapsibleState() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -706,7 +706,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-collapsible=\"false\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithVerticalAlign() throws {
+    @Test func structuredElement_toHTML_ImageWithVerticalAlign() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -729,7 +729,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-vertical-align=\"middle\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithBorderAndRadius() throws {
+    @Test func structuredElement_toHTML_ImageWithBorderAndRadius() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -754,7 +754,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-border-radius=\"5px\""))
     }
 
-    @Test func structuredElement_toHTML_ImageWithEmSizeUnits() throws {
+    @Test func structuredElement_toHTML_ImageWithEmSizeUnits() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -787,7 +787,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("height=\"\(expectedHeight)\""))
     }
 
-    @Test func structuredElement_toHTML_ImageAspectRatioCalculations() throws {
+    @Test func structuredElement_toHTML_ImageAspectRatioCalculations() {
         // Test with only preferredHeight
         let element1 = StructuredElement(
             tag: "img",
@@ -841,7 +841,7 @@ struct DictionaryContentMarkupTests {
         #expect(html2.contains("padding-top: \(formattedPaddingTop2)%"))
     }
 
-    @Test func structuredElement_toHTML_ImageDefaultDataAttributes() throws {
+    @Test func structuredElement_toHTML_ImageDefaultDataAttributes() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -870,7 +870,7 @@ struct DictionaryContentMarkupTests {
         #expect(!html.contains("data-size-units")) // Should not be present when no preferred dimensions
     }
 
-    @Test func structuredElement_toHTML_ImageLinkStructure() throws {
+    @Test func structuredElement_toHTML_ImageLinkStructure() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -931,7 +931,7 @@ struct DictionaryContentMarkupTests {
         return string
     }
 
-    @Test func structuredElement_toHTML_ImageWithNilDimensions() throws {
+    @Test func structuredElement_toHTML_ImageWithNilDimensions() {
         // Test that images without width/height default to 380px (converted to ~27.14em)
         let element = StructuredElement(
             tag: "img",
@@ -967,7 +967,7 @@ struct DictionaryContentMarkupTests {
 
     // MARK: - Anki HTML Generation Tests
 
-    @Test func structuredElement_toAnkiHTML_SimpleElement() throws {
+    @Test func structuredElement_toAnkiHTML_SimpleElement() {
         let element = StructuredElement(
             tag: "p",
             content: .text("Hello World"),
@@ -991,7 +991,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains(">Hello World</p>"))
     }
 
-    @Test func structuredElement_toAnkiHTML_TableWithClasses() throws {
+    @Test func structuredElement_toAnkiHTML_TableWithClasses() {
         let cell = StructuredElement(
             tag: "td",
             content: .text("Cell"),
@@ -1050,7 +1050,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("colspan=\"2\""))
     }
 
-    @Test func structuredElement_toAnkiHTML_LinkWithHref() throws {
+    @Test func structuredElement_toAnkiHTML_LinkWithHref() {
         let element = StructuredElement(
             tag: "a",
             content: .text("Click me"),
@@ -1075,7 +1075,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains(">Click me</a>"))
     }
 
-    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnits() throws {
+    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnits() {
         // Test that em-based images produce em-based CSS dimensions for Anki
         let element = StructuredElement(
             tag: "img",
@@ -1106,7 +1106,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("width: 0.7em"))
     }
 
-    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnitsAndPreferredDimensions() throws {
+    @Test func structuredElement_toAnkiHTML_ImageWithEmSizeUnitsAndPreferredDimensions() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -1132,7 +1132,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("class=\"gloss-image-link\""))
     }
 
-    @Test func structuredElement_toAnkiHTML_ImageWithPixelDimensions() throws {
+    @Test func structuredElement_toAnkiHTML_ImageWithPixelDimensions() {
         // Test that pixel-based images use px units in container
         let element = StructuredElement(
             tag: "img",
@@ -1163,7 +1163,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("height=\"50\""))
     }
 
-    @Test func structuredElement_toAnkiHTML_ImageWithVerticalAlign() throws {
+    @Test func structuredElement_toAnkiHTML_ImageWithVerticalAlign() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -1190,7 +1190,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("width: 0.7em"))
     }
 
-    @Test func structuredElement_toAnkiHTML_ImageYomitanCompatibleStructure() throws {
+    @Test func structuredElement_toAnkiHTML_ImageYomitanCompatibleStructure() {
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -1225,7 +1225,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("data-appearance=\"auto\""))
     }
 
-    @Test func structuredElement_toAnkiHTML_WithStyleClasses() throws {
+    @Test func structuredElement_toAnkiHTML_WithStyleClasses() {
         let style = ContentStyle(
             fontWeight: "bold",
             textAlign: "center"
@@ -1255,7 +1255,7 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("style=\"font-weight: bold; text-align: center\""))
     }
 
-    @Test func structuredElement_toAnkiHTML_ListElements() throws {
+    @Test func structuredElement_toAnkiHTML_ListElements() {
         let li = StructuredElement(
             tag: "li",
             content: .text("Item"),

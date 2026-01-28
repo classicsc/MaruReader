@@ -34,7 +34,7 @@ struct KanjiParsingTests {
             ["人", "ジン ニン", "ひと", "", "person", "human"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([KanjiBankV1Entry].self, from: data)
 
@@ -63,7 +63,7 @@ struct KanjiParsingTests {
             ["漢", "カン ケン", "かん"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: DecodingError.self) {
             _ = try decoder.decode([KanjiBankV1Entry].self, from: data)
@@ -79,7 +79,7 @@ struct KanjiParsingTests {
             ["漢", "カン", "かん", "jlpt-n1", 123]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: DictionaryImportError.invalidData) {
             _ = try decoder.decode([KanjiBankV1Entry].self, from: data)
@@ -97,7 +97,7 @@ struct KanjiParsingTests {
             ["漢", "カン ケン", "かん", "jlpt-n1 joyo", ["Chinese", "Han"], {"frequency": "120", "grade": "6"}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([KanjiBankV3Entry].self, from: data)
         #expect(entries.count == 1)
@@ -120,7 +120,7 @@ struct KanjiParsingTests {
             ["仮", "", "", "", [], {}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([KanjiBankV3Entry].self, from: data)
         #expect(entries.count == 1)
@@ -142,7 +142,7 @@ struct KanjiParsingTests {
             ["漢", "カン", "かん", "jlpt-n1", ["Chinese"], {"frequency": "100"}, "extra"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: DictionaryImportError.invalidData) {
             _ = try decoder.decode([KanjiBankV3Entry].self, from: data)
@@ -158,7 +158,7 @@ struct KanjiParsingTests {
             ["漢", "カン", "かん", "jlpt-n1", ["Chinese"]]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: DecodingError.self) {
             _ = try decoder.decode([KanjiBankV3Entry].self, from: data)

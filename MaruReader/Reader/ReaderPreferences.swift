@@ -33,21 +33,21 @@ final class ReaderPreferences {
 
     weak var navigator: EPUBNavigatorViewController?
 
-    // Update trigger to force SwiftUI to re-render when Core Data values change
+    /// Update trigger to force SwiftUI to re-render when Core Data values change
     private var updateTrigger = 0
 
-    // Current profile for this book
+    /// Current profile for this book
     var profile: ReaderProfile? {
         book.readerProfile
     }
 
-    // Check if the publication is fixed-layout (for conditional UI)
+    /// Check if the publication is fixed-layout (for conditional UI)
     var isFixedLayout: Bool {
         guard let navigator else { return false }
         return navigator.publication.metadata.layout == .fixed
     }
 
-    // Book-specific preferences
+    /// Book-specific preferences
     var scroll: Bool {
         get {
             // Return actual value if set, otherwise return false (will be inferred by navigator)
@@ -93,7 +93,7 @@ final class ReaderPreferences {
         }
     }
 
-    // Profile-based preferences
+    /// Profile-based preferences
     var fontSize: Double {
         get {
             _ = updateTrigger
@@ -255,19 +255,19 @@ final class ReaderPreferences {
         book.value(forKey: "spread") == nil
     }
 
-    // Light theme (observable)
+    /// Light theme (observable)
     var lightTheme: ReaderTheme? {
         _ = updateTrigger
         return profile?.theme
     }
 
-    // Dark theme (observable)
+    /// Dark theme (observable)
     var darkTheme: ReaderTheme? {
         _ = updateTrigger
         return profile?.darkTheme
     }
 
-    // Current theme (respects system dark mode if profile has both themes)
+    /// Current theme (respects system dark mode if profile has both themes)
     var currentTheme: ReaderTheme? {
         _ = updateTrigger
         guard let profile else { return nil }
@@ -414,7 +414,7 @@ final class ReaderPreferences {
         }
     }
 
-    // Helper to get all available profiles
+    /// Helper to get all available profiles
     func fetchAllProfiles() -> [ReaderProfile] {
         let request = ReaderProfile.fetchRequest()
         request.sortDescriptors = [
@@ -426,7 +426,7 @@ final class ReaderPreferences {
         return (try? context.fetch(request)) ?? []
     }
 
-    // Helper to get all themes
+    /// Helper to get all themes
     func fetchAllThemes() -> [ReaderTheme] {
         let request = ReaderTheme.fetchRequest()
         request.sortDescriptors = [

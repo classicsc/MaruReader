@@ -60,7 +60,9 @@ struct FieldMappingEditorView: View {
         case frequencyOccurrenceSort
     }
 
-    private var isEditing: Bool { editingProfile != nil }
+    private var isEditing: Bool {
+        editingProfile != nil
+    }
 
     var body: some View {
         Form {
@@ -237,7 +239,6 @@ struct FieldMappingEditorView: View {
             fieldMappings.allSatisfy { !$0.fieldName.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
-    @ViewBuilder
     private func fieldMappingRow(at index: Int) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             TextField("Field Name", text: Binding(
@@ -264,7 +265,6 @@ struct FieldMappingEditorView: View {
         .padding(.vertical, 4)
     }
 
-    @ViewBuilder
     private func templateValueTag(_ value: TemplateValue, at index: Int) -> some View {
         HStack(spacing: 4) {
             Text(displayNameForValue(value))

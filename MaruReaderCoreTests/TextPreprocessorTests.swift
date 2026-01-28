@@ -24,7 +24,7 @@ import Testing
 struct TextPreprocessorTests {
     // MARK: - NormalizeCombiningCharactersRule Tests
 
-    @Test func normalizeCombiningCharacters_DakutenHiragana_NormalizesCorrectly() throws {
+    @Test func normalizeCombiningCharacters_DakutenHiragana_NormalizesCorrectly() {
         // Purpose: Test dakuten (voiced sound mark) normalization for hiragana
         // Input: Combining dakuten sequences
         // Expected: Properly combined characters
@@ -59,7 +59,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_DakutenKatakana_NormalizesCorrectly() throws {
+    @Test func normalizeCombiningCharacters_DakutenKatakana_NormalizesCorrectly() {
         // Purpose: Test dakuten (voiced sound mark) normalization for katakana
         // Input: Combining dakuten sequences
         // Expected: Properly combined characters
@@ -94,7 +94,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_HandakutenHiragana_NormalizesCorrectly() throws {
+    @Test func normalizeCombiningCharacters_HandakutenHiragana_NormalizesCorrectly() {
         // Purpose: Test handakuten (semi-voiced sound mark) normalization for hiragana
         // Input: Combining handakuten sequences
         // Expected: Properly combined characters
@@ -114,7 +114,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_HandakutenKatakana_NormalizesCorrectly() throws {
+    @Test func normalizeCombiningCharacters_HandakutenKatakana_NormalizesCorrectly() {
         // Purpose: Test handakuten (semi-voiced sound mark) normalization for katakana
         // Input: Combining handakuten sequences
         // Expected: Properly combined characters
@@ -134,7 +134,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_InvalidCombinations_IgnoresMarks() throws {
+    @Test func normalizeCombiningCharacters_InvalidCombinations_IgnoresMarks() {
         // Purpose: Test that invalid dakuten/handakuten combinations are ignored
         // Input: Characters that cannot take diacritics + combining marks
         // Expected: Combining marks remain unchanged
@@ -156,7 +156,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_LeadingCombiningMarks_IgnoresMarks() throws {
+    @Test func normalizeCombiningCharacters_LeadingCombiningMarks_IgnoresMarks() {
         // Purpose: Test that leading combining marks (first character) are ignored
         // Input: Combining marks at start of string
         // Expected: Marks remain unchanged
@@ -173,7 +173,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_ComplexSequence_NormalizesCorrectly() throws {
+    @Test func normalizeCombiningCharacters_ComplexSequence_NormalizesCorrectly() {
         // Purpose: Test complex sequences from Yomitan tests
         // Input: Complex text with multiple combining characters
         // Expected: All valid combinations normalized
@@ -190,7 +190,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCombiningCharacters_EmptyString_ReturnsEmpty() throws {
+    @Test func normalizeCombiningCharacters_EmptyString_ReturnsEmpty() {
         // Purpose: Test empty string handling
         // Input: Empty string ""
         // Expected: Empty string ""
@@ -202,7 +202,7 @@ struct TextPreprocessorTests {
         #expect(result == "")
     }
 
-    @Test func normalizeCombiningCharacters_SingleCharacter_NoChange() throws {
+    @Test func normalizeCombiningCharacters_SingleCharacter_NoChange() {
         // Purpose: Test single character input handling
         // Input: Single character without combining marks
         // Expected: Same character
@@ -214,7 +214,7 @@ struct TextPreprocessorTests {
         #expect(result == "あ")
     }
 
-    @Test func normalizeCombiningCharacters_OnlyCombiningMark_NoChange() throws {
+    @Test func normalizeCombiningCharacters_OnlyCombiningMark_NoChange() {
         // Purpose: Test input with only combining mark
         // Input: Single combining mark
         // Expected: Same mark (no character to combine with)
@@ -226,7 +226,7 @@ struct TextPreprocessorTests {
         #expect(result == "\u{3099}")
     }
 
-    @Test func normalizeCombiningCharacters_MixedText_NormalizesOnlyValid() throws {
+    @Test func normalizeCombiningCharacters_MixedText_NormalizesOnlyValid() {
         // Purpose: Test mixed text with valid and invalid combinations
         // Input: Text containing both valid and invalid combinations
         // Expected: Only valid combinations normalized
@@ -238,7 +238,7 @@ struct TextPreprocessorTests {
         #expect(result == "がな\u{3099}ぱ") // ga + na with dakuten + pa
     }
 
-    @Test func normalizeCombiningCharactersRule_HasCorrectMetadata() throws {
+    @Test func normalizeCombiningCharactersRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = NormalizeCombiningCharactersRule()
@@ -251,7 +251,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertHalfWidthCharactersRule Tests
 
-    @Test func convertHalfWidthCharacters_BasicKatakana_ConvertsToFullWidth() throws {
+    @Test func convertHalfWidthCharacters_BasicKatakana_ConvertsToFullWidth() {
         // Purpose: Test basic half-width katakana conversion
         // Input: Half-width katakana string "ﾖﾐﾁｬﾝ"
         // Expected: Full-width katakana "ヨミチャン"
@@ -263,7 +263,7 @@ struct TextPreprocessorTests {
         #expect(result == "ヨミチャン")
     }
 
-    @Test func convertHalfWidthCharacters_WithDakuten_ConvertsCorrectly() throws {
+    @Test func convertHalfWidthCharacters_WithDakuten_ConvertsCorrectly() {
         // Purpose: Test conversion with dakuten (voiced sound marks)
         // Input: Half-width katakana with dakuten "ｶﾞ" (ka + dakuten = ga)
         // Expected: Full-width "ガ"
@@ -275,7 +275,7 @@ struct TextPreprocessorTests {
         #expect(result == "ガ")
     }
 
-    @Test func convertHalfWidthCharacters_WithHandakuten_ConvertsCorrectly() throws {
+    @Test func convertHalfWidthCharacters_WithHandakuten_ConvertsCorrectly() {
         // Purpose: Test conversion with handakuten (semi-voiced sound marks)
         // Input: Half-width katakana with handakuten "ﾊﾟ" (ha + handakuten = pa)
         // Expected: Full-width "パ"
@@ -287,7 +287,7 @@ struct TextPreprocessorTests {
         #expect(result == "パ")
     }
 
-    @Test func convertHalfWidthCharacters_InvalidDakuten_UsesBaseForm() throws {
+    @Test func convertHalfWidthCharacters_InvalidDakuten_UsesBaseForm() {
         // Purpose: Test handling of invalid dakuten combinations
         // Input: Character that can't take dakuten + dakuten mark "ｱﾞ" (a + dakuten = invalid)
         // Expected: Falls back to base form "ア" (dakuten ignored)
@@ -299,7 +299,7 @@ struct TextPreprocessorTests {
         #expect(result == "ア")
     }
 
-    @Test func convertHalfWidthCharacters_MixedText_ConvertsOnlyHalfWidth() throws {
+    @Test func convertHalfWidthCharacters_MixedText_ConvertsOnlyHalfWidth() {
         // Purpose: Test mixed text with half-width and full-width characters
         // Input: Mixed text "abcﾖﾐﾁｬﾝ123"
         // Expected: Only half-width katakana converted "abcヨミチャン123"
@@ -311,7 +311,7 @@ struct TextPreprocessorTests {
         #expect(result == "abcヨミチャン123")
     }
 
-    @Test func convertHalfWidthCharacters_AlreadyFullWidth_NoChange() throws {
+    @Test func convertHalfWidthCharacters_AlreadyFullWidth_NoChange() {
         // Purpose: Test that already full-width characters are unchanged
         // Input: Full-width katakana "ヨミチャン"
         // Expected: Same string "ヨミチャン"
@@ -323,7 +323,7 @@ struct TextPreprocessorTests {
         #expect(result == "ヨミチャン")
     }
 
-    @Test func convertHalfWidthCharacters_EmptyString_ReturnsEmpty() throws {
+    @Test func convertHalfWidthCharacters_EmptyString_ReturnsEmpty() {
         // Purpose: Test empty string handling
         // Input: Empty string ""
         // Expected: Empty string ""
@@ -335,7 +335,7 @@ struct TextPreprocessorTests {
         #expect(result == "")
     }
 
-    @Test func convertHalfWidthCharacters_ComplexExample_ConvertsAllComponents() throws {
+    @Test func convertHalfWidthCharacters_ComplexExample_ConvertsAllComponents() {
         // Purpose: Test complex real-world example with multiple components
         // Input: Complex half-width text "ｺﾝﾋﾟｭｰﾀｰ･ﾌﾟﾛｸﾞﾗﾑ" (computer program)
         // Expected: Full-width conversion "コンピューター・プログラム"
@@ -349,7 +349,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertKatakanaToHiraganaRule Tests
 
-    @Test func convertKatakanaToHiragana_BasicKatakana_ConvertsToHiragana() throws {
+    @Test func convertKatakanaToHiragana_BasicKatakana_ConvertsToHiragana() {
         // Purpose: Test basic katakana to hiragana conversion
         // Input: Katakana string "カタカナ"
         // Expected: Hiragana "かたかな"
@@ -361,7 +361,7 @@ struct TextPreprocessorTests {
         #expect(result == "かたかな")
     }
 
-    @Test func convertKatakanaToHiragana_WithProlongedSoundMark_ConvertsToVowel() throws {
+    @Test func convertKatakanaToHiragana_WithProlongedSoundMark_ConvertsToVowel() {
         // Purpose: Test prolonged sound mark conversion to appropriate vowel
         // Input: Katakana with prolonged sound "コーヒー"
         // Expected: Hiragana with vowels "こうひい"
@@ -373,7 +373,7 @@ struct TextPreprocessorTests {
         #expect(result == "こうひい")
     }
 
-    @Test func convertKatakanaToHiragana_SmallKaKe_NoChange() throws {
+    @Test func convertKatakanaToHiragana_SmallKaKe_NoChange() {
         // Purpose: Test that small ka/ke characters remain unchanged
         // Input: Katakana with small ka/ke "ヵヶ"
         // Expected: Same characters "ヵヶ" (no conversion)
@@ -385,7 +385,7 @@ struct TextPreprocessorTests {
         #expect(result == "ヵヶ")
     }
 
-    @Test func convertKatakanaToHiragana_MixedText_ConvertsOnlyKatakana() throws {
+    @Test func convertKatakanaToHiragana_MixedText_ConvertsOnlyKatakana() {
         // Purpose: Test mixed text with katakana, hiragana, and other characters
         // Input: Mixed text "あいうエオＡＢＣ"
         // Expected: Only katakana converted "あいうえおＡＢＣ"
@@ -397,7 +397,7 @@ struct TextPreprocessorTests {
         #expect(result == "あいうえおＡＢＣ")
     }
 
-    @Test func convertKatakanaToHiragana_AlreadyHiragana_NoChange() throws {
+    @Test func convertKatakanaToHiragana_AlreadyHiragana_NoChange() {
         // Purpose: Test that already hiragana characters are unchanged
         // Input: Hiragana "ひらがな"
         // Expected: Same string "ひらがな"
@@ -409,7 +409,7 @@ struct TextPreprocessorTests {
         #expect(result == "ひらがな")
     }
 
-    @Test func convertKatakanaToHiragana_ComplexExample_ConvertsCorrectly() throws {
+    @Test func convertKatakanaToHiragana_ComplexExample_ConvertsCorrectly() {
         // Purpose: Test complex example with various katakana
         // Input: Complex katakana "コンピューター" (computer)
         // Expected: Hiragana "こんぴゅうたあ" (ュー becomes ゅう)
@@ -421,7 +421,7 @@ struct TextPreprocessorTests {
         #expect(result == "こんぴゅうたあ")
     }
 
-    @Test func convertKatakanaToHiragana_KeepProlongedSoundMarks_PreservesMarks() throws {
+    @Test func convertKatakanaToHiragana_KeepProlongedSoundMarks_PreservesMarks() {
         // Purpose: Test that prolonged sound marks are preserved when option is set
         // Input: Katakana with prolonged sound "コーヒー" with keepProlongedSoundMarks: true
         // Expected: Hiragana with marks preserved "こーひー"
@@ -435,7 +435,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertHiraganaToKatakanaRule Tests
 
-    @Test func convertHiraganaToKatakana_BasicHiragana_ConvertsToKatakana() throws {
+    @Test func convertHiraganaToKatakana_BasicHiragana_ConvertsToKatakana() {
         // Purpose: Test basic hiragana to katakana conversion
         // Input: Hiragana string "ひらがな"
         // Expected: Katakana "ヒラガナ"
@@ -447,7 +447,7 @@ struct TextPreprocessorTests {
         #expect(result == "ヒラガナ")
     }
 
-    @Test func convertHiraganaToKatakana_MixedText_ConvertsOnlyHiragana() throws {
+    @Test func convertHiraganaToKatakana_MixedText_ConvertsOnlyHiragana() {
         // Purpose: Test mixed text with hiragana, katakana, and other characters
         // Input: Mixed text "あいうエオＡＢＣ"
         // Expected: Only hiragana converted "アイウエオＡＢＣ"
@@ -459,7 +459,7 @@ struct TextPreprocessorTests {
         #expect(result == "アイウエオＡＢＣ")
     }
 
-    @Test func convertHiraganaToKatakana_AlreadyKatakana_NoChange() throws {
+    @Test func convertHiraganaToKatakana_AlreadyKatakana_NoChange() {
         // Purpose: Test that already katakana characters are unchanged
         // Input: Katakana "カタカナ"
         // Expected: Same string "カタカナ"
@@ -471,7 +471,7 @@ struct TextPreprocessorTests {
         #expect(result == "カタカナ")
     }
 
-    @Test func convertHiraganaToKatakana_WithDakutenAndHandakuten_ConvertsCorrectly() throws {
+    @Test func convertHiraganaToKatakana_WithDakutenAndHandakuten_ConvertsCorrectly() {
         // Purpose: Test conversion of hiragana with dakuten/handakuten marks
         // Input: Hiragana with marks "がぎぐげごばびぶべぼぱぴぷぺぽ"
         // Expected: Katakana with marks "ガギグゲゴバビブベボパピプペポ"
@@ -483,7 +483,7 @@ struct TextPreprocessorTests {
         #expect(result == "ガギグゲゴバビブベボパピプペポ")
     }
 
-    @Test func convertHiraganaToKatakana_ComplexExample_ConvertsCorrectly() throws {
+    @Test func convertHiraganaToKatakana_ComplexExample_ConvertsCorrectly() {
         // Purpose: Test complex example with various hiragana
         // Input: Complex hiragana "こんにちは" (hello)
         // Expected: Katakana "コンニチハ"
@@ -497,7 +497,7 @@ struct TextPreprocessorTests {
 
     // MARK: - CollapseEmphaticSequencesRule Tests
 
-    @Test func collapseEmphaticSequences_NoEmphaticCharacters_NoChange() throws {
+    @Test func collapseEmphaticSequences_NoEmphaticCharacters_NoChange() {
         // Purpose: Test basic text with no emphatic characters
         // Input: Text without emphatic sequences "かこい"
         // Expected: No change regardless of fullCollapse setting
@@ -512,7 +512,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "かこい")
     }
 
-    @Test func collapseEmphaticSequences_SingleSmallTsu_NoChange() throws {
+    @Test func collapseEmphaticSequences_SingleSmallTsu_NoChange() {
         // Purpose: Test single small tsu characters
         // Input: Text with single small tsu "かっこい"
         // Expected: No change in normal mode, collapse in full mode
@@ -527,7 +527,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "かこい")
     }
 
-    @Test func collapseEmphaticSequences_DoubleSmallTsu_CollapseToSingle() throws {
+    @Test func collapseEmphaticSequences_DoubleSmallTsu_CollapseToSingle() {
         // Purpose: Test double small tsu collapse
         // Input: Text with double small tsu "かっっこい"
         // Expected: Collapse to single in normal mode, full collapse in full mode
@@ -542,7 +542,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "かこい")
     }
 
-    @Test func collapseEmphaticSequences_TripleSmallTsu_CollapseToSingle() throws {
+    @Test func collapseEmphaticSequences_TripleSmallTsu_CollapseToSingle() {
         // Purpose: Test triple small tsu collapse
         // Input: Text with triple small tsu "かっっっこい"
         // Expected: Collapse to single in normal mode, full collapse in full mode
@@ -557,7 +557,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "かこい")
     }
 
-    @Test func collapseEmphaticSequences_ProlongedSoundMark_NoChange() throws {
+    @Test func collapseEmphaticSequences_ProlongedSoundMark_NoChange() {
         // Purpose: Test single prolonged sound mark
         // Input: Text with single prolonged sound mark "すごい"
         // Expected: No change in normal mode, no change in full mode
@@ -572,7 +572,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "すごい")
     }
 
-    @Test func collapseEmphaticSequences_SingleProlongedSoundMark_NoChange() throws {
+    @Test func collapseEmphaticSequences_SingleProlongedSoundMark_NoChange() {
         // Purpose: Test single prolonged sound mark
         // Input: Text with single prolonged sound mark "すごーい"
         // Expected: No change in normal mode, collapse in full mode
@@ -587,7 +587,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "すごい")
     }
 
-    @Test func collapseEmphaticSequences_DoubleProlongedSoundMark_CollapseToSingle() throws {
+    @Test func collapseEmphaticSequences_DoubleProlongedSoundMark_CollapseToSingle() {
         // Purpose: Test double prolonged sound mark collapse
         // Input: Text with double prolonged sound mark "すごーーい"
         // Expected: Collapse to single in normal mode, full collapse in full mode
@@ -602,7 +602,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "すごい")
     }
 
-    @Test func collapseEmphaticSequences_MixedEmphaticSequences_CollapseCorrectly() throws {
+    @Test func collapseEmphaticSequences_MixedEmphaticSequences_CollapseCorrectly() {
         // Purpose: Test mixed emphatic sequences
         // Input: Text with mixed sequences "すっごーい"
         // Expected: Collapse each type appropriately
@@ -617,7 +617,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "すごい")
     }
 
-    @Test func collapseEmphaticSequences_ComplexMixedSequences_CollapseCorrectly() throws {
+    @Test func collapseEmphaticSequences_ComplexMixedSequences_CollapseCorrectly() {
         // Purpose: Test complex mixed emphatic sequences
         // Input: Complex text "すっっごーーい"
         // Expected: Collapse each sequence type appropriately
@@ -632,7 +632,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "すごい")
     }
 
-    @Test func collapseEmphaticSequences_LeadingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_LeadingEmphatic_HandlesCorrectly() {
         // Purpose: Test leading emphatic characters
         // Input: Text starting with emphatic "っこい"
         // Expected: Handle leading emphatics appropriately
@@ -647,7 +647,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っこい")
     }
 
-    @Test func collapseEmphaticSequences_MultipleLeadingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_MultipleLeadingEmphatic_HandlesCorrectly() {
         // Purpose: Test multiple leading emphatic characters
         // Input: Text with multiple leading emphatic "っっこい"
         // Expected: Handle multiple leading emphatics appropriately
@@ -662,7 +662,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっこい")
     }
 
-    @Test func collapseEmphaticSequences_TripleLeadingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_TripleLeadingEmphatic_HandlesCorrectly() {
         // Purpose: Test triple leading emphatic characters
         // Input: Text with triple leading emphatic "っっっこい"
         // Expected: Handle triple leading emphatics appropriately
@@ -677,7 +677,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっっこい")
     }
 
-    @Test func collapseEmphaticSequences_TrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_TrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test trailing emphatic characters
         // Input: Text ending with emphatic "こいっ"
         // Expected: Handle trailing emphatics appropriately
@@ -692,7 +692,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "こいっ")
     }
 
-    @Test func collapseEmphaticSequences_MultipleTrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_MultipleTrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test multiple trailing emphatic characters
         // Input: Text with multiple trailing emphatic "こいっっ"
         // Expected: Handle multiple trailing emphatics appropriately
@@ -707,7 +707,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "こいっっ")
     }
 
-    @Test func collapseEmphaticSequences_TripleTrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_TripleTrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test triple trailing emphatic characters
         // Input: Text with triple trailing emphatic "こいっっっ"
         // Expected: Handle triple trailing emphatics appropriately
@@ -722,7 +722,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "こいっっっ")
     }
 
-    @Test func collapseEmphaticSequences_LeadingAndTrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_LeadingAndTrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test both leading and trailing emphatic characters
         // Input: Text with both leading and trailing emphatic "っこいっ"
         // Expected: Handle both leading and trailing emphatics appropriately
@@ -737,7 +737,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っこいっ")
     }
 
-    @Test func collapseEmphaticSequences_MultipleLeadingAndTrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_MultipleLeadingAndTrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test multiple leading and trailing emphatic characters
         // Input: Text with multiple leading and trailing emphatic "っっこいっっ"
         // Expected: Handle multiple leading and trailing emphatics appropriately
@@ -752,7 +752,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっこいっっ")
     }
 
-    @Test func collapseEmphaticSequences_TripleLeadingAndTrailingEmphatic_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_TripleLeadingAndTrailingEmphatic_HandlesCorrectly() {
         // Purpose: Test triple leading and trailing emphatic characters
         // Input: Text with triple leading and trailing emphatic "っっっこいっっっ"
         // Expected: Handle triple leading and trailing emphatics appropriately
@@ -767,7 +767,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっっこいっっっ")
     }
 
-    @Test func collapseEmphaticSequences_EmptyString_ReturnsEmpty() throws {
+    @Test func collapseEmphaticSequences_EmptyString_ReturnsEmpty() {
         // Purpose: Test empty string handling
         // Input: Empty string ""
         // Expected: Empty string ""
@@ -782,7 +782,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "")
     }
 
-    @Test func collapseEmphaticSequences_OnlySmallTsu_NoChange() throws {
+    @Test func collapseEmphaticSequences_OnlySmallTsu_NoChange() {
         // Purpose: Test string with only small tsu
         // Input: Only small tsu "っ"
         // Expected: No change
@@ -797,7 +797,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っ")
     }
 
-    @Test func collapseEmphaticSequences_OnlyDoubleSmallTsu_NoChange() throws {
+    @Test func collapseEmphaticSequences_OnlyDoubleSmallTsu_NoChange() {
         // Purpose: Test string with only double small tsu
         // Input: Only double small tsu "っっ"
         // Expected: No change
@@ -812,7 +812,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっ")
     }
 
-    @Test func collapseEmphaticSequences_OnlyTripleSmallTsu_NoChange() throws {
+    @Test func collapseEmphaticSequences_OnlyTripleSmallTsu_NoChange() {
         // Purpose: Test string with only triple small tsu
         // Input: Only triple small tsu "っっっ"
         // Expected: No change
@@ -827,7 +827,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっっ")
     }
 
-    @Test func collapseEmphaticSequences_ComplexMixedKatakanaHiragana_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_ComplexMixedKatakanaHiragana_HandlesCorrectly() {
         // Purpose: Test complex mixed katakana/hiragana with emphatic sequences
         // Input: Complex text "っーッかっこいいっーッ"
         // Expected: Handle mixed emphatic types correctly
@@ -842,7 +842,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っーッかこいいっーッ")
     }
 
-    @Test func collapseEmphaticSequences_VeryComplexMixed_HandlesCorrectly() throws {
+    @Test func collapseEmphaticSequences_VeryComplexMixed_HandlesCorrectly() {
         // Purpose: Test very complex mixed emphatic sequences
         // Input: Very complex text "っっーーッッかっこいいっっーーッッ"
         // Expected: Handle very complex mixed emphatic types correctly
@@ -857,7 +857,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっーーッッかこいいっっーーッッ")
     }
 
-    @Test func collapseEmphaticSequences_OnlyMixedEmphatic_NoChange() throws {
+    @Test func collapseEmphaticSequences_OnlyMixedEmphatic_NoChange() {
         // Purpose: Test string with only mixed emphatic characters
         // Input: Only mixed emphatic "っーッ"
         // Expected: No change
@@ -872,7 +872,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っーッ")
     }
 
-    @Test func collapseEmphaticSequences_OnlyComplexMixedEmphatic_NoChange() throws {
+    @Test func collapseEmphaticSequences_OnlyComplexMixedEmphatic_NoChange() {
         // Purpose: Test string with only complex mixed emphatic characters
         // Input: Only complex mixed emphatic "っっーーッッ"
         // Expected: No change
@@ -887,7 +887,7 @@ struct TextPreprocessorTests {
         #expect(resultFull == "っっーーッッ")
     }
 
-    @Test func collapseEmphaticSequencesRule_HasCorrectMetadata() throws {
+    @Test func collapseEmphaticSequencesRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = CollapseEmphaticSequencesRule()
@@ -900,7 +900,7 @@ struct TextPreprocessorTests {
 
     // MARK: - Conversion Rule Properties Tests
 
-    @Test func convertKatakanaToHiraganaRule_HasCorrectMetadata() throws {
+    @Test func convertKatakanaToHiraganaRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = ConvertKatakanaToHiraganaRule()
@@ -911,7 +911,7 @@ struct TextPreprocessorTests {
         #expect(rule.description.contains("カタカナ → かたかな"))
     }
 
-    @Test func convertHiraganaToKatakanaRule_HasCorrectMetadata() throws {
+    @Test func convertHiraganaToKatakanaRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = ConvertHiraganaToKatakanaRule()
@@ -924,7 +924,7 @@ struct TextPreprocessorTests {
 
     // MARK: - JapaneseTextPreprocessor Tests
 
-    @Test func generateVariants_SingleRule_ReturnsOriginalAndProcessed() throws {
+    @Test func generateVariants_SingleRule_ReturnsOriginalAndProcessed() {
         // Purpose: Test variant generation with a single preprocessor rule
         // Input: Half-width text with one rule
         // Expected: Array containing original and converted text
@@ -939,7 +939,7 @@ struct TextPreprocessorTests {
         #expect(variants.variants.contains("ヨミチャン")) // Converted
     }
 
-    @Test func generateVariants_NoChangingRules_ReturnsOnlyOriginal() throws {
+    @Test func generateVariants_NoChangingRules_ReturnsOnlyOriginal() {
         // Purpose: Test variant generation when rules don't change the input
         // Input: Full-width text with half-width conversion rule
         // Expected: Only original text (rule produces no change)
@@ -953,7 +953,7 @@ struct TextPreprocessorTests {
         #expect(variants.variants.contains("ヨミチャン"))
     }
 
-    @Test func generateVariants_EmptyRulesArray_ReturnsOnlyOriginal() throws {
+    @Test func generateVariants_EmptyRulesArray_ReturnsOnlyOriginal() {
         // Purpose: Test variant generation with no rules
         // Input: Any text with empty rules array
         // Expected: Only original text
@@ -966,7 +966,7 @@ struct TextPreprocessorTests {
         #expect(variants.variants.contains("test"))
     }
 
-    @Test func generateVariants_MaxVariantsLimit_RespectsLimit() throws {
+    @Test func generateVariants_MaxVariantsLimit_RespectsLimit() {
         // Purpose: Test that variant generation respects the maxVariants limit
         // Input: Text and rules that could generate many variants, with low limit
         // Expected: Variants array doesn't exceed maxVariants
@@ -982,7 +982,7 @@ struct TextPreprocessorTests {
 
     // MARK: - Caching Tests
 
-    @Test func generateVariants_SameInputAndRules_UsesCachedResult() throws {
+    @Test func generateVariants_SameInputAndRules_UsesCachedResult() {
         // Purpose: Test that identical inputs use cached results
         // Input: Same text and rules called twice
         // Expected: Same results both times (verifies caching works)
@@ -997,7 +997,7 @@ struct TextPreprocessorTests {
         #expect(Set(variants1.variants) == Set(variants2.variants))
     }
 
-    @Test func generateVariants_DifferentRules_ReturnsDifferentResults() throws {
+    @Test func generateVariants_DifferentRules_ReturnsDifferentResults() {
         // Purpose: Test that different rule sets produce different cache entries
         // Input: Same text with different rule combinations
         // Expected: Different results for different rule sets
@@ -1016,7 +1016,7 @@ struct TextPreprocessorTests {
     // Note: These tests simulate what would happen with multiple rules
     // Once more preprocessor rules are implemented, these can be updated
 
-    @Test func generateVariants_MultipleIdenticalRules_NoDuplication() throws {
+    @Test func generateVariants_MultipleIdenticalRules_NoDuplication() {
         // Purpose: Test that identical rules don't create duplicate variants
         // Input: Same rule applied multiple times
         // Expected: No duplicate variants in result
@@ -1033,7 +1033,7 @@ struct TextPreprocessorTests {
 
     // MARK: - Rule Properties Tests
 
-    @Test func convertHalfWidthCharactersRule_HasCorrectMetadata() throws {
+    @Test func convertHalfWidthCharactersRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = ConvertHalfWidthCharactersRule()
@@ -1046,7 +1046,7 @@ struct TextPreprocessorTests {
 
     // MARK: - NormalizeCJKCompatibilityCharactersRule Tests
 
-    @Test func normalizeCJKCompatibilityCharacters_BasicCompatibilityCharacters_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_BasicCompatibilityCharacters_NormalizesCorrectly() {
         // Purpose: Test basic CJK compatibility character normalization
         // Input: Common compatibility characters from the JavaScript test cases
         // Expected: Proper NFKD normalization matching Yomitan behavior
@@ -1077,7 +1077,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_UnitsAndMeasures_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_UnitsAndMeasures_NormalizesCorrectly() {
         // Purpose: Test CJK compatibility characters for units and measures
         // Input: Various unit and measurement compatibility characters
         // Expected: Proper NFKD normalization
@@ -1108,7 +1108,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_CurrencyAndFinance_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_CurrencyAndFinance_NormalizesCorrectly() {
         // Purpose: Test CJK compatibility characters for currency and finance
         // Input: Currency and financial compatibility characters
         // Expected: Proper NFKD normalization
@@ -1139,7 +1139,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_MoreUnitsAndMeasures_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_MoreUnitsAndMeasures_NormalizesCorrectly() {
         // Purpose: Test more CJK compatibility characters for units and measures
         // Input: Additional unit and measurement compatibility characters
         // Expected: Proper NFKD normalization
@@ -1170,7 +1170,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_FinalUnitsAndCurrencies_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_FinalUnitsAndCurrencies_NormalizesCorrectly() {
         // Purpose: Test final set of CJK compatibility characters
         // Input: Remaining unit, currency, and measurement compatibility characters
         // Expected: Proper NFKD normalization
@@ -1200,7 +1200,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_ScoresAndPoints_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_ScoresAndPoints_NormalizesCorrectly() {
         // Purpose: Test CJK compatibility characters for scores and points
         // Input: Score and point compatibility characters from Yomitan tests
         // Expected: Proper NFKD normalization
@@ -1231,7 +1231,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_MoreScoresAndEras_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_MoreScoresAndEras_NormalizesCorrectly() {
         // Purpose: Test more CJK compatibility characters for scores and Japanese eras
         // Input: More score characters and Japanese era names
         // Expected: Proper NFKD normalization
@@ -1260,7 +1260,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_DaysOfMonth_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_DaysOfMonth_NormalizesCorrectly() {
         // Purpose: Test CJK compatibility characters for days of the month
         // Input: Day compatibility characters from Yomitan tests
         // Expected: Proper NFKD normalization
@@ -1291,7 +1291,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_RemainingDaysOfMonth_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_RemainingDaysOfMonth_NormalizesCorrectly() {
         // Purpose: Test remaining CJK compatibility characters for days of the month
         // Input: Remaining day compatibility characters from Yomitan tests
         // Expected: Proper NFKD normalization
@@ -1321,7 +1321,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_NonCompatibilityCharacters_NoChange() throws {
+    @Test func normalizeCJKCompatibilityCharacters_NonCompatibilityCharacters_NoChange() {
         // Purpose: Test that non-CJK compatibility characters remain unchanged
         // Input: Various non-compatibility characters including regular CJK
         // Expected: No change to characters outside the CJK compatibility range
@@ -1347,7 +1347,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_MixedText_NormalizesOnlyCompatibility() throws {
+    @Test func normalizeCJKCompatibilityCharacters_MixedText_NormalizesOnlyCompatibility() {
         // Purpose: Test mixed text with both compatibility and non-compatibility characters
         // Input: Mixed text containing various character types
         // Expected: Only CJK compatibility characters normalized
@@ -1367,7 +1367,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_EmptyString_ReturnsEmpty() throws {
+    @Test func normalizeCJKCompatibilityCharacters_EmptyString_ReturnsEmpty() {
         // Purpose: Test empty string handling
         // Input: Empty string ""
         // Expected: Empty string ""
@@ -1379,7 +1379,7 @@ struct TextPreprocessorTests {
         #expect(result == "")
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_SingleCompatibilityCharacter_NormalizesCorrectly() throws {
+    @Test func normalizeCJKCompatibilityCharacters_SingleCompatibilityCharacter_NormalizesCorrectly() {
         // Purpose: Test single compatibility character processing
         // Input: Single CJK compatibility character
         // Expected: Properly normalized single result
@@ -1397,7 +1397,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharacters_MultipleCompatibilityCharacters_NormalizesAll() throws {
+    @Test func normalizeCJKCompatibilityCharacters_MultipleCompatibilityCharacters_NormalizesAll() {
         // Purpose: Test multiple CJK compatibility characters in sequence
         // Input: Multiple CJK compatibility characters together
         // Expected: All characters properly normalized
@@ -1415,7 +1415,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func normalizeCJKCompatibilityCharactersRule_HasCorrectMetadata() throws {
+    @Test func normalizeCJKCompatibilityCharactersRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = NormalizeCJKCompatibilityCharactersRule()
@@ -1428,7 +1428,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertKanjiVariantsRule Tests
 
-    @Test func convertKanjiVariants_CommonVariants_ConvertsToStandardForms() throws {
+    @Test func convertKanjiVariants_CommonVariants_ConvertsToStandardForms() {
         // Purpose: Test conversion of common kanji variants to standard forms
         // Input: Common variant kanji from the itaiji data
         // Expected: Proper conversion to standard oyaji forms
@@ -1449,7 +1449,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_MixedText_ConvertsOnlyVariants() throws {
+    @Test func convertKanjiVariants_MixedText_ConvertsOnlyVariants() {
         // Purpose: Test mixed text with both variant and standard kanji
         // Input: Mixed text containing various character types
         // Expected: Only kanji variants converted, others unchanged
@@ -1469,7 +1469,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_NoVariants_NoChange() throws {
+    @Test func convertKanjiVariants_NoVariants_NoChange() {
         // Purpose: Test text with no kanji variants
         // Input: Standard kanji and other characters
         // Expected: No changes made
@@ -1490,7 +1490,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_MultipleVariantsInSequence_ConvertsAll() throws {
+    @Test func convertKanjiVariants_MultipleVariantsInSequence_ConvertsAll() {
         // Purpose: Test multiple variant kanji in sequence
         // Input: Multiple variant kanji together
         // Expected: All variants converted to standard forms
@@ -1508,7 +1508,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_SingleVariant_ConvertsCorrectly() throws {
+    @Test func convertKanjiVariants_SingleVariant_ConvertsCorrectly() {
         // Purpose: Test single variant kanji processing
         // Input: Single kanji variant character
         // Expected: Properly converted single result
@@ -1527,7 +1527,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_ComplexText_ConvertsAppropriately() throws {
+    @Test func convertKanjiVariants_ComplexText_ConvertsAppropriately() {
         // Purpose: Test complex realistic text with variants
         // Input: Natural Japanese text containing kanji variants
         // Expected: Variants converted while preserving text structure
@@ -1545,7 +1545,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariants_JSONDataLoading_InitializesCorrectly() throws {
+    @Test func convertKanjiVariants_JSONDataLoading_InitializesCorrectly() {
         // Purpose: Test that the rule initializes correctly with JSON data
         // Input: Rule initialization
         // Expected: Rule created without errors
@@ -1557,7 +1557,7 @@ struct TextPreprocessorTests {
         #expect(rule.description.contains("standard forms"))
     }
 
-    @Test func convertKanjiVariants_UnknownCharacters_NoChange() throws {
+    @Test func convertKanjiVariants_UnknownCharacters_NoChange() {
         // Purpose: Test handling of characters not in the variant mapping
         // Input: Various non-variant characters
         // Expected: Characters remain unchanged
@@ -1577,7 +1577,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertKanjiVariantsRule_HasCorrectMetadata() throws {
+    @Test func convertKanjiVariantsRule_HasCorrectMetadata() {
         // Purpose: Verify rule metadata is correctly set
         // Expected: Proper name and description for UI/debugging
         let rule = ConvertKanjiVariantsRule()
@@ -1591,7 +1591,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertAlphabeticToKanaRule Tests
 
-    @Test func convertAlphabeticToKana_NumbersOnly_NoChange() throws {
+    @Test func convertAlphabeticToKana_NumbersOnly_NoChange() {
         // Purpose: Test that numbers remain unchanged
         // Input: String with only digits "0123456789"
         // Expected: Same string "0123456789"
@@ -1603,7 +1603,7 @@ struct TextPreprocessorTests {
         #expect(result == "0123456789")
     }
 
-    @Test func convertAlphabeticToKana_BasicRomaji_ConvertsToKana() throws {
+    @Test func convertAlphabeticToKana_BasicRomaji_ConvertsToKana() {
         // Purpose: Test basic romaji to kana conversion from Yomitan test cases
         // Input: Various romaji sequences
         // Expected: Proper kana conversion matching Yomitan behavior
@@ -1620,7 +1620,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_UppercaseRomaji_ConvertsToKanaLowercase() throws {
+    @Test func convertAlphabeticToKana_UppercaseRomaji_ConvertsToKanaLowercase() {
         // Purpose: Test that uppercase romaji converts to lowercase then to kana
         // Input: Uppercase romaji sequences
         // Expected: Kana conversion (wanakana.toHiragana converts to lowercase first)
@@ -1637,7 +1637,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_AlreadyKatakana_NoChange() throws {
+    @Test func convertAlphabeticToKana_AlreadyKatakana_NoChange() {
         // Purpose: Test that existing katakana remains unchanged
         // Input: Katakana string "カタカナ"
         // Expected: Same string "カタカナ"
@@ -1649,7 +1649,7 @@ struct TextPreprocessorTests {
         #expect(result == "カタカナ")
     }
 
-    @Test func convertAlphabeticToKana_AlreadyHiragana_NoChange() throws {
+    @Test func convertAlphabeticToKana_AlreadyHiragana_NoChange() {
         // Purpose: Test that existing hiragana remains unchanged
         // Input: Hiragana string "ひらがな"
         // Expected: Same string "ひらがな"
@@ -1661,7 +1661,7 @@ struct TextPreprocessorTests {
         #expect(result == "ひらがな")
     }
 
-    @Test func convertAlphabeticToKana_ComplexRomaji_ConvertsCorrectly() throws {
+    @Test func convertAlphabeticToKana_ComplexRomaji_ConvertsCorrectly() {
         // Purpose: Test complex romaji sequences with double consonants and combinations
         // Input: Complex romaji patterns
         // Expected: Proper kana conversion with small tsu and combinations
@@ -1681,7 +1681,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_MixedTextTypes_ConvertsOnlyAlphabetic() throws {
+    @Test func convertAlphabeticToKana_MixedTextTypes_ConvertsOnlyAlphabetic() {
         // Purpose: Test mixed text with alphabetic and non-alphabetic characters
         // Input: Text containing romaji, kana, and other characters
         // Expected: Only alphabetic parts converted
@@ -1699,7 +1699,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_VowelCombinations_ConvertsCorrectly() throws {
+    @Test func convertAlphabeticToKana_VowelCombinations_ConvertsCorrectly() {
         // Purpose: Test vowel combinations and sequences
         // Input: Various vowel patterns
         // Expected: Proper kana for vowels
@@ -1721,7 +1721,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_SingleN_ConvertsToN() throws {
+    @Test func convertAlphabeticToKana_SingleN_ConvertsToN() {
         // Purpose: Test single 'n' conversion (special case)
         // Input: Single 'n' character
         // Expected: ん (n kana)
@@ -1733,7 +1733,7 @@ struct TextPreprocessorTests {
         #expect(result == "ん")
     }
 
-    @Test func convertAlphabeticToKana_DoubleN_ConvertsToN() throws {
+    @Test func convertAlphabeticToKana_DoubleN_ConvertsToN() {
         // Purpose: Test double 'nn' conversion
         // Input: Double 'nn'
         // Expected: ん (single n kana)
@@ -1745,7 +1745,7 @@ struct TextPreprocessorTests {
         #expect(result == "ん")
     }
 
-    @Test func convertAlphabeticToKana_EmptyString_ReturnsEmpty() throws {
+    @Test func convertAlphabeticToKana_EmptyString_ReturnsEmpty() {
         // Purpose: Test empty string handling
         // Input: Empty string ""
         // Expected: Empty string ""
@@ -1757,7 +1757,7 @@ struct TextPreprocessorTests {
         #expect(result == "")
     }
 
-    @Test func convertAlphabeticToKana_NonAlphabeticCharacters_NoChange() throws {
+    @Test func convertAlphabeticToKana_NonAlphabeticCharacters_NoChange() {
         // Purpose: Test that non-alphabetic characters remain unchanged
         // Input: Various non-alphabetic characters
         // Expected: Same characters
@@ -1776,7 +1776,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_PartialAlphabeticSequences_ConvertsAppropriately() throws {
+    @Test func convertAlphabeticToKana_PartialAlphabeticSequences_ConvertsAppropriately() {
         // Purpose: Test sequences where not all letters can form valid kana
         // Input: Sequences with some unconvertible letter combinations
         // Expected: Convertible parts converted, others remain as letters
@@ -1794,7 +1794,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_Dashes_HandlesCorrectly() throws {
+    @Test func convertAlphabeticToKana_Dashes_HandlesCorrectly() {
         // Purpose: Test handling of dashes in romaji
         // Input: Romaji with dashes (ASCII and fullwidth)
         // Expected: Proper handling and conversion
@@ -1811,7 +1811,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphabeticToKana_FullwidthAlphabetic_ConvertsCorrectly() throws {
+    @Test func convertAlphabeticToKana_FullwidthAlphabetic_ConvertsCorrectly() {
         // Purpose: Test fullwidth alphabetic character handling
         // Input: Fullwidth alphabetic characters
         // Expected: Conversion to kana after normalization
@@ -1830,7 +1830,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertAlphanumericToFullWidthRule Tests
 
-    @Test func convertAlphanumericToFullWidth_BasicDigits_ConvertsCorrectly() throws {
+    @Test func convertAlphanumericToFullWidth_BasicDigits_ConvertsCorrectly() {
         // Purpose: Test conversion of ASCII digits to full-width equivalents
         // Input: Normal ASCII digits 0-9
         // Expected: Full-width digits ０-９
@@ -1856,7 +1856,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphanumericToFullWidth_BasicLetters_ConvertsCorrectly() throws {
+    @Test func convertAlphanumericToFullWidth_BasicLetters_ConvertsCorrectly() {
         // Purpose: Test conversion of ASCII letters to full-width equivalents
         // Input: Normal ASCII letters a-z, A-Z
         // Expected: Full-width letters ａ-ｚ, Ａ-Ｚ
@@ -1879,7 +1879,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertAlphanumericToFullWidth_MixedContent_ConvertsOnlyAlphanumeric() throws {
+    @Test func convertAlphanumericToFullWidth_MixedContent_ConvertsOnlyAlphanumeric() {
         // Purpose: Test that only alphanumeric characters are converted, others left unchanged
         // Input: Mixed content including Japanese text, punctuation, symbols
         // Expected: Only ASCII alphanumeric converted to full-width
@@ -1904,7 +1904,7 @@ struct TextPreprocessorTests {
 
     // MARK: - ConvertFullWidthAlphanumericToNormalRule Tests
 
-    @Test func convertFullWidthAlphanumericToNormal_BasicDigits_ConvertsCorrectly() throws {
+    @Test func convertFullWidthAlphanumericToNormal_BasicDigits_ConvertsCorrectly() {
         // Purpose: Test conversion of full-width digits to ASCII equivalents
         // Input: Full-width digits ０-９
         // Expected: Normal ASCII digits 0-9
@@ -1930,7 +1930,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertFullWidthAlphanumericToNormal_BasicLetters_ConvertsCorrectly() throws {
+    @Test func convertFullWidthAlphanumericToNormal_BasicLetters_ConvertsCorrectly() {
         // Purpose: Test conversion of full-width letters to ASCII equivalents
         // Input: Full-width letters ａ-ｚ, Ａ-Ｚ
         // Expected: Normal ASCII letters a-z, A-Z
@@ -1953,7 +1953,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertFullWidthAlphanumericToNormal_MixedContent_ConvertsOnlyFullWidth() throws {
+    @Test func convertFullWidthAlphanumericToNormal_MixedContent_ConvertsOnlyFullWidth() {
         // Purpose: Test that only full-width alphanumeric characters are converted
         // Input: Mixed content including Japanese text, punctuation, symbols
         // Expected: Only full-width alphanumeric converted to ASCII
@@ -1976,7 +1976,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func convertFullWidthAlphanumericToNormal_AlreadyNormal_NoChange() throws {
+    @Test func convertFullWidthAlphanumericToNormal_AlreadyNormal_NoChange() {
         // Purpose: Test that normal ASCII characters are left unchanged
         // Input: Normal ASCII alphanumeric characters
         // Expected: Same characters (no conversion)
@@ -1998,7 +1998,7 @@ struct TextPreprocessorTests {
 
     // MARK: - Round-trip Tests for Alphanumeric Width Conversion
 
-    @Test func alphanumericWidthConversion_RoundTrip_PreservesOriginal() throws {
+    @Test func alphanumericWidthConversion_RoundTrip_PreservesOriginal() {
         // Purpose: Test that converting normal→full→normal preserves original text
         // Input: Various ASCII alphanumeric strings
         // Expected: Original text after round-trip conversion
@@ -2022,7 +2022,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func alphanumericWidthConversion_ReverseRoundTrip_PreservesOriginal() throws {
+    @Test func alphanumericWidthConversion_ReverseRoundTrip_PreservesOriginal() {
         // Purpose: Test that converting full→normal→full preserves original full-width text
         // Input: Various full-width alphanumeric strings
         // Expected: Original full-width text after round-trip conversion
@@ -2046,7 +2046,7 @@ struct TextPreprocessorTests {
         }
     }
 
-    @Test func alphanumericWidthConversion_EdgeCases_HandlesCorrectly() throws {
+    @Test func alphanumericWidthConversion_EdgeCases_HandlesCorrectly() {
         // Purpose: Test edge cases and boundary conditions
         // Input: Edge case strings including Unicode boundaries
         // Expected: Correct handling of edge cases

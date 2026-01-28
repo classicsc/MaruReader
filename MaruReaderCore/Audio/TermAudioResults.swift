@@ -29,10 +29,14 @@ public struct TermAudioResults: Sendable {
     public let sources: [AudioSourceResult]
 
     /// Whether any audio is available
-    public var hasAudio: Bool { !sources.isEmpty }
+    public var hasAudio: Bool {
+        !sources.isEmpty
+    }
 
     /// Primary audio URL (first available source)
-    public var primaryAudioURL: URL? { sources.first?.url }
+    public var primaryAudioURL: URL? {
+        sources.first?.url
+    }
 
     /// Get audio sources matching a specific downstep position
     /// - Parameters:

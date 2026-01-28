@@ -32,7 +32,7 @@ actor BookImportManager {
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
 
-    // Initializer for both shared instance and testing with custom container
+    /// Initializer for both shared instance and testing with custom container
     init(container: NSPersistentContainer) {
         self.container = container
     }

@@ -27,7 +27,7 @@ struct ConvertAlphabeticToKanaRule: TextPreprocessorRule {
     let name = "convertAlphabeticToKana"
     let description = "Convert alphabetic text to kana: chikara → ちから"
 
-    // Romaji to Hiragana mapping dictionary (subset of full mapping for performance)
+    /// Romaji to Hiragana mapping dictionary (subset of full mapping for performance)
     private static let romajiToHiragana: [String: String] = [
         // Double letters - these create sokuon (っ) + base consonant sound
         "kk": "っ", "gg": "っ", "ss": "っ", "zz": "っ", "jj": "っ", "tt": "っ",

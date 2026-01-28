@@ -85,7 +85,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - Book Source Tests
 
-    @Test func contextImage_bookSource_defaultConfig_returnsCoverImage() async throws {
+    @Test func contextImage_bookSource_defaultConfig_returnsCoverImage() async {
         let contextValues = makeContextValues(
             sourceType: .book,
             coverURL: testCoverURL,
@@ -103,7 +103,7 @@ struct ContextImageTemplateValueTests {
         #expect(result.mediaFiles.values.first == testCoverURL)
     }
 
-    @Test func contextImage_bookSource_screenshotPreference_returnsScreenshot() async throws {
+    @Test func contextImage_bookSource_screenshotPreference_returnsScreenshot() async {
         let contextValues = makeContextValues(
             sourceType: .book,
             coverURL: testCoverURL,
@@ -127,7 +127,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - Manga Source Tests
 
-    @Test func contextImage_mangaSource_defaultConfig_returnsScreenshot() async throws {
+    @Test func contextImage_mangaSource_defaultConfig_returnsScreenshot() async {
         let contextValues = makeContextValues(
             sourceType: .manga,
             coverURL: testCoverURL,
@@ -145,7 +145,7 @@ struct ContextImageTemplateValueTests {
         #expect(result.mediaFiles.values.first == testScreenshotURL)
     }
 
-    @Test func contextImage_mangaSource_coverPreference_returnsCover() async throws {
+    @Test func contextImage_mangaSource_coverPreference_returnsCover() async {
         let contextValues = makeContextValues(
             sourceType: .manga,
             coverURL: testCoverURL,
@@ -169,7 +169,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - Web Source Tests
 
-    @Test func contextImage_webSource_alwaysReturnsScreenshot() async throws {
+    @Test func contextImage_webSource_alwaysReturnsScreenshot() async {
         let contextValues = makeContextValues(
             sourceType: .web,
             coverURL: testCoverURL,
@@ -194,7 +194,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - Dictionary Source Tests
 
-    @Test func contextImage_dictionarySource_returnsEmpty() async throws {
+    @Test func contextImage_dictionarySource_returnsEmpty() async {
         let contextValues = makeContextValues(
             sourceType: .dictionary,
             coverURL: testCoverURL,
@@ -214,7 +214,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - Fallback Tests
 
-    @Test func contextImage_preferredImageUnavailable_fallsBackToOther() async throws {
+    @Test func contextImage_preferredImageUnavailable_fallsBackToOther() async {
         // Book source prefers cover by default, but only screenshot is available
         let contextValues = makeContextValues(
             sourceType: .book,
@@ -233,7 +233,7 @@ struct ContextImageTemplateValueTests {
         #expect(result.mediaFiles.values.first == testScreenshotURL)
     }
 
-    @Test func contextImage_screenshotPreferredButUnavailable_fallsBackToCover() async throws {
+    @Test func contextImage_screenshotPreferredButUnavailable_fallsBackToCover() async {
         // Web source prefers screenshot, but only cover is available
         let contextValues = makeContextValues(
             sourceType: .web,
@@ -254,7 +254,7 @@ struct ContextImageTemplateValueTests {
 
     // MARK: - No Context Values Tests
 
-    @Test func contextImage_noContextValues_returnsEmpty() async throws {
+    @Test func contextImage_noContextValues_returnsEmpty() async {
         let (response, group) = makeResponse(contextValues: nil)
         let resolver = TextLookupResponseTemplateResolver(
             response: response,
@@ -268,7 +268,7 @@ struct ContextImageTemplateValueTests {
         #expect(result.mediaFiles.isEmpty)
     }
 
-    @Test func contextImage_noImagesAvailable_returnsEmpty() async throws {
+    @Test func contextImage_noImagesAvailable_returnsEmpty() async {
         let contextValues = makeContextValues(
             sourceType: .book,
             coverURL: nil,

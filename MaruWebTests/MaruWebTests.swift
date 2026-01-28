@@ -20,17 +20,17 @@ import Foundation
 import Testing
 
 struct MaruWebTests {
-    @Test func normalizedURLAddsScheme() async throws {
+    @Test func normalizedURLAddsScheme() {
         let url = WebAddressParser.normalizedURL(from: "bookwalker.jp")
         #expect(url?.absoluteString == "https://bookwalker.jp")
     }
 
-    @Test func normalizedURLPreservesScheme() async throws {
+    @Test func normalizedURLPreservesScheme() {
         let url = WebAddressParser.normalizedURL(from: "https://example.com/path")
         #expect(url?.absoluteString == "https://example.com/path")
     }
 
-    @Test func normalizedURLRejectsWhitespace() async throws {
+    @Test func normalizedURLRejectsWhitespace() {
         let url = WebAddressParser.normalizedURL(from: "not a url")
         #expect(url == nil)
     }
@@ -38,7 +38,7 @@ struct MaruWebTests {
     @Test func addBookmarkPersistsEntry() async throws {
         let persistence = WebDataPersistenceController(inMemory: true)
         let manager = WebBookmarkManager(persistenceController: persistence)
-        let url = URL(string: "https://bookwalker.jp")!
+        let url = try #require(URL(string: "https://bookwalker.jp"))
 
         let snapshot = try await manager.addBookmark(url: url, title: "Bookwalker")
         #expect(snapshot.url == url)
@@ -52,7 +52,7 @@ struct MaruWebTests {
     @Test func toggleBookmarkRemovesExisting() async throws {
         let persistence = WebDataPersistenceController(inMemory: true)
         let manager = WebBookmarkManager(persistenceController: persistence)
-        let url = URL(string: "https://example.com")!
+        let url = try #require(URL(string: "https://example.com"))
 
         let isBookmarked = try await manager.toggleBookmark(url: url, title: "Example")
         #expect(isBookmarked == true)
@@ -64,7 +64,7 @@ struct MaruWebTests {
         #expect(bookmarks.isEmpty)
     }
 
-    @Test func contentBlockingDefaultsToEnabled() async throws {
+    @Test func contentBlockingDefaultsToEnabled() {
         let defaults = UserDefaults.standard
         let key = WebContentBlockingSettings.contentBlockingEnabledKey
         let previousValue = defaults.object(forKey: key)
@@ -83,7 +83,7 @@ struct MaruWebTests {
         )
     }
 
-    @Test func contentBlockingPersistsChanges() async throws {
+    @Test func contentBlockingPersistsChanges() {
         let defaults = UserDefaults.standard
         let key = WebContentBlockingSettings.contentBlockingEnabledKey
         let previousValue = defaults.object(forKey: key)
@@ -101,7 +101,7 @@ struct MaruWebTests {
         #expect(WebContentBlockingSettings.contentBlockingEnabled == true)
     }
 
-    @Test @MainActor func webSessionStoreConsumesPrewarm() async throws {
+    @Test @MainActor func webSessionStoreConsumesPrewarm() async {
         let store = WebSessionStore()
         store.prewarm(enableContentBlocking: false)
         let firstSession = await store.makeSession(enableContentBlocking: false)

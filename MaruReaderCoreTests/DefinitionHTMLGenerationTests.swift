@@ -20,7 +20,7 @@ import Foundation
 import Testing
 
 struct DefinitionHTMLGenerationTests {
-    @Test func textDefinition_toHTML_wrapsInParagraph() throws {
+    @Test func textDefinition_toHTML_wrapsInParagraph() {
         let definition = Definition.text("Simple <text>")
 
         let html = definition.toHTML()
@@ -28,7 +28,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html == "<p class=\"gloss-definition-text\">Simple &lt;text&gt;</p>")
     }
 
-    @Test func detailedTextDefinition_toHTML_wrapsInParagraph() throws {
+    @Test func detailedTextDefinition_toHTML_wrapsInParagraph() {
         let detail = DefinitionDetailed.text(TextDef(type: "text", text: "Detailed"))
         let definition = Definition.detailed(detail)
 
@@ -37,7 +37,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html == "<p class=\"gloss-definition-text\">Detailed</p>")
     }
 
-    @Test func structuredDefinition_toHTML_delegatesToStructuredContent() throws {
+    @Test func structuredDefinition_toHTML_delegatesToStructuredContent() {
         let structuredElement = StructuredElement(
             tag: "strong",
             content: .text("bold"),
@@ -66,7 +66,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html == "This is <strong class=\"gloss-sc-strong\">bold</strong> text.")
     }
 
-    @Test func imageDefinition_toHTML_resolvesRelativeSource() throws {
+    @Test func imageDefinition_toHTML_resolvesRelativeSource() {
         let image = ImageDef(
             type: "image",
             path: "images/example.png",
@@ -112,7 +112,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 120px\""))
     }
 
-    @Test func imageDefinition_toHTML_skipsAbsoluteSource() throws {
+    @Test func imageDefinition_toHTML_skipsAbsoluteSource() {
         let image = ImageDef(
             type: "image",
             path: "https://example.com/image.png",
@@ -147,7 +147,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("style=\"border:"))
     }
 
-    @Test func deinflectionDefinition_toHTML_rendersInformationalParagraph() throws {
+    @Test func deinflectionDefinition_toHTML_rendersInformationalParagraph() {
         let definition = Definition.deinflection(uninflected: "食べる", rules: ["past", "polite"])
 
         let html = definition.toHTML()
@@ -155,7 +155,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html == "<p class=\"gloss-deinflection\" data-uninflected=\"食べる\" data-rules=\"past, polite\">Uninflected: 食べる (Rules: past, polite)</p>")
     }
 
-    @Test func arrayOfDefinitions_toHTML_wrapsInGlossaryList() throws {
+    @Test func arrayOfDefinitions_toHTML_wrapsInGlossaryList() {
         let defs: [Definition] = [
             .text("First definition"),
             .text("Second definition"),
@@ -166,7 +166,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<ul class=\"gloss-glossary-list\""))
     }
 
-    @Test func imageDefinition_toHTML_rendersDescriptionWrapper() throws {
+    @Test func imageDefinition_toHTML_rendersDescriptionWrapper() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -197,7 +197,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("</div>"))
     }
 
-    @Test func imageDefinition_toHTML_noDescriptionUsesSimpleWrapper() throws {
+    @Test func imageDefinition_toHTML_noDescriptionUsesSimpleWrapper() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -228,7 +228,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("</div>"))
     }
 
-    @Test func imageDefinition_toHTML_descriptionEscapesHTML() throws {
+    @Test func imageDefinition_toHTML_descriptionEscapesHTML() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -260,7 +260,7 @@ struct DefinitionHTMLGenerationTests {
 
     // MARK: - Responsive Sizing Tests
 
-    @Test func imageDefinition_toHTML_preferredWidthOnlyMaintainsAspectRatio() throws {
+    @Test func imageDefinition_toHTML_preferredWidthOnlyMaintainsAspectRatio() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -293,7 +293,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
-    @Test func imageDefinition_toHTML_preferredHeightOnlyCalculatesWidth() throws {
+    @Test func imageDefinition_toHTML_preferredHeightOnlyCalculatesWidth() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -326,7 +326,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
-    @Test func imageDefinition_toHTML_bothPreferredDimensionsUsesNewAspectRatio() throws {
+    @Test func imageDefinition_toHTML_bothPreferredDimensionsUsesNewAspectRatio() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -361,7 +361,7 @@ struct DefinitionHTMLGenerationTests {
 
     // MARK: - CSS Styling Tests
 
-    @Test func imageDefinition_toHTML_verticalAlignAppliesDataAttr() throws {
+    @Test func imageDefinition_toHTML_verticalAlignAppliesDataAttr() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -392,7 +392,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("vertical-align: middle"))
     }
 
-    @Test func imageDefinition_toHTML_borderAppliesDataAttr() throws {
+    @Test func imageDefinition_toHTML_borderAppliesDataAttr() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -423,7 +423,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("style=\"border:"))
     }
 
-    @Test func imageDefinition_toHTML_borderRadiusAppliesDataAttr() throws {
+    @Test func imageDefinition_toHTML_borderRadiusAppliesDataAttr() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -454,7 +454,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("style=\"border-radius:"))
     }
 
-    @Test func imageDefinition_toHTML_combinedDataAttrs() throws {
+    @Test func imageDefinition_toHTML_combinedDataAttrs() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -489,7 +489,7 @@ struct DefinitionHTMLGenerationTests {
 
     // MARK: - Size Units Tests
 
-    @Test func imageDefinition_toHTML_sizeUnitsEmAppliesEmSizing() throws {
+    @Test func imageDefinition_toHTML_sizeUnitsEmAppliesEmSizing() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -521,7 +521,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-width=\"120em\""))
     }
 
-    @Test func imageDefinition_toHTML_sizeUnitsEmWithPreferredDimensions() throws {
+    @Test func imageDefinition_toHTML_sizeUnitsEmWithPreferredDimensions() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -554,7 +554,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-width=\"150em\""))
     }
 
-    @Test func imageDefinition_toHTML_sizeUnitsPxDoesNotApplyEmStyles() throws {
+    @Test func imageDefinition_toHTML_sizeUnitsPxDoesNotApplyEmStyles() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -587,7 +587,7 @@ struct DefinitionHTMLGenerationTests {
 
     // MARK: - Description Tests
 
-    @Test func imageDefinition_toHTML_rendersDescriptionAsVisibleText() throws {
+    @Test func imageDefinition_toHTML_rendersDescriptionAsVisibleText() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -617,7 +617,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-desc\">This is a visible description</span>"))
     }
 
-    @Test func imageDefinition_toHTML_noDescriptionRendersImageOnly() throws {
+    @Test func imageDefinition_toHTML_noDescriptionRendersImageOnly() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -647,7 +647,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("gloss-image-description"))
     }
 
-    @Test func imageDefinition_toHTML_descriptionEscapesHTMLCharacters() throws {
+    @Test func imageDefinition_toHTML_descriptionEscapesHTMLCharacters() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -677,7 +677,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("Description with <HTML> & \"quotes\"")) // Should NOT contain unescaped HTML
     }
 
-    @Test func imageDefinition_toHTML_yomitanExampleCase() throws {
+    @Test func imageDefinition_toHTML_yomitanExampleCase() {
         // Test case based on the Yomitan example: gazou definition with pixelated image and description
         let image = ImageDef(
             type: "image",
@@ -715,7 +715,7 @@ struct DefinitionHTMLGenerationTests {
 
     // MARK: - Enhanced Sizing Algorithm Tests
 
-    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithEmUnits() throws {
+    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithEmUnits() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -749,7 +749,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 150em\""))
     }
 
-    @Test func imageDefinition_toHTML_usesPixelWidthForLayoutWithCustomBaseFontSize() throws {
+    @Test func imageDefinition_toHTML_usesPixelWidthForLayoutWithCustomBaseFontSize() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -781,7 +781,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 200px\""))
     }
 
-    @Test func imageDefinition_toHTML_preferredDimensionsWithoutSizeUnitsUsePx() throws {
+    @Test func imageDefinition_toHTML_preferredDimensionsWithoutSizeUnitsUsePx() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -811,7 +811,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 150px\""))
     }
 
-    @Test func imageDefinition_toHTML_noDevicePixelRatioScalingWithoutEmAndPreferredDimensions() throws {
+    @Test func imageDefinition_toHTML_noDevicePixelRatioScalingWithoutEmAndPreferredDimensions() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -844,7 +844,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 100px\""))
     }
 
-    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() throws {
+    @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -880,7 +880,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("style=\"width: 160em\""))
     }
 
-    @Test func imageDefinition_toHTML_matchingYomitanScaling() throws {
+    @Test func imageDefinition_toHTML_matchingYomitanScaling() {
         // Test case matching Yomitan's exact behavior from structured-content-generator.js:154-163
         let image = ImageDef(
             type: "image",

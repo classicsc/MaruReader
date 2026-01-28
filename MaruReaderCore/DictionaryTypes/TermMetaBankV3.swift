@@ -29,7 +29,7 @@ struct TermMetaBankV3Entry: DictionaryDataBankEntry {
         case ipa
     }
 
-    // Custom decoding: since schema is an array, not an object
+    /// Custom decoding: since schema is an array, not an object
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
         guard container.count == 3 else {
@@ -132,7 +132,7 @@ struct FrequencyData: Codable, Comparable {
     let value: Double
     let displayValue: String?
 
-    // Schema allows number OR string as shorthand
+    /// Schema allows number OR string as shorthand
     init(from decoder: Decoder) throws {
         if let num = try? decoder.singleValueContainer().decode(Double.self) {
             self.value = num
@@ -210,7 +210,7 @@ public struct PitchAccent: Codable, Sendable {
         }
     }
 
-    // nasal/devoice can be int or array
+    /// nasal/devoice can be int or array
     private enum CodingKeys: String, CodingKey {
         case position, nasal, devoice, tags
     }

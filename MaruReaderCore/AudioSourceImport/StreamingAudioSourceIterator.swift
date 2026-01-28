@@ -19,27 +19,27 @@ import Foundation
 internal import JsonStream
 import os.log
 
-/// A streaming iterator for audio source index JSON files.
-///
-/// Unlike dictionary banks which are arrays of arrays, audio source indices
-/// are objects with nested dictionaries for headwords and files. This iterator
-/// streams entries from either the "headwords" or "files" section without
-/// loading the entire file into memory.
-///
-/// Usage:
-/// ```swift
-/// // Stream headword entries
-/// let headwordIterator = StreamingAudioSourceHeadwordIterator(fileURL: indexURL)
-/// for try await (expression, filenames) in headwordIterator {
-///     // Process headword
-/// }
-///
-/// // Stream file entries
-/// let fileIterator = StreamingAudioSourceFileIterator(fileURL: indexURL)
-/// for try await (filename, info) in fileIterator {
-///     // Process file info
-/// }
-/// ```
+// A streaming iterator for audio source index JSON files.
+//
+// Unlike dictionary banks which are arrays of arrays, audio source indices
+// are objects with nested dictionaries for headwords and files. This iterator
+// streams entries from either the "headwords" or "files" section without
+// loading the entire file into memory.
+//
+// Usage:
+// ```swift
+// // Stream headword entries
+// let headwordIterator = StreamingAudioSourceHeadwordIterator(fileURL: indexURL)
+// for try await (expression, filenames) in headwordIterator {
+//     // Process headword
+// }
+//
+// // Stream file entries
+// let fileIterator = StreamingAudioSourceFileIterator(fileURL: indexURL)
+// for try await (filename, info) in fileIterator {
+//     // Process file info
+// }
+// ```
 
 // MARK: - Headword Iterator
 

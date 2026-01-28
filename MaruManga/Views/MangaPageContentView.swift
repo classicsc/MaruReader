@@ -57,7 +57,6 @@ struct MangaPageContentView: View {
 
     // MARK: - Page Content
 
-    @ViewBuilder
     private func pageContent(
         image: UIImage,
         clusters: [TextCluster],
@@ -83,7 +82,6 @@ struct MangaPageContentView: View {
 
     // MARK: - Bounding Box Overlay
 
-    @ViewBuilder
     private func boundingBoxOverlay(
         clusters: [TextCluster],
         imageRect: CGRect,

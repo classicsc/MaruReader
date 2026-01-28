@@ -73,7 +73,6 @@ struct TemplateConfigurationSheetView: View {
         }
     }
 
-    @ViewBuilder
     private var templateInfoSection: some View {
         Section {
             HStack {
@@ -85,7 +84,6 @@ struct TemplateConfigurationSheetView: View {
         }
     }
 
-    @ViewBuilder
     private var dictionarySection: some View {
         Section {
             if isLoadingDictionaries {
@@ -112,7 +110,6 @@ struct TemplateConfigurationSheetView: View {
         }
     }
 
-    @ViewBuilder
     private var cardTypeSection: some View {
         Section {
             Picker("Card Type", selection: $selectedCardType) {

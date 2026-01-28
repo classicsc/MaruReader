@@ -34,7 +34,9 @@ enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     case author = "Author"
     case dateAdded = "Date Added"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var nsSortDescriptors: [NSSortDescriptor] {
         switch self {

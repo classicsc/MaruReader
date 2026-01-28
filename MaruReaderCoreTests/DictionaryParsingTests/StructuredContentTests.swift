@@ -29,7 +29,7 @@ struct StructuredContentTests {
         // Input: JSON string.
         // Expected: .text variant.
         let jsonString = "\"Simple text definition\""
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(Definition.self, from: data)
@@ -48,7 +48,7 @@ struct StructuredContentTests {
         let jsonString = """
         {"type": "structured-content", "content": "Text inside"}
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(Definition.self, from: data)
@@ -72,7 +72,7 @@ struct StructuredContentTests {
         let jsonString = """
         {"type": "image", "path": "img.jpg", "width": 100, "height": 200}
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(Definition.self, from: data)
@@ -94,7 +94,7 @@ struct StructuredContentTests {
         let jsonString = """
         ["食べる", ["v1", "transitive"]]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(Definition.self, from: data)
@@ -114,7 +114,7 @@ struct StructuredContentTests {
         let jsonString = """
         ["only one"]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DecodingError.self) {
@@ -129,7 +129,7 @@ struct StructuredContentTests {
         let jsonString = """
         ["Text", {"tag": "div", "content": "Nested"}]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(StructuredContent.self, from: data)
@@ -163,7 +163,7 @@ struct StructuredContentTests {
         let jsonString = """
         {"tag": "a", "href": "https://example.com", "content": "Link text", "style": {"fontWeight": "bold"}}
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let content = try decoder.decode(StructuredContent.self, from: data)
@@ -187,7 +187,7 @@ struct StructuredContentTests {
         // Input: Non-string/array/object (e.g., number).
         // Expected: Throws DecodingError.dataCorrupted.
         let jsonString = "42"
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DecodingError.self) {
@@ -202,7 +202,7 @@ struct StructuredContentTests {
         let jsonString = """
         ["Text def", {"type": "image", "path": "img.jpg"}]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         let definitions = try decoder.decode([Definition].self, from: data)

@@ -50,7 +50,7 @@ final class MangaMetadataExtractionTests: XCTestCase {
         XCTAssertEqual(metadata?.authorWasExtracted, false)
     }
 
-    func testFilenameExtractionEnglishTitleAndAuthor() async throws {
+    func testFilenameExtractionEnglishTitleAndAuthor() async {
         let options = XCTExpectedFailure.Options()
         options.isStrict = false
         XCTExpectFailure("Foundation Models output is nondeterministic; this test tracks typical extraction quality.", options: options)
@@ -62,7 +62,7 @@ final class MangaMetadataExtractionTests: XCTestCase {
         XCTAssertEqual(metadata.author, "Tatsuki Fujimoto")
     }
 
-    func testFilenameExtractionJapaneseTitleAndAuthor() async throws {
+    func testFilenameExtractionJapaneseTitleAndAuthor() async {
         let options = XCTExpectedFailure.Options()
         options.isStrict = false
         XCTExpectFailure("Foundation Models output is nondeterministic; this test tracks typical extraction quality.", options: options)
@@ -74,7 +74,7 @@ final class MangaMetadataExtractionTests: XCTestCase {
         XCTAssertEqual(metadata.author, "石黒正数")
     }
 
-    func testFilenameExtractionJapaneseWithVolume() async throws {
+    func testFilenameExtractionJapaneseWithVolume() async {
         let options = XCTExpectedFailure.Options()
         options.isStrict = false
         XCTExpectFailure("Foundation Models output is nondeterministic; this test tracks typical extraction quality.", options: options)

@@ -387,12 +387,11 @@ public actor AnkiConnectionManager {
             }
 
             do {
-                let provider = try await AnkiConnectProvider(
+                return try await AnkiConnectProvider(
                     host: host,
                     port: port!,
                     apiKey: apiKey
                 )
-                return provider
             } catch {
                 self.error = error
                 return UnimplementedAnkiProvider()

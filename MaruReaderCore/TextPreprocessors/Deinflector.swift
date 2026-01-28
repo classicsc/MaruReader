@@ -45,7 +45,7 @@ enum Condition: String, CaseIterable, Hashable {
     case nasai = "-なさい"
     case ya = "-ゃ"
 
-    // Metadata (port name for UI)
+    /// Metadata (port name for UI)
     var displayName: String {
         switch self {
         case .v: "Verb"
@@ -81,12 +81,12 @@ struct SuffixRule {
     let conditionsIn: [Condition] // Input conditions to apply this rule
     let conditionsOut: [Condition] // Output conditions after application
 
-    // Matching function
+    /// Matching function
     func matches(_ text: String) -> Bool {
         text.hasSuffix(inflectedSuffix)
     }
 
-    // Deinflect function
+    /// Deinflect function
     func deinflect(_ text: String) -> String {
         String(text.dropLast(inflectedSuffix.count)) + deinflectedSuffix
     }
@@ -149,7 +149,7 @@ struct JapaneseDeinflector {
         }
     }
 
-    // Helper function to check if ancestor condition contains descendant condition in its subcondition hierarchy
+    /// Helper function to check if ancestor condition contains descendant condition in its subcondition hierarchy
     private func isAncestorCondition(ancestor: Condition, descendant: Condition) -> Bool {
         guard let subConditions = JapaneseDeinflector.conditionDetails[ancestor]?.subConditions else {
             return false

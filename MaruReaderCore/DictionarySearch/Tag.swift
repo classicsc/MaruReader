@@ -26,7 +26,9 @@ public struct Tag: Codable, Sendable, Identifiable, Hashable {
     public let order: Double
     public let score: Double
 
-    public var id: String { name }
+    public var id: String {
+        name
+    }
 
     /// Initialize from Core Data DictionaryTagMeta entity
     init(from tagMeta: DictionaryTagMeta) {

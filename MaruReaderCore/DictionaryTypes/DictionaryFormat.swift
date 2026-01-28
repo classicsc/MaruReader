@@ -22,7 +22,9 @@ enum DictionaryFormat: Int, Codable, Sendable, CustomStringConvertible {
     case v1 = 1
     case v3 = 3
 
-    var description: String { "v\(rawValue)" }
+    var description: String {
+        "v\(rawValue)"
+    }
 
     /// Derive a format from optional "format" and legacy "version" fields.
     /// Order of precedence matches existing logic: explicit format, then version.

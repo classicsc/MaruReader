@@ -171,7 +171,7 @@ struct StreamingAudioSourceIteratorTests {
 
     // MARK: - Meta Parser Tests
 
-    @Test func metaParser_ParsesMetaSection() async throws {
+    @Test func metaParser_ParsesMetaSection() throws {
         let jsonString = """
         {
             "meta": {
@@ -205,7 +205,7 @@ struct StreamingAudioSourceIteratorTests {
         #expect(meta.mediaDirAbs == "https://example.com/audio/")
     }
 
-    @Test func metaParser_ParsesMinimalMeta() async throws {
+    @Test func metaParser_ParsesMinimalMeta() throws {
         let jsonString = """
         {
             "meta": {

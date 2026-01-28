@@ -60,7 +60,6 @@ struct TemplateConfigurationView: View {
         }
     }
 
-    @ViewBuilder
     private func templateInfoSection(_ template: ConfigurableProfileTemplate) -> some View {
         Section {
             HStack {
@@ -72,7 +71,6 @@ struct TemplateConfigurationView: View {
         }
     }
 
-    @ViewBuilder
     private var dictionarySection: some View {
         Section {
             if isLoadingDictionaries {
@@ -99,7 +97,6 @@ struct TemplateConfigurationView: View {
         }
     }
 
-    @ViewBuilder
     private var cardTypeSection: some View {
         Section {
             Picker("Card Type", selection: $viewModel.templateCardType) {

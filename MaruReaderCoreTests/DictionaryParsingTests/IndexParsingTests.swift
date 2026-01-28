@@ -41,7 +41,7 @@ struct IndexParsingTests {
             "format": 3
         }
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
 
         let decoder = JSONDecoder()
         let index = try decoder.decode(DictionaryIndex.self, from: data)
@@ -70,7 +70,7 @@ struct IndexParsingTests {
             "title": "TestDict"
         }
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DecodingError.self) {

@@ -214,26 +214,26 @@ struct TermAudioResultsTests {
         #expect(sources.count == 1)
     }
 
-    @Test func mixedSources_exactMatchFiltersCorrectly() {
+    @Test func mixedSources_exactMatchFiltersCorrectly() throws {
         // Mix of indexed sources (with pitch) and URL pattern sources (without pitch)
-        let indexedSource0 = AudioSourceResult(
-            url: URL(string: "https://example.com/indexed0.mp3")!,
+        let indexedSource0 = try AudioSourceResult(
+            url: #require(URL(string: "https://example.com/indexed0.mp3")),
             sourceName: "Indexed",
             providerName: "Indexed",
             sourceType: .indexed(UUID()),
             isLocal: true,
             pitchNumber: "0"
         )
-        let indexedSource1 = AudioSourceResult(
-            url: URL(string: "https://example.com/indexed1.mp3")!,
+        let indexedSource1 = try AudioSourceResult(
+            url: #require(URL(string: "https://example.com/indexed1.mp3")),
             sourceName: "Indexed",
             providerName: "Indexed",
             sourceType: .indexed(UUID()),
             isLocal: true,
             pitchNumber: "1"
         )
-        let urlPatternSource = AudioSourceResult(
-            url: URL(string: "https://example.com/pattern.mp3")!,
+        let urlPatternSource = try AudioSourceResult(
+            url: #require(URL(string: "https://example.com/pattern.mp3")),
             sourceName: "URL Pattern",
             providerName: "URL Pattern",
             sourceType: .urlPattern("test"),

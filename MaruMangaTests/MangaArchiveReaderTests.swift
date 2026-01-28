@@ -458,10 +458,10 @@ struct MangaArchiveReaderTests {
         #expect(error.errorDescription?.contains("5") == true)
     }
 
-    @Test func errorDescription_noImagesFound_hasDescription() {
+    @Test func errorDescription_noImagesFound_hasDescription() throws {
         let error = MangaArchiveReaderError.noImagesFound
 
         #expect(error.errorDescription != nil)
-        #expect(!error.errorDescription!.isEmpty)
+        #expect(try !(#require(error.errorDescription?.isEmpty)))
     }
 }

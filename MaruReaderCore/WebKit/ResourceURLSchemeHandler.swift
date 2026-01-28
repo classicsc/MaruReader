@@ -25,7 +25,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
 
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ResourceURLSchemeHandler")
 
-    // Allowlist of resources that can be served
+    /// Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [
         "structured-content.css",
         "popup.css",

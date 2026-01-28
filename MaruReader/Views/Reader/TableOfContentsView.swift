@@ -436,9 +436,17 @@ private struct TOCItemView: View {
     let currentHref: String?
     let onNavigate: (ReadiumShared.Link) -> Void
 
-    private var hasChildren: Bool { !link.children.isEmpty }
-    private var isExpanded: Bool { expandedItems.contains(link.href) }
-    private var isCurrent: Bool { link.href == currentHref }
+    private var hasChildren: Bool {
+        !link.children.isEmpty
+    }
+
+    private var isExpanded: Bool {
+        expandedItems.contains(link.href)
+    }
+
+    private var isCurrent: Bool {
+        link.href == currentHref
+    }
 
     private var displayTitle: String {
         if let title = link.title, !title.isEmpty {

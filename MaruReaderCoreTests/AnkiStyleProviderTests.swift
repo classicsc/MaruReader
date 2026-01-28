@@ -22,7 +22,7 @@ import Testing
 struct AnkiStyleProviderTests {
     // MARK: - Base Styles Tests
 
-    @Test func baseStylesCSS_containsImageContainerStyles() throws {
+    @Test func baseStylesCSS_containsImageContainerStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         // Uses CSS nesting, so outer scope contains inner rules
@@ -32,21 +32,21 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("max-width: 100%"))
     }
 
-    @Test func baseStylesCSS_containsImageLinkStyles() throws {
+    @Test func baseStylesCSS_containsImageLinkStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-image-link"))
         #expect(css.contains("cursor: inherit"))
     }
 
-    @Test func baseStylesCSS_containsImageStyles() throws {
+    @Test func baseStylesCSS_containsImageStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-image"))
         #expect(css.contains("object-fit: contain"))
     }
 
-    @Test func baseStylesCSS_containsTableStyles() throws {
+    @Test func baseStylesCSS_containsTableStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-sc-table-container"))
@@ -54,7 +54,7 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("border-collapse: collapse"))
     }
 
-    @Test func baseStylesCSS_containsCellStyles() throws {
+    @Test func baseStylesCSS_containsCellStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-sc-th"))
@@ -63,7 +63,7 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("padding: 0.25em"))
     }
 
-    @Test func baseStylesCSS_containsListStyles() throws {
+    @Test func baseStylesCSS_containsListStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-sc-ol"))
@@ -71,21 +71,21 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("padding-left: 2em"))
     }
 
-    @Test func baseStylesCSS_containsLinkStyles() throws {
+    @Test func baseStylesCSS_containsLinkStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-link"))
         #expect(css.contains("text-decoration: underline"))
     }
 
-    @Test func baseStylesCSS_containsPixelatedImageStyles() throws {
+    @Test func baseStylesCSS_containsPixelatedImageStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains("[data-image-rendering=pixelated]"))
         #expect(css.contains("image-rendering: pixelated"))
     }
 
-    @Test func baseStylesCSS_containsVerticalAlignStyles() throws {
+    @Test func baseStylesCSS_containsVerticalAlignStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains("[data-vertical-align=baseline]"))
@@ -93,14 +93,14 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("[data-vertical-align=top]"))
     }
 
-    @Test func baseStylesCSS_containsCollapsedImageStyles() throws {
+    @Test func baseStylesCSS_containsCollapsedImageStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains("[data-collapsed=true]"))
         #expect(css.contains(".gloss-image-link-text"))
     }
 
-    @Test func baseStylesCSS_containsTextStylingClasses() throws {
+    @Test func baseStylesCSS_containsTextStylingClasses() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-font-bold"))
@@ -109,7 +109,7 @@ struct AnkiStyleProviderTests {
         #expect(css.contains(".gloss-text-center"))
     }
 
-    @Test func baseStylesCSS_containsRubyStyles() throws {
+    @Test func baseStylesCSS_containsRubyStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         #expect(css.contains(".gloss-sc-ruby"))
@@ -117,7 +117,7 @@ struct AnkiStyleProviderTests {
         #expect(css.contains(".gloss-sc-rp"))
     }
 
-    @Test func baseStylesCSS_scopedWithYomitanGlossary() throws {
+    @Test func baseStylesCSS_scopedWithYomitanGlossary() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         // CSS nesting format: starts with .yomitan-glossary { and ends with }
@@ -127,7 +127,7 @@ struct AnkiStyleProviderTests {
 
     // MARK: - Dictionary Scoping Tests
 
-    @Test func scopedDictionaryCSS_returnsNilForNonExistentDictionary() throws {
+    @Test func scopedDictionaryCSS_returnsNilForNonExistentDictionary() {
         let result = AnkiStyleProvider.scopedDictionaryCSS(
             dictionaryUUID: UUID(),
             dictionaryTitle: "NonExistent"
@@ -138,7 +138,7 @@ struct AnkiStyleProviderTests {
 
     // MARK: - Style Tag Generation Tests
 
-    @Test func generateStyleTag_emptyDictionaries_returnsBaseStylesOnly() throws {
+    @Test func generateStyleTag_emptyDictionaries_returnsBaseStylesOnly() {
         let styleTag = AnkiStyleProvider.generateStyleTag(dictionaryResults: [])
 
         #expect(styleTag.hasPrefix("<style>"))
@@ -147,7 +147,7 @@ struct AnkiStyleProviderTests {
         #expect(styleTag.contains(".gloss-image-container"))
     }
 
-    @Test func generateStyleTag_withDictionaries_includesBaseStyles() throws {
+    @Test func generateStyleTag_withDictionaries_includesBaseStyles() {
         let dictionaries = [
             (uuid: UUID(), title: "TestDict1"),
             (uuid: UUID(), title: "TestDict2"),
@@ -162,7 +162,7 @@ struct AnkiStyleProviderTests {
         #expect(styleTag.contains(".gloss-image-container"))
     }
 
-    @Test func generateStyleTag_deduplicatesSameDictionary() throws {
+    @Test func generateStyleTag_deduplicatesSameDictionary() {
         let uuid = UUID()
         let dictionaries = [
             (uuid: uuid, title: "SameDict"),
@@ -177,7 +177,7 @@ struct AnkiStyleProviderTests {
         #expect(styleTag.hasSuffix("</style>"))
     }
 
-    @Test func generateStyleTag_formatIsValid() throws {
+    @Test func generateStyleTag_formatIsValid() {
         let styleTag = AnkiStyleProvider.generateStyleTag(dictionaryResults: [])
 
         // Should have proper HTML structure
@@ -194,7 +194,7 @@ struct AnkiStyleProviderTests {
 
     // MARK: - CSS Nesting Tests
 
-    @Test func baseStylesCSS_usesNestedCSS() throws {
+    @Test func baseStylesCSS_usesNestedCSS() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         // Should use CSS nesting format
@@ -203,7 +203,7 @@ struct AnkiStyleProviderTests {
         #expect(!css.contains(".yomitan-glossary .yomitan-glossary"))
     }
 
-    @Test func baseStylesCSS_containsDataAttributeSelectors() throws {
+    @Test func baseStylesCSS_containsDataAttributeSelectors() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
         // Data attribute selectors are within the nested block

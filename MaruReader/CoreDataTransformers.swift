@@ -40,15 +40,17 @@ enum CoreDataTransformers {
 
 // MARK: - Base JSON Transformer
 
-class JSONValueTransformer<Input>: ValueTransformer where Input: Codable {
-    override class func allowsReverseTransformation() -> Bool { true }
-    override class func transformedValueClass() -> AnyClass { NSData.self }
+class JSONValueTransformer<Input: Codable>: ValueTransformer {
+    override class func allowsReverseTransformation() -> Bool {
+        true
+    }
 
-    private let encoder: JSONEncoder = {
-        let enc = JSONEncoder()
-        // Stable key ordering not guaranteed but fine for persistence; pretty printing unnecessary
-        return enc
-    }()
+    override class func transformedValueClass() -> AnyClass {
+        NSData.self
+    }
+
+    private let encoder: JSONEncoder = .init()
+    // Stable key ordering not guaranteed but fine for persistence; pretty printing unnecessary
 
     private let decoder = JSONDecoder()
 

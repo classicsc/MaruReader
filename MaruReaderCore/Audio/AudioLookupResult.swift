@@ -21,8 +21,13 @@ public struct AudioLookupResult: Sendable {
     public let request: AudioLookupRequest
     public let sources: [AudioSourceResult]
 
-    public var hasAudio: Bool { !sources.isEmpty }
-    public var primaryAudioURL: URL? { sources.first?.url }
+    public var hasAudio: Bool {
+        !sources.isEmpty
+    }
+
+    public var primaryAudioURL: URL? {
+        sources.first?.url
+    }
 
     public init(request: AudioLookupRequest, sources: [AudioSourceResult]) {
         self.request = request

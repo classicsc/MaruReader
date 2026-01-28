@@ -20,7 +20,7 @@ import Foundation
 import Testing
 
 struct TextLookupResponseHTMLGenerationTests {
-    @Test func dictionaryStylesHTML_scopesStylesByDictionary() throws {
+    @Test func dictionaryStylesHTML_scopesStylesByDictionary() {
         let dictionaryID = UUID()
         let dictionaryResults = DictionaryResults(
             dictionaryTitle: "Test Dictionary",
@@ -52,7 +52,7 @@ struct TextLookupResponseHTMLGenerationTests {
         #expect(html.contains(".gloss-sc-ul[data-sc-content=glossary]"))
     }
 
-    @Test func textLookupResponse_toResultsHTML_addsDataDictionaryAttribute() throws {
+    @Test func textLookupResponse_toResultsHTML_addsDataDictionaryAttribute() {
         let dictionaryID = UUID()
         let dictionaryResults = DictionaryResults(
             dictionaryTitle: "Test Dictionary",

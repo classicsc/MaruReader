@@ -27,8 +27,8 @@ struct NormalizeCJKCompatibilityCharactersRule: TextPreprocessorRule {
     let name = "normalizeCJKCompatibilityCharacters"
     let description = "Normalize CJK compatibility characters: ㌀ → アパート, ㍻ → 平成"
 
-    // Unicode range for CJK Compatibility characters
-    // Based on CJK_COMPATIBILITY constant from CJK-util.js
+    /// Unicode range for CJK Compatibility characters
+    /// Based on CJK_COMPATIBILITY constant from CJK-util.js
     private static let cjkCompatibilityRange: ClosedRange<UInt32> = 0x3300 ... 0x33FF
 
     /// Check if a code point is in the CJK compatibility range

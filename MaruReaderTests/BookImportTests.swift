@@ -23,7 +23,7 @@ import UIKit
 import Zip
 
 struct BookImportTests {
-    // Custom errors for diagnostics
+    /// Custom errors for diagnostics
     enum MockEPUBError: Error {
         case invalidXML(String)
         case fileWriteFailed(URL)

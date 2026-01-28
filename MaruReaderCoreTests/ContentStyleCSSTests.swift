@@ -20,7 +20,7 @@ import Foundation
 import Testing
 
 struct ContentStyleCSSTests {
-    @Test func toCSSString_AllPropertiesSet_ReturnsCompleteCSS() throws {
+    @Test func toCSSString_AllPropertiesSet_ReturnsCompleteCSS() {
         let style = ContentStyle(
             fontStyle: "italic",
             fontWeight: "bold",
@@ -72,7 +72,7 @@ struct ContentStyleCSSTests {
         #expect(cssString.contains("word-break: break-all"))
     }
 
-    @Test func toCSSString_PartialProperties_ReturnsPartialCSS() throws {
+    @Test func toCSSString_PartialProperties_ReturnsPartialCSS() {
         let style = ContentStyle(
             fontStyle: nil,
             fontWeight: "bold",
@@ -112,7 +112,7 @@ struct ContentStyleCSSTests {
         #expect(!cssString.contains("margin"))
     }
 
-    @Test func toCSSString_EmptyStyle_ReturnsEmptyString() throws {
+    @Test func toCSSString_EmptyStyle_ReturnsEmptyString() {
         let style = ContentStyle(
             fontStyle: nil,
             fontWeight: nil,
@@ -143,7 +143,7 @@ struct ContentStyleCSSTests {
         #expect(cssString.isEmpty)
     }
 
-    @Test func toCSSString_EmptyTextDecorationLine_IgnoresProperty() throws {
+    @Test func toCSSString_EmptyTextDecorationLine_IgnoresProperty() {
         let style = ContentStyle(
             fontStyle: nil,
             fontWeight: "bold",
@@ -175,7 +175,7 @@ struct ContentStyleCSSTests {
         #expect(!cssString.contains("text-decoration-line"))
     }
 
-    @Test func toCSSString_SingleTextDecorationLine_FormatsCorrectly() throws {
+    @Test func toCSSString_SingleTextDecorationLine_FormatsCorrectly() {
         let style = ContentStyle(
             fontStyle: nil,
             fontWeight: nil,
@@ -208,12 +208,12 @@ struct ContentStyleCSSTests {
 
     // MARK: - CSSValue Tests
 
-    @Test func cssValue_numericValue_returnsEmSuffix() throws {
+    @Test func cssValue_numericValue_returnsEmSuffix() {
         let value = CSSValue.numeric(1.5)
         #expect(value.cssString == "1.5em")
     }
 
-    @Test func cssValue_stringValue_returnsUnmodified() throws {
+    @Test func cssValue_stringValue_returnsUnmodified() {
         let value = CSSValue.string("10px")
         #expect(value.cssString == "10px")
     }
@@ -238,7 +238,7 @@ struct ContentStyleCSSTests {
 
     // MARK: - Individual Margin/Padding Property Tests
 
-    @Test func toCSSString_individualMarginProperties_takePrecedenceOverShorthand() throws {
+    @Test func toCSSString_individualMarginProperties_takePrecedenceOverShorthand() {
         let style = ContentStyle(
             margin: "20px",
             marginTop: .numeric(1.0),
@@ -252,7 +252,7 @@ struct ContentStyleCSSTests {
         #expect(!cssString.contains("margin: 20px"))
     }
 
-    @Test func toCSSString_onlyShorthandMargin_usesShorthand() throws {
+    @Test func toCSSString_onlyShorthandMargin_usesShorthand() {
         let style = ContentStyle(margin: "15px")
 
         let cssString = style.toCSSString()
@@ -262,7 +262,7 @@ struct ContentStyleCSSTests {
         #expect(!cssString.contains("margin-left"))
     }
 
-    @Test func toCSSString_individualPaddingProperties_takePrecedenceOverShorthand() throws {
+    @Test func toCSSString_individualPaddingProperties_takePrecedenceOverShorthand() {
         let style = ContentStyle(
             padding: "10px",
             paddingTop: "2px",
@@ -276,7 +276,7 @@ struct ContentStyleCSSTests {
         #expect(!cssString.contains("padding: 10px"))
     }
 
-    @Test func toCSSString_allIndividualMarginProperties_includesAll() throws {
+    @Test func toCSSString_allIndividualMarginProperties_includesAll() {
         let style = ContentStyle(
             marginTop: .numeric(1.0),
             marginLeft: .string("2px"),
@@ -294,7 +294,7 @@ struct ContentStyleCSSTests {
 
     // MARK: - New CSS Properties Tests
 
-    @Test func toCSSString_advancedProperties_includesClipPathAndCursor() throws {
+    @Test func toCSSString_advancedProperties_includesClipPathAndCursor() {
         let style = ContentStyle(
             clipPath: "circle(50%)",
             cursor: "pointer"
@@ -306,7 +306,7 @@ struct ContentStyleCSSTests {
         #expect(cssString.contains("cursor: pointer"))
     }
 
-    @Test func toCSSString_allNewProperties_formatsCorrectly() throws {
+    @Test func toCSSString_allNewProperties_formatsCorrectly() {
         let style = ContentStyle(
             marginTop: .numeric(1.0),
             marginLeft: .string("10px"),
@@ -328,7 +328,7 @@ struct ContentStyleCSSTests {
 
     // MARK: - Data Attributes Tests
 
-    @Test func toDataAttributes_fontStyling_addsFontStyledAttribute() throws {
+    @Test func toDataAttributes_fontStyling_addsFontStyledAttribute() {
         let style = ContentStyle(
             fontStyle: "italic",
             fontWeight: "bold"
@@ -340,7 +340,7 @@ struct ContentStyleCSSTests {
         #expect(attributes.count == 1)
     }
 
-    @Test func toDataAttributes_colorStyling_addsColorStyledAttribute() throws {
+    @Test func toDataAttributes_colorStyling_addsColorStyledAttribute() {
         let style = ContentStyle(
             color: "#ff0000",
             backgroundColor: "#ffffff"
@@ -352,7 +352,7 @@ struct ContentStyleCSSTests {
         #expect(attributes.count == 1)
     }
 
-    @Test func toDataAttributes_textDecoration_addsTextDecoratedAttribute() throws {
+    @Test func toDataAttributes_textDecoration_addsTextDecoratedAttribute() {
         let style = ContentStyle(
             textDecorationLine: ["underline"],
             textDecorationColor: "#0000ff"
@@ -364,7 +364,7 @@ struct ContentStyleCSSTests {
         #expect(attributes.count == 1)
     }
 
-    @Test func toDataAttributes_marginsAndPadding_addsSpacingAttributes() throws {
+    @Test func toDataAttributes_marginsAndPadding_addsSpacingAttributes() {
         let style = ContentStyle(
             marginTop: .numeric(1.0),
             paddingLeft: "10px"
@@ -377,7 +377,7 @@ struct ContentStyleCSSTests {
         #expect(attributes.count == 2)
     }
 
-    @Test func toDataAttributes_advancedProperties_addsSpecificAttributes() throws {
+    @Test func toDataAttributes_advancedProperties_addsSpecificAttributes() {
         let style = ContentStyle(
             borderStyle: "solid",
             clipPath: "circle(50%)",
@@ -392,7 +392,7 @@ struct ContentStyleCSSTests {
         #expect(attributes.count == 3)
     }
 
-    @Test func toDataAttributes_noStyling_returnsEmptyDictionary() throws {
+    @Test func toDataAttributes_noStyling_returnsEmptyDictionary() {
         let style = ContentStyle()
 
         let attributes = style.toDataAttributes()
@@ -402,7 +402,7 @@ struct ContentStyleCSSTests {
 
     // MARK: - CSS Classes Tests
 
-    @Test func toCSSClasses_fontStyling_returnsSemanticClasses() throws {
+    @Test func toCSSClasses_fontStyling_returnsSemanticClasses() {
         let style = ContentStyle(
             fontStyle: "italic",
             fontWeight: "bold"
@@ -414,7 +414,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-font-bold"))
     }
 
-    @Test func toCSSClasses_textDecoration_returnsSpecificDecorationClasses() throws {
+    @Test func toCSSClasses_textDecoration_returnsSpecificDecorationClasses() {
         let style = ContentStyle(
             textDecorationLine: ["underline", "line-through"]
         )
@@ -425,7 +425,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-text-strikethrough"))
     }
 
-    @Test func toCSSClasses_textAlign_returnsAlignmentClasses() throws {
+    @Test func toCSSClasses_textAlign_returnsAlignmentClasses() {
         let style = ContentStyle(textAlign: "center")
 
         let classes = style.toCSSClasses()
@@ -433,7 +433,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-text-center"))
     }
 
-    @Test func toCSSClasses_rightAlignment_returnsRightClass() throws {
+    @Test func toCSSClasses_rightAlignment_returnsRightClass() {
         let style = ContentStyle(textAlign: "right")
 
         let classes = style.toCSSClasses()
@@ -441,7 +441,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-text-right"))
     }
 
-    @Test func toCSSClasses_spacing_returnsSpacingClasses() throws {
+    @Test func toCSSClasses_spacing_returnsSpacingClasses() {
         let style = ContentStyle(
             marginTop: .numeric(1.0),
             paddingLeft: "10px"
@@ -453,7 +453,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-padding"))
     }
 
-    @Test func toCSSClasses_advancedProperties_returnsAdvancedClasses() throws {
+    @Test func toCSSClasses_advancedProperties_returnsAdvancedClasses() {
         let style = ContentStyle(
             verticalAlign: "middle",
             clipPath: "circle(50%)",
@@ -467,7 +467,7 @@ struct ContentStyleCSSTests {
         #expect(classes.contains("gloss-vertical-align-middle"))
     }
 
-    @Test func toCSSClasses_noStyling_returnsEmptyArray() throws {
+    @Test func toCSSClasses_noStyling_returnsEmptyArray() {
         let style = ContentStyle()
 
         let classes = style.toCSSClasses()
@@ -475,7 +475,7 @@ struct ContentStyleCSSTests {
         #expect(classes.isEmpty)
     }
 
-    @Test func toCSSClasses_complexStyling_returnsAllRelevantClasses() throws {
+    @Test func toCSSClasses_complexStyling_returnsAllRelevantClasses() {
         let style = ContentStyle(
             fontWeight: "bold",
             backgroundColor: "#fff",

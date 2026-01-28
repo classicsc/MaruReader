@@ -161,7 +161,6 @@ struct FieldMappingManagementView: View {
         }
     }
 
-    @ViewBuilder
     private func profileRow(_ profile: FieldMappingProfileInfo) -> some View {
         Button {
             if !profile.isSystemProfile {
@@ -195,7 +194,6 @@ struct FieldMappingManagementView: View {
         .deleteDisabled(profile.isSystemProfile)
     }
 
-    @ViewBuilder
     private func templateRow(_ template: ConfigurableProfileTemplate) -> some View {
         Button {
             configuringTemplate = template

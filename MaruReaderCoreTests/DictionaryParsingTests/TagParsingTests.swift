@@ -29,7 +29,7 @@ struct TagParsingTests {
             ["noun", "partOfSpeech", 1, "Common noun", 0]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let tags = try decoder.decode([TagBankV3Entry].self, from: data)
 
@@ -46,7 +46,7 @@ struct TagParsingTests {
         // Input: Empty JSON array.
         // Expected: Empty [TagBankV3Entry]; no errors.
         let jsonString = "[]"
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let tags = try decoder.decode([TagBankV3Entry].self, from: data)
 
@@ -62,7 +62,7 @@ struct TagParsingTests {
             ["noun", "partOfSpeech", 1, "Common noun"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DictionaryImportError.invalidData) {

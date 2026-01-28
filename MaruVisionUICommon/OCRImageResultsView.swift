@@ -194,7 +194,6 @@ public struct OCRImageResultsView: View {
     // MARK: - Bounding Box Overlay
 
     /// Creates a Canvas overlay that draws all bounding boxes
-    @ViewBuilder
     private func boundingBoxOverlay(imageRect: CGRect) -> some View {
         Canvas { context, _ in
             // Draw cluster boxes (primary hit targets)

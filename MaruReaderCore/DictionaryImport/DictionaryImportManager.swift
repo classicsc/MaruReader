@@ -22,7 +22,7 @@ import os.log
 public actor DictionaryImportManager {
     public static let shared = DictionaryImportManager(container: DictionaryPersistenceController.shared.container)
 
-    // Constants
+    /// Constants
     /// The supported dictionary format versions
     static let supportedFormats: Set<Int> = [1, 3]
 
@@ -36,7 +36,7 @@ public actor DictionaryImportManager {
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
 
-    // Initializer for both shared instance and testing with custom container
+    /// Initializer for both shared instance and testing with custom container
     init(container: NSPersistentContainer) {
         self.container = container
     }

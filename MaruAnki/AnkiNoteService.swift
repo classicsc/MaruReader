@@ -155,8 +155,7 @@ public actor AnkiNoteService {
             request.predicate = NSPredicate(format: "pendingSync == YES")
             request.fetchLimit = 1
             do {
-                let count = try context.count(for: request)
-                return count
+                return try context.count(for: request)
             } catch {
                 self.logger.error("Failed to fetch pending note count: \(error.localizedDescription)")
                 return 0

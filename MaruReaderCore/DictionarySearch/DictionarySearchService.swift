@@ -65,8 +65,7 @@ public actor DictionarySearchService {
         try await refreshDictionaryMetadata()
 
         let candidates = candidateGenerator.generateCandidates(from: query)
-        let results = try await fetchTerms(for: candidates)
-        return results
+        return try await fetchTerms(for: candidates)
     }
 
     /// Refresh dictionary metadata cache from Core Data

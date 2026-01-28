@@ -164,7 +164,7 @@ struct ContentStyle: Codable, Sendable {
         self.cursor = cursor
     }
 
-    // Custom decoding to handle textDecorationLine as String or [String]
+    /// Custom decoding to handle textDecorationLine as String or [String]
     enum CodingKeys: String, CodingKey {
         case fontStyle
         case fontWeight

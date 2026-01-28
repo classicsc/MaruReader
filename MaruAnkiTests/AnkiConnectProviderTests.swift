@@ -208,7 +208,7 @@ struct AnkiConnectProviderTests {
 
         let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
 
-        let mediaURL = URL(string: "https://example.com/audio.mp3")!
+        let mediaURL = try #require(URL(string: "https://example.com/audio.mp3"))
         let fields: [String: [TemplateResolvedValue]] = [
             "Front": [TemplateResolvedValue(text: "test", mediaFiles: ["audio.mp3": mediaURL])],
         ]

@@ -32,7 +32,7 @@ public enum ResultDisplayState {
     case error(Error)
 }
 
-// Helper class to hold mutable state references for the scheme handler
+/// Helper class to hold mutable state references for the scheme handler
 @MainActor
 @Observable
 public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
@@ -74,7 +74,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         toolbarFuriganaOverride ?? contextFuriganaEnabled
     }
 
-    // Link activation state
+    /// Link activation state
     var toolbarLinksActiveOverride: Bool?
 
     /// Effective links active state (toolbar override takes precedence, default off)
@@ -116,7 +116,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         return segments
     }
 
-    // Navigation history for back/forward functionality
+    /// Navigation history for back/forward functionality
     let history = NavigationHistory()
 
     private let audioLookupService = AudioLookupService(persistenceController: .shared)

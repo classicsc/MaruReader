@@ -98,16 +98,24 @@ public struct TextLookupResponse: Sendable {
     }
 
     /// The original request ID (for backward compatibility).
-    public var requestID: UUID { request.id }
+    public var requestID: UUID {
+        request.id
+    }
 
     /// Where context starts in full element text (convenience accessor).
-    public var contextStartOffset: Int { request.contextStartOffset }
+    public var contextStartOffset: Int {
+        request.contextStartOffset
+    }
 
     /// The original context string (convenience accessor).
-    public var context: String { request.context }
+    public var context: String {
+        request.context
+    }
 
     /// The effective context for display and Anki note creation (edited or original).
-    public var effectiveContext: String { editedContext ?? request.context }
+    public var effectiveContext: String {
+        editedContext ?? request.context
+    }
 
     /// The effective highlight range for display (edited or original).
     /// Returns nil only when context was edited but the term is no longer found.

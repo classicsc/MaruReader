@@ -104,7 +104,7 @@ public actor DictionaryUpdateManager {
         }
 
         let updateResults = results
-        let updateCount = await context.perform {
+        return await context.perform {
             var count = 0
             for (objectID, hasUpdate, downloadURL) in updateResults {
                 guard let dictionary = try? context.existingObject(with: objectID) as? Dictionary else {
@@ -121,8 +121,6 @@ public actor DictionaryUpdateManager {
             try? context.save()
             return count
         }
-
-        return updateCount
     }
 
     @discardableResult

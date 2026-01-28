@@ -29,7 +29,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", {"value": 5000, "displayValue": "5000㋕"}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -54,7 +54,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", {"reading": "たべる", "frequency": {"value": 3000, "displayValue": "3k"}}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -80,7 +80,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", 1500]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -106,7 +106,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", "2500"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -130,7 +130,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", "3.14e2"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -153,7 +153,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", "invalid"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -175,7 +175,7 @@ struct TermMetaParsingTests {
             ["食べる", "pitch", {"reading": "たべる", "pitches": [{"position": 2}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -196,7 +196,7 @@ struct TermMetaParsingTests {
             ["食べる", "pitch", {"reading": "たべる", "pitches": [{"position": 2}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         #expect(entries.count == 1)
@@ -222,7 +222,7 @@ struct TermMetaParsingTests {
             ["美しい", "pitch", {"reading": "うつくしい", "pitches": [{"position": "HLLL"}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         #expect(entries.count == 1)
@@ -245,7 +245,7 @@ struct TermMetaParsingTests {
             ["本", "pitch", {"reading": "ほん", "pitches": [{"position": 1, "nasal": 2}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -264,7 +264,7 @@ struct TermMetaParsingTests {
             ["本", "pitch", {"reading": "ほん", "pitches": [{"position": 1, "nasal": [1, 3]}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -280,7 +280,7 @@ struct TermMetaParsingTests {
             ["本", "pitch", {"reading": "ほん", "pitches": [{"position": 1, "devoice": [2, 4]}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -297,7 +297,7 @@ struct TermMetaParsingTests {
             ["食べる", "pitch", {"reading": "たべる", "pitches": [{"position": 2, "tags": ["v1", "common"]}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -319,7 +319,7 @@ struct TermMetaParsingTests {
             }]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -347,7 +347,7 @@ struct TermMetaParsingTests {
             }]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -369,7 +369,7 @@ struct TermMetaParsingTests {
             ["食べる", "pitch", {"reading": "たべる"}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: Error.self) {
             _ = try decoder.decode([TermMetaBankV3Entry].self, from: data)
@@ -382,7 +382,7 @@ struct TermMetaParsingTests {
             ["猫", "pitch", {"reading": "ねこ", "pitches": [{"position": 0}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -398,7 +398,7 @@ struct TermMetaParsingTests {
             ["食べる", "ipa", {"reading": "たべる", "transcriptions": [{"ipa": "/taberu/"}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -417,7 +417,7 @@ struct TermMetaParsingTests {
             ["美しい", "ipa", {"reading": "うつくしい", "transcriptions": [{"ipa": "/utsukʊʃiː/", "tags": ["adjective", "formal"]}]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -440,7 +440,7 @@ struct TermMetaParsingTests {
             ]}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
@@ -464,7 +464,7 @@ struct TermMetaParsingTests {
             ["食べる", "ipa", {"invalid": "data"}]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         #expect(throws: Error.self) {
             _ = try decoder.decode([TermMetaBankV3Entry].self, from: data)
@@ -480,7 +480,7 @@ struct TermMetaParsingTests {
             ["食べる", "freq", "four"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let metaDataArray = try decoder.decode([TermMetaBankV3Entry].self, from: data)
 
@@ -504,7 +504,7 @@ struct TermMetaParsingTests {
             ["食べる", "unknown", "some data"]
         ]
         """
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
 
         #expect(throws: DecodingError.self) {

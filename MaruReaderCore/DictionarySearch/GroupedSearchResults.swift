@@ -25,7 +25,9 @@ public struct GroupedSearchResults: Identifiable, Sendable {
     public let deinflectionInfo: String?
     public let audioResults: TermAudioResults?
 
-    public var id: String { termKey }
+    public var id: String {
+        termKey
+    }
 
     public var displayTerm: String {
         if let reading, !reading.isEmpty {

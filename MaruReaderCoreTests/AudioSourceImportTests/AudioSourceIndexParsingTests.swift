@@ -54,7 +54,7 @@ struct AudioSourceIndexParsingTests {
         }
         """
 
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let index = try decoder.decode(AudioSourceIndex.self, from: data)
 
@@ -98,7 +98,7 @@ struct AudioSourceIndexParsingTests {
         }
         """
 
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let index = try decoder.decode(AudioSourceIndex.self, from: data)
 
@@ -121,7 +121,7 @@ struct AudioSourceIndexParsingTests {
         }
         """
 
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let index = try decoder.decode(AudioSourceIndex.self, from: data)
 
@@ -137,7 +137,7 @@ struct AudioSourceIndexParsingTests {
         }
         """
 
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let info = try decoder.decode(AudioFileInfo.self, from: data)
 
@@ -155,7 +155,7 @@ struct AudioSourceIndexParsingTests {
         }
         """
 
-        let data = jsonString.data(using: .utf8)!
+        let data = try #require(jsonString.data(using: .utf8))
         let decoder = JSONDecoder()
         let info = try decoder.decode(AudioFileInfo.self, from: data)
 

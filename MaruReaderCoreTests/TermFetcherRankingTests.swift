@@ -38,7 +38,7 @@ struct TermFetcherRankingTests {
         )
     }
 
-    // Helper method to create RankingCriteria directly using its initializer
+    /// Helper method to create RankingCriteria directly using its initializer
     private func createRankingCriteria(
         sourceTermLength: Int,
         textProcessingChainLength: Int,

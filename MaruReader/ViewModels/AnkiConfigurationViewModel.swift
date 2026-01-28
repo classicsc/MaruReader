@@ -68,13 +68,15 @@ final class AnkiConfigurationViewModel {
         case ankiMobile = "AnkiMobile"
         case ankiConnect = "Anki-Connect"
 
-        var id: String { rawValue }
+        var id: String {
+            rawValue
+        }
     }
 
-    // Current step
+    /// Current step
     var currentStep: ConfigurationStep = .connectionType
 
-    // Connection type
+    /// Connection type
     var connectionType: ConnectionType = .ankiMobile
 
     // Connection settings (temporary, not saved until completion)
@@ -112,10 +114,10 @@ final class AnkiConfigurationViewModel {
     var error: Error?
     var showError: Bool = false
 
-    // Completion callback
+    /// Completion callback
     var onComplete: (() -> Void)?
 
-    // Dependencies
+    /// Dependencies
     private let persistence: AnkiPersistenceController
 
     init(persistence: AnkiPersistenceController = .shared) {

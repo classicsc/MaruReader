@@ -23,7 +23,9 @@ public struct PitchAccentResults: Identifiable, Sendable {
     public let priority: Int
     public let pitches: [PitchAccent]
 
-    public var id: String { "\(dictionaryID)" }
+    public var id: String {
+        "\(dictionaryID)"
+    }
 
     public init(dictionaryTitle: String, dictionaryID: UUID, priority: Int, pitches: [PitchAccent]) {
         self.dictionaryTitle = dictionaryTitle
