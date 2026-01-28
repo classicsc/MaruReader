@@ -56,7 +56,12 @@ enum AnkiFieldValueFormatter {
 
                 let remainingMedia = value.mediaFiles.filter { !usedMediaKeys.contains($0.key) }
                 let mediaLinks = remainingMedia.values.compactMap { formatMediaLink(from: $0) }
-                pieces.append(contentsOf: mediaLinks)
+                for mediaLink in mediaLinks {
+                    if !pieces.isEmpty {
+                        pieces.append("<br>")
+                    }
+                    pieces.append(mediaLink)
+                }
             }
 
             output[fieldName] = pieces.joined()
