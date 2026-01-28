@@ -25,12 +25,16 @@ struct MediaCopyProcessingTask {
     let jobID: NSManagedObjectID
     let archiveURL: URL
     let persistentContainer: NSPersistentContainer
+    let baseDirectory: URL?
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")
 
-    init(jobID: NSManagedObjectID, archiveURL: URL, container: NSPersistentContainer) {
+    init(jobID: NSManagedObjectID, archiveURL: URL, container: NSPersistentContainer, baseDirectory: URL? = nil) {
         self.jobID = jobID
         self.archiveURL = archiveURL
         self.persistentContainer = container
+        self.baseDirectory = baseDirectory ?? FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        )
     }
 
     func start() async throws {
@@ -62,12 +66,10 @@ struct MediaCopyProcessingTask {
         // Setup media directory path
         let fileManager = FileManager.default
 
-        guard let appGroupDir = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-        ) else {
+        guard let baseDir = baseDirectory else {
             throw DictionaryImportError.mediaDirectoryCreationFailed
         }
-        let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+        let mediaDir = baseDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
 
         // Create media directory if it doesn't exist
         if !fileManager.fileExists(atPath: mediaDir.path) {

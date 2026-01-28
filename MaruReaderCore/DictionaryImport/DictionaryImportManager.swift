@@ -20,7 +20,10 @@ import Foundation
 import os.log
 
 public actor DictionaryImportManager {
-    public static let shared = DictionaryImportManager(container: DictionaryPersistenceController.shared.container)
+    public static let shared = DictionaryImportManager(
+        container: DictionaryPersistenceController.shared.container,
+        baseDirectory: DictionaryPersistenceController.shared.baseDirectory
+    )
 
     /// Constants
     /// The supported dictionary format versions
@@ -30,6 +33,7 @@ public actor DictionaryImportManager {
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
+    private var baseDirectory: URL?
     private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
 
     // Test hooks for controlled testing
@@ -37,8 +41,11 @@ public actor DictionaryImportManager {
     var testErrorInjection: (() throws -> Void)?
 
     /// Initializer for both shared instance and testing with custom container
-    init(container: NSPersistentContainer) {
+    public init(container: NSPersistentContainer, baseDirectory: URL? = nil) {
         self.container = container
+        self.baseDirectory = baseDirectory ?? FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        )
     }
 
     /// Enqueue a new dictionary import from the given ZIP file URL.
@@ -102,7 +109,7 @@ public actor DictionaryImportManager {
 
     /// Wait for a given import job to complete.
     /// - Parameter jobID: The NSManagedObjectID of the Dictionary import to wait for.
-    func waitForCompletion(jobID: NSManagedObjectID) async {
+    public func waitForCompletion(jobID: NSManagedObjectID) async {
         while true {
             if currentJobID == jobID {
                 // Wait for current task to finish
@@ -179,7 +186,7 @@ public actor DictionaryImportManager {
 
         for dictionaryID in cleanupIDs {
             try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
-            Self.cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
+            cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
         }
 
         guard !retryJobIDs.isEmpty else { return }
@@ -250,7 +257,8 @@ public actor DictionaryImportManager {
             let mediaCopyTask = MediaCopyProcessingTask(
                 jobID: jobID,
                 archiveURL: indexResult.archiveURL,
-                container: container
+                container: container,
+                baseDirectory: baseDirectory
             )
             try await mediaCopyTask.start()
             logger.debug("Import job \(jobID) media copied")
@@ -313,9 +321,9 @@ public actor DictionaryImportManager {
             if let uuid = dictionaryUUID {
                 try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
             }
-            await context.perform {
+            let uuidToClean: UUID? = await context.perform {
                 guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                    return
+                    return nil
                 }
                 dictionary.isCancelled = true
                 dictionary.isFailed = false
@@ -333,17 +341,18 @@ public actor DictionaryImportManager {
 
                 try? context.save()
 
-                if let uuid = dictionary.id {
-                    Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
-                }
+                return dictionary.id
+            }
+            if let uuid = uuidToClean {
+                cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
             }
         } catch {
             if let uuid = dictionaryUUID {
                 try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
             }
-            await context.perform {
+            let uuidToClean: UUID? = await context.perform {
                 guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                    return
+                    return nil
                 }
                 dictionary.isFailed = true
                 dictionary.isCancelled = false
@@ -361,9 +370,10 @@ public actor DictionaryImportManager {
 
                 try? context.save()
 
-                if let uuid = dictionary.id {
-                    Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
-                }
+                return dictionary.id
+            }
+            if let uuid = uuidToClean {
+                cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
             }
         }
 
@@ -375,32 +385,24 @@ public actor DictionaryImportManager {
     /// Check if media directory exists for a given dictionary import
     func mediaDirectoryExists(for jobID: NSManagedObjectID) async throws -> Bool {
         let context = container.newBackgroundContext()
+        let baseDir = baseDirectory
         return try await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
             guard let dictionaryID = dictionary.id else { return false }
-
-            guard let appGroupDir = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-            ) else {
-                return false
-            }
-            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
+            guard let baseDir else { return false }
+            let mediaDir = baseDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
             return FileManager.default.fileExists(atPath: mediaDir.path)
         }
     }
 
-    static func cleanMediaDirectoryByUUID(dictionaryUUID: UUID) {
+    private func cleanMediaDirectoryByUUID(dictionaryUUID: UUID) {
         let fileManager = FileManager.default
 
         do {
-            guard let appGroupDir = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-            ) else {
-                return
-            }
-            let mediaDir = appGroupDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
+            guard let baseDir = baseDirectory else { return }
+            let mediaDir = baseDir.appendingPathComponent("Media").appendingPathComponent(dictionaryUUID.uuidString)
 
             if fileManager.fileExists(atPath: mediaDir.path) {
                 try fileManager.removeItem(at: mediaDir)
@@ -477,7 +479,7 @@ public actor DictionaryImportManager {
 
                 // Clean up media directory first
                 if let uuid = dictionaryUUID {
-                    Self.cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+                    cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 }
 
                 // Delete entry entities in batches

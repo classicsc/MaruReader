@@ -462,6 +462,6 @@ struct MangaArchiveReaderTests {
         let error = MangaArchiveReaderError.noImagesFound
 
         #expect(error.errorDescription != nil)
-        #expect(try !(#require(error.errorDescription?.isEmpty)))
+        #expect(try !#require(error.errorDescription?.isEmpty))
     }
 }

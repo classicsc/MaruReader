@@ -32,7 +32,27 @@ public final class DictionaryPersistenceController: Sendable {
 
     public let container: NSPersistentContainer
 
+    /// Base directory for media and other files. Defaults to the app group container.
+    public let baseDirectory: URL?
+
+    /// Media directory URL derived from the base directory.
+    public var mediaDirectory: URL? {
+        baseDirectory?.appendingPathComponent("Media")
+    }
+
     // MARK: - Initialization
+
+    /// Initialize persistence controller with a pre-configured container and base directory.
+    /// Used by the seeder tool to avoid app group requirements.
+    /// - Parameters:
+    ///   - container: A pre-configured NSPersistentContainer.
+    ///   - baseDirectory: The base directory for media files.
+    public init(container: NSPersistentContainer, baseDirectory: URL?) {
+        self.container = container
+        self.baseDirectory = baseDirectory
+        container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
 
     /// Initialize persistence controller
     /// - Parameters:
@@ -53,6 +73,11 @@ public final class DictionaryPersistenceController: Sendable {
         // Create container
         container = NSPersistentContainer(name: "MaruDictionary", managedObjectModel: model)
 
+        // Set base directory from app group
+        baseDirectory = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
+        )
+
         // Configure store location
         if inMemory {
             // In-memory store for testing
@@ -62,10 +87,8 @@ public final class DictionaryPersistenceController: Sendable {
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
             // Use app group container (default)
-            if let appGroupURL = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
-            ) {
-                let storeURL = appGroupURL.appendingPathComponent("MaruDictionary.sqlite")
+            if let baseDirectory {
+                let storeURL = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
                 container.persistentStoreDescriptions.first?.url = storeURL
             } else {
                 // Fallback to default location if app group not configured
