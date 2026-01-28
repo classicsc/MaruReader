@@ -34,6 +34,8 @@ public struct WebViewerView: View {
     @State private var readingModeMenuExpanded = false
     @State private var addressSelection: TextSelection?
     @State private var isAddressFocused = false
+    @State private var toolbarTourManager = TourManager()
+    @State private var readingModeTourManager = TourManager()
     @Namespace private var glassNamespace
 
     @Environment(\.colorScheme) private var colorScheme
@@ -76,6 +78,9 @@ public struct WebViewerView: View {
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
             if isEnabled {
                 viewModel.overlayState = .none
+                if readingModeTourManager.startIfNeeded(WebViewerReadingModeTour.self) {
+                    readingModeMenuExpanded = true
+                }
             } else {
                 readingModeMenuExpanded = false
                 viewModel.overlayState = .showingToolbars
@@ -123,6 +128,13 @@ public struct WebViewerView: View {
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
+        .tourOverlay(manager: toolbarTourManager)
+        .tourOverlay(manager: readingModeTourManager)
+        .onAppear {
+            if toolbarTourManager.startIfNeeded(WebViewerToolbarTour.self) {
+                viewModel.overlayState = .showingToolbars
+            }
+        }
     }
 
     private func webContent(for page: WebPage) -> some View {
@@ -251,6 +263,7 @@ public struct WebViewerView: View {
             onReload: viewModel.reload,
             onStopLoading: viewModel.stopLoading
         )
+        .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
     }
 
     private var collapsedAddressCapsule: some View {
@@ -306,6 +319,7 @@ public struct WebViewerView: View {
         .glassEffectID("bookmark", in: glassNamespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
         .accessibilityLabel("Bookmarks")
+        .tourAnchor(WebViewerToolbarTourAnchor.bookmarkButton)
     }
 
     private var readingModeButton: some View {
@@ -327,6 +341,7 @@ public struct WebViewerView: View {
         .glassEffectID("readingMode", in: glassNamespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
         .accessibilityLabel(viewModel.readingModeEnabled ? "Reading Mode Options" : "Enable Reading Mode")
+        .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
     }
 
     private var readingModeMenu: some View {
@@ -343,6 +358,7 @@ public struct WebViewerView: View {
             .glassEffect(in: Circle())
             .glassEffectTransition(GlassEffectTransition.materialize)
             .accessibilityLabel(viewModel.pagingBehavior == .scroll ? "Switch to Keypress Paging" : "Switch to Scroll Paging")
+            .tourAnchor(WebViewerReadingModeTourAnchor.pagingToggle)
 
             HStack(spacing: 12) {
                 Button {
@@ -361,6 +377,7 @@ public struct WebViewerView: View {
                 .glassEffect(in: Circle())
                 .glassEffectTransition(GlassEffectTransition.materialize)
                 .accessibilityLabel("Exit Reading Mode")
+                .tourAnchor(WebViewerReadingModeTourAnchor.exitButton)
 
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) {
@@ -377,6 +394,7 @@ public struct WebViewerView: View {
                 .glassEffectID("readingMode", in: glassNamespace)
                 .glassEffectTransition(GlassEffectTransition.matchedGeometry)
                 .accessibilityLabel("Collapse Reading Mode Menu")
+                .tourAnchor(WebViewerReadingModeTourAnchor.collapseButton)
             }
         }
     }
@@ -393,6 +411,7 @@ public struct WebViewerView: View {
         .buttonStyle(.plain)
         .glassEffect(in: Circle())
         .accessibilityLabel("Exit Web Viewer")
+        .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
     }
 
     private func loadingProgressOverlay(for page: WebPage) -> some View {
