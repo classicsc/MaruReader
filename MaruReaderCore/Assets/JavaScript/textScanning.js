@@ -52,6 +52,11 @@ window.MaruReader.textScanning = {
             return;
         }
 
+        var detailsElement = event.target.closest('details');
+        if (detailsElement) {
+            return;
+        }
+
         // Check for elements with title attributes - show tooltip instead of text scanning
         var titleElement = this.findTitleElement(event.target);
         if (titleElement) {
