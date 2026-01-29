@@ -23,7 +23,7 @@
     /* Color system */
     --text-color: CanvasText;
     --background-color: Canvas;
-    --accent-color: accent;
+    --accent-color: AccentColor;
     --link-color: var(--accent-color);
     --text-color-light1: color-mix(in srgb, CanvasText 70% transparent);
     --text-color-light2: color-mix(in srgb, CanvasText 50% transparent);
