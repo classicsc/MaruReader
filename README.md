@@ -42,16 +42,29 @@ Maru is a dictionary and reading application for people learning Japanese, which
 
 ### Building
 
-First, clone this repository. Before building the app, you need to build the web viewer's content blocker extension:
+#### Content Blocker Extension
 
 ```bash
 git submodule update --init --recursive
 ./scripts/prepare-ubol.sh
 ```
 
-If the build went well, you should see a `uBOLite.safari` folder under `External/uBlock/dist/build`. Then build the app in XCode.
+If the build went well, you should see a `uBOLite.safari` folder under `External/uBlock/dist/build`.
 
-For command line builds:
+#### Starter Dictionaries (optional)
+
+This is only needed if you want to distribute the app with preloaded dictionaries.
+
+Build the dictionary seeder tool and run it with an output folder and one or more valid yomitan dictionaries.
+
+```bash
+xcodebuild -project MaruReader.xcodeproj -scheme DictionarySeeder -destination generic/platform=macOS -configuration Debug build
+./DerivedData/MaruReader/Build/Products/Debug/DictionarySeeder MaruReader/StarterDictionary ~/Downloads/jitendex-yomitan.zip
+```
+
+Then add a folder reference for StarterDictionary in the MaruReader target.
+
+#### Main app
 
 ```bash
 xcodebuild -project MaruReader.xcodeproj -scheme MaruReader -destination generic/platform=iOS -configuration Debug build
