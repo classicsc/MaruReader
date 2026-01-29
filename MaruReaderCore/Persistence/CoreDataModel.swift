@@ -78,6 +78,11 @@ public final class DictionaryPersistenceController: Sendable {
             forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
         )
 
+        // Seed bundled database on first run (before configuring store)
+        if !inMemory, storeURL == nil {
+            Self.seedBundledDatabaseIfNeeded(to: baseDirectory)
+        }
+
         // Configure store location
         if inMemory {
             // In-memory store for testing
@@ -119,6 +124,47 @@ public final class DictionaryPersistenceController: Sendable {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
         return context
+    }
+
+    // MARK: - Bundled Database Seeding
+
+    /// Copy bundled starter dictionary to app group container if no database exists yet.
+    /// - Parameter baseDirectory: The app group container URL to seed into.
+    private static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) {
+        guard let baseDirectory else { return }
+
+        let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+
+        // Skip if database already exists
+        guard !FileManager.default.fileExists(atPath: destinationDB.path) else { return }
+
+        // Find bundled starter dictionary in main app bundle (not framework bundle,
+        // to avoid duplicating the large database across dependent frameworks)
+        guard let bundleDB = Bundle.main.url(
+            forResource: "MaruDictionary",
+            withExtension: "sqlite",
+            subdirectory: "StarterDictionary"
+        ) else { return }
+
+        let fileManager = FileManager.default
+
+        do {
+            // Copy database file
+            try fileManager.copyItem(at: bundleDB, to: destinationDB)
+
+            // Copy media directory if present
+            let bundleMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("Media")
+            let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
+
+            if fileManager.fileExists(atPath: bundleMediaDir.path) {
+                try fileManager.copyItem(at: bundleMediaDir, to: destinationMediaDir)
+            }
+        } catch {
+            // Seeding is best-effort; log but don't crash
+            print("Warning: Failed to seed bundled dictionary: \(error.localizedDescription)")
+            // Clean up partial copy
+            try? fileManager.removeItem(at: destinationDB)
+        }
     }
 }
 
