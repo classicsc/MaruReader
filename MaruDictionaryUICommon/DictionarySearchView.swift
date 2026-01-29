@@ -157,7 +157,7 @@ public struct DictionarySearchView: View {
             if viewModel.currentRequest != nil {
                 // Furigana toggle
                 Button(action: { viewModel.toggleFurigana() }) {
-                    Label("Furigana", systemImage: viewModel.furiganaEnabled ? "textformat.abc.dottedunderline" : "textformat.abc")
+                    Label("Furigana", systemImage: viewModel.furiganaEnabled ? "textformat.characters.dottedunderline.ja" : "textformat.characters.ja")
                         .labelStyle(.iconOnly)
                 }
 
