@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 UBLOCK_DIR="$ROOT_DIR/External/uBlock"
 RULESETS_PATH="$UBLOCK_DIR/platform/mv3/rulesets.json"
+RULESETS_BACKUP_PATH="$UBLOCK_DIR/platform/mv3/rulesets.json.bak"
 REPLACEMENT_RULESETS_PATH="$ROOT_DIR/External/ublock-rulesets.json"
 
 if [[ ! -d "$UBLOCK_DIR" ]]; then
@@ -21,7 +22,10 @@ if [[ ! -f "$REPLACEMENT_RULESETS_PATH" ]]; then
   exit 1
 fi
 
+mv "$RULESETS_PATH" "$RULESETS_BACKUP_PATH"
 cp "$REPLACEMENT_RULESETS_PATH" "$RULESETS_PATH"
 
 cd "$UBLOCK_DIR"
 make mv3-safari
+
+mv "$RULESETS_BACKUP_PATH" "$RULESETS_PATH"
