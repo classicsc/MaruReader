@@ -30,20 +30,27 @@ import os.log
 /// await AudioSourceImportManager.shared.waitForCompletion(jobID: jobID)
 /// ```
 public actor AudioSourceImportManager {
-    public static let shared = AudioSourceImportManager(container: DictionaryPersistenceController.shared.container)
+    public static let shared = AudioSourceImportManager(
+        container: DictionaryPersistenceController.shared.container,
+        baseDirectory: DictionaryPersistenceController.shared.baseDirectory
+    )
 
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
+    private var baseDirectory: URL?
     private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceImport")
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
 
-    init(container: NSPersistentContainer) {
+    public init(container: NSPersistentContainer, baseDirectory: URL? = nil) {
         self.container = container
+        self.baseDirectory = baseDirectory ?? FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        )
     }
 
     /// Enqueue a new audio source import from the given ZIP file URL.
@@ -109,7 +116,7 @@ public actor AudioSourceImportManager {
 
     /// Wait for a given import job to complete.
     /// - Parameter jobID: The NSManagedObjectID of the AudioSource import to wait for.
-    func waitForCompletion(jobID: NSManagedObjectID) async {
+    public func waitForCompletion(jobID: NSManagedObjectID) async {
         while true {
             if currentJobID == jobID {
                 await currentTask?.value
@@ -162,7 +169,7 @@ public actor AudioSourceImportManager {
         for sourceID in cleanupIDs {
             try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: sourceID, batchSize: 10000)
             try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: sourceID, batchSize: 10000)
-            AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: sourceID)
+            AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: sourceID, baseDirectory: baseDirectory)
         }
     }
 
@@ -251,7 +258,8 @@ public actor AudioSourceImportManager {
                     indexURL: indexResult.indexURL,
                     archiveURL: indexResult.archiveURL,
                     indexEntryPath: indexResult.indexEntryPath,
-                    container: container
+                    container: container,
+                    baseDirectory: baseDirectory
                 )
                 try await mediaTask.start()
                 logger.debug("Audio source job \(jobID) media copied")
@@ -284,10 +292,11 @@ public actor AudioSourceImportManager {
 
         } catch is CancellationError {
             let capturedSourceID = sourceID
+            let capturedBaseDirectory = baseDirectory
             if let id = capturedSourceID {
                 try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: id, batchSize: 10000)
                 try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: id, batchSize: 10000)
-                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
+                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id, baseDirectory: capturedBaseDirectory)
             }
             await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
@@ -302,10 +311,11 @@ public actor AudioSourceImportManager {
             }
         } catch {
             let capturedSourceID = sourceID
+            let capturedBaseDirectory = baseDirectory
             if let id = capturedSourceID {
                 try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: id, batchSize: 10000)
                 try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: id, batchSize: 10000)
-                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id)
+                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id, baseDirectory: capturedBaseDirectory)
             }
             await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
@@ -407,7 +417,7 @@ public actor AudioSourceImportManager {
                 }
 
                 if let uuid = audioSourceUUID {
-                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid)
+                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid, baseDirectory: baseDirectory)
                     try await deleteEntitiesInBatches(
                         entityName: "AudioHeadword",
                         sourceID: uuid,

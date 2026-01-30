@@ -152,12 +152,20 @@ public final class DictionaryPersistenceController: Sendable {
             // Copy database file
             try fileManager.copyItem(at: bundleDB, to: destinationDB)
 
-            // Copy media directory if present
+            // Copy media directory if present (dictionary media)
             let bundleMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("Media")
             let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
 
             if fileManager.fileExists(atPath: bundleMediaDir.path) {
                 try fileManager.copyItem(at: bundleMediaDir, to: destinationMediaDir)
+            }
+
+            // Copy audio media directory if present (audio source media)
+            let bundleAudioMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("AudioMedia")
+            let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
+
+            if fileManager.fileExists(atPath: bundleAudioMediaDir.path) {
+                try fileManager.copyItem(at: bundleAudioMediaDir, to: destinationAudioMediaDir)
             }
         } catch {
             // Seeding is best-effort; log but don't crash

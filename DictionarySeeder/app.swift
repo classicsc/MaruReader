@@ -43,6 +43,11 @@ struct ImportResult {
     let status: String
 }
 
+struct AudioSourceResult {
+    let name: String
+    let status: String
+}
+
 @main
 struct DictionarySeeder {
     static func main() async {
@@ -54,12 +59,30 @@ struct DictionarySeeder {
         }
 
         let outputDir = URL(fileURLWithPath: args[0], isDirectory: true)
-        let zipPaths = args.dropFirst().map { URL(fileURLWithPath: $0) }
+
+        // Parse remaining arguments, separating dictionaries from audio sources
+        var dictionaryPaths: [URL] = []
+        var audioSourcePaths: [URL] = []
+        var expectAudio = false
+
+        for arg in args.dropFirst() {
+            if arg == "--audio" {
+                expectAudio = true
+            } else {
+                let url = URL(fileURLWithPath: arg)
+                if expectAudio {
+                    audioSourcePaths.append(url)
+                    expectAudio = false
+                } else {
+                    dictionaryPaths.append(url)
+                }
+            }
+        }
 
         // Validate input files exist
-        for zipURL in zipPaths {
+        for zipURL in dictionaryPaths + audioSourcePaths {
             guard FileManager.default.fileExists(atPath: zipURL.path) else {
-                print("Error: Dictionary file not found: \(zipURL.path)")
+                print("Error: File not found: \(zipURL.path)")
                 exit(1)
             }
         }
@@ -82,26 +105,48 @@ struct DictionarySeeder {
             // Create container with WAL disabled
             let container = try createContainer(storeURL: storeURL)
 
-            // Create import manager with custom base directory
-            let importManager = DictionaryImportManager(
-                container: container,
-                baseDirectory: outputDir
-            )
+            var dictionaryResults: [ImportResult] = []
+            var audioResults: [AudioSourceResult] = []
 
-            var results: [ImportResult] = []
+            // Import dictionaries
+            if !dictionaryPaths.isEmpty {
+                let importManager = DictionaryImportManager(
+                    container: container,
+                    baseDirectory: outputDir
+                )
 
-            for zipURL in zipPaths {
-                print("Importing: \(zipURL.lastPathComponent)...")
+                for zipURL in dictionaryPaths {
+                    print("Importing dictionary: \(zipURL.lastPathComponent)...")
 
-                let jobID = try await importManager.enqueueImport(from: zipURL)
-                await importManager.waitForCompletion(jobID: jobID)
+                    let jobID = try await importManager.enqueueImport(from: zipURL)
+                    await importManager.waitForCompletion(jobID: jobID)
 
-                let result = try await getResult(container: container, jobID: jobID)
-                results.append(result)
-                print("  \(result.status): \(result.name) (\(result.terms) terms, \(result.kanji) kanji)")
+                    let result = try await getDictionaryResult(container: container, jobID: jobID)
+                    dictionaryResults.append(result)
+                    print("  \(result.status): \(result.name) (\(result.terms) terms, \(result.kanji) kanji)")
+                }
             }
 
-            printSummary(results: results)
+            // Import audio sources
+            if !audioSourcePaths.isEmpty {
+                let audioImportManager = AudioSourceImportManager(
+                    container: container,
+                    baseDirectory: outputDir
+                )
+
+                for zipURL in audioSourcePaths {
+                    print("Importing audio source: \(zipURL.lastPathComponent)...")
+
+                    let jobID = try await audioImportManager.enqueueImport(from: zipURL)
+                    await audioImportManager.waitForCompletion(jobID: jobID)
+
+                    let result = try await getAudioSourceResult(container: container, jobID: jobID)
+                    audioResults.append(result)
+                    print("  \(result.status): \(result.name)")
+                }
+            }
+
+            printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults)
             try verifyNoWAL(at: storeURL)
 
             print("\nOutput written to: \(outputDir.path)")
@@ -114,13 +159,14 @@ struct DictionarySeeder {
 
     static func printUsage() {
         print("""
-        Usage: DictionarySeeder <output-dir> <dictionary1.zip> [dictionary2.zip ...]
+        Usage: DictionarySeeder <output-dir> <dictionary1.zip> [dictionary2.zip ...] [--audio <audio.zip>] ...
 
-        Imports Yomitan dictionaries into a SQLite database suitable for bundling.
+        Imports Yomitan dictionaries and audio sources into a SQLite database suitable for bundling.
 
         Arguments:
           output-dir       Directory to write the database and media files
           dictionary.zip   One or more Yomitan dictionary ZIP files to import
+          --audio <file>   Specify the next ZIP file as an indexed audio source
 
         Output structure:
           output-dir/
@@ -128,6 +174,12 @@ struct DictionarySeeder {
             Media/
               {dictionaryUUID}/
                 [media files...]
+            AudioMedia/
+              {audioSourceUUID}/
+                [audio files...]
+
+        Example:
+          DictionarySeeder ./StarterDictionary jmdict.zip --audio kanjialive.zip
         """)
     }
 
@@ -162,7 +214,7 @@ struct DictionarySeeder {
         return container
     }
 
-    static func getResult(container: NSPersistentContainer, jobID: NSManagedObjectID) async throws -> ImportResult {
+    static func getDictionaryResult(container: NSPersistentContainer, jobID: NSManagedObjectID) async throws -> ImportResult {
         let context = container.newBackgroundContext()
         return try await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
@@ -188,24 +240,66 @@ struct DictionarySeeder {
         }
     }
 
-    static func printSummary(results: [ImportResult]) {
+    static func getAudioSourceResult(container: NSPersistentContainer, jobID: NSManagedObjectID) async throws -> AudioSourceResult {
+        let context = container.newBackgroundContext()
+        return try await context.perform {
+            guard let audioSource = try? context.existingObject(with: jobID) as? AudioSource else {
+                throw SeederError.importFailed("Could not fetch audio source record")
+            }
+
+            let status = if audioSource.isComplete {
+                "Completed"
+            } else if audioSource.isFailed {
+                "Failed: \(audioSource.displayProgressMessage ?? "Unknown error")"
+            } else if audioSource.isCancelled {
+                "Cancelled"
+            } else {
+                "Unknown"
+            }
+
+            return AudioSourceResult(
+                name: audioSource.name ?? "Unknown",
+                status: status
+            )
+        }
+    }
+
+    static func printSummary(dictionaryResults: [ImportResult], audioResults: [AudioSourceResult]) {
         print("\n--- Summary ---")
 
-        let completed = results.filter { $0.status == "Completed" }
-        let failed = results.filter { $0.status != "Completed" }
+        // Dictionary summary
+        if !dictionaryResults.isEmpty {
+            let completed = dictionaryResults.filter { $0.status == "Completed" }
+            let failed = dictionaryResults.filter { $0.status != "Completed" }
 
-        print("Imported: \(completed.count)/\(results.count) dictionaries")
+            print("Dictionaries: \(completed.count)/\(dictionaryResults.count) imported")
 
-        if !failed.isEmpty {
-            print("\nFailed imports:")
-            for result in failed {
-                print("  - \(result.name): \(result.status)")
+            if !failed.isEmpty {
+                print("\nFailed dictionary imports:")
+                for result in failed {
+                    print("  - \(result.name): \(result.status)")
+                }
             }
+
+            let totalTerms = completed.reduce(0) { $0 + $1.terms }
+            let totalKanji = completed.reduce(0) { $0 + $1.kanji }
+            print("Total dictionary entries: \(totalTerms) terms, \(totalKanji) kanji")
         }
 
-        let totalTerms = completed.reduce(0) { $0 + $1.terms }
-        let totalKanji = completed.reduce(0) { $0 + $1.kanji }
-        print("\nTotal entries: \(totalTerms) terms, \(totalKanji) kanji")
+        // Audio source summary
+        if !audioResults.isEmpty {
+            let completed = audioResults.filter { $0.status == "Completed" }
+            let failed = audioResults.filter { $0.status != "Completed" }
+
+            print("Audio sources: \(completed.count)/\(audioResults.count) imported")
+
+            if !failed.isEmpty {
+                print("\nFailed audio source imports:")
+                for result in failed {
+                    print("  - \(result.name): \(result.status)")
+                }
+            }
+        }
     }
 
     static func verifyNoWAL(at storeURL: URL) throws {

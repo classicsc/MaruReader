@@ -29,15 +29,27 @@ struct AudioSourceMediaCopyTask {
     let archiveURL: URL
     let indexEntryPath: String
     let persistentContainer: NSPersistentContainer
+    let baseDirectory: URL?
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceMediaCopyTask")
 
-    init(jobID: NSManagedObjectID, sourceID: UUID, indexURL: URL, archiveURL: URL, indexEntryPath: String, container: NSPersistentContainer) {
+    init(
+        jobID: NSManagedObjectID,
+        sourceID: UUID,
+        indexURL: URL,
+        archiveURL: URL,
+        indexEntryPath: String,
+        container: NSPersistentContainer,
+        baseDirectory: URL? = nil
+    ) {
         self.jobID = jobID
         self.sourceID = sourceID
         self.indexURL = indexURL
         self.archiveURL = archiveURL
         self.indexEntryPath = indexEntryPath
         self.persistentContainer = container
+        self.baseDirectory = baseDirectory ?? FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        )
     }
 
     func start() async throws {
@@ -65,16 +77,14 @@ struct AudioSourceMediaCopyTask {
         let mediaPrefix = basePath.isEmpty ? mediaDir : "\(basePath)/\(mediaDir)"
         let mediaPrefixWithSlash = mediaPrefix.hasSuffix("/") ? mediaPrefix : "\(mediaPrefix)/"
 
-        // Setup destination directory in app group
+        // Setup destination directory
         let fileManager = FileManager.default
 
-        guard let appGroupDir = fileManager.containerURL(
-            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-        ) else {
+        guard let baseDir = baseDirectory else {
             throw AudioSourceImportError.mediaDirectoryCreationFailed
         }
 
-        let destMediaDir = appGroupDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
+        let destMediaDir = baseDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
 
         // Create destination directory if needed
         if !fileManager.fileExists(atPath: destMediaDir.path) {
@@ -153,16 +163,19 @@ struct AudioSourceMediaCopyTask {
     }
 
     /// Clean up the media directory for a given audio source.
-    static func cleanMediaDirectory(sourceID: UUID) {
+    /// - Parameters:
+    ///   - sourceID: The UUID of the audio source.
+    ///   - baseDirectory: The base directory containing AudioMedia. If nil, uses the app group container.
+    static func cleanMediaDirectory(sourceID: UUID, baseDirectory: URL? = nil) {
         let fileManager = FileManager.default
 
-        guard let appGroupDir = fileManager.containerURL(
+        guard let baseDir = baseDirectory ?? fileManager.containerURL(
             forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
         ) else {
             return
         }
 
-        let mediaDir = appGroupDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
+        let mediaDir = baseDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
 
         if fileManager.fileExists(atPath: mediaDir.path) {
             do {
