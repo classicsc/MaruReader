@@ -62,4 +62,6 @@ fastlane/screenshots/**/*.png
 fastlane/test_output
 DerivedData/
 buildServer.json
-MaruReader/StarterDictionary
+MaruReader/StarterDictionary/MaruDictionary.sqlite
+MaruReader/StarterDictionary/AudioMedia
+MaruReader/StarterDictionary/Media

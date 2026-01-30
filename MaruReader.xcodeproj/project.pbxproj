@@ -560,6 +560,9 @@
 			exceptions = (
 				DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */,
 			);
+			explicitFolders = (
+				StarterDictionary,
+			);
 			path = MaruReader;
 			sourceTree = "<group>";
 		};
