@@ -40,6 +40,7 @@ public struct WebViewerView: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     public init(initialURL: URL? = nil) {
         _viewModel = State(wrappedValue: WebViewerViewModel(initialURL: initialURL))
@@ -123,7 +124,7 @@ public struct WebViewerView: View {
                     contextValues: selection.contextValues
                 )
             }
-            .presentationDetents([.medium, .large])
+            .dictionarySheetDetents(for: horizontalSizeClass)
         }
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)

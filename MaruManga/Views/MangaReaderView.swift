@@ -30,6 +30,7 @@ public struct MangaReaderView: View {
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     public init(manga: MangaArchive) {
         _viewModel = State(wrappedValue: MangaReaderViewModel(manga: manga))
@@ -96,7 +97,7 @@ public struct MangaReaderView: View {
             .onDisappear {
                 searchSheetViewModel = nil
             }
-            .presentationDetents([.medium, .large])
+            .dictionarySheetDetents(for: horizontalSizeClass)
         }
         .task {
             await viewModel.loadArchive()
