@@ -172,6 +172,65 @@ struct AnkiMobileProviderTests {
         #expect(!(frontValue?.contains("file://") ?? false))
     }
 
+    @Test func addNote_convertsMarureaderAudioSchemeToDataURL() async throws {
+        let opener = TestURLOpener()
+        let provider = AnkiMobileProvider(urlOpener: opener)
+
+        // Create a test audio file in the app group AudioMedia directory
+        let sourceUUID = UUID()
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: "group.net.undefinedstar.MaruReader"
+        ) else {
+            Issue.record("App group directory not available")
+            return
+        }
+
+        let audioDir = appGroupDir
+            .appendingPathComponent("AudioMedia", isDirectory: true)
+            .appendingPathComponent(sourceUUID.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
+
+        let audioFile = audioDir.appendingPathComponent("test.mp3")
+        let audioData = Data([0x01, 0x02, 0x03])
+        try audioData.write(to: audioFile)
+        defer {
+            try? FileManager.default.removeItem(at: audioDir)
+        }
+
+        // Create a marureader-audio:// URL
+        let customURL = try #require(URL(string: "marureader-audio://\(sourceUUID.uuidString)/test.mp3"))
+
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Audio": [
+                TemplateResolvedValue(mediaFiles: ["audio": customURL]),
+            ],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let url = try #require(await opener.lastURL)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let items = components.queryItems ?? []
+        let audioValue = items.first { $0.name == "fldAudio" }?.value
+
+        let expectedDataURL = "data:audio/mpeg;base64,\(audioData.base64EncodedString())"
+        #expect(audioValue == expectedDataURL)
+        #expect(!(audioValue?.contains("marureader-audio://") ?? false))
+    }
+
     @Test func addNote_inlinesLocalMediaInHTML() async throws {
         let opener = TestURLOpener()
         let provider = AnkiMobileProvider(urlOpener: opener)
