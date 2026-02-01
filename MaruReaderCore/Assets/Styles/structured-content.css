@@ -463,6 +463,7 @@ body {
     position: relative;
     vertical-align: baseline;
     line-height: 0;
+    font-size: calc(1em / var(--font-size-no-units));
     overflow: hidden;
     width: attr(data-width length, 100px);
     border: attr(data-border, none);

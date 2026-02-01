@@ -607,7 +607,7 @@ struct DictionaryContentMarkupTests {
         let expectedPaddingTop = expectedAspectRatio * 100
         let formattedPaddingTop = formatNumber(expectedPaddingTop)
         #expect(html.contains("padding-top: \(formattedPaddingTop)%"))
-        #expect(html.contains("width: 150px")) // Should use preferredWidth
+        #expect(html.contains("width: 150em")) // Should use preferredWidth
     }
 
     @Test func structuredElement_toHTML_ImageWithPixelatedRendering() {
@@ -811,7 +811,7 @@ struct DictionaryContentMarkupTests {
         // Should calculate width from preferredHeight and aspect ratio (height/width = 100/200 = 0.5)
         let expectedWidth1 = 150.0 / (100.0 / 200.0) // preferredHeight / invAspectRatio = 300
         let formattedWidth1 = formatNumber(expectedWidth1)
-        #expect(html1.contains("width: \(formattedWidth1)px"))
+        #expect(html1.contains("width: \(formattedWidth1)em"))
 
         // Test with neither preferred dimension (should use width/height)
         let element2 = StructuredElement(
@@ -832,10 +832,10 @@ struct DictionaryContentMarkupTests {
         )
 
         let html2 = element2.toHTML()
-        // Width uses the raw pixel value expressed in px for layout.
-        let expectedWidth2Px = 120.0
-        let formattedWidth2 = formatNumber(expectedWidth2Px)
-        #expect(html2.contains("width: \(formattedWidth2)px"))
+        // Width uses the raw value expressed in em for font-relative sizing.
+        let expectedWidth2 = 120.0
+        let formattedWidth2 = formatNumber(expectedWidth2)
+        #expect(html2.contains("width: \(formattedWidth2)em"))
         let expectedPaddingTop2 = (80.0 / 120.0) * 100 // (height/width) * 100
         let formattedPaddingTop2 = formatNumber(expectedPaddingTop2)
         #expect(html2.contains("padding-top: \(formattedPaddingTop2)%"))
@@ -932,7 +932,7 @@ struct DictionaryContentMarkupTests {
     }
 
     @Test func structuredElement_toHTML_ImageWithNilDimensions() {
-        // Test that images without width/height default to 380px (converted to ~27.14em)
+        // Test that images without width/height default to 380 (expressed in em for font-relative sizing)
         let element = StructuredElement(
             tag: "img",
             content: nil,
@@ -952,10 +952,10 @@ struct DictionaryContentMarkupTests {
 
         let html = element.toHTML()
 
-        // Default dimensions: 380px expressed in px for layout.
-        let expectedWidthPx = 380.0
-        let formattedWidth = formatNumber(expectedWidthPx)
-        #expect(html.contains("width: \(formattedWidth)px"))
+        // Default dimensions: 380 expressed in em for font-relative sizing.
+        let expectedWidth = 380.0
+        let formattedWidth = formatNumber(expectedWidth)
+        #expect(html.contains("width: \(formattedWidth)em"))
 
         // Aspect ratio should be 100% (square 380:380)
         #expect(html.contains("padding-top: 100%"))
@@ -1156,8 +1156,8 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("class=\"gloss-image-link\""))
         #expect(html.contains("class=\"gloss-image-container\""))
         #expect(html.contains("class=\"gloss-image\""))
-        // Pixel dimensions in container
-        #expect(html.contains("width: 100px"))
+        // Em dimensions in container for font-relative sizing
+        #expect(html.contains("width: 100em"))
         // Image element has width/height attributes for intrinsic sizing
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"50\""))

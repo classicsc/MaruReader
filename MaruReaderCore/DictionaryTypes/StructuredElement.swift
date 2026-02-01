@@ -182,11 +182,7 @@ extension StructuredElement {
 
         let attributeString = attributes.joined(separator: " ")
 
-        let widthValue = if sizeUnits == "em" {
-            "\(formatNumber(usedWidth))em"
-        } else {
-            "\(formatNumber(usedWidth))px"
-        }
+        let widthValue = "\(formatNumber(usedWidth))em"
 
         var containerAttributes: [String] = []
 
@@ -473,11 +469,7 @@ extension StructuredElement {
         }
 
         // Container inline style for width
-        let widthValue = if sizeUnits == "em" {
-            "\(formatNumber(usedWidth))em"
-        } else {
-            "\(formatNumber(usedWidth))px"
-        }
+        let widthValue = "\(formatNumber(usedWidth))em"
         containerAttributes.append("style=\"width: \(widthValue)\"")
 
         // Aspect ratio for sizer

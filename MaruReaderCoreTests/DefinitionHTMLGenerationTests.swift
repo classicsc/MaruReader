@@ -99,7 +99,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-image-load-state=\"not-loaded\""))
         #expect(html.contains("data-has-aspect-ratio=\"true\""))
         #expect(html.contains("data-image-rendering=\"pixelated\""))
-        #expect(html.contains("<span class=\"gloss-image-container\" data-width=\"120px\""))
+        #expect(html.contains("<span class=\"gloss-image-container\" data-width=\"120em\""))
         #expect(html.contains("title=\"Example\""))
         #expect(html.contains("data-aspect-ratio=\"66.6667\""))
         #expect(html.contains("<span class=\"gloss-image-sizer\" style=\"padding-top: 66.6667%\">"))
@@ -109,7 +109,7 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
         #expect(html.contains("</div>"))
         #expect(!html.contains("style=\"border:"))
-        #expect(html.contains("style=\"width: 120px\""))
+        #expect(html.contains("style=\"width: 120em\""))
     }
 
     @Test func imageDefinition_toHTML_skipsAbsoluteSource() {
@@ -289,7 +289,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=150 and calculate height=75 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"150\""))
         #expect(html.contains("height=\"75\""))
-        #expect(html.contains("data-width=\"150px\""))
+        #expect(html.contains("data-width=\"150em\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -322,7 +322,7 @@ struct DefinitionHTMLGenerationTests {
         // Should calculate width=120 from preferredHeight=60 (maintaining 2:1 aspect ratio)
         #expect(html.contains("width=\"120\""))
         #expect(html.contains("height=\"60\""))
-        #expect(html.contains("data-width=\"120px\""))
+        #expect(html.contains("data-width=\"120em\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -355,7 +355,7 @@ struct DefinitionHTMLGenerationTests {
         // Should use preferredWidth=180 and calculate height from preferred aspect ratio (90/180 = 0.5)
         #expect(html.contains("width=\"180\""))
         #expect(html.contains("height=\"90\""))
-        #expect(html.contains("data-width=\"180px\""))
+        #expect(html.contains("data-width=\"180em\""))
         #expect(html.contains("data-aspect-ratio=\"50\""))
     }
 
@@ -419,7 +419,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border=\"2px solid red\""))
-        #expect(html.contains("data-width=\"100px\""))
+        #expect(html.contains("data-width=\"100em\""))
         #expect(!html.contains("style=\"border:"))
     }
 
@@ -450,7 +450,7 @@ struct DefinitionHTMLGenerationTests {
         let html = definition.toHTML()
 
         #expect(html.contains("data-border-radius=\"8px\""))
-        #expect(html.contains("data-width=\"100px\""))
+        #expect(html.contains("data-width=\"100em\""))
         #expect(!html.contains("style=\"border-radius:"))
     }
 
@@ -480,7 +480,7 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width=\"100px\""))
+        #expect(html.contains("class=\"gloss-image-container\" data-border=\"1px solid blue\" data-border-radius=\"4px\" data-width=\"100em\""))
         #expect(html.contains("style=\"width: 100%; height: 100%\""))
         #expect(html.contains("data-vertical-align=\"top\""))
         #expect(!html.contains("style=\"image-rendering:"))
@@ -554,7 +554,8 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("data-width=\"150em\""))
     }
 
-    @Test func imageDefinition_toHTML_sizeUnitsPxDoesNotApplyEmStyles() {
+    @Test func imageDefinition_toHTML_sizeUnitsPxUsesEmForContainer() {
+        // sizeUnits only affects image element attributes, not container width (which is always em)
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -582,7 +583,7 @@ struct DefinitionHTMLGenerationTests {
 
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 100px\""))
+        #expect(html.contains("style=\"width: 100em\"")) // Container always uses em
     }
 
     // MARK: - Description Tests
@@ -775,13 +776,13 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 18.0)
 
-        // Width uses the raw pixel value expressed in px for layout when sizeUnits is not "em".
+        // Width always uses em for font-relative sizing (CSS font-size trick makes it work like px but scalable)
         #expect(html.contains("width=\"200\""))
         #expect(html.contains("height=\"100\""))
-        #expect(html.contains("style=\"width: 200px\""))
+        #expect(html.contains("style=\"width: 200em\""))
     }
 
-    @Test func imageDefinition_toHTML_preferredDimensionsWithoutSizeUnitsUsePx() {
+    @Test func imageDefinition_toHTML_preferredDimensionsWithoutSizeUnitsUseEm() {
         let image = ImageDef(
             type: "image",
             path: "image.png",
@@ -801,14 +802,14 @@ struct DefinitionHTMLGenerationTests {
             verticalAlign: nil,
             border: nil,
             borderRadius: nil,
-            sizeUnits: nil // No explicit size units, so use pixel dimensions
+            sizeUnits: nil // No explicit size units, container uses em for font-relative sizing
         )
         let definition = Definition.detailed(.image(image))
 
         let html = definition.toHTML(devicePixelRatio: 2.0, baseFontSize: 14.0)
 
-        // Should use px units when sizeUnits is not explicitly "em"
-        #expect(html.contains("style=\"width: 150px\""))
+        // Container always uses em units for Yomitan compatibility
+        #expect(html.contains("style=\"width: 150em\""))
     }
 
     @Test func imageDefinition_toHTML_noDevicePixelRatioScalingWithoutEmAndPreferredDimensions() {
@@ -840,8 +841,8 @@ struct DefinitionHTMLGenerationTests {
         // No device pixel ratio scaling because sizeUnits != "em" and no preferred dimensions
         #expect(html.contains("width=\"100\""))
         #expect(html.contains("height=\"100\""))
-        // Width uses the raw pixel value expressed in px for layout when sizeUnits is not "em".
-        #expect(html.contains("style=\"width: 100px\""))
+        // Container always uses em for font-relative sizing
+        #expect(html.contains("style=\"width: 100em\""))
     }
 
     @Test func imageDefinition_toHTML_devicePixelRatioScalingWithPreferredHeightOnly() {
