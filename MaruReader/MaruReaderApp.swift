@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import Foundation
 import MaruAnki
 import MaruManga
 import MaruReaderCore
@@ -22,7 +23,13 @@ import SwiftUI
 
 @main
 struct MaruReaderApp: App {
+    @StateObject private var dictionarySeedingState: DictionarySeedingState
+    @State private var didContinueFromWelcome = false
+
     init() {
+        let dictionarySeedingState = DictionarySeedingState()
+        _dictionarySeedingState = StateObject(wrappedValue: dictionarySeedingState)
+
         Task { @MainActor in
             let returnURL = URL(string: "marureader://anki/x-success")
             await AnkiMobileURLOpenerStore.shared.configure(
@@ -32,10 +39,12 @@ struct MaruReaderApp: App {
         }
 
         Task {
+            await dictionarySeedingState.waitUntilSeedingComplete()
             await DictionaryUpdateManager.shared.setAnkiPreferencesUpdater(DictionaryUpdateAnkiPreferencesUpdater())
         }
 
         Task {
+            await dictionarySeedingState.waitUntilSeedingComplete()
             await BookImportManager.shared.cleanupInterruptedImports()
             await DictionaryImportManager.shared.cleanupInterruptedImports()
             await AudioSourceImportManager.shared.cleanupInterruptedImports()
@@ -50,7 +59,59 @@ struct MaruReaderApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if shouldShowContentView {
+                ContentView()
+            } else {
+                WelcomeView(
+                    isSeedingComplete: dictionarySeedingState.isSeedingComplete,
+                    onContinue: { didContinueFromWelcome = true }
+                )
+            }
         }
+    }
+
+    private var shouldShowContentView: Bool {
+        if !dictionarySeedingState.needsSeeding {
+            return true
+        }
+        return didContinueFromWelcome && dictionarySeedingState.isSeedingComplete
+    }
+}
+
+@MainActor
+private final class DictionarySeedingState: ObservableObject {
+    @Published private(set) var needsSeeding: Bool
+    @Published private(set) var isSeedingComplete: Bool
+
+    private let baseDirectory: URL?
+    private let seedingTask: Task<Void, Never>?
+
+    init() {
+        baseDirectory = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        )
+
+        let needsSeeding = DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory)
+        self.needsSeeding = needsSeeding
+        isSeedingComplete = !needsSeeding
+
+        if needsSeeding {
+            seedingTask = Task { [baseDirectory] in
+                await DictionaryPersistenceController.seedBundledDatabaseIfNeeded(to: baseDirectory)
+            }
+        } else {
+            seedingTask = nil
+        }
+
+        if let seedingTask {
+            Task { @MainActor in
+                await seedingTask.value
+                isSeedingComplete = true
+            }
+        }
+    }
+
+    func waitUntilSeedingComplete() async {
+        await seedingTask?.value
     }
 }

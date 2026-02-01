@@ -78,11 +78,6 @@ public final class DictionaryPersistenceController: Sendable {
             forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
         )
 
-        // Seed bundled database on first run (before configuring store)
-        if !inMemory, storeURL == nil {
-            Self.seedBundledDatabaseIfNeeded(to: baseDirectory)
-        }
-
         // Configure store location
         if inMemory {
             // In-memory store for testing
@@ -128,51 +123,64 @@ public final class DictionaryPersistenceController: Sendable {
 
     // MARK: - Bundled Database Seeding
 
+    /// Check whether the bundled dictionary still needs to be seeded.
+    /// - Parameter baseDirectory: The app group container URL to seed into.
+    /// - Returns: True when the starter database isn't present yet.
+    public static func isBundledDatabaseSeedingNeeded(at baseDirectory: URL?) -> Bool {
+        guard let baseDirectory else { return false }
+        let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        return !FileManager.default.fileExists(atPath: destinationDB.path)
+    }
+
     /// Copy bundled starter dictionary to app group container if no database exists yet.
     /// - Parameter baseDirectory: The app group container URL to seed into.
-    private static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) {
-        guard let baseDirectory else { return }
+    public static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) async {
+        guard isBundledDatabaseSeedingNeeded(at: baseDirectory) else { return }
 
-        let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        await Task.detached(priority: .utility) {
+            guard let baseDirectory else { return }
 
-        // Skip if database already exists
-        guard !FileManager.default.fileExists(atPath: destinationDB.path) else { return }
+            let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
 
-        // Find bundled starter dictionary in main app bundle (not framework bundle,
-        // to avoid duplicating the large database across dependent frameworks)
-        guard let bundleDB = Bundle.main.url(
-            forResource: "MaruDictionary",
-            withExtension: "sqlite",
-            subdirectory: "StarterDictionary"
-        ) else { return }
+            // Skip if database already exists
+            guard !FileManager.default.fileExists(atPath: destinationDB.path) else { return }
 
-        let fileManager = FileManager.default
+            // Find bundled starter dictionary in main app bundle (not framework bundle,
+            // to avoid duplicating the large database across dependent frameworks)
+            guard let bundleDB = Bundle.main.url(
+                forResource: "MaruDictionary",
+                withExtension: "sqlite",
+                subdirectory: "StarterDictionary"
+            ) else { return }
 
-        do {
-            // Copy database file
-            try fileManager.copyItem(at: bundleDB, to: destinationDB)
+            let fileManager = FileManager.default
 
-            // Copy media directory if present (dictionary media)
-            let bundleMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("Media")
-            let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
+            do {
+                // Copy database file
+                try fileManager.copyItem(at: bundleDB, to: destinationDB)
 
-            if fileManager.fileExists(atPath: bundleMediaDir.path) {
-                try fileManager.copyItem(at: bundleMediaDir, to: destinationMediaDir)
+                // Copy media directory if present (dictionary media)
+                let bundleMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("Media")
+                let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
+
+                if fileManager.fileExists(atPath: bundleMediaDir.path) {
+                    try fileManager.copyItem(at: bundleMediaDir, to: destinationMediaDir)
+                }
+
+                // Copy audio media directory if present (audio source media)
+                let bundleAudioMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("AudioMedia")
+                let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
+
+                if fileManager.fileExists(atPath: bundleAudioMediaDir.path) {
+                    try fileManager.copyItem(at: bundleAudioMediaDir, to: destinationAudioMediaDir)
+                }
+            } catch {
+                // Seeding is best-effort; log but don't crash
+                print("Warning: Failed to seed bundled dictionary: \(error.localizedDescription)")
+                // Clean up partial copy
+                try? fileManager.removeItem(at: destinationDB)
             }
-
-            // Copy audio media directory if present (audio source media)
-            let bundleAudioMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("AudioMedia")
-            let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
-
-            if fileManager.fileExists(atPath: bundleAudioMediaDir.path) {
-                try fileManager.copyItem(at: bundleAudioMediaDir, to: destinationAudioMediaDir)
-            }
-        } catch {
-            // Seeding is best-effort; log but don't crash
-            print("Warning: Failed to seed bundled dictionary: \(error.localizedDescription)")
-            // Clean up partial copy
-            try? fileManager.removeItem(at: destinationDB)
-        }
+        }.value
     }
 }
 
