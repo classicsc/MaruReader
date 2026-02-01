@@ -82,7 +82,7 @@ final class StructuredElement: Codable, Sendable {
 extension StructuredElement {
     private static let selfClosingTags: Set<String> = ["img", "br", "hr", "input", "meta", "link"]
 
-    private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
+    private func createImageElement(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil, insideAnchor: Bool = false) -> String {
         guard let path else { return "" }
 
         // Get original dimensions with defaults
@@ -142,14 +142,28 @@ extension StructuredElement {
 
         let resolvedPath = resolveImagePath(path: path, baseURL: baseURL)
 
+        // When inside an anchor, use span to avoid invalid nested anchors
+        let wrapperTag = insideAnchor ? "span" : "a"
+
         var attributes: [String] = [
             "class=\"gloss-image-link\"",
-            "target=\"_blank\"",
-            "rel=\"noreferrer noopener\"",
         ]
 
+        if !insideAnchor {
+            attributes.append("target=\"_blank\"")
+            attributes.append("rel=\"noreferrer noopener\"")
+        } else {
+            // Make span behave like an interactive element
+            attributes.append("role=\"button\"")
+            attributes.append("tabindex=\"0\"")
+        }
+
         if let resolvedPath {
-            attributes.append("href=\"\(escapeHTML(resolvedPath))\"")
+            if insideAnchor {
+                attributes.append("data-href=\"\(escapeHTML(resolvedPath))\"")
+            } else {
+                attributes.append("href=\"\(escapeHTML(resolvedPath))\"")
+            }
         }
 
         attributes.append("data-path=\"\(escapeHTML(path))\"")
@@ -239,7 +253,7 @@ extension StructuredElement {
         imageHTML = "<img \(imageAttributes.joined(separator: " ")) />"
 
         return """
-        <a \(attributeString)>
+        <\(wrapperTag) \(attributeString)>
             <span class="gloss-image-container"\(containerAttributeString) style="width: \(widthValue)">
                 <span class="gloss-image-sizer" style="padding-top: \(formatNumber(paddingTopValue))%"></span>
                 <span class="gloss-image-background"></span>
@@ -247,7 +261,7 @@ extension StructuredElement {
                 <span class="gloss-image-container-overlay"></span>
             </span>
             <span class="gloss-image-link-text">Image</span>
-        </a>
+        </\(wrapperTag)>
         """
     }
 
@@ -262,7 +276,7 @@ extension StructuredElement {
         return nil
     }
 
-    private func createElementByType(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
+    private func createElementByType(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?, insideAnchor: Bool = false) -> String {
         let isSelfClosing = Self.selfClosingTags.contains(tag)
 
         var attributes: [String] = []
@@ -287,6 +301,10 @@ extension StructuredElement {
             attributes.append("style=\"\(escapeHTML(style.toCSSString()))\"")
         }
 
+        // Track if we're entering an anchor element
+        let isAnchorElement = tag == "a"
+        let childInsideAnchor = insideAnchor || isAnchorElement
+
         // Specialized handling
         switch tag {
         case "table":
@@ -309,7 +327,7 @@ extension StructuredElement {
                 attributes.append("data-external=\"\(isInternal ? "false" : "true")\"")
             }
         case "img":
-            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor)
         case "details":
             if let open, open {
                 attributes.append("open")
@@ -333,7 +351,7 @@ extension StructuredElement {
             return "<\(tag)\(attributeString) />"
         }
 
-        let contentHTML = generateContentHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+        let contentHTML = generateContentHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: childInsideAnchor)
 
         let fullContent: String
         if tag == "a" {
@@ -356,11 +374,11 @@ extension StructuredElement {
         }
     }
 
-    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil, insideAnchor: Bool = false) -> String {
         if tag == "img" {
-            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+            return createImageElement(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor)
         }
-        return createElementByType(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+        return createElementByType(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor)
     }
 
     /// Generate Anki-compatible HTML with CSS classes for styling via embedded stylesheets.
@@ -606,9 +624,9 @@ extension StructuredElement {
         return elementHTML
     }
 
-    private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?) -> String {
+    private func generateContentHTML(baseURL: URL?, devicePixelRatio: Double?, emSize: Double?, insideAnchor: Bool = false) -> String {
         guard let content else { return "" }
-        return content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+        return content.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor)
     }
 
     private func formatNumber(_ value: Double) -> String {

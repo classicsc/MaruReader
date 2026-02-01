@@ -46,6 +46,20 @@ window.MaruReader.linkDisplay = {
                 self.handleInternalLink(href);
             }
         }, true);
+
+        // Handle clicks on span-based image links (used to avoid nested anchors)
+        document.addEventListener('click', function(event) {
+            var imageSpan = event.target.closest('span.gloss-image-link');
+            if (!imageSpan) return;
+
+            // Get the href from data attribute
+            var href = imageSpan.getAttribute('data-href');
+            if (href) {
+                event.preventDefault();
+                event.stopPropagation();
+                window.open(href, '_blank');
+            }
+        }, true);
     },
 
     /**

@@ -1293,4 +1293,205 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("class=\"gloss-sc-ol\""))
         #expect(html.contains("class=\"gloss-sc-li\""))
     }
+
+    // MARK: - Nested Anchor Avoidance Tests
+
+    @Test func structuredElement_toHTML_ImageInsideAnchor_UsesSpan() {
+        // When an image is inside an anchor, it should use span to avoid nested anchors
+        let imageElement = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "gaiji.svg",
+            width: 1,
+            height: 1,
+            title: nil,
+            alt: nil,
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        // Test without insideAnchor - should use <a>
+        let normalHTML = imageElement.toHTML()
+        #expect(normalHTML.contains("<a "))
+        #expect(normalHTML.contains("class=\"gloss-image-link\""))
+        #expect(normalHTML.contains("</a>"))
+        #expect(!normalHTML.contains("<span class=\"gloss-image-link\""))
+
+        // Test with insideAnchor - should use <span>
+        let nestedHTML = imageElement.toHTML(insideAnchor: true)
+        #expect(nestedHTML.contains("<span "))
+        #expect(nestedHTML.contains("class=\"gloss-image-link\""))
+        #expect(nestedHTML.contains("</span>"))
+        #expect(!nestedHTML.contains("<a class=\"gloss-image-link\""))
+        // Should have accessibility attributes
+        #expect(nestedHTML.contains("role=\"button\""))
+        #expect(nestedHTML.contains("tabindex=\"0\""))
+        // Should have data-href instead of href
+        #expect(nestedHTML.contains("data-href=\"gaiji.svg\""))
+        // Should not have regular href attribute (only data-href)
+        #expect(!nestedHTML.contains(" href=\"gaiji.svg\""))
+    }
+
+    @Test func structuredElement_toHTML_ImageInsideNestedAnchor_UsesSpan() {
+        // Test the complete structure: <a><span data-sc-class="gaiji"><img></span></a>
+        let imageElement = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "ws一.svg",
+            width: 1,
+            height: 1,
+            title: nil,
+            alt: nil,
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let gaijiSpan = StructuredElement(
+            tag: "span",
+            content: .element(imageElement),
+            data: ["class": "gaiji"],
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let linkElement = StructuredElement(
+            tag: "a",
+            content: .element(gaijiSpan),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: "?query=一",
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = linkElement.toHTML()
+
+        // Should have the outer anchor
+        #expect(html.contains("<a class=\"gloss-link\""))
+        #expect(html.contains("href=\"?query=一\""))
+
+        // Should have the gaiji span with data attribute
+        #expect(html.contains("<span class=\"gloss-sc-span\""))
+        #expect(html.contains("data-sc-class=\"gaiji\""))
+
+        // Image wrapper should be span, not anchor (to avoid nested anchors)
+        #expect(html.contains("<span class=\"gloss-image-link\""))
+        #expect(!html.contains("<a class=\"gloss-image-link\""))
+
+        // Should have data-href for JavaScript handling
+        #expect(html.contains("data-href="))
+
+        // Image structure should still be intact inside
+        #expect(html.contains("class=\"gloss-image-container\""))
+        #expect(html.contains("class=\"gloss-image\""))
+    }
+
+    @Test func structuredElement_toHTML_ImageNotInsideAnchor_UsesAnchor() {
+        // An image not inside an anchor should use normal <a> wrapper
+        let imageElement = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "image.png",
+            width: 100,
+            height: 100,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let divElement = StructuredElement(
+            tag: "div",
+            content: .element(imageElement),
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: nil,
+            width: nil,
+            height: nil,
+            title: nil,
+            alt: nil,
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let html = divElement.toHTML()
+
+        // Should use <a> for image wrapper since we're not inside an anchor
+        #expect(html.contains("<a class=\"gloss-image-link\""))
+        #expect(html.contains("target=\"_blank\""))
+        #expect(html.contains("href=\"image.png\""))
+        #expect(!html.contains("<span class=\"gloss-image-link\""))
+    }
+
+    @Test func structuredContent_toHTML_PropagatesInsideAnchor() {
+        // Test that insideAnchor is properly propagated through StructuredContent
+        let imageElement = StructuredElement(
+            tag: "img",
+            content: nil,
+            data: nil,
+            style: nil,
+            lang: nil,
+            href: nil,
+            path: "test.svg",
+            width: 1,
+            height: 1,
+            title: nil,
+            alt: nil,
+            sizeUnits: "em",
+            colSpan: nil,
+            rowSpan: nil,
+            open: nil
+        )
+
+        let content = StructuredContent.array([
+            .text("Some text "),
+            .element(imageElement),
+            .text(" more text"),
+        ])
+
+        // Without insideAnchor
+        let normalHTML = content.toHTML()
+        #expect(normalHTML.contains("<a class=\"gloss-image-link\""))
+
+        // With insideAnchor
+        let nestedHTML = content.toHTML(insideAnchor: true)
+        #expect(nestedHTML.contains("<span class=\"gloss-image-link\""))
+        #expect(!nestedHTML.contains("<a class=\"gloss-image-link\""))
+    }
 }

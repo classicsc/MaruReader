@@ -57,14 +57,14 @@ enum StructuredContent: Codable, Sendable {
 // MARK: - HTML Conversion
 
 extension StructuredContent {
-    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil) -> String {
+    func toHTML(baseURL: URL? = nil, devicePixelRatio: Double? = nil, emSize: Double? = nil, insideAnchor: Bool = false) -> String {
         switch self {
         case let .text(string):
             escapeHTML(string)
         case let .array(contents):
-            contents.map { $0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize) }.joined()
+            contents.map { $0.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor) }.joined()
         case let .element(element):
-            element.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize)
+            element.toHTML(baseURL: baseURL, devicePixelRatio: devicePixelRatio, emSize: emSize, insideAnchor: insideAnchor)
         }
     }
 
