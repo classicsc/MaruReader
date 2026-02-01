@@ -7,7 +7,7 @@ MaruReader is a free, open source dictionary and reading application for learnin
 ### Dictionary System
 
 - **Built-in Japanese-English dictionary** The included Jitendex dictionary features clear definitions, examples, and variant form tables.
-- **Pronunciation Audio** Audio for over 10,000 words is included thanks to the work of the Kanji Alive project. If you need more, connect to an audio server (Yomitan custom URL compatible), or go offline with an audio ZIP (AJT Japanese plugin compatible). See the Pronunciation Audio guide for details.
+- **Pronunciation Audio** Over 10,000 audio clips included thanks to the Kanji alive project. If you need more, connect to an audio server (Yomitan custom URL compatible), or go offline with an audio ZIP (AJT Japanese plugin compatible). See the Pronunciation Audio guide for details.
 - **Yomitan Dictionary Format Support**
   - MaruReader uses the same dictionary format as [Yomitan](https://yomitan.wiki/). Check out its website or search the web for more dictionaries.
   - Frequency and pitch accent dictionaries for Yomitan can also be used.
@@ -28,7 +28,7 @@ MaruReader is a free, open source dictionary and reading application for learnin
 
 - **Text recognition for web-based content** You can use MaruReader even without offline books and manga. Open what you want to read online in the built-in web browser. Activate reading mode and tap on text to look it up using the same text recognition system used by the manga reader.
 - **Reading Mode Controls** Reading mode disables links when active, but you can turn pages on most eBook and manga sites by swiping to simulate a key press. For articles or scrolling readers, switch to scroll mode and swipe to scroll by a fixed amount.
-- **Built-in content blocker** The web browser has a built-in content blocker, so you can read with fewer distracting ads and trackers.
+- **Content blocker** The web browser has a content blocker with general and Japan-specific filters, so you can read with fewer distracting ads and trackers.
 
 ### Photo Scanner
 
@@ -47,11 +47,11 @@ There are many different answers, but many people find they make the fastest pro
 
 ### What should I read?
 
-MaruReader intentionally does not come with any starter reading materials, because it's better to read things you're actually interested in reading. However, it can be helpful to look through materials arranged by level to find something interesting that is just above your current skill level. There are many guides and databases online for this purpose.
+MaruReader intentionally does not come with any starter reading materials, because it's better to read what you're actually interested in reading. However, it can be helpful to look through materials arranged by level to find something interesting that is just above your current skill level. There are many guides and databases online for this purpose.
 
 ### Can MaruReader read eBooks in non-epub formats like Aozora?
 
-Most non-DRM ebook formats can be converted to epub with [Calibre](https://calibre-ebook.com). For aozora specifically, [AozoraEpub3](https://aozoraepub3-jdk21.github.io/AozoraEpub3-JDK21/en/usage.html) works well.
+Not directly, but most non-DRM ebook formats can be converted to epub with [Calibre](https://calibre-ebook.com). For aozora specifically, [AozoraEpub3](https://aozoraepub3-jdk21.github.io/AozoraEpub3-JDK21/en/usage.html) works well.
 
 ### Can MaruReader open manga in PDF or EPUB formats?
 
@@ -59,9 +59,9 @@ Not yet, but you can use Calibre to convert to CBZ.
 
 ### The text recognition got a character wrong in my manga!
 
-Text recognition can always produce errors, and while MaruReader uses on-device text recognition to provide convenience, privacy, and pretty good accuracy, it won't be as accurate as cloud services.
+Text recognition can always produce errors. MaruReader uses on-device text recognition to provide convenience, privacy, and pretty good accuracy, but it won't be as accurate as cloud services.
 
-But all is not lost. If you know how to type the correct character, you can use the pen icon at the bottom of the dictionary sheet to edit the context before trying the lookup again or creating an Anki note.
+All is not lost, however. If you know how to type the correct character, you can use the pen icon at the bottom of the dictionary sheet to edit the context before looking up the word again or creating an Anki note.
 
 ### I have a particular EPUB where the layout looks off and tapping the text doesn't work
 
@@ -81,7 +81,7 @@ Yes.
 
 The Anki integrations are designed to support mining, which is the process of reading and creating flashcards for unfamiliar words. See the Anki guide for full details.
 
-MaruReader can work with many of the same mining setups as Yomitan, the main limitation being that MaruReader cannot use custom handlebars, only a set of values that roughly corresponds to Yomitan's built in handlebars. If your workflow requires custom handlebars or some other feature that is missing, open an issue so we can look at whether it can be supported.
+MaruReader can work with many of the same mining setups as Yomitan, the main limitation being that MaruReader cannot use custom handlebars, only a set of values that roughly corresponds to Yomitan's default handlebars. If your workflow requires custom handlebars or some other feature that is missing, open an issue so we can look at whether it can be supported.
 
 ### Formatting looks wrong on my Anki cards
 
