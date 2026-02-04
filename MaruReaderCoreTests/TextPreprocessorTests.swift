@@ -928,11 +928,10 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation with a single preprocessor rule
         // Input: Half-width text with one rule
         // Expected: Array containing original and converted text
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
-        let variants = preprocessor.generateVariants(input, using: [rule])
+        let variants = JapaneseTextPreprocessor.generateVariants(input, using: [rule], maxVariants: 5)
 
         #expect(variants.variants.count == 2)
         #expect(variants.variants.contains("ﾖﾐﾁｬﾝ")) // Original
@@ -943,11 +942,10 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation when rules don't change the input
         // Input: Full-width text with half-width conversion rule
         // Expected: Only original text (rule produces no change)
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ヨミチャン" // Already full-width
 
-        let variants = preprocessor.generateVariants(input, using: [rule])
+        let variants = JapaneseTextPreprocessor.generateVariants(input, using: [rule], maxVariants: 5)
 
         #expect(variants.variants.count == 1)
         #expect(variants.variants.contains("ヨミチャン"))
@@ -957,10 +955,9 @@ struct TextPreprocessorTests {
         // Purpose: Test variant generation with no rules
         // Input: Any text with empty rules array
         // Expected: Only original text
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
         let input = "test"
 
-        let variants = preprocessor.generateVariants(input, using: [])
+        let variants = JapaneseTextPreprocessor.generateVariants(input, using: [], maxVariants: 5)
 
         #expect(variants.variants.count == 1)
         #expect(variants.variants.contains("test"))
@@ -970,45 +967,13 @@ struct TextPreprocessorTests {
         // Purpose: Test that variant generation respects the maxVariants limit
         // Input: Text and rules that could generate many variants, with low limit
         // Expected: Variants array doesn't exceed maxVariants
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 2)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
-        let variants = preprocessor.generateVariants(input, using: [rule])
+        let variants = JapaneseTextPreprocessor.generateVariants(input, using: [rule], maxVariants: 2)
 
         #expect(variants.variants.count <= 2)
         #expect(variants.variants.contains("ﾖﾐﾁｬﾝ")) // Original should always be included
-    }
-
-    // MARK: - Caching Tests
-
-    @Test func generateVariants_SameInputAndRules_UsesCachedResult() {
-        // Purpose: Test that identical inputs use cached results
-        // Input: Same text and rules called twice
-        // Expected: Same results both times (verifies caching works)
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
-        let rule = ConvertHalfWidthCharactersRule()
-        let input = "ﾖﾐﾁｬﾝ"
-
-        let variants1 = preprocessor.generateVariants(input, using: [rule])
-        let variants2 = preprocessor.generateVariants(input, using: [rule])
-
-        #expect(variants1.variants.count == variants2.variants.count)
-        #expect(Set(variants1.variants) == Set(variants2.variants))
-    }
-
-    @Test func generateVariants_DifferentRules_ReturnsDifferentResults() {
-        // Purpose: Test that different rule sets produce different cache entries
-        // Input: Same text with different rule combinations
-        // Expected: Different results for different rule sets
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 5)
-        let rule = ConvertHalfWidthCharactersRule()
-        let input = "ﾖﾐﾁｬﾝ"
-
-        let variants1 = preprocessor.generateVariants(input, using: [rule])
-        let variants2 = preprocessor.generateVariants(input, using: []) // No rules
-
-        #expect(variants1.variants.count != variants2.variants.count)
     }
 
     // MARK: - Multiple Rules Simulation Tests
@@ -1020,11 +985,10 @@ struct TextPreprocessorTests {
         // Purpose: Test that identical rules don't create duplicate variants
         // Input: Same rule applied multiple times
         // Expected: No duplicate variants in result
-        var preprocessor = JapaneseTextPreprocessor(maxVariants: 10)
         let rule = ConvertHalfWidthCharactersRule()
         let input = "ﾖﾐﾁｬﾝ"
 
-        let variants = preprocessor.generateVariants(input, using: [rule, rule, rule])
+        let variants = JapaneseTextPreprocessor.generateVariants(input, using: [rule, rule, rule], maxVariants: 5)
 
         #expect(variants.variants.count == 2) // Original + converted, no duplicates
         #expect(variants.variants.contains("ﾖﾐﾁｬﾝ"))

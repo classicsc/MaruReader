@@ -30,8 +30,7 @@ struct DeinflectorTests {
         expectedBase: String,
         expectedReasons: [String]
     ) {
-        var deinflector = JapaneseDeinflector()
-        let candidates = deinflector.deinflect(source)
+        let candidates = JapaneseDeinflector.deinflect(source)
 
         // Find matching candidate
         let matchingCandidate = candidates.first { candidate in
@@ -47,8 +46,7 @@ struct DeinflectorTests {
     @MainActor private func assertNoDeinflection(
         source: String
     ) {
-        var deinflector = JapaneseDeinflector()
-        let candidates = deinflector.deinflect(source)
+        let candidates = JapaneseDeinflector.deinflect(source)
         #expect(
             candidates.isEmpty,
             "Expected no deinflection candidates for '\(source)', but got: \(candidates)"
@@ -509,10 +507,9 @@ struct DeinflectorTests {
     // MARK: - Max Depth Tests
 
     @MainActor @Test func maxDepthLimiting() {
-        var deinflector = JapaneseDeinflector()
         // Test with limited max depth
-        let shallowCandidates = deinflector.deinflect("食べさせられたくなかった", maxDepth: 2)
-        let deepCandidates = deinflector.deinflect("食べさせられたくなかった", maxDepth: 10)
+        let shallowCandidates = JapaneseDeinflector.deinflect("食べさせられたくなかった", maxDepth: 2)
+        let deepCandidates = JapaneseDeinflector.deinflect("食べさせられたくなかった", maxDepth: 10)
 
         // Shallow should have fewer candidates than deep
         #expect(shallowCandidates.count <= deepCandidates.count)
@@ -521,40 +518,16 @@ struct DeinflectorTests {
     // MARK: - Edge Cases and Invalid Forms
 
     @MainActor @Test func invalidForms() {
-        var deinflector = JapaneseDeinflector()
         // Invalid conjugations (these should not produce valid results)
-        let invalidResults = deinflector.deinflect("食べるない") // Invalid double verb ending
+        let invalidResults = JapaneseDeinflector.deinflect("食べるない") // Invalid double verb ending
         #expect(invalidResults.isEmpty || !invalidResults.contains { $0.base == "食べる" && $0.transforms.contains("negative") })
-    }
-
-    // MARK: - Caching Tests
-
-    @MainActor @Test func caching() {
-        var deinflector = JapaneseDeinflector()
-        let text = "食べている"
-
-        // First call
-        let results1 = deinflector.deinflect(text)
-
-        // Second call should use cache
-        let results2 = deinflector.deinflect(text)
-
-        // Results should be identical
-        #expect(results1.count == results2.count)
-
-        for (candidate1, candidate2) in zip(results1, results2) {
-            #expect(candidate1.base == candidate2.base)
-            #expect(candidate1.transforms == candidate2.transforms)
-            #expect(candidate1.conditions == candidate2.conditions)
-        }
     }
 
     // MARK: - Dictionary Form Sorting Tests
 
     @MainActor @Test func dictionaryFormsSortedFirst() {
-        var deinflector = JapaneseDeinflector()
         // Test that dictionary forms (those with isDictionaryForm=true conditions) are sorted first
-        let candidates = deinflector.deinflect("食べます") // Should produce both 食べる and intermediate forms
+        let candidates = JapaneseDeinflector.deinflect("食べます") // Should produce both 食べる and intermediate forms
 
         // Find candidates with dictionary forms vs non-dictionary forms
         var dictionaryFormCandidates: [DeinflectionCandidate] = []
