@@ -87,105 +87,121 @@ enum TermFetcher {
             logger: logger
         )
 
-        // Convert to SearchResult structs
-        var searchResults: [SearchResult] = []
+        let frequencyMapValue = try await frequencyMap
+        let pitchAccentMapValue = try await pitchAccentMap
+        let tagMetadataMapValue = try await tagMetadataMap
 
-        for entry in termEntries {
-            let expression = entry.expression
-            let reading = entry.reading
-            let dictionaryID = entry.dictionaryID
+        // Convert to SearchResult structs concurrently per entry
+        let searchResults = await withTaskGroup(of: [SearchResult].self) { group in
+            for entry in termEntries {
+                group.addTask {
+                    let expression = entry.expression
+                    let reading = entry.reading
+                    let dictionaryID = entry.dictionaryID
 
-            // Find matching candidates for this entry
-            let matchingCandidates = candidates.filter {
-                $0.text == expression || $0.text == reading
-            }
-            logger.debug("Entry '\(expression, privacy: .public)' matches candidates: \(matchingCandidates.map(\.text), privacy: .public)")
-
-            for candidate in matchingCandidates {
-                // Get dictionary metadata
-                guard let dictMetadata = dictionaryMetadata[dictionaryID] else {
-                    logger.debug("No metadata found for dictionary ID \(dictionaryID)")
-                    continue
-                }
-
-                // Check if deinflection rules match
-                let entryRules = decodeStringArray(from: entry.rules) ?? []
-                if !candidate.deinflectionOutputRules.isEmpty, !entryRules.isEmpty {
-                    let candidateRules = Set(candidate.deinflectionOutputRules)
-                    let entryRulesSet = Set(entryRules)
-
-                    // Skip if no rule overlap
-                    if entryRulesSet.isDisjoint(with: candidateRules) {
-                        logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate rules: \(candidateRules, privacy: .public)")
-                        continue
+                    // Find matching candidates for this entry
+                    let matchingCandidates = candidates.filter {
+                        $0.text == expression || $0.text == reading
                     }
+                    logger.debug("Entry '\(expression, privacy: .public)' matches candidates: \(matchingCandidates.map(\.text), privacy: .public)")
+
+                    var entryResults: [SearchResult] = []
+
+                    for candidate in matchingCandidates {
+                        // Get dictionary metadata
+                        guard let dictMetadata = dictionaryMetadata[dictionaryID] else {
+                            logger.debug("No metadata found for dictionary ID \(dictionaryID)")
+                            continue
+                        }
+
+                        // Check if deinflection rules match
+                        let entryRules = decodeStringArray(from: entry.rules) ?? []
+                        if !candidate.deinflectionOutputRules.isEmpty, !entryRules.isEmpty {
+                            let candidateRules = Set(candidate.deinflectionOutputRules)
+                            let entryRulesSet = Set(entryRules)
+
+                            // Skip if no rule overlap
+                            if entryRulesSet.isDisjoint(with: candidateRules) {
+                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate rules: \(candidateRules, privacy: .public)")
+                                continue
+                            }
+                        }
+
+                        // Decode glossary
+                        guard let definitions = decodeDefinitions(from: entry.glossary) else {
+                            logger.debug("Failed to decode glossary for term '\(expression, privacy: .public)'")
+                            continue
+                        }
+
+                        // Get frequencies for this term
+                        let frequencyKey = "\(expression)|\(reading)"
+                        let frequencies = frequencyMapValue[frequencyKey] ?? []
+                        let bestFrequency = frequencies.first
+
+                        // Get pitch accents for this term
+                        let pitchAccents = pitchAccentMapValue[frequencyKey] ?? []
+
+                        // Build term tags
+                        let termTagNames = decodeStringArray(from: entry.termTags) ?? []
+                        let termTags = buildTags(
+                            tagNames: termTagNames,
+                            dictionaryID: dictionaryID,
+                            tagMetadataMap: tagMetadataMapValue
+                        )
+
+                        // Build definition tags
+                        let definitionTagNames = decodeStringArray(from: entry.definitionTags) ?? []
+                        let definitionTags = buildTags(
+                            tagNames: definitionTagNames,
+                            dictionaryID: dictionaryID,
+                            tagMetadataMap: tagMetadataMapValue
+                        )
+
+                        // Create ranking criteria using best frequency
+                        let rankingCriteria = RankingCriteria(
+                            candidate: candidate,
+                            term: expression,
+                            termScore: entry.score,
+                            definitions: definitions,
+                            frequency: (bestFrequency?.value, bestFrequency?.mode),
+                            dictionaryTitle: dictMetadata.title,
+                            dictionaryPriority: dictMetadata.termDisplayPriority
+                        )
+
+                        logger.debug("Created SearchResult: term='\(expression, privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), frequencies=\(frequencies.count), sequence=\(entry.sequence)")
+
+                        // Create SearchResult
+                        let searchResult = SearchResult(
+                            candidate: candidate,
+                            term: expression,
+                            reading: reading.isEmpty ? nil : reading,
+                            definitions: definitions,
+                            frequency: bestFrequency?.value,
+                            frequencies: frequencies,
+                            pitchAccents: pitchAccents,
+                            dictionaryTitle: dictMetadata.title,
+                            dictionaryUUID: dictionaryID,
+                            displayPriority: dictMetadata.termDisplayPriority,
+                            rankingCriteria: rankingCriteria,
+                            termTags: termTags,
+                            definitionTags: definitionTags,
+                            deinflectionRules: candidate.deinflectionInputRules,
+                            sequence: entry.sequence,
+                            score: entry.score
+                        )
+
+                        entryResults.append(searchResult)
+                    }
+
+                    return entryResults
                 }
-
-                // Decode glossary
-                guard let definitions = decodeDefinitions(from: entry.glossary) else {
-                    logger.debug("Failed to decode glossary for term '\(expression, privacy: .public)'")
-                    continue
-                }
-
-                // Get frequencies for this term
-                let frequencyKey = "\(expression)|\(reading)"
-                let frequencies = try await frequencyMap[frequencyKey] ?? []
-                let bestFrequency = frequencies.first
-
-                // Get pitch accents for this term
-                let pitchAccents = try await pitchAccentMap[frequencyKey] ?? []
-
-                // Build term tags
-                let termTagNames = decodeStringArray(from: entry.termTags) ?? []
-                let termTags = try await buildTags(
-                    tagNames: termTagNames,
-                    dictionaryID: dictionaryID,
-                    tagMetadataMap: tagMetadataMap
-                )
-
-                // Build definition tags
-                let definitionTagNames = decodeStringArray(from: entry.definitionTags) ?? []
-                let definitionTags = try await buildTags(
-                    tagNames: definitionTagNames,
-                    dictionaryID: dictionaryID,
-                    tagMetadataMap: tagMetadataMap
-                )
-
-                // Create ranking criteria using best frequency
-                let rankingCriteria = RankingCriteria(
-                    candidate: candidate,
-                    term: expression,
-                    termScore: entry.score,
-                    definitions: definitions,
-                    frequency: (bestFrequency?.value, bestFrequency?.mode),
-                    dictionaryTitle: dictMetadata.title,
-                    dictionaryPriority: dictMetadata.termDisplayPriority
-                )
-
-                logger.debug("Created SearchResult: term='\(expression, privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), frequencies=\(frequencies.count), sequence=\(entry.sequence)")
-
-                // Create SearchResult
-                let searchResult = SearchResult(
-                    candidate: candidate,
-                    term: expression,
-                    reading: reading.isEmpty ? nil : reading,
-                    definitions: definitions,
-                    frequency: bestFrequency?.value,
-                    frequencies: frequencies,
-                    pitchAccents: pitchAccents,
-                    dictionaryTitle: dictMetadata.title,
-                    dictionaryUUID: dictionaryID,
-                    displayPriority: dictMetadata.termDisplayPriority,
-                    rankingCriteria: rankingCriteria,
-                    termTags: termTags,
-                    definitionTags: definitionTags,
-                    deinflectionRules: candidate.deinflectionInputRules,
-                    sequence: entry.sequence,
-                    score: entry.score
-                )
-
-                searchResults.append(searchResult)
             }
+
+            var results: [SearchResult] = []
+            for await entryResults in group {
+                results.append(contentsOf: entryResults)
+            }
+            return results
         }
 
         // Sort by ranking criteria (best ranks first - reverse sort since we want higher ranking first)
@@ -194,7 +210,7 @@ enum TermFetcher {
 
     // MARK: Intermediate result types
 
-    struct TermEntryData {
+    struct TermEntryData: Sendable {
         let expression: String
         let reading: String
         let dictionaryID: UUID
@@ -206,7 +222,7 @@ enum TermFetcher {
         let score: Double
     }
 
-    struct TagMetaData {
+    struct TagMetaData: Sendable {
         let name: String
         let notes: String
         let order: Double
