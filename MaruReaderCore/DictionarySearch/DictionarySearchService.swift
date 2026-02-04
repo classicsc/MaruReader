@@ -281,21 +281,12 @@ public actor DictionarySearchService {
 
         let metadata = dictionaryMetadataCache
 
-        return try await withCheckedThrowingContinuation { continuation in
-            let context = backgroundContext
-            context.perform {
-                do {
-                    let results = try TermFetcher.performFetch(
-                        candidates: candidates,
-                        dictionaryMetadata: metadata,
-                        context: context
-                    )
-                    continuation.resume(returning: results)
-                } catch {
-                    continuation.resume(throwing: error)
-                }
-            }
-        }
+        let context = backgroundContext
+        return try await TermFetcher.performFetch(
+            candidates: candidates,
+            dictionaryMetadata: metadata,
+            context: context
+        )
     }
 
     // MARK: - Audio Enrichment

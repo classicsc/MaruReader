@@ -39,7 +39,7 @@ public struct Tag: Codable, Sendable, Identifiable, Hashable {
         self.score = tagMeta.score
     }
 
-    /// Direct initializer for testing
+    /// Direct initialize
     init(name: String, category: String = "", notes: String = "", order: Double = 0, score: Double = 0) {
         self.name = name
         self.category = category

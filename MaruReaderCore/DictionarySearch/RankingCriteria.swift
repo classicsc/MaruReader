@@ -55,7 +55,7 @@ public struct RankingCriteria: Comparable, Sendable {
     init(
         candidate: LookupCandidate,
         term: String,
-        entry: TermEntry,
+        termScore: Double,
         definitions: [Definition],
         frequency: (value: Double?, mode: String?),
         dictionaryTitle: String,
@@ -85,7 +85,7 @@ public struct RankingCriteria: Comparable, Sendable {
         self.dictionaryPriority = dictionaryPriority
 
         // 7. Term score and dictionary
-        self.termScore = entry.score
+        self.termScore = termScore
         self.dictionaryTitle = dictionaryTitle
 
         // 8. Definition count

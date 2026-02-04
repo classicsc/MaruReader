@@ -33,7 +33,6 @@ public enum ResultDisplayState {
 }
 
 /// Helper class to hold mutable state references for the scheme handler
-@MainActor
 @Observable
 public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var resultState: ResultDisplayState
@@ -148,8 +147,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             try? await audioLookupService.loadProviders()
         }
 
-        // Initialize Anki connection manager asynchronously
-        Task { @MainActor in
+        Task {
             self.ankiConnectionManager = await AnkiConnectionManager()
         }
     }
@@ -181,8 +179,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             try? await audioLookupService.loadProviders()
         }
 
-        // Initialize Anki connection manager asynchronously
-        Task { @MainActor in
+        Task {
             self.ankiConnectionManager = await AnkiConnectionManager()
         }
 
@@ -191,9 +188,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             let loadSequence = page.load(html: response.toResultsHTML())
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
-                    await MainActor.run {
-                        self.history.push(request: reconstructedRequest, response: response)
-                    }
+                    self.history.push(request: reconstructedRequest, response: response)
                     return
                 }
             }
@@ -255,33 +250,23 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         searchTask?.cancel()
         searchTask = Task {
             if Task.isCancelled { return }
-            Task { @MainActor in
-                self.hidePopup()
-            }
-
-            let updateTask = Task { @MainActor in
-                self.resultState = .searching
-            }
+            self.hidePopup()
+            self.resultState = .searching
             do {
                 guard var searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
-                    await MainActor.run {
-                        self.currentRequest = lookupRequest
-                        self.currentResponse = nil
-                        self.resultState = .noResults(lookupRequest.context)
-                    }
+                    self.currentRequest = lookupRequest
+                    self.currentResponse = nil
+                    self.resultState = .noResults(lookupRequest.context)
                     return
                 }
 
                 // Check for existing Anki notes and update response
                 searchResults = await prepareResponseWithAnkiState(searchResults)
 
-                await updateTask.value
-                await MainActor.run {
-                    self.currentRequest = lookupRequest
-                    self.currentResponse = searchResults
-                    // Push to navigation history
-                    self.history.push(request: lookupRequest, response: searchResults)
-                }
+                self.currentRequest = lookupRequest
+                self.currentResponse = searchResults
+                // Push to navigation history
+                self.history.push(request: lookupRequest, response: searchResults)
                 let loadSequence = page.load(html: searchResults.toResultsHTML())
                 for try await value in loadSequence {
                     if Task.isCancelled { return }
@@ -291,11 +276,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     }
                 }
             } catch {
-                await MainActor.run {
-                    self.currentRequest = lookupRequest
-                    self.currentResponse = nil
-                    self.resultState = .error(error)
-                }
+                self.currentRequest = lookupRequest
+                self.currentResponse = nil
+                self.resultState = .error(error)
                 self.logger.error("Search error: \(error.localizedDescription)")
                 return
             }
@@ -464,9 +447,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             searchResults = await prepareResponseWithAnkiState(searchResults)
 
             // Store the response so we can preserve context when navigating
-            await MainActor.run {
-                self.currentPopupResponse = searchResults
-            }
+            self.currentPopupResponse = searchResults
             let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
             for try await value in loadSequence {
                 try Task.checkCancellation()
@@ -485,9 +466,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                         )
                         let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
                         if let firstRect = boundingRects.first {
-                            await MainActor.run {
-                                self.popupAnchorPosition = firstRect
-                            }
+                            self.popupAnchorPosition = firstRect
                         }
                     } catch {
                         logger.error("Failed to highlight text: \(error.localizedDescription)")
@@ -501,7 +480,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     public func hidePopup() {
         self.showPopup = false
         self.currentPopupResponse = nil
-        Task { @MainActor in
+        Task {
             do {
                 try await page.clearHighlights()
             } catch {
@@ -519,9 +498,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         focusDebounceTask?.cancel()
         Task {
             try? await Task.sleep(nanoseconds: 300_000_000)
-            await MainActor.run {
-                focusState = false
-            }
+            focusState = false
         }
     }
 
@@ -654,17 +631,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             // Prepare response with current Anki state
             let updatedResponse = await prepareResponseWithAnkiState(entry.response)
 
-            await MainActor.run {
-                self.currentRequest = entry.request
-                self.currentResponse = updatedResponse
-            }
+            self.currentRequest = entry.request
+            self.currentResponse = updatedResponse
 
             let loadSequence = page.load(html: updatedResponse.toResultsHTML())
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
-                    await MainActor.run {
-                        self.resultState = .ready
-                    }
+                    self.resultState = .ready
                     return
                 }
             }
@@ -687,17 +660,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             // Prepare response with current Anki state
             let updatedResponse = await prepareResponseWithAnkiState(entry.response)
 
-            await MainActor.run {
-                self.currentRequest = entry.request
-                self.currentResponse = updatedResponse
-            }
+            self.currentRequest = entry.request
+            self.currentResponse = updatedResponse
 
             let loadSequence = page.load(html: updatedResponse.toResultsHTML())
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
-                    await MainActor.run {
-                        self.resultState = .ready
-                    }
+                    self.resultState = .ready
                     return
                 }
             }
