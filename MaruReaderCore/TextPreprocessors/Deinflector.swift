@@ -100,7 +100,7 @@ struct Transform {
     let rules: [SuffixRule] // Array of suffixInflection ports
 }
 
-struct JapaneseDeinflector {
+enum JapaneseDeinflector {
     /// Conditions metadata (port 'conditions' object)
     static let conditionDetails: [Condition: (name: String, isDictionaryForm: Bool, subConditions: [Condition])] = [
         .v: ("Verb", false, [.v1, .v5, .vk, .vs, .vz]),
@@ -127,11 +127,8 @@ struct JapaneseDeinflector {
         .ya: ("Intermediate -や ending (conditional contraction)", false, []),
     ]
 
-    /// Cache for memoization (input text -> [DeinflectionCandidate])
-    private var cache: [String: [DeinflectionCandidate]] = [:]
-
     /// Helper function to check if current conditions satisfy required conditions considering subcondition hierarchy
-    private func conditionsMatch(current: Set<Condition>, required: Set<Condition>) -> Bool {
+    private static func conditionsMatch(current: Set<Condition>, required: Set<Condition>) -> Bool {
         // If no requirements, any current conditions are fine
         if required.isEmpty { return true }
 
@@ -150,7 +147,7 @@ struct JapaneseDeinflector {
     }
 
     /// Helper function to check if ancestor condition contains descendant condition in its subcondition hierarchy
-    private func isAncestorCondition(ancestor: Condition, descendant: Condition) -> Bool {
+    private static func isAncestorCondition(ancestor: Condition, descendant: Condition) -> Bool {
         guard let subConditions = JapaneseDeinflector.conditionDetails[ancestor]?.subConditions else {
             return false
         }
@@ -167,9 +164,7 @@ struct JapaneseDeinflector {
     }
 
     /// Main function: Generate deinflected candidates with rule traces
-    mutating func deinflect(_ text: String, maxDepth: Int = 10) -> [DeinflectionCandidate] {
-        if let cached = cache[text] { return cached }
-
+    static func deinflect(_ text: String, maxDepth: Int = 10) -> [DeinflectionCandidate] {
         var candidates: [DeinflectionCandidate] = []
         var seen = Set<String>() // Avoid dups by (deinflected text, conditions) pairs
 
@@ -236,13 +231,12 @@ struct JapaneseDeinflector {
             }
         }
 
-        cache[text] = candidates
         return candidates
     }
 
     /// Generate deinflected LookupCandidates, preserving original metadata and adding deinflection rules
-    mutating func deinflect(_ candidate: LookupCandidate, maxDepth: Int = 10) -> [LookupCandidate] {
-        let deinflectionCandidates = deinflect(candidate.text, maxDepth: maxDepth)
+    static func deinflect(_ candidate: LookupCandidate, maxDepth: Int = 10) -> [LookupCandidate] {
+        let deinflectionCandidates = JapaneseDeinflector.deinflect(candidate.text, maxDepth: maxDepth)
 
         return deinflectionCandidates.map { deinflectionCandidate in
             // Add deinflection rules

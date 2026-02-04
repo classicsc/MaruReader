@@ -27,9 +27,8 @@ struct DictionaryCandidateGenerator {
 
     // MARK: - Properties
 
-    private var preprocessor: JapaneseTextPreprocessor
-    private var deinflector: JapaneseDeinflector
     private let maxCandidates: Int
+    private let maxPreprocessorVariants: Int
 
     // MARK: - Initialization
 
@@ -39,8 +38,7 @@ struct DictionaryCandidateGenerator {
     ///   - maxPreprocessorVariants: Maximum variants per preprocessing step (default: 5)
     init(maxCandidates: Int = DictionaryCandidateGenerator.defaultMaxCandidates, maxPreprocessorVariants: Int = DictionaryCandidateGenerator.defaultMaxPreprocessorVariants) {
         self.maxCandidates = maxCandidates
-        self.preprocessor = JapaneseTextPreprocessor(maxVariants: maxPreprocessorVariants)
-        self.deinflector = JapaneseDeinflector()
+        self.maxPreprocessorVariants = maxPreprocessorVariants
     }
 
     // MARK: - Public Methods
@@ -48,7 +46,7 @@ struct DictionaryCandidateGenerator {
     /// Generate lookup candidates from user input
     /// - Parameter query: User search string
     /// - Returns: Array of `LookupCandidate` objects with full transformation provenance
-    mutating func generateCandidates(from query: String) -> [LookupCandidate] {
+    func generateCandidates(from query: String) -> [LookupCandidate] {
         guard !query.isEmpty else { return [] }
 
         var candidatesByText: [String: CandidateAccumulator] = [:]
@@ -129,7 +127,7 @@ struct DictionaryCandidateGenerator {
     /// Apply text preprocessing rules to generate variants
     /// - Parameter candidate: Base lookup candidate
     /// - Returns: Array of candidates with preprocessing applied
-    private mutating func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
+    private func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
         // Preprocessor config for Japanese, currently all rules enabled
         let defaultTextPreprocessorRules: [TextPreprocessorRule] = [
             NormalizeCJKCompatibilityCharactersRule(),
@@ -143,14 +141,14 @@ struct DictionaryCandidateGenerator {
             ConvertFullWidthAlphanumericToNormalRule(),
             ConvertAlphanumericToFullWidthRule(),
         ]
-        return preprocessor.generateVariants(candidate, using: defaultTextPreprocessorRules)
+        return JapaneseTextPreprocessor.generateVariants(candidate, using: defaultTextPreprocessorRules, maxVariants: maxPreprocessorVariants)
     }
 
     /// Apply deinflection rules to generate potential dictionary forms
     /// - Parameter candidate: Preprocessed lookup candidate
     /// - Returns: Array of candidates with deinflection applied
-    private mutating func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
-        deinflector.deinflect(candidate)
+    private func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
+        JapaneseDeinflector.deinflect(candidate)
     }
 }
 

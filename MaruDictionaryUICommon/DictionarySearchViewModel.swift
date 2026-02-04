@@ -119,7 +119,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     let history = NavigationHistory()
 
     private let audioLookupService = AudioLookupService(persistenceController: .shared)
-    private let searchService: DictionarySearchService
+    private var searchService: DictionarySearchService
 
     // Anki services - lazily initialized
     private var ankiConnectionManager: AnkiConnectionManager?

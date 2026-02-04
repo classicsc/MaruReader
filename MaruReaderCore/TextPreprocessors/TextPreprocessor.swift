@@ -27,33 +27,14 @@ protocol TextPreprocessorRule {
 
 // MARK: - Preprocessor Implementation
 
-struct JapaneseTextPreprocessor {
-    // MARK: - Properties
-
-    private let maxVariants: Int
-    private var cache: [String: [String]] = [:]
-    private var rulesCache: [String: [String: [String]]] = [:]
-
-    // MARK: - Initialization
-
-    init(maxVariants: Int = 5) {
-        self.maxVariants = maxVariants
-    }
-
-    // MARK: - Public Methods
-
+enum JapaneseTextPreprocessor {
     /// Generate text variants by applying preprocessor rules
     /// - Parameters:
     ///   - text: Input text to preprocess
     ///   - rules: Array of preprocessor rules to apply
+    ///   - maxVariants: Maximum number of variants to generate
     /// - Returns: Tuple containing array of text variants and mapping of variants to applied rules
-    mutating func generateVariants(_ text: String, using rules: [TextPreprocessorRule]) -> (variants: [String], appliedRules: [String: [String]]) {
-        // Check cache first
-        let cacheKey = createCacheKey(text: text, rules: rules)
-        if let cached = cache[cacheKey], let cachedRules = rulesCache[cacheKey] {
-            return (cached, cachedRules)
-        }
-
+    static func generateVariants(_ text: String, using rules: [TextPreprocessorRule], maxVariants: Int) -> (variants: [String], appliedRules: [String: [String]]) {
         var variants: Set<String> = [text] // Start with original text
         var currentVariants = [text]
         var appliedRules: [String: [String]] = [text: []] // Track rules for each variant
@@ -90,8 +71,6 @@ struct JapaneseTextPreprocessor {
         }
 
         let result = Array(variants)
-        cache[cacheKey] = result
-        rulesCache[cacheKey] = appliedRules
         return (result, appliedRules)
     }
 
@@ -99,9 +78,10 @@ struct JapaneseTextPreprocessor {
     /// - Parameters:
     ///   - candidate: Input LookupCandidate to preprocess
     ///   - rules: Array of preprocessor rules to apply
+    ///   - maxVariants: Maximum number of variants to generate
     /// - Returns: Array of LookupCandidates with preprocessing rules applied
-    mutating func generateVariants(_ candidate: LookupCandidate, using rules: [TextPreprocessorRule]) -> [LookupCandidate] {
-        let (variants, appliedRules) = generateVariants(candidate.text, using: rules)
+    static func generateVariants(_ candidate: LookupCandidate, using rules: [TextPreprocessorRule], maxVariants: Int) -> [LookupCandidate] {
+        let (variants, appliedRules) = generateVariants(candidate.text, using: rules, maxVariants: maxVariants)
 
         return variants.map { variant in
             // Add preprocessor rules for this variant
@@ -117,13 +97,6 @@ struct JapaneseTextPreprocessor {
                 deinflectionOutputRules: candidate.deinflectionOutputRules
             )
         }
-    }
-
-    // MARK: - Private Methods
-
-    private func createCacheKey(text: String, rules: [TextPreprocessorRule]) -> String {
-        let ruleNames = rules.map(\.name).joined(separator: "|")
-        return "\(text):\(ruleNames)"
     }
 }
 

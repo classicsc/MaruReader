@@ -32,26 +32,21 @@ struct DictionaryMetadata: Sendable {
     let pitchAccentEnabled: Bool
 }
 
-public actor DictionarySearchService {
+public struct DictionarySearchService: Sendable {
     /// The maximum forward lookup length for the TextLookupRequest API
     static let maxForwardLookupLength = 10
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchService")
 
     private let persistenceController: DictionaryPersistenceController
-    private var candidateGenerator: DictionaryCandidateGenerator
-    private let backgroundContext: NSManagedObjectContext
+    private let candidateGenerator: DictionaryCandidateGenerator
     private let audioLookupService: AudioLookupService?
-
-    /// Cached dictionary metadata, refreshed before each search
-    private var dictionaryMetadataCache: [UUID: DictionaryMetadata] = [:]
 
     public init(
         persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared,
         audioLookupService: AudioLookupService? = nil
     ) {
         self.persistenceController = persistenceController
-        self.backgroundContext = persistenceController.container.newBackgroundContext()
         self.candidateGenerator = DictionaryCandidateGenerator()
         self.audioLookupService = audioLookupService
     }
@@ -61,20 +56,18 @@ public actor DictionarySearchService {
             return []
         }
 
-        // Refresh dictionary metadata before search
-        try await refreshDictionaryMetadata()
-
         let candidates = candidateGenerator.generateCandidates(from: query)
         return try await fetchTerms(for: candidates)
     }
 
-    /// Refresh dictionary metadata cache from Core Data
-    private func refreshDictionaryMetadata() async throws {
-        let cache = try await backgroundContext.perform {
+    /// Get dictionary metadata cache from Core Data
+    private func getDictionaryMetadata() async throws -> [UUID: DictionaryMetadata] {
+        let backgroundContext = persistenceController.newBackgroundContext()
+        return try await backgroundContext.perform {
             let fetchRequest: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO")
 
-            let dictionaries = try self.backgroundContext.fetch(fetchRequest)
+            let dictionaries = try backgroundContext.fetch(fetchRequest)
 
             var cache: [UUID: DictionaryMetadata] = [:]
             for dict in dictionaries {
@@ -96,18 +89,17 @@ public actor DictionarySearchService {
 
             return cache
         }
-
-        self.dictionaryMetadataCache = cache
     }
 
     private func getDisplayStyles() async throws -> DisplayStyles {
-        try await backgroundContext.perform {
+        let backgroundContext = persistenceController.newBackgroundContext()
+        return try await backgroundContext.perform {
             let fetchRequest: NSFetchRequest<DictionaryDisplayPreferences> = DictionaryDisplayPreferences.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "enabled == %@", NSNumber(booleanLiteral: true))
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
             fetchRequest.fetchLimit = 1
 
-            let prefs = try self.backgroundContext.fetch(fetchRequest)
+            let prefs = try backgroundContext.fetch(fetchRequest)
 
             if let pref = prefs.first {
                 return DisplayStyles(
@@ -122,7 +114,7 @@ public actor DictionarySearchService {
                     pitchResultsAreaEnabled: pref.pitchResultsAreaEnabled
                 )
             } else {
-                let newPref = DictionaryDisplayPreferences(context: self.backgroundContext)
+                let newPref = DictionaryDisplayPreferences(context: backgroundContext)
                 newPref.id = UUID()
                 newPref.enabled = true
                 newPref.fontFamily = DictionaryDisplayDefaults.defaultFontFamily
@@ -135,7 +127,7 @@ public actor DictionarySearchService {
                 newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
                 newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
 
-                try self.backgroundContext.save()
+                try backgroundContext.save()
 
                 return DisplayStyles(
                     fontFamily: DictionaryDisplayDefaults.defaultFontFamily,
@@ -178,7 +170,7 @@ public actor DictionarySearchService {
 
         // Enrich results with audio data if audio service is available
         if let audioService = audioLookupService {
-            groupedResults = await enrichWithAudioResults(groupedResults, audioService: audioService)
+            groupedResults = await DictionarySearchService.enrichWithAudioResults(groupedResults, audioService: audioService)
         }
 
         let styles = try await getDisplayStyles()
@@ -279,9 +271,9 @@ public actor DictionarySearchService {
     private func fetchTerms(for candidates: [LookupCandidate]) async throws -> [SearchResult] {
         guard !candidates.isEmpty else { return [] }
 
-        let metadata = dictionaryMetadataCache
+        let metadata = try await getDictionaryMetadata()
 
-        let context = backgroundContext
+        let context = persistenceController.newBackgroundContext()
         return try await TermFetcher.performFetch(
             candidates: candidates,
             dictionaryMetadata: metadata,
@@ -292,7 +284,7 @@ public actor DictionarySearchService {
     // MARK: - Audio Enrichment
 
     /// Enrich grouped results with audio data
-    private func enrichWithAudioResults(
+    private static func enrichWithAudioResults(
         _ results: [GroupedSearchResults],
         audioService: AudioLookupService
     ) async -> [GroupedSearchResults] {
