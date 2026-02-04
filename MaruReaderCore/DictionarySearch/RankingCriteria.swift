@@ -168,8 +168,8 @@ public struct RankingCriteria: Comparable, Sendable {
                 return false // rhs is worse
             case let (lVal?, rVal?):
                 // Both have frequency values, compare based on mode
-                let lhsMode = lhs.frequencyMode ?? "occurrence-based"
-                let rhsMode = rhs.frequencyMode ?? "occurrence-based"
+                let lhsMode = lhs.frequencyMode ?? "rank-based"
+                let rhsMode = rhs.frequencyMode ?? "rank-based"
 
                 // If modes differ, prefer the one with a valid mode
                 if lhsMode != rhsMode {
