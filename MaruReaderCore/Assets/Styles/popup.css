@@ -42,14 +42,12 @@
 }
 
 .popup-term-group:hover {
-    background-color: color-mix(in srgb, var(--accent-color) 8%, var(--background-color));
     border-color: color-mix(in srgb, var(--accent-color) 40%, var(--text-color-light2));
     transform: translateY(-1px);
     box-shadow: 0 4px 12px color-mix(in srgb, var(--text-color) 12%, transparent);
 }
 
 .popup-term-group:active {
-    background-color: color-mix(in srgb, var(--accent-color) 15%, var(--background-color));
     transform: translateY(0);
     box-shadow: 0 2px 6px color-mix(in srgb, var(--text-color) 10%, transparent);
 }
