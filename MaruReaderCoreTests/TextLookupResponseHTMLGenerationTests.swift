@@ -38,8 +38,7 @@ struct TextLookupResponseHTMLGenerationTests {
             dictionariesResults: [dictionaryResults],
             pitchAccentResults: [],
             termTags: [],
-            deinflectionInfo: nil,
-            audioResults: nil
+            deinflectionInfo: nil
         )
 
         let html = TextLookupResponse.dictionaryStylesHTML(for: [groupedResults]) { id in
@@ -70,8 +69,7 @@ struct TextLookupResponseHTMLGenerationTests {
             dictionariesResults: [dictionaryResults],
             pitchAccentResults: [],
             termTags: [],
-            deinflectionInfo: nil,
-            audioResults: nil
+            deinflectionInfo: nil
         )
 
         let request = TextLookupRequest(context: "term", offset: 0)

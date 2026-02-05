@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-public struct AudioLookupRequest: Sendable {
-    public let term: String
-    public let reading: String?
-    public let downstepPosition: String? // e.g. "0" for no downstep, "3" for downstep after 3rd mora, "1-1-1" for compound patterns
-    public let language: String
+struct AudioLookupRequest: Sendable {
+    let term: String
+    let reading: String?
+    let downstepPosition: String? // e.g. "0" for no downstep, "3" for downstep after 3rd mora, "1-1-1" for compound patterns
+    let language: String
 
-    public init(term: String, reading: String?, downstepPosition: String?, language: String = "ja") {
+    init(term: String, reading: String?, downstepPosition: String?, language: String = "ja") {
         self.term = term
         self.reading = reading
         self.language = language

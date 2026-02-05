@@ -44,8 +44,7 @@ struct TextLookupResponseEditingTests {
             dictionariesResults: [],
             pitchAccentResults: [],
             termTags: [],
-            deinflectionInfo: nil,
-            audioResults: nil
+            deinflectionInfo: nil
         )
     }
 

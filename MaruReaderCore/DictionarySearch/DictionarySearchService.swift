@@ -40,15 +40,11 @@ public struct DictionarySearchService: Sendable {
 
     private let persistenceController: DictionaryPersistenceController
     private let candidateGenerator: DictionaryCandidateGenerator
-    private let audioLookupService: AudioLookupService?
-
     public init(
-        persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared,
-        audioLookupService: AudioLookupService? = nil
+        persistenceController: DictionaryPersistenceController = DictionaryPersistenceController.shared
     ) {
         self.persistenceController = persistenceController
         self.candidateGenerator = DictionaryCandidateGenerator()
-        self.audioLookupService = audioLookupService
     }
 
     public func performSearch(query: String) async throws -> [SearchResult] {
@@ -163,14 +159,9 @@ public struct DictionarySearchService: Sendable {
         logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
         let results = try await performSearch(query: queryText)
-        var groupedResults = DictionarySearchService.groupResults(results)
+        let groupedResults = DictionarySearchService.groupResults(results)
         guard !groupedResults.isEmpty else {
             return nil
-        }
-
-        // Enrich results with audio data if audio service is available
-        if let audioService = audioLookupService {
-            groupedResults = await DictionarySearchService.enrichWithAudioResults(groupedResults, audioService: audioService)
         }
 
         let styles = try await getDisplayStyles()
@@ -279,58 +270,6 @@ public struct DictionarySearchService: Sendable {
             dictionaryMetadata: metadata,
             context: context
         )
-    }
-
-    // MARK: - Audio Enrichment
-
-    /// Enrich grouped results with audio data
-    private static func enrichWithAudioResults(
-        _ results: [GroupedSearchResults],
-        audioService: AudioLookupService
-    ) async -> [GroupedSearchResults] {
-        // Create audio requests for each unique term+reading (without pitch filter to get all audio)
-        let audioRequests = results.map { group in
-            AudioLookupRequest(
-                term: group.expression,
-                reading: group.reading,
-                downstepPosition: nil // Get all audio, filter client-side by pitch
-            )
-        }
-
-        // Batch lookup all audio
-        let audioResults = await audioService.lookupAudio(for: audioRequests)
-
-        // Map audio results by term+reading key for efficient lookup
-        var audioMap: [String: AudioLookupResult] = [:]
-        for audioResult in audioResults {
-            let key = "\(audioResult.request.term)|\(audioResult.request.reading ?? "")"
-            audioMap[key] = audioResult
-        }
-
-        // Create new grouped results with audio attached
-        return results.map { group in
-            let key = "\(group.expression)|\(group.reading ?? "")"
-            let audio = audioMap[key]
-
-            let termAudio: TermAudioResults? = audio.map { result in
-                TermAudioResults(
-                    expression: group.expression,
-                    reading: group.reading,
-                    sources: result.sources
-                )
-            }
-
-            return GroupedSearchResults(
-                termKey: group.termKey,
-                expression: group.expression,
-                reading: group.reading,
-                dictionariesResults: group.dictionariesResults,
-                pitchAccentResults: group.pitchAccentResults,
-                termTags: group.termTags,
-                deinflectionInfo: group.deinflectionInfo,
-                audioResults: termAudio
-            )
-        }
     }
 
     /// Format deinflection rules into a human-readable string

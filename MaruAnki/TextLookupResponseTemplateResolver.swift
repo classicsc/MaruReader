@@ -437,13 +437,8 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     }
 
     private func resolvePronunciationAudio() -> TemplateResolvedValue {
-        guard let audioResults = selectedGroup.audioResults,
-              let primaryURL = audioResults.primaryAudioURL
-        else {
-            return .empty
-        }
-        let fileID = "audio_\(UUID().uuidString)"
-        return TemplateResolvedValue(mediaFiles: [fileID: primaryURL])
+        // Audio is now resolved asynchronously in the web view and not attached to the lookup response.
+        .empty
     }
 
     private func resolveSinglePitchAccent() -> TemplateResolvedValue {

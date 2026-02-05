@@ -457,47 +457,42 @@ public struct TextLookupResponse: Sendable {
 
     // MARK: - Audio HTML Generation
 
-    /// Serializes audio sources to JSON for use in HTML data attributes.
-    private func audioSourcesJSON(for sources: [AudioSourceResult]) -> String {
-        let sourceData = sources.map { source -> [String: String] in
-            var dict: [String: String] = ["url": source.url.absoluteString]
-            dict["providerName"] = source.providerName
-            // Include item name only if it differs from provider name (indicates JSON source with specific name)
-            if source.sourceName != source.providerName {
-                dict["itemName"] = source.sourceName
-            }
-            if let pitch = source.pitchNumber {
-                dict["pitch"] = pitch
-            }
-            return dict
-        }
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: sourceData),
-              let jsonString = String(data: jsonData, encoding: .utf8)
-        else {
-            return "[]"
-        }
-        return jsonString.escapeHTML()
-    }
+    /// Generates an audio button placeholder for async lookup.
+    private func audioButtonHTML(
+        term: String,
+        reading: String?,
+        pitchPosition: String? = nil,
+        role: String? = nil,
+        requireExactMatch: Bool = false,
+        extraClasses: [String] = []
+    ) -> String {
+        let termEscaped = term.escapeHTML()
+        let readingEscaped = (reading ?? "").escapeHTML()
+        let classes = (["audio-button"] + extraClasses).joined(separator: " ")
 
-    /// Generates an audio button HTML element with the given sources.
-    private func audioButtonHTML(sources: [AudioSourceResult], pitchPosition: String? = nil) -> String {
-        guard !sources.isEmpty else { return "" }
+        var attributes = [
+            "type=\"button\"",
+            "class=\"\(classes)\"",
+            "data-audio-term=\"\(termEscaped)\"",
+            "data-audio-reading=\"\(readingEscaped)\"",
+            "data-state=\"disabled\"",
+            "aria-disabled=\"true\"",
+            "aria-label=\"Play audio\"",
+        ]
 
-        // Filter by pitch position if specified
-        let filteredSources: [AudioSourceResult]
-        if let position = pitchPosition {
-            let matching = sources.filter { $0.pitchNumber == position }
-            filteredSources = matching.isEmpty ? sources : matching
-        } else {
-            filteredSources = sources
+        if let pitchPosition {
+            attributes.append("data-audio-pitch=\"\(pitchPosition.escapeHTML())\"")
         }
 
-        guard !filteredSources.isEmpty else { return "" }
+        if let role {
+            attributes.append("data-audio-role=\"\(role.escapeHTML())\"")
+        }
 
-        let sourcesJSON = audioSourcesJSON(for: filteredSources)
-        return """
-        <button type="button" class="audio-button" data-audio-sources="\(sourcesJSON)" data-state="ready" aria-label="Play audio"></button>
-        """
+        if requireExactMatch {
+            attributes.append("data-audio-require-exact=\"true\"")
+        }
+
+        return "<button \(attributes.joined(separator: " "))></button>"
     }
 
     /// Generates an Anki button HTML element for the given term group.
@@ -517,56 +512,12 @@ public struct TextLookupResponse: Sendable {
     /// Generates the expandable audio sources area HTML for a term group.
     /// This area is hidden by default and revealed by long-pressing the main audio button.
     private func audioSourcesAreaHTML(for termGroup: GroupedSearchResults) -> String {
-        guard let audioResults = termGroup.audioResults, audioResults.hasAudio else {
-            return ""
-        }
-
-        let sources = audioResults.sources
-        guard sources.count > 1 else {
-            // No need for expanded list if there's only one source
-            return ""
-        }
-
-        var itemsHTML: [String] = []
-
-        for source in sources {
-            let providerName = source.providerName.escapeHTML()
-
-            // Item name (from JSON source) if different from provider name
-            let itemNameHTML = if source.sourceName != source.providerName {
-                "<span class=\"audio-source-item-name\">\(source.sourceName.escapeHTML())</span>"
-            } else {
-                ""
-            }
-
-            // Pitch position if available
-            let pitchHTML = if let pitch = source.pitchNumber {
-                "<span class=\"audio-source-pitch\">[\(pitch.escapeHTML())]</span>"
-            } else {
-                ""
-            }
-
-            // Audio button for this specific source
-            let buttonJSON = audioSourcesJSON(for: [source])
-            let buttonHTML = """
-            <button type="button" class="audio-button audio-button-small" data-audio-sources="\(buttonJSON)" data-state="ready" aria-label="Play audio"></button>
-            """
-
-            itemsHTML.append("""
-            <div class="audio-source-item">
-                <span class="audio-source-provider">\(providerName)</span>
-                \(itemNameHTML)
-                \(pitchHTML)
-                \(buttonHTML)
-            </div>
-            """)
-        }
+        let termEscaped = termGroup.expression.escapeHTML()
+        let readingEscaped = (termGroup.reading ?? "").escapeHTML()
 
         return """
-        <div class="audio-sources-area" hidden>
-            <div class="audio-sources-list">
-                \(itemsHTML.joined(separator: "\n"))
-            </div>
+        <div class="audio-sources-area" hidden data-audio-term="\(termEscaped)" data-audio-reading="\(readingEscaped)">
+            <div class="audio-sources-list"></div>
         </div>
         """
     }
@@ -634,18 +585,19 @@ public struct TextLookupResponse: Sendable {
                 // Add dictionary name
                 itemHTML += "<span class=\"pitch-dictionary-name\">\(pitchResult.dictionaryTitle.escapeHTML())</span>"
 
-                // Add audio button for this specific pitch if audio is available
-                // Use requireExactMatch: true so audio buttons only appear when the audio source has matching pitch data
-                if includeAudio, let audioResults = termGroup.audioResults {
+                // Add audio button placeholder for this specific pitch
+                if includeAudio {
                     let pitchPositionString: String? = switch pitch.position {
                     case let .mora(pos): String(pos)
                     case .pattern: nil
                     }
 
-                    let pitchSources = audioResults.sources(forPitchPosition: pitchPositionString, requireExactMatch: true)
-                    if !pitchSources.isEmpty {
-                        itemHTML += audioButtonHTML(sources: pitchSources, pitchPosition: pitchPositionString)
-                    }
+                    itemHTML += audioButtonHTML(
+                        term: termGroup.expression,
+                        reading: termGroup.reading,
+                        pitchPosition: pitchPositionString,
+                        requireExactMatch: true
+                    )
                 }
 
                 itemHTML += "</div>"
@@ -691,11 +643,16 @@ public struct TextLookupResponse: Sendable {
     ) -> String {
         let expression = termGroup.expression.escapeHTML()
 
-        // Generate audio button if requested and audio is available
+        // Generate audio button placeholder if requested
         let audioHTML: String
-        if includeAudio, let audioResults = termGroup.audioResults, audioResults.hasAudio {
+        if includeAudio {
             let primaryPitch = primaryPitchPositionString(for: termGroup)
-            audioHTML = audioButtonHTML(sources: audioResults.sources, pitchPosition: primaryPitch)
+            audioHTML = audioButtonHTML(
+                term: termGroup.expression,
+                reading: termGroup.reading,
+                pitchPosition: primaryPitch,
+                role: "primary"
+            )
         } else {
             audioHTML = ""
         }
@@ -748,14 +705,14 @@ public struct TextLookupResponse: Sendable {
             // Generate term header with optional pitch notation
             let headerHTML = termHeaderHTML(for: termGroup, cssClass: "popup-term-header")
 
-            // Generate audio button for popup header
-            let audioButtonHTML: String
-            if let audioResults = termGroup.audioResults, audioResults.hasAudio {
-                let primaryPitch = primaryPitchPositionString(for: termGroup)
-                audioButtonHTML = self.audioButtonHTML(sources: audioResults.sources, pitchPosition: primaryPitch)
-            } else {
-                audioButtonHTML = ""
-            }
+            // Generate audio button placeholder for popup header
+            let primaryPitch = primaryPitchPositionString(for: termGroup)
+            let audioButtonHTML = self.audioButtonHTML(
+                term: termGroup.expression,
+                reading: termGroup.reading,
+                pitchPosition: primaryPitch,
+                role: "primary"
+            )
 
             // Generate Anki button for popup header
             let ankiButtonHTML = self.ankiButtonHTML(for: termGroup)

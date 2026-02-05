@@ -1358,6 +1358,30 @@ body:not([data-links-active="true"]) .gloss-link {
     content: 'stop';
 }
 
+.audio-button[data-state="disabled"]::before {
+    content: 'volume_up';
+}
+
+.audio-button[data-state="unavailable"]::before {
+    content: 'volume_off';
+}
+
+.audio-button[data-state="disabled"],
+.audio-button[data-state="unavailable"] {
+    background: rgba(128, 128, 128, 0.15);
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none;
+}
+
+.audio-button[data-state="disabled"]:hover,
+.audio-button[data-state="disabled"]:active,
+.audio-button[data-state="unavailable"]:hover,
+.audio-button[data-state="unavailable"]:active {
+    background: rgba(128, 128, 128, 0.15);
+    transform: none;
+}
+
 .audio-button[data-state="error"]::before {
     content: 'volume_off';
 }

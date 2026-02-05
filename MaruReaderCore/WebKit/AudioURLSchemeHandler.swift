@@ -20,8 +20,16 @@ import os.log
 import UniformTypeIdentifiers
 import WebKit
 
-public struct AudioURLSchemeHandler: URLSchemeHandler {
-    public init() {}
+public struct AudioURLSchemeHandler: URLSchemeHandler, Sendable {
+    private let lookupService: AudioLookupService
+
+    public init() {
+        self.lookupService = AudioLookupService(persistenceController: .shared)
+    }
+
+    init(lookupService: AudioLookupService) {
+        self.lookupService = lookupService
+    }
 
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioURLSchemeHandler")
 
@@ -29,7 +37,7 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
             let task = Task { @Sendable in
                 do {
-                    let results = try await Self.handleRequest(request)
+                    let results = try await handleRequest(request)
                     for result in results {
                         continuation.yield(result)
                     }
@@ -45,34 +53,42 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
         }
     }
 
-    private static func handleRequest(_ request: URLRequest) async throws -> [URLSchemeTaskResult] {
+    func handleRequest(_ request: URLRequest) async throws -> [URLSchemeTaskResult] {
         guard let url = request.url else {
-            logger.error("Invalid URL in request")
-            return createNotFoundResponse()
+            Self.logger.error("Invalid URL in request")
+            return Self.createNotFoundResponse()
         }
 
-        logger.debug("Handling request for URL: \(url.absoluteString)")
+        Self.logger.debug("Handling request for URL: \(url.absoluteString)")
+
+        guard url.scheme == "marureader-audio" else {
+            Self.logger.error("Invalid marureader-audio URL format: \(url.absoluteString)")
+            return Self.createNotFoundResponse()
+        }
+
+        if url.host() == "lookup" {
+            return try await handleLookupRequest(url)
+        }
 
         // Parse the URL: marureader-audio://sourceUUID/filepath
-        guard url.scheme == "marureader-audio",
-              let host = url.host(),
+        guard let host = url.host(),
               let sourceUUID = UUID(uuidString: host)
         else {
-            logger.error("Invalid marureader-audio URL format: \(url.absoluteString)")
-            return createNotFoundResponse()
+            Self.logger.error("Invalid marureader-audio URL format: \(url.absoluteString)")
+            return Self.createNotFoundResponse()
         }
 
         let requestedPath = String(url.path.dropFirst())
-        let fileURL = try audioFileURL(sourceUUID: sourceUUID, filePath: requestedPath)
+        let fileURL = try Self.audioFileURL(sourceUUID: sourceUUID, filePath: requestedPath)
 
         // Check if file exists
         guard (try? fileURL.checkResourceIsReachable()) == true else {
             let dir = fileURL.deletingLastPathComponent()
             if let contents = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) {
-                logger.debug("Contents of \(dir.path): \(contents.map(\.lastPathComponent))")
+                Self.logger.debug("Contents of \(dir.path): \(contents.map(\.lastPathComponent))")
             }
-            logger.warning("Audio file not found: \(fileURL.path)")
-            return createNotFoundResponse()
+            Self.logger.warning("Audio file not found: \(fileURL.path)")
+            return Self.createNotFoundResponse()
         }
 
         // Read file data
@@ -80,12 +96,12 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
         do {
             fileData = try Data(contentsOf: fileURL)
         } catch {
-            logger.error("Failed to read audio file: \(error.localizedDescription)")
-            return createServerErrorResponse()
+            Self.logger.error("Failed to read audio file: \(error.localizedDescription)")
+            return Self.createServerErrorResponse()
         }
 
         // Determine MIME type
-        let mimeType = getMimeType(for: fileURL)
+        let mimeType = Self.getMimeType(for: fileURL)
 
         // Create HTTP response
         let response = HTTPURLResponse(
@@ -99,11 +115,69 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
             ]
         )!
 
-        logger.debug("Serving audio file: \(fileURL.path()) (\(fileData.count) bytes, \(mimeType))")
+        Self.logger.debug("Serving audio file: \(fileURL.path()) (\(fileData.count) bytes, \(mimeType))")
 
         return [
             .response(response),
             .data(fileData),
+        ]
+    }
+
+    private func handleLookupRequest(_ url: URL) async throws -> [URLSchemeTaskResult] {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return Self.createBadRequestResponse(message: "Invalid lookup URL")
+        }
+
+        let queryItems = components.queryItems ?? []
+        let term = queryItems.first(where: { $0.name == "term" })?.value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let term, !term.isEmpty else {
+            return Self.createBadRequestResponse(message: "Missing term")
+        }
+
+        let readingValue = queryItems.first(where: { $0.name == "reading" })?.value
+        let reading = readingValue?.isEmpty == true ? nil : readingValue
+        let languageValue = queryItems.first(where: { $0.name == "language" })?.value
+        let language = languageValue?.isEmpty == false ? languageValue! : "ja"
+
+        try await lookupService.ensureLoaded()
+
+        let request = AudioLookupRequest(
+            term: term,
+            reading: reading,
+            downstepPosition: nil,
+            language: language
+        )
+
+        let result = await lookupService.lookupAudio(for: request)
+        let sources = result.sources.map { source in
+            AudioLookupSource(
+                url: source.url.absoluteString,
+                providerName: source.providerName,
+                itemName: source.sourceName == source.providerName ? nil : source.sourceName,
+                pitch: source.pitchNumber
+            )
+        }
+
+        let responseBody = AudioLookupResponse(sources: sources)
+        let data = try JSONEncoder().encode(responseBody)
+
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+                "Content-Type": "application/json",
+                "Content-Length": "\(data.count)",
+                "Cache-Control": "no-store",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Content-Type",
+            ]
+        )!
+
+        return [
+            .response(response),
+            .data(data),
         ]
     }
 
@@ -164,12 +238,38 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
         ]
     }
 
+    private static func createBadRequestResponse(message: String) -> [URLSchemeTaskResult] {
+        let response = HTTPURLResponse(
+            url: URL(string: "marureader-audio://error")!,
+            statusCode: 400,
+            httpVersion: "HTTP/1.1",
+            headerFields: [
+                "Content-Type": "text/plain",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Content-Type",
+            ]
+        )!
+
+        let data = message.data(using: .utf8) ?? Data()
+
+        return [
+            .response(response),
+            .data(data),
+        ]
+    }
+
     private static func createServerErrorResponse() -> [URLSchemeTaskResult] {
         let response = HTTPURLResponse(
             url: URL(string: "marureader-audio://error")!,
             statusCode: 500,
             httpVersion: "HTTP/1.1",
-            headerFields: ["Content-Type": "text/plain"]
+            headerFields: [
+                "Content-Type": "text/plain",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET",
+                "Access-Control-Allow-Headers": "Content-Type",
+            ]
         )!
 
         let data = "Internal server error".data(using: .utf8)!
@@ -179,6 +279,17 @@ public struct AudioURLSchemeHandler: URLSchemeHandler {
             .data(data),
         ]
     }
+}
+
+private struct AudioLookupResponse: Encodable {
+    let sources: [AudioLookupSource]
+}
+
+private struct AudioLookupSource: Encodable {
+    let url: String
+    let providerName: String
+    let itemName: String?
+    let pitch: String?
 }
 
 enum AudioURLError: Error {

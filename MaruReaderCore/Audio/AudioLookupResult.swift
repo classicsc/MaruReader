@@ -17,36 +17,31 @@
 
 import Foundation
 
-public struct AudioLookupResult: Sendable {
-    public let request: AudioLookupRequest
-    public let sources: [AudioSourceResult]
+struct AudioLookupResult: Sendable {
+    let request: AudioLookupRequest
+    let sources: [AudioSourceResult]
 
-    public var hasAudio: Bool {
+    var hasAudio: Bool {
         !sources.isEmpty
     }
 
-    public var primaryAudioURL: URL? {
+    var primaryAudioURL: URL? {
         sources.first?.url
-    }
-
-    public init(request: AudioLookupRequest, sources: [AudioSourceResult]) {
-        self.request = request
-        self.sources = sources
     }
 }
 
-public struct AudioSourceResult: Sendable {
-    public let url: URL
+struct AudioSourceResult: Sendable {
+    let url: URL
     /// The name of the audio source item (from JSON response), or provider name if no specific item name
-    public let sourceName: String
+    let sourceName: String
     /// The name of the audio provider/dictionary (always the provider name)
-    public let providerName: String
-    public let sourceType: AudioSourceType
-    public let isLocal: Bool
+    let providerName: String
+    let sourceType: AudioSourceType
+    let isLocal: Bool
     /// The pitch accent downstep position this audio represents (e.g., "0", "1", "2-1"), or nil if unknown
-    public let pitchNumber: String?
+    let pitchNumber: String?
 
-    public init(
+    init(
         url: URL,
         sourceName: String,
         providerName: String,

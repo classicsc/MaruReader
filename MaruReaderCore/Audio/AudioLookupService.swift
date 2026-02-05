@@ -20,7 +20,7 @@ import Foundation
 import os.log
 
 /// Central service for audio lookups across all configured sources
-public actor AudioLookupService {
+actor AudioLookupService {
     // MARK: - Internal Types
 
     /// Internal representation of an audio source provider
@@ -37,6 +37,7 @@ public actor AudioLookupService {
 
     private var providers: [AudioProvider] = []
     private var cache: [String: AudioLookupResult] = [:] // Session cache
+    private var isLoaded = false
 
     private let persistenceController: DictionaryPersistenceController
     private let networkProvider: NetworkProviding
@@ -49,7 +50,7 @@ public actor AudioLookupService {
 
     // MARK: - Initialization
 
-    public init(persistenceController: DictionaryPersistenceController, networkProvider: NetworkProviding = URLSession.shared) {
+    init(persistenceController: DictionaryPersistenceController, networkProvider: NetworkProviding = URLSession.shared) {
         self.persistenceController = persistenceController
         self.networkProvider = networkProvider
     }
@@ -57,13 +58,20 @@ public actor AudioLookupService {
     // MARK: - Provider Management
 
     /// Initialize providers from Core Data configuration and start observing for changes
-    public func loadProviders() async throws {
+    func loadProviders() async throws {
         try await loadProvidersInternal()
+        isLoaded = true
 
         // Start observation if not already running
         if observationTask == nil {
             startObservingAudioSourceChanges()
             logger.debug("Started observing AudioSource changes")
+        }
+    }
+
+    func ensureLoaded() async throws {
+        if !isLoaded {
+            try await loadProviders()
         }
     }
 
@@ -174,13 +182,14 @@ public actor AudioLookupService {
         logger.debug("Reloading audio providers")
         cache.removeAll()
         try await loadProvidersInternal()
+        isLoaded = true
         logger.info("Audio providers reloaded successfully")
     }
 
     // MARK: - Audio Lookup
 
     /// Look up audio for a term/reading pair
-    public func lookupAudio(for request: AudioLookupRequest) async -> AudioLookupResult {
+    func lookupAudio(for request: AudioLookupRequest) async -> AudioLookupResult {
         let cacheKey = "\(request.term)|\(request.reading ?? "")"
 
         if let cached = cache[cacheKey] {
@@ -205,7 +214,7 @@ public actor AudioLookupService {
     }
 
     /// Batch lookup for multiple terms (used in search results)
-    public func lookupAudio(for requests: [AudioLookupRequest]) async -> [AudioLookupResult] {
+    func lookupAudio(for requests: [AudioLookupRequest]) async -> [AudioLookupResult] {
         await withTaskGroup(of: AudioLookupResult.self) { group in
             for request in requests {
                 group.addTask { await self.lookupAudio(for: request) }

@@ -118,7 +118,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Navigation history for back/forward functionality
     let history = NavigationHistory()
 
-    private let audioLookupService = AudioLookupService(persistenceController: .shared)
     private var searchService: DictionarySearchService
 
     // Anki services - lazily initialized
@@ -137,15 +136,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     public init(resultState: ResultDisplayState = .startPage) {
         self.resultState = resultState
-        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
+        self.searchService = DictionarySearchService()
         super.init()
         initializeWebPage()
         initializePopupPage()
-
-        // Load audio providers asynchronously
-        Task {
-            try? await audioLookupService.loadProviders()
-        }
 
         Task {
             self.ankiConnectionManager = await AnkiConnectionManager()
@@ -169,15 +163,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         self.currentRequest = reconstructedRequest
         self.currentResponse = response
-        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
+        self.searchService = DictionarySearchService()
         super.init()
         initializeWebPage()
         initializePopupPage()
-
-        // Load audio providers asynchronously
-        Task {
-            try? await audioLookupService.loadProviders()
-        }
 
         Task {
             self.ankiConnectionManager = await AnkiConnectionManager()

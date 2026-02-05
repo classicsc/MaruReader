@@ -102,7 +102,6 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var popupSearchTask: Task<Void, Error>?
     private weak var activeNavigatorWebView: WKWebView?
 
-    private let audioLookupService = AudioLookupService(persistenceController: .shared)
     private let searchService: DictionarySearchService
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
@@ -157,16 +156,11 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     init(book: Book) {
         self.book = book
         self.readerPreferences = ReaderPreferences(book: book)
-        self.searchService = DictionarySearchService(audioLookupService: audioLookupService)
+        self.searchService = DictionarySearchService()
         super.init()
 
         // Load bookmarks
         loadBookmarks()
-
-        // Load audio providers asynchronously
-        Task {
-            try? await audioLookupService.loadProviders()
-        }
 
         // Initialize Anki connection manager asynchronously
         Task { @MainActor in
