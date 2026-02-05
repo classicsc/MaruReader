@@ -27,8 +27,7 @@ struct TextLookupResponseHTMLGenerationTests {
             dictionaryUUID: dictionaryID,
             sequence: 0,
             score: 0,
-            results: [],
-            combinedHTML: ""
+            results: []
         )
 
         let groupedResults = GroupedSearchResults(
@@ -58,8 +57,7 @@ struct TextLookupResponseHTMLGenerationTests {
             dictionaryUUID: dictionaryID,
             sequence: 0,
             score: 0,
-            results: [],
-            combinedHTML: "<p class=\"gloss-definition-text\">Definition</p>"
+            results: []
         )
 
         let groupedResults = GroupedSearchResults(

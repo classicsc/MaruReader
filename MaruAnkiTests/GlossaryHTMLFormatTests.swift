@@ -82,8 +82,7 @@ struct GlossaryHTMLFormatTests {
             dictionaryUUID: dictionaryUUID,
             sequence: 1,
             score: 0,
-            results: results,
-            combinedHTML: "<p>Test HTML</p>"
+            results: results
         )
     }
 

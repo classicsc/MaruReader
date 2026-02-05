@@ -23,7 +23,10 @@ public struct DictionaryResults: Identifiable, Sendable {
     public let sequence: Int64
     public let score: Double
     public let results: [SearchResult]
-    public let combinedHTML: String
+
+    public var combinedHTML: String {
+        results.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
+    }
 
     public var id: String {
         "\(dictionaryUUID)|\(sequence)"
@@ -34,14 +37,12 @@ public struct DictionaryResults: Identifiable, Sendable {
         dictionaryUUID: UUID,
         sequence: Int64,
         score: Double,
-        results: [SearchResult],
-        combinedHTML: String
+        results: [SearchResult]
     ) {
         self.dictionaryTitle = dictionaryTitle
         self.dictionaryUUID = dictionaryUUID
         self.sequence = sequence
         self.score = score
         self.results = results
-        self.combinedHTML = combinedHTML
     }
 }

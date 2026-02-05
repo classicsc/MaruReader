@@ -197,14 +197,12 @@ public struct DictionarySearchService: Sendable {
                 let dictionaryUUID = dictResults.first?.dictionaryUUID ?? UUID()
                 let sequence = dictResults.first?.sequence ?? 0
                 let score = dictResults.first?.score ?? 0.0
-                let combinedHTML = dictResults.generateCombinedHTML(dictionaryUUID: dictionaryUUID)
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
                     sequence: sequence,
                     score: score,
-                    results: dictResults,
-                    combinedHTML: combinedHTML
+                    results: dictResults
                 )
             }.sorted { (lhs: DictionaryResults, rhs: DictionaryResults) in
                 let lhsPriority = lhs.results.first?.displayPriority ?? 0
