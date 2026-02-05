@@ -1,0 +1,81 @@
+// TextLookupResponseHTMLTests.swift
+// MaruReader
+// Copyright (c) 2025  Sam Smoker
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+import Foundation
+@testable import MaruReaderCore
+import Testing
+
+struct TextLookupResponseHTMLTests {
+    @Test func resultsHTMLIncludesAnkiRequestIdAndHiddenButton() async {
+        let response = makeResponse()
+        let html = await response.toResultsHTML()
+        let requestID = response.requestID.uuidString
+
+        #expect(html.contains("data-anki-request-id=\"\(requestID)\""))
+        #expect(html.contains("class=\"anki-button\""))
+        #expect(html.contains("data-state=\"disabled\""))
+        #expect(html.contains("hidden"))
+    }
+
+    @Test func popupHTMLIncludesAnkiRequestIdAndHiddenButton() {
+        let response = makeResponse()
+        let html = response.toPopupHTML()
+        let requestID = response.requestID.uuidString
+
+        #expect(html.contains("data-anki-request-id=\"\(requestID)\""))
+        #expect(html.contains("class=\"anki-button\""))
+        #expect(html.contains("data-state=\"disabled\""))
+        #expect(html.contains("hidden"))
+    }
+}
+
+private func makeResponse() -> TextLookupResponse {
+    let context = "neko"
+    let request = TextLookupRequest(context: context)
+    let range = context.startIndex ..< context.endIndex
+    let termKey = "neko|ねこ"
+
+    let group = GroupedSearchResults(
+        termKey: termKey,
+        expression: "neko",
+        reading: "ねこ",
+        dictionariesResults: [],
+        pitchAccentResults: [],
+        termTags: [],
+        deinflectionInfo: nil
+    )
+
+    let styles = DisplayStyles(
+        fontFamily: "Test",
+        contentFontSize: 14,
+        popupFontSize: 14,
+        showDeinflection: true,
+        pitchDownstepNotationInHeaderEnabled: false,
+        pitchResultsAreaCollapsedDisplay: false,
+        pitchResultsAreaDownstepNotationEnabled: false,
+        pitchResultsAreaDownstepPositionEnabled: false,
+        pitchResultsAreaEnabled: false
+    )
+
+    return TextLookupResponse(
+        request: request,
+        results: [group],
+        primaryResult: "neko",
+        primaryResultSourceRange: range,
+        styles: styles
+    )
+}

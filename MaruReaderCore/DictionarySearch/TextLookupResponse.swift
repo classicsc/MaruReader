@@ -75,27 +75,11 @@ public struct TextLookupResponse: Sendable {
     public let primaryResultSourceRange: Range<String.Index> // Range in context
     public let styles: DisplayStyles
 
-    /// Term keys for which Anki notes already exist. Used to change button appearance.
-    public var existingNoteTermKeys: Set<String> = []
-
-    /// Whether Anki integration is enabled. When false, Anki buttons are not shown.
-    public var ankiEnabled: Bool = false
-
     /// User-edited context. When set, this overrides the original request.context.
     public var editedContext: String?
 
     /// User-edited highlight range. When set, this overrides the original primaryResultSourceRange.
     public var editedPrimaryResultSourceRange: Range<String.Index>?
-
-    /// Mark term keys that already have notes in Anki.
-    public mutating func markExistingNotes(_ termKeys: Set<String>) {
-        existingNoteTermKeys = termKeys
-    }
-
-    /// Enable Anki button display.
-    public mutating func setAnkiEnabled(_ enabled: Bool) {
-        ankiEnabled = enabled
-    }
 
     /// The original request ID (for backward compatibility).
     public var requestID: UUID {
@@ -497,15 +481,12 @@ public struct TextLookupResponse: Sendable {
 
     /// Generates an Anki button HTML element for the given term group.
     private func ankiButtonHTML(for termGroup: GroupedSearchResults) -> String {
-        guard ankiEnabled else { return "" }
-
-        let state = existingNoteTermKeys.contains(termGroup.termKey) ? "exists" : "ready"
         let termKey = termGroup.termKey.escapeHTML()
         let expression = termGroup.expression.escapeHTML()
         let reading = (termGroup.reading ?? "").escapeHTML()
 
         return """
-        <button type="button" class="anki-button" data-term-key="\(termKey)" data-expression="\(expression)" data-reading="\(reading)" data-state="\(state)" aria-label="Add to Anki"></button>
+        <button type="button" class="anki-button" data-term-key="\(termKey)" data-expression="\(expression)" data-reading="\(reading)" data-state="disabled" aria-disabled="true" aria-label="Add to Anki" hidden></button>
         """
     }
 
@@ -804,7 +785,7 @@ public struct TextLookupResponse: Sendable {
             </script>
             \(generateCSS())
         </head>
-        <body class="popup-results-body">
+        <body class="popup-results-body" data-anki-request-id="\(requestID.uuidString)">
             \(termGroupsHTML)
         </body>
         </html>
@@ -916,7 +897,7 @@ public struct TextLookupResponse: Sendable {
             </script>
             \(generateCSS())
         </head>
-        <body>
+        <body data-anki-request-id="\(requestID.uuidString)">
             \(termGroupsHTML)
         </body>
         </html>

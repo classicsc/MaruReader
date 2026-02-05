@@ -13,6 +13,8 @@
 */
 window.MaruReader = window.MaruReader || {};
 window.MaruReader.ankiDisplay = {
+    stateCache: Object.create(null),
+
     /**
      * Initialize Anki button functionality
      */
@@ -25,36 +27,144 @@ window.MaruReader.ankiDisplay = {
             event.preventDefault();
             event.stopPropagation();
 
+            if (button.hasAttribute('hidden')) {
+                return;
+            }
+
             // Get term data from data attributes
             var termKey = button.getAttribute('data-term-key');
             var expression = button.getAttribute('data-expression');
             var reading = button.getAttribute('data-reading');
             var currentState = button.getAttribute('data-state');
 
-            // Don't process if already loading
-            if (currentState === 'loading') {
+            // Don't process if already loading or disabled
+            if (currentState === 'loading' || currentState === 'disabled') {
                 return;
             }
 
             // Allow re-adding even if exists (per user preference)
-            // Just send the message to native code
             var audioURL = self.getPrimaryAudioURL(button, termKey);
-            self.postAnkiAdd(termKey, expression, reading, audioURL);
+            self.addNote(termKey, expression, reading, audioURL);
         }, true);
+
+        self.refresh();
+    },
+
+    requestId: function() {
+        if (document.body && document.body.dataset && document.body.dataset.ankiRequestId) {
+            return document.body.dataset.ankiRequestId;
+        }
+        return '';
     },
 
     /**
-     * Send add note request to native code
+     * Fetch Anki state for all terms on the page.
      */
-    postAnkiAdd: function(termKey, expression, reading, audioURL) {
-        if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ankiAdd) {
-            window.webkit.messageHandlers.ankiAdd.postMessage({
+    refresh: function() {
+        var self = this;
+        var terms = self.collectTermsToFetch();
+
+        if (terms.length === 0) {
+            self.applyCachedStates();
+            return;
+        }
+
+        fetch('marureader-anki://state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId: self.requestId(), terms: terms })
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Anki state request failed');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                if (!data || !data.enabled) {
+                    self.stateCache = Object.create(null);
+                    self.setButtonsHidden(true);
+                    return;
+                }
+
+                self.setButtonsHidden(false);
+                var states = data.states || {};
+                Object.keys(states).forEach(function(termKey) {
+                    self.stateCache[termKey] = states[termKey];
+                });
+                self.applyCachedStates();
+            })
+            .catch(function() {
+                self.stateCache = Object.create(null);
+                self.setButtonsHidden(true);
+            });
+    },
+
+    collectTermsToFetch: function() {
+        var self = this;
+        var buttons = document.querySelectorAll('.anki-button[data-term-key]');
+        var seen = Object.create(null);
+        var terms = [];
+
+        buttons.forEach(function(button) {
+            var termKey = button.getAttribute('data-term-key');
+            if (!termKey) return;
+
+            if (self.stateCache[termKey]) {
+                return;
+            }
+
+            if (seen[termKey]) {
+                return;
+            }
+
+            var expression = button.getAttribute('data-expression') || '';
+            var reading = button.getAttribute('data-reading') || '';
+            terms.push({ termKey: termKey, expression: expression, reading: reading });
+            seen[termKey] = true;
+        });
+
+        return terms;
+    },
+
+    applyCachedStates: function() {
+        var self = this;
+        Object.keys(self.stateCache).forEach(function(termKey) {
+            self.setButtonState(termKey, self.stateCache[termKey]);
+        });
+    },
+
+    addNote: function(termKey, expression, reading, audioURL) {
+        var self = this;
+
+        self.setButtonState(termKey, 'loading');
+
+        fetch('marureader-anki://add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                requestId: self.requestId(),
                 termKey: termKey,
                 expression: expression,
                 reading: reading || '',
                 audioURL: audioURL || ''
+            })
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Anki add request failed');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                var state = data && data.state ? data.state : 'error';
+                self.stateCache[termKey] = state;
+                self.setButtonState(termKey, state);
+            })
+            .catch(function() {
+                self.stateCache[termKey] = 'error';
+                self.setButtonState(termKey, 'error');
             });
-        }
     },
 
     getPrimaryAudioURL: function(button, termKey) {
@@ -90,20 +200,46 @@ window.MaruReader.ankiDisplay = {
         return '';
     },
 
-    /**
-     * Update button visual state for a specific term
-     * Called from native code after note creation attempt
-     */
-    setButtonState: function(termKey, state) {
-        var buttons = document.querySelectorAll('.anki-button[data-term-key="' + termKey + '"]');
+    setButtonsHidden: function(hidden) {
+        var buttons = document.querySelectorAll('.anki-button');
         buttons.forEach(function(button) {
-            button.setAttribute('data-state', state);
+            if (hidden) {
+                button.setAttribute('hidden', '');
+                button.setAttribute('data-state', 'disabled');
+                button.setAttribute('aria-disabled', 'true');
+            } else {
+                button.removeAttribute('hidden');
+            }
         });
     },
 
     /**
+     * Update button visual state for a specific term
+     */
+    setButtonState: function(termKey, state) {
+        var buttons = document.querySelectorAll('.anki-button[data-term-key="' + termKey + '"]');
+        var self = this;
+        buttons.forEach(function(button) {
+            self.setButtonStateForElement(button, state);
+        });
+    },
+
+    setButtonStateForElement: function(button, state) {
+        button.setAttribute('data-state', state);
+        if (state === 'disabled') {
+            button.setAttribute('hidden', '');
+        } else {
+            button.removeAttribute('hidden');
+        }
+        if (state === 'disabled' || state === 'loading') {
+            button.setAttribute('aria-disabled', 'true');
+        } else {
+            button.setAttribute('aria-disabled', 'false');
+        }
+    },
+
+    /**
      * Update button states for multiple terms at once
-     * Called from native code when loading results with existing notes
      */
     setButtonStates: function(termKeyStates) {
         for (var termKey in termKeyStates) {
