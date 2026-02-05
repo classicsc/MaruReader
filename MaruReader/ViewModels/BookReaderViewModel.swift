@@ -74,6 +74,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         get { showingPopup }
         set {
             if !newValue {
+                currentPopupResponse = nil
+                currentPopupSession = nil
                 Task {
                     await clearHighlights()
                 }
@@ -83,7 +85,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     var popupPage: WebPage = .init()
-    var sheetLookupResponse: TextLookupResponse?
+    var sheetLookupSession: TextLookupSession?
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
@@ -93,6 +95,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     var currentLocator: Locator?
     var popupAnchorPosition: CGRect = .zero
     private var currentPopupResponse: TextLookupResponse?
+    private var currentPopupSession: TextLookupSession?
 
     /// Bookmarks for the current book, sorted by creation date (newest first)
     var bookmarks: [Bookmark] = []
@@ -106,6 +109,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
+    private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
 
     let highlightStyles = [
@@ -246,6 +250,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = resultsSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
 
         let userContentController = WKUserContentController()
@@ -255,9 +260,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         popupPage.isInspectable = true
     }
 
-    func searchInDictionarySheet(response: TextLookupResponse) {
-        logger.debug("Opening dictionary sheet with context: \(response.context)")
-        sheetLookupResponse = response
+    func searchInDictionarySheet(session: TextLookupSession) {
+        logger.debug("Opening dictionary sheet with lookup session")
+        sheetLookupSession = session
         showingDictionarySheet = true
     }
 
@@ -448,17 +453,27 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                 cssSelector: cssSelector,
                 contextValues: makeLookupContextValues()
             )
-            guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+            guard let session = try await searchService.startTextLookup(request: lookupRequest) else {
+                logger.debug("No search session created for lookup")
+                return
+            }
+
+            let hasResults = try await session.prepareInitialResults()
+            guard hasResults, let snapshot = await session.snapshot() else {
                 logger.debug("No search results found for lookup")
                 return
             }
 
             // Store the response so we can pass it when opening the dictionary sheet
             await MainActor.run {
-                self.currentPopupResponse = searchResults
+                self.currentPopupSession = session
+                self.currentPopupResponse = snapshot
             }
-            await ankiSchemeHandler.setResponse(searchResults)
-            let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
+            await ankiSchemeHandler.setSession(session)
+            await resultsSchemeHandler.setSession(session)
+
+            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
+            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
             for try await value in loadSequence {
                 try Task.checkCancellation()
                 if value == WebPage.NavigationEvent.finished {
@@ -466,9 +481,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                     await self.clearHighlights()
                     let boundingRects = await self.highlightTextByContextRange(
                         cssSelector: cssSelector,
-                        contextStartOffset: searchResults.contextStartOffset,
-                        matchStartInContext: searchResults.matchStartInContext,
-                        matchEndInContext: searchResults.matchEndInContext,
+                        contextStartOffset: snapshot.contextStartOffset,
+                        matchStartInContext: snapshot.matchStartInContext,
+                        matchEndInContext: snapshot.matchEndInContext,
                         styles: self.highlightStylesAsJSObject()
                     )
                     let boundingRectsAsCGRects = getBoundingRects(highlightBoundingRects: boundingRects)
@@ -478,7 +493,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                         logger.debug("No bounding rects returned for highlight")
                         self.popupAnchorPosition = .zero
                     }
-                    logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
+                    logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
                     self.showPopup = true
                 }
             }
@@ -572,6 +587,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         self.showPopup = false
         self.popupAnchorPosition = .zero
         self.currentPopupResponse = nil
+        self.currentPopupSession = nil
         Task { @MainActor in
             await self.clearHighlights()
         }
@@ -732,8 +748,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             if let term = message.body as? String {
                 logger.debug("Received navigateToTerm message for term: \(term)")
                 // Pass the current popup response if available
-                if let response = currentPopupResponse {
-                    searchInDictionarySheet(response: response)
+                if let session = currentPopupSession {
+                    searchInDictionarySheet(session: session)
                 } else {
                     logger.warning("No current popup response available, cannot preserve context")
                 }

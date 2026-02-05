@@ -26,7 +26,7 @@ import MaruReaderCore
 /// A single entry in the navigation history
 struct HistoryEntry: Sendable {
     let request: TextLookupRequest
-    let response: TextLookupResponse
+    let session: TextLookupSession
 }
 
 /// Manages back/forward navigation history for dictionary searches
@@ -50,7 +50,7 @@ final class NavigationHistory {
     }
 
     /// Push a new history entry, clearing the forward stack
-    func push(request: TextLookupRequest, response: TextLookupResponse) {
+    func push(request: TextLookupRequest, session: TextLookupSession) {
         // Save current entry to back stack if it exists
         if let current = currentEntry {
             backStack.append(current)
@@ -65,7 +65,7 @@ final class NavigationHistory {
         forwardStack.removeAll()
 
         // Set new current entry
-        currentEntry = HistoryEntry(request: request, response: response)
+        currentEntry = HistoryEntry(request: request, session: session)
     }
 
     /// Navigate backwards, returning the previous entry

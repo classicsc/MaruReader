@@ -140,46 +140,40 @@ public struct DictionarySearchService: Sendable {
         }
     }
 
-    /// Perform a search and get the TextLookupResponse
-    public func performTextLookup(query: TextLookupRequest) async throws -> TextLookupResponse? {
-        // Get the text to query using the offset within context and the max lookup length
-        var startIndex = query.context.index(query.context.startIndex, offsetBy: query.offset)
-        let endIndex = query.context.index(startIndex, offsetBy: DictionarySearchService.maxForwardLookupLength, limitedBy: query.context.endIndex) ?? query.context.endIndex
-        // If the query text begins with whitespace or punctuation, skip those characters
-        while startIndex < endIndex, query.context[startIndex].isWhitespace || query.context[startIndex].isPunctuation {
-            startIndex = query.context.index(after: startIndex)
-        }
-        let queryText = String(query.context[startIndex ..< endIndex])
-        // If the query text is empty after trimming, return nil
-        guard !queryText.isEmpty else {
+    /// Start a lookup session for incremental results.
+    public func startTextLookup(request: TextLookupRequest) async throws -> TextLookupSession? {
+        guard let queryInfo = DictionarySearchService.extractQueryInfo(from: request) else {
             logger.debug("Skipping text lookup for empty query text")
             return nil
         }
-        logger.debug("Performing text lookup for query: \(queryText)")
-        logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
-        async let results = performSearch(query: queryText)
-        async let styles = getDisplayStyles()
-        let groupedResults = try await DictionarySearchService.groupResults(results)
-        guard !groupedResults.isEmpty else {
+        let queryText = queryInfo.text
+        logger.debug("Performing text lookup for query: \(queryText)")
+        logger.debug("Context: \(request.context), Offset: \(request.offset)")
+
+        let candidates = candidateGenerator.generateCandidates(from: queryText)
+        guard !candidates.isEmpty else {
             return nil
         }
 
-        // Get the top ranked result
-        let topResult = groupedResults.first?.dictionariesResults.first?.results.first
-        let topTerm = topResult?.term ?? ""
-        let topOriginalSubstring = topResult?.candidate.originalSubstring ?? ""
+        let candidateGroups = DictionarySearchService.groupCandidatesByRanking(candidates)
 
-        // The range in context that was matched
-        let matchedRange = startIndex ..< query.context.index(startIndex, offsetBy: topOriginalSubstring.count)
-        logger.debug("Top term: \(topTerm), Matched range: \(matchedRange)")
+        async let styles = getDisplayStyles()
+        async let metadata = getDictionaryMetadata()
+        let stylesValue = try await styles
+        let metadataValue = try await metadata
 
-        return try await TextLookupResponse(
-            request: query,
-            results: groupedResults,
-            primaryResult: topTerm,
-            primaryResultSourceRange: matchedRange,
-            styles: styles
+        let dictionaryStyles = DictionarySearchService.dictionaryStylesCSS(from: metadataValue)
+
+        return TextLookupSession(
+            request: request,
+            queryText: queryText,
+            queryStartIndex: queryInfo.startIndex,
+            styles: stylesValue,
+            dictionaryStyles: dictionaryStyles,
+            candidateGroups: candidateGroups,
+            persistenceController: persistenceController,
+            dictionaryMetadata: metadataValue
         )
     }
 
@@ -267,6 +261,49 @@ public struct DictionarySearchService: Sendable {
             candidates: candidates,
             dictionaryMetadata: metadata,
             context: context
+        )
+    }
+
+    private static func extractQueryInfo(from request: TextLookupRequest) -> (text: String, startIndex: String.Index)? {
+        guard request.offset >= 0 else { return nil }
+        guard request.offset <= request.context.count else { return nil }
+
+        var startIndex = request.context.index(request.context.startIndex, offsetBy: request.offset)
+        let endIndex = request.context.index(
+            startIndex,
+            offsetBy: DictionarySearchService.maxForwardLookupLength,
+            limitedBy: request.context.endIndex
+        ) ?? request.context.endIndex
+
+        // If the query text begins with whitespace or punctuation, skip those characters
+        while startIndex < endIndex, request.context[startIndex].isWhitespace || request.context[startIndex].isPunctuation {
+            startIndex = request.context.index(after: startIndex)
+        }
+
+        let queryText = String(request.context[startIndex ..< endIndex])
+        guard !queryText.isEmpty else {
+            return nil
+        }
+
+        return (queryText, startIndex)
+    }
+
+    private static func groupCandidatesByRanking(_ candidates: [LookupCandidate]) -> [CandidateGroup] {
+        let grouped = Swift.Dictionary(grouping: candidates) { CandidateRankingKey(candidate: $0) }
+        let sorted = grouped.sorted { lhs, rhs in
+            lhs.key > rhs.key
+        }
+
+        return sorted.map { key, groupCandidates in
+            CandidateGroup(key: key, candidates: groupCandidates)
+        }
+    }
+
+    private static func dictionaryStylesCSS(from metadata: [UUID: DictionaryMetadata]) -> String {
+        let styleInfos = metadata.values.map { DictionaryStyleInfo(id: $0.id, title: $0.title) }
+        return DictionaryResultsHTMLRenderer.dictionaryStylesCSS(
+            for: styleInfos,
+            stylesheetProvider: DictionaryResultsHTMLRenderer.loadDictionaryStylesheet
         )
     }
 

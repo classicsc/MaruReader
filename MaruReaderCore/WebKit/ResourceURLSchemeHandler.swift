@@ -27,6 +27,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
 
     /// Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [
+        "dictionary.html",
         "structured-content.css",
         "popup.css",
         "MaterialSymbolsOutlined.woff2",
@@ -38,6 +39,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
         "audioDisplay.js",
         "ankiDisplay.js",
         "linkDisplay.js",
+        "dictionaryResults.js",
     ]
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {

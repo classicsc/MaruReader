@@ -50,6 +50,18 @@ protocol AnkiNoteServicing: Sendable {
 
 extension AnkiNoteService: AnkiNoteServicing {}
 
+protocol TextLookupSnapshotProviding: Sendable {
+    func requestId() async -> String?
+    func snapshot() async -> TextLookupResponse?
+    func termGroup(for termKey: String) async -> GroupedSearchResults?
+}
+
+extension TextLookupSession: TextLookupSnapshotProviding {
+    func requestId() async -> String? {
+        requestId.uuidString
+    }
+}
+
 public final actor AnkiURLSchemeHandler: URLSchemeHandler {
     private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AnkiURLSchemeHandler")
 
@@ -57,7 +69,7 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
     private let managerFactory: @Sendable () async -> any AnkiConnectionManaging
 
     private var managerTask: Task<any AnkiConnectionManaging, Never>?
-    private var currentResponse: TextLookupResponse?
+    private var currentProvider: (any TextLookupSnapshotProviding)?
     private var currentRequestID: String?
 
     public init() {
@@ -73,9 +85,13 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
         self.managerFactory = managerFactory
     }
 
-    public func setResponse(_ response: TextLookupResponse?) {
-        currentResponse = response
-        currentRequestID = response?.requestID.uuidString
+    func setLookupProvider(_ provider: (any TextLookupSnapshotProviding)?) async {
+        currentProvider = provider
+        currentRequestID = await provider?.requestId()
+    }
+
+    public func setSession(_ session: TextLookupSession?) async {
+        await setLookupProvider(session)
     }
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
@@ -173,8 +189,9 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }
 
-        guard let response = currentResponse,
-              let termGroup = response.results.first(where: { $0.termKey == decoded.termKey })
+        guard let provider = currentProvider,
+              let termGroup = await provider.termGroup(for: decoded.termKey),
+              let response = await provider.snapshot()
         else {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }

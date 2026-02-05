@@ -40,7 +40,7 @@ struct TextLookupResponseHTMLGenerationTests {
             deinflectionInfo: nil
         )
 
-        let html = TextLookupResponse.dictionaryStylesHTML(for: [groupedResults]) { id in
+        let html = DictionaryResultsHTMLRenderer.dictionaryStylesHTML(for: [groupedResults]) { id in
             #expect(id == dictionaryID)
             return ".gloss-sc-ul[data-sc-content=glossary] { color: red; }"
         }
@@ -50,7 +50,7 @@ struct TextLookupResponseHTMLGenerationTests {
         #expect(html.contains(".gloss-sc-ul[data-sc-content=glossary]"))
     }
 
-    @Test func textLookupResponse_toResultsHTML_addsDataDictionaryAttribute() async {
+    @Test func resultsRenderer_addsDataDictionaryAttribute() async {
         let dictionaryID = UUID()
         let dictionaryResults = DictionaryResults(
             dictionaryTitle: "Test Dictionary",
@@ -92,7 +92,8 @@ struct TextLookupResponseHTMLGenerationTests {
             styles: styles
         )
 
-        let html = await response.toResultsHTML()
+        let renderer = DictionaryResultsHTMLRenderer(styles: response.styles)
+        let html = await renderer.render(groups: response.results, mode: .results)
         #expect(html.contains("data-dictionary=\"Test Dictionary\""))
     }
 }

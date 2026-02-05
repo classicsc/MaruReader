@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="marureader-resource://structured-content.css">
+    <link rel="stylesheet" href="marureader-resource://popup.css">
+    <style id="dictionary-styles"></style>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        .dictionary-results-root {
+            min-height: 1px;
+        }
+
+        .dictionary-results-status {
+            padding: 16px 18px;
+            text-align: center;
+            color: var(--text-color-light1, #666);
+            font-size: 0.9em;
+        }
+
+        .dictionary-results-status[hidden] {
+            display: none;
+        }
+
+        #dictionary-results-sentinel {
+            width: 100%;
+            height: 1px;
+        }
+    </style>
+</head>
+<body>
+    <div id="dictionary-results-root" class="dictionary-results-root"></div>
+    <div id="dictionary-results-loading" class="dictionary-results-status" hidden>Loading results...</div>
+    <div id="dictionary-results-empty" class="dictionary-results-status" hidden>No results found.</div>
+    <div id="dictionary-results-error" class="dictionary-results-status" hidden>Unable to load results.</div>
+    <div id="dictionary-results-sentinel"></div>
+
+    <script src="marureader-resource://domUtilities.js"></script>
+    <script src="marureader-resource://textScanning.js"></script>
+    <script src="marureader-resource://textHighlighting.js"></script>
+    <script src="marureader-resource://frequencyDisplay.js"></script>
+    <script src="marureader-resource://pitchDisplay.js"></script>
+    <script src="marureader-resource://audioDisplay.js"></script>
+    <script src="marureader-resource://ankiDisplay.js"></script>
+    <script src="marureader-resource://linkDisplay.js"></script>
+    <script src="marureader-resource://dictionaryResults.js"></script>
+</body>
+</html>

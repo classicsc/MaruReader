@@ -28,7 +28,8 @@ struct AnkiURLSchemeHandlerTests {
         let manager = MockAnkiConnectionManager(isReady: false, profileName: "Default", addResult: .success(makeNoteResult()))
         let noteService = MockAnkiNoteService(existingTermKeys: [])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
-        await handler.setResponse(response)
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
 
         let request = makeStateRequest(requestId: response.requestID.uuidString, terms: [
             AnkiStateRequestTerm(termKey: "neko|ねこ", expression: "neko", reading: "ねこ"),
@@ -45,7 +46,8 @@ struct AnkiURLSchemeHandlerTests {
         let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
         let noteService = MockAnkiNoteService(existingTermKeys: ["neko|ねこ"])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
-        await handler.setResponse(response)
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
 
         let request = makeStateRequest(requestId: response.requestID.uuidString, terms: [
             AnkiStateRequestTerm(termKey: "neko|ねこ", expression: "neko", reading: "ねこ"),
@@ -64,7 +66,8 @@ struct AnkiURLSchemeHandlerTests {
         let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
         let noteService = MockAnkiNoteService(existingTermKeys: [])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
-        await handler.setResponse(response)
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
 
         let request = makeAddRequest(
             requestId: response.requestID.uuidString,
@@ -87,7 +90,8 @@ struct AnkiURLSchemeHandlerTests {
         let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .failure(DuplicateNoteError()))
         let noteService = MockAnkiNoteService(existingTermKeys: [])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
-        await handler.setResponse(response)
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
 
         let request = makeAddRequest(
             requestId: response.requestID.uuidString,
@@ -109,7 +113,8 @@ struct AnkiURLSchemeHandlerTests {
         let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
         let noteService = MockAnkiNoteService(existingTermKeys: [])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
-        await handler.setResponse(response)
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
 
         let request = makeAddRequest(
             requestId: response.requestID.uuidString,
@@ -156,6 +161,26 @@ private struct AnkiAddResponse: Decodable {
 private struct DuplicateNoteError: LocalizedError {
     var errorDescription: String? {
         "Duplicate note"
+    }
+}
+
+private actor MockLookupProvider: TextLookupSnapshotProviding {
+    private let response: TextLookupResponse
+
+    init(response: TextLookupResponse) {
+        self.response = response
+    }
+
+    func requestId() async -> String? {
+        response.requestID.uuidString
+    }
+
+    func snapshot() async -> TextLookupResponse? {
+        response
+    }
+
+    func termGroup(for termKey: String) async -> GroupedSearchResults? {
+        response.results.first { $0.termKey == termKey }
     }
 }
 

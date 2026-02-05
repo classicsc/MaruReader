@@ -41,6 +41,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         set {
             if !newValue {
                 currentPopupResponse = nil
+                currentPopupSession = nil
                 Task {
                     try? await page.clearHighlights()
                 }
@@ -54,6 +55,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var popupPage: WebPage = .init()
     var popupAnchorPosition: CGRect = .zero
     private var currentPopupResponse: TextLookupResponse?
+    private var currentPopupSession: TextLookupSession?
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
@@ -61,6 +63,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
     var currentResponse: TextLookupResponse?
+    private var currentSession: TextLookupSession?
 
     // Context display settings
     var contextFontSize: Double = DictionaryDisplayDefaults.defaultContextFontSize
@@ -122,6 +125,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
+    private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
+    private var popupResultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
     private var popupAnkiSchemeHandler: AnkiURLSchemeHandler = .init()
 
@@ -139,36 +144,34 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         initializePopupPage()
     }
 
-    /// Initialize with an existing lookup response to preserve context
-    public init(response: TextLookupResponse) {
+    /// Initialize with an existing lookup session to preserve context/results.
+    public init(session: TextLookupSession) {
         self.resultState = .ready
-
-        // Reconstruct the request from the response data, preserving contextValues
-        // Use the start of the match as the offset
-        let reconstructedRequest = TextLookupRequest(
-            context: response.context,
-            offset: response.matchStartInContext,
-            contextStartOffset: response.contextStartOffset,
-            rubyContext: nil,
-            cssSelector: nil,
-            contextValues: response.request.contextValues
-        )
-
-        self.currentRequest = reconstructedRequest
-        self.currentResponse = response
         self.searchService = DictionarySearchService()
         super.init()
         initializeWebPage()
         initializePopupPage()
 
-        // Load the HTML and push to navigation history
         Task {
-            await ankiSchemeHandler.setResponse(response)
-            let html = await response.toResultsHTML()
-            let loadSequence = page.load(html: html)
+            await session.resetRenderCursor()
+            let request = await session.request
+            _ = try? await session.prepareInitialResults()
+            let snapshot = await session.snapshot()
+
+            self.currentRequest = request
+            self.currentSession = session
+            self.currentResponse = snapshot
+
+            await ankiSchemeHandler.setSession(session)
+            await resultsSchemeHandler.setSession(session)
+
+            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(request.id.uuidString)"
+            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
-                    self.history.push(request: reconstructedRequest, response: response)
+                    self.history.push(request: request, session: session)
+                    self.resultState = .ready
+                    self.updateLinksActiveState()
                     return
                 }
             }
@@ -180,6 +183,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = resultsSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
 
         let userContentController = WKUserContentController()
@@ -197,6 +201,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = popupResultsSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = popupAnkiSchemeHandler
 
         let userContentController = WKUserContentController()
@@ -233,30 +238,45 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             self.hidePopup()
             self.resultState = .searching
             do {
-                guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+                guard let session = try await searchService.startTextLookup(request: lookupRequest) else {
                     self.currentRequest = lookupRequest
                     self.currentResponse = nil
+                    self.currentSession = nil
+                    self.resultState = .noResults(lookupRequest.context)
+                    return
+                }
+
+                let hasResults = try await session.prepareInitialResults()
+                guard hasResults else {
+                    self.currentRequest = lookupRequest
+                    self.currentResponse = nil
+                    self.currentSession = nil
                     self.resultState = .noResults(lookupRequest.context)
                     return
                 }
 
                 self.currentRequest = lookupRequest
-                self.currentResponse = searchResults
+                self.currentSession = session
+                self.currentResponse = await session.snapshot()
                 // Push to navigation history
-                self.history.push(request: lookupRequest, response: searchResults)
-                await self.ankiSchemeHandler.setResponse(searchResults)
-                let html = await searchResults.toResultsHTML()
-                let loadSequence = page.load(html: html)
+                self.history.push(request: lookupRequest, session: session)
+                await self.ankiSchemeHandler.setSession(session)
+                await self.resultsSchemeHandler.setSession(session)
+
+                let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(lookupRequest.id.uuidString)"
+                let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
                 for try await value in loadSequence {
                     if Task.isCancelled { return }
                     if value == WebPage.NavigationEvent.finished {
                         self.resultState = .ready
+                        self.updateLinksActiveState()
                         return
                     }
                 }
             } catch {
                 self.currentRequest = lookupRequest
                 self.currentResponse = nil
+                self.currentSession = nil
                 self.resultState = .error(error)
                 self.logger.error("Search error: \(error.localizedDescription)")
                 return
@@ -273,6 +293,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             currentRequest = nil
             currentResponse = nil
+            currentSession = nil
             resultState = .startPage
             return
         }
@@ -418,14 +439,23 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 cssSelector: cssSelector,
                 contextValues: transitionedContextValues
             )
-            guard let searchResults = try await searchService.performTextLookup(query: lookupRequest) else {
+            guard let session = try await searchService.startTextLookup(request: lookupRequest) else {
+                return
+            }
+
+            let hasResults = try await session.prepareInitialResults()
+            guard hasResults, let snapshot = await session.snapshot() else {
                 return
             }
 
             // Store the response so we can preserve context when navigating
-            self.currentPopupResponse = searchResults
-            await self.popupAnkiSchemeHandler.setResponse(searchResults)
-            let loadSequence = popupPage.load(html: searchResults.toPopupHTML())
+            self.currentPopupSession = session
+            self.currentPopupResponse = snapshot
+            await self.popupAnkiSchemeHandler.setSession(session)
+            await self.popupResultsSchemeHandler.setSession(session)
+
+            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
+            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
             for try await value in loadSequence {
                 try Task.checkCancellation()
                 if value == WebPage.NavigationEvent.finished {
@@ -436,9 +466,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                         try await page.clearHighlights()
                         let highlightBoundingRects = try await page.highlightTextByContextRange(
                             cssSelector: cssSelector,
-                            contextStartOffset: searchResults.contextStartOffset,
-                            matchStartInContext: searchResults.matchStartInContext,
-                            matchEndInContext: searchResults.matchEndInContext,
+                            contextStartOffset: snapshot.contextStartOffset,
+                            matchStartInContext: snapshot.matchStartInContext,
+                            matchEndInContext: snapshot.matchEndInContext,
                             styles: self.highlightStylesAsJSObject()
                         )
                         let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
@@ -448,7 +478,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     } catch {
                         logger.error("Failed to highlight text: \(error.localizedDescription)")
                     }
-                    logger.debug("Highlighted range: \(searchResults.matchStartInContext)..<\(searchResults.matchEndInContext) in context starting at \(searchResults.contextStartOffset)")
+                    logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
                 }
             }
         }
@@ -457,6 +487,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     public func hidePopup() {
         self.showPopup = false
         self.currentPopupResponse = nil
+        self.currentPopupSession = nil
         Task {
             do {
                 try await page.clearHighlights()
@@ -592,15 +623,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Load the HTML and update result state
         Task {
-            self.currentRequest = entry.request
-            self.currentResponse = entry.response
-            await ankiSchemeHandler.setResponse(entry.response)
+            let session = entry.session
+            await session.resetRenderCursor()
+            let snapshot = await session.snapshot()
 
-            let html = await entry.response.toResultsHTML()
-            let loadSequence = page.load(html: html)
+            self.currentRequest = entry.request
+            self.currentSession = session
+            self.currentResponse = snapshot
+            await ankiSchemeHandler.setSession(session)
+            await resultsSchemeHandler.setSession(session)
+
+            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(entry.request.id.uuidString)"
+            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     self.resultState = .ready
+                    self.updateLinksActiveState()
                     return
                 }
             }
@@ -620,15 +658,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Load the HTML and update result state
         Task {
-            self.currentRequest = entry.request
-            self.currentResponse = entry.response
-            await ankiSchemeHandler.setResponse(entry.response)
+            let session = entry.session
+            await session.resetRenderCursor()
+            let snapshot = await session.snapshot()
 
-            let html = await entry.response.toResultsHTML()
-            let loadSequence = page.load(html: html)
+            self.currentRequest = entry.request
+            self.currentSession = session
+            self.currentResponse = snapshot
+            await ankiSchemeHandler.setSession(session)
+            await resultsSchemeHandler.setSession(session)
+
+            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(entry.request.id.uuidString)"
+            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     self.resultState = .ready
+                    self.updateLinksActiveState()
                     return
                 }
             }
@@ -712,24 +757,26 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Commit the edited context text
     public func commitContextEdit() {
         guard isEditingContext else { return }
-        guard var response = currentResponse else {
+        guard let session = currentSession else {
             isEditingContext = false
             return
         }
 
-        // Update context and recompute range
-        let termFound = response.updateEditedRange(for: editContextText)
+        Task {
+            let termFound = await session.updateEditedContext(editContextText)
 
-        if !termFound {
-            logger.info("Primary result '\(response.primaryResult)' not found in edited context")
+            if let response = await session.snapshot() {
+                if !termFound {
+                    logger.info("Primary result '\(response.primaryResult)' not found in edited context")
+                }
+                currentResponse = response
+            }
+
+            // Invalidate furigana cache since context changed
+            cachedFuriganaContext = nil
+
+            isEditingContext = false
         }
-
-        currentResponse = response
-
-        // Invalidate furigana cache since context changed
-        cachedFuriganaContext = nil
-
-        isEditingContext = false
     }
 
     /// Cancel editing and discard changes

@@ -19,25 +19,25 @@ import Foundation
 @testable import MaruReaderCore
 import Testing
 
-struct TextLookupResponseHTMLTests {
-    @Test func resultsHTMLIncludesAnkiRequestIdAndHiddenButton() async {
+struct DictionaryResultsHTMLTests {
+    @Test func resultsHTMLIncludesAnkiButtonAndTermKey() async {
         let response = makeResponse()
-        let html = await response.toResultsHTML()
-        let requestID = response.requestID.uuidString
+        let renderer = DictionaryResultsHTMLRenderer(styles: response.styles)
+        let html = await renderer.render(groups: response.results, mode: .results)
 
-        #expect(html.contains("data-anki-request-id=\"\(requestID)\""))
         #expect(html.contains("class=\"anki-button\""))
+        #expect(html.contains("data-term-key=\"neko|ねこ\""))
         #expect(html.contains("data-state=\"disabled\""))
         #expect(html.contains("hidden"))
     }
 
-    @Test func popupHTMLIncludesAnkiRequestIdAndHiddenButton() {
+    @Test func popupHTMLIncludesAnkiButtonAndTermKey() async {
         let response = makeResponse()
-        let html = response.toPopupHTML()
-        let requestID = response.requestID.uuidString
+        let renderer = DictionaryResultsHTMLRenderer(styles: response.styles)
+        let html = await renderer.render(groups: response.results, mode: .popup)
 
-        #expect(html.contains("data-anki-request-id=\"\(requestID)\""))
         #expect(html.contains("class=\"anki-button\""))
+        #expect(html.contains("data-term-key=\"neko|ねこ\""))
         #expect(html.contains("data-state=\"disabled\""))
         #expect(html.contains("hidden"))
     }

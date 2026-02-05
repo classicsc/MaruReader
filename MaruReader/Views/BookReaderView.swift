@@ -80,9 +80,9 @@ struct BookReaderView: View {
                         }
                     }
                     .onAppear {
-                        // Initialize the view model with the lookup response
-                        if let response = viewModel.sheetLookupResponse {
-                            searchSheetViewModel = DictionarySearchViewModel(response: response)
+                        // Initialize the view model with the lookup session
+                        if let session = viewModel.sheetLookupSession {
+                            searchSheetViewModel = DictionarySearchViewModel(session: session)
                         }
                     }
                     .dictionarySheetDetents(for: horizontalSizeClass)
