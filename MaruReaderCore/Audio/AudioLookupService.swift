@@ -18,6 +18,7 @@
 import CoreData
 import Foundation
 import os.log
+internal import LRUCache
 
 /// Central service for audio lookups across all configured sources
 actor AudioLookupService {
@@ -36,7 +37,7 @@ actor AudioLookupService {
     // MARK: - Properties
 
     private var providers: [AudioProvider] = []
-    private var cache: [String: AudioLookupResult] = [:] // Session cache
+    private var cache = LRUCache<String, AudioLookupResult>(totalCostLimit: 500)
     private var isLoaded = false
 
     private let persistenceController: DictionaryPersistenceController
@@ -192,7 +193,7 @@ actor AudioLookupService {
     func lookupAudio(for request: AudioLookupRequest) async -> AudioLookupResult {
         let cacheKey = "\(request.term)|\(request.reading ?? "")"
 
-        if let cached = cache[cacheKey] {
+        if let cached = cache.value(forKey: cacheKey) {
             return cached
         }
 
@@ -209,7 +210,7 @@ actor AudioLookupService {
         }
 
         let result = AudioLookupResult(request: request, sources: allResults)
-        cache[cacheKey] = result
+        cache.setValue(result, forKey: cacheKey, cost: 1)
         return result
     }
 

@@ -17,6 +17,7 @@
 		DB1C343F2EB85BFB00315E79 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB1C34442EB8685200315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB3C42EA2F343601007F2896 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB3C42E92F343601007F2896 /* LRUCache */; };
 		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
@@ -655,6 +656,7 @@
 				DBD755692F120EF8000AFED1 /* IPADic in Frameworks */,
 				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
+				DB3C42EA2F343601007F2896 /* LRUCache in Frameworks */,
 				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
 				DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */,
 			);
@@ -1094,6 +1096,7 @@
 				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
 				DBD755682F120EF8000AFED1 /* IPADic */,
 				DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */,
+				DB3C42E92F343601007F2896 /* LRUCache */,
 			);
 			productName = MaruReaderCore;
 			productReference = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */;
@@ -3368,6 +3371,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DB3C42E92F343601007F2896 /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
+		};
 		DB58C8F92EAB137600CE59FD /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */;
