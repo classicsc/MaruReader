@@ -750,7 +750,7 @@ public struct TextLookupResponse: Sendable {
             let pitchHTML = pitchResultsAreaHTML(for: termGroup, compactOnly: true)
 
             return """
-            <div class="popup-term-group" onclick="navigateToTerm('\(termGroup.expression.escapeHTML())')">
+            <div class="popup-term-group" data-term-key="\(termGroup.termKey.escapeHTML())" onclick="navigateToTerm('\(termGroup.expression.escapeHTML())')">
                 \(headerSectionHTML)
                 \(tagsHTML)
                 \(deinflectionHTML)
@@ -836,7 +836,7 @@ public struct TextLookupResponse: Sendable {
             let pitchHTML = pitchResultsAreaHTML(for: termGroup, includeAudio: true)
 
             return """
-            <section class="term-group">
+            <section class="term-group" data-term-key="\(termGroup.termKey.escapeHTML())">
                 \(headerHTML)
                 \(tagsHTML)
                 \(deinflectionHTML)

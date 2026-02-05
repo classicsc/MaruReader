@@ -27,6 +27,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private let selectedGroup: GroupedSearchResults
     private let selectedDictionaryID: UUID?
     private let contextImageConfiguration: ContextImageConfiguration
+    private let primaryAudioURL: URL?
 
     /// Creates a resolver for the given response and selected term.
     ///
@@ -39,12 +40,14 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         response: TextLookupResponse,
         selectedGroup: GroupedSearchResults,
         selectedDictionaryID: UUID? = nil,
-        contextImageConfiguration: ContextImageConfiguration = .default
+        contextImageConfiguration: ContextImageConfiguration = .default,
+        primaryAudioURL: URL? = nil
     ) {
         self.response = response
         self.selectedGroup = selectedGroup
         self.selectedDictionaryID = selectedDictionaryID
         self.contextImageConfiguration = contextImageConfiguration
+        self.primaryAudioURL = primaryAudioURL
     }
 
     public func resolve(_ templateValue: TemplateValue) async -> TemplateResolvedValue {
@@ -437,8 +440,11 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     }
 
     private func resolvePronunciationAudio() -> TemplateResolvedValue {
-        // Audio is now resolved asynchronously in the web view and not attached to the lookup response.
-        .empty
+        guard let primaryAudioURL else {
+            return .empty
+        }
+        let fileID = "audio_\(UUID().uuidString)"
+        return TemplateResolvedValue(mediaFiles: [fileID: primaryAudioURL])
     }
 
     private func resolveSinglePitchAccent() -> TemplateResolvedValue {

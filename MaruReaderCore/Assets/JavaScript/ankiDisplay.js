@@ -38,21 +38,56 @@ window.MaruReader.ankiDisplay = {
 
             // Allow re-adding even if exists (per user preference)
             // Just send the message to native code
-            self.postAnkiAdd(termKey, expression, reading);
+            var audioURL = self.getPrimaryAudioURL(button, termKey);
+            self.postAnkiAdd(termKey, expression, reading, audioURL);
         }, true);
     },
 
     /**
      * Send add note request to native code
      */
-    postAnkiAdd: function(termKey, expression, reading) {
+    postAnkiAdd: function(termKey, expression, reading, audioURL) {
         if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.ankiAdd) {
             window.webkit.messageHandlers.ankiAdd.postMessage({
                 termKey: termKey,
                 expression: expression,
-                reading: reading || ''
+                reading: reading || '',
+                audioURL: audioURL || ''
             });
         }
+    },
+
+    getPrimaryAudioURL: function(button, termKey) {
+        var container = button.closest('.term-group, .popup-term-group');
+        if (!container) {
+            return '';
+        }
+
+        var explicitURL = container.getAttribute('data-audio-primary-url');
+        if (explicitURL) {
+            return explicitURL;
+        }
+
+        var primaryButton = container.querySelector('.audio-button[data-audio-role="primary"]');
+        if (!primaryButton) {
+            return '';
+        }
+
+        var sourcesJSON = primaryButton.getAttribute('data-audio-sources');
+        if (!sourcesJSON) {
+            return '';
+        }
+
+        try {
+            var sources = JSON.parse(sourcesJSON);
+            if (sources && sources.length > 0 && sources[0].url) {
+                return sources[0].url;
+            }
+        } catch (e) {
+            return '';
+        }
+
+        return '';
     },
 
     /**

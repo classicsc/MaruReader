@@ -242,6 +242,9 @@ window.MaruReader.audioDisplay = {
             if (filteredSources.length > 0) {
                 self.setButtonSources(button, filteredSources);
                 self.setButtonState(button, 'ready');
+                if (button.getAttribute('data-audio-role') === 'primary') {
+                    self.setPrimaryAudioURL(button, filteredSources[0].url);
+                }
             } else {
                 button.removeAttribute('data-audio-sources');
                 if (sources.length == 0) {
@@ -447,6 +450,7 @@ window.MaruReader.audioDisplay = {
         self.currentButton = button;
 
         self.setButtonState(button, 'loading');
+        self.setPrimaryAudioURL(button, source.url);
 
         audio.addEventListener('canplaythrough', function() {
             self.setButtonState(button, 'playing');
@@ -483,5 +487,16 @@ window.MaruReader.audioDisplay = {
     setButtonState: function(button, state) {
         button.setAttribute('data-state', state);
         button.setAttribute('aria-disabled', state === 'ready' ? 'false' : 'true');
+    },
+
+    setPrimaryAudioURL: function(button, url) {
+        if (!url) return;
+        var container = this.findAudioContainer(button);
+        if (!container) return;
+        container.setAttribute('data-audio-primary-url', url);
+    },
+
+    findAudioContainer: function(element) {
+        return element.closest('.term-group, .popup-term-group');
     }
 };

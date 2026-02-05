@@ -545,9 +545,17 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 return
             }
             let reading = messageObject["reading"] as? String
+            let audioURLString = messageObject["audioURL"] as? String
+            let audioURL = audioURLString.flatMap { $0.isEmpty ? nil : URL(string: $0) }
             // Determine source based on whether popup is showing
             let isFromPopup = showPopup && currentPopupResponse != nil
-            handleAnkiAdd(termKey: termKey, expression: expression, reading: reading, isFromPopup: isFromPopup)
+            handleAnkiAdd(
+                termKey: termKey,
+                expression: expression,
+                reading: reading,
+                primaryAudioURL: audioURL,
+                isFromPopup: isFromPopup
+            )
         } else if message.name == "internalLink" {
             logger.debug("Received internalLink message: \(String(describing: message.body))")
             guard let messageObject = message.body as? [String: Any],
@@ -701,7 +709,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle Anki add note request from JavaScript
-    private func handleAnkiAdd(termKey: String, expression: String, reading: String?, isFromPopup: Bool) {
+    private func handleAnkiAdd(
+        termKey: String,
+        expression: String,
+        reading: String?,
+        primaryAudioURL: URL?,
+        isFromPopup: Bool
+    ) {
         Task {
             // Set button state to loading
             await setAnkiButtonState(termKey: termKey, state: "loading", isFromPopup: isFromPopup)
@@ -731,7 +745,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 // Create the template resolver
                 let resolver = TextLookupResponseTemplateResolver(
                     response: response,
-                    selectedGroup: termGroup
+                    selectedGroup: termGroup,
+                    primaryAudioURL: primaryAudioURL
                 )
 
                 // Add the note via AnkiConnectionManager

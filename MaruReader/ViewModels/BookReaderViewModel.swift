@@ -760,7 +760,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                 return
             }
             let reading = messageObject["reading"] as? String
-            handleAnkiAdd(termKey: termKey, expression: expression, reading: reading)
+            let audioURLString = messageObject["audioURL"] as? String
+            let audioURL = audioURLString.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+            handleAnkiAdd(termKey: termKey, expression: expression, reading: reading, primaryAudioURL: audioURL)
         }
     }
 
@@ -803,7 +805,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     /// Handle Anki add note request from JavaScript
-    private func handleAnkiAdd(termKey: String, expression: String, reading: String?) {
+    private func handleAnkiAdd(termKey: String, expression: String, reading: String?, primaryAudioURL: URL?) {
         Task {
             // Set button state to loading
             await setAnkiButtonState(termKey: termKey, state: "loading")
@@ -827,7 +829,8 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
                 // Create the template resolver
                 let resolver = TextLookupResponseTemplateResolver(
                     response: response,
-                    selectedGroup: termGroup
+                    selectedGroup: termGroup,
+                    primaryAudioURL: primaryAudioURL
                 )
 
                 // Add the note via AnkiConnectionManager
