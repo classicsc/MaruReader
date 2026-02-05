@@ -811,56 +811,70 @@ public struct TextLookupResponse: Sendable {
         """
     }
 
-    public func toResultsHTML() -> String {
-        let termGroupsHTML = results.map { termGroup in
-            // Generate term header with optional pitch notation, audio, Anki button, and audio sources area
-            let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true, includeAnki: true, includeAudioSourcesArea: true)
+    private func termGroupHTML(for termGroup: GroupedSearchResults) -> String {
+        // Generate term header with optional pitch notation, audio, Anki button, and audio sources area
+        let headerHTML = termHeaderHTML(for: termGroup, cssClass: "term-header", includeAudio: true, includeAnki: true, includeAudioSourcesArea: true)
 
-            // Generate tags HTML
-            let tagsHTML = termGroup.termTags.isEmpty ? "" : """
-            <div class="term-tags">
-            \(termGroup.termTags.map { "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>" }.joined(separator: ""))
-            </div>
+        // Generate tags HTML
+        let tagsHTML = termGroup.termTags.isEmpty ? "" : """
+        <div class="term-tags">
+        \(termGroup.termTags.map { "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>" }.joined(separator: ""))
+        </div>
+        """
+
+        // Generate deinflection info HTML
+        let deinflectionHTML = termGroup.deinflectionInfo.map { info in
             """
-
-            // Generate deinflection info HTML
-            let deinflectionHTML = termGroup.deinflectionInfo.map { info in
-                """
-                <div class="deinflection-info">\(info.escapeHTML())</div>
-                """
-            } ?? ""
-
-            let frequencyHTML = termFrequencyHTML(for: termGroup)
-
-            // Generate pitch results area with audio buttons
-            let pitchHTML = pitchResultsAreaHTML(for: termGroup, includeAudio: true)
-
-            return """
-            <section class="term-group" data-term-key="\(termGroup.termKey.escapeHTML())">
-                \(headerHTML)
-                \(tagsHTML)
-                \(deinflectionHTML)
-                \(frequencyHTML)
-                \(pitchHTML)
-                \(termGroup.dictionariesResults.map { dictionaryResult in
-                    // Use first result's definition tags for header
-                    let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
-                        "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>"
-                    }.joined(separator: "") ?? ""
-                    let dictionaryTitleEsc = dictionaryResult.dictionaryTitle.escapeHTML()
-
-                    return """
-                    <section class="dictionary-section" data-dictionary="\(dictionaryTitleEsc)">
-                        <h3 class="dictionary-header">\(defTagsHTML)\(dictionaryTitleEsc)</h3>
-                        <div class="dictionary-content">
-                            \(dictionaryResult.combinedHTML)
-                        </div>
-                    </section>
-                    """
-                }.joined())
-            </section>
+            <div class="deinflection-info">\(info.escapeHTML())</div>
             """
-        }.joined()
+        } ?? ""
+
+        let frequencyHTML = termFrequencyHTML(for: termGroup)
+
+        // Generate pitch results area with audio buttons
+        let pitchHTML = pitchResultsAreaHTML(for: termGroup, includeAudio: true)
+
+        return """
+        <section class="term-group" data-term-key="\(termGroup.termKey.escapeHTML())">
+            \(headerHTML)
+            \(tagsHTML)
+            \(deinflectionHTML)
+            \(frequencyHTML)
+            \(pitchHTML)
+            \(termGroup.dictionariesResults.map { dictionaryResult in
+                // Use first result's definition tags for header
+                let defTagsHTML = dictionaryResult.results.first?.definitionTags.map {
+                    "<span class=\"tag tag-category-\($0.category.escapeHTML())\">\($0.name.escapeHTML())</span>"
+                }.joined(separator: "") ?? ""
+                let dictionaryTitleEsc = dictionaryResult.dictionaryTitle.escapeHTML()
+
+                return """
+                <section class="dictionary-section" data-dictionary="\(dictionaryTitleEsc)">
+                    <h3 class="dictionary-header">\(defTagsHTML)\(dictionaryTitleEsc)</h3>
+                    <div class="dictionary-content">
+                        \(dictionaryResult.combinedHTML)
+                    </div>
+                </section>
+                """
+            }.joined())
+        </section>
+        """
+    }
+
+    public func toResultsHTML() async -> String {
+        let termGroupsHTML = await withTaskGroup(of: (Int, String).self) { group in
+            for (index, termGroup) in results.enumerated() {
+                group.addTask {
+                    (index, termGroupHTML(for: termGroup))
+                }
+            }
+
+            var orderedHTML = Array(repeating: "", count: results.count)
+            for await (index, html) in group {
+                orderedHTML[index] = html
+            }
+            return orderedHTML.joined()
+        }
 
         return """
         <!DOCTYPE html>

@@ -174,7 +174,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Load the HTML and push to navigation history
         Task {
-            let loadSequence = page.load(html: response.toResultsHTML())
+            let html = await response.toResultsHTML()
+            let loadSequence = page.load(html: html)
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     self.history.push(request: reconstructedRequest, response: response)
@@ -256,7 +257,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 self.currentResponse = searchResults
                 // Push to navigation history
                 self.history.push(request: lookupRequest, response: searchResults)
-                let loadSequence = page.load(html: searchResults.toResultsHTML())
+                let html = await searchResults.toResultsHTML()
+                let loadSequence = page.load(html: html)
                 for try await value in loadSequence {
                     if Task.isCancelled { return }
                     if value == WebPage.NavigationEvent.finished {
@@ -631,7 +633,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             self.currentRequest = entry.request
             self.currentResponse = updatedResponse
 
-            let loadSequence = page.load(html: updatedResponse.toResultsHTML())
+            let html = await updatedResponse.toResultsHTML()
+            let loadSequence = page.load(html: html)
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     self.resultState = .ready
@@ -660,7 +663,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             self.currentRequest = entry.request
             self.currentResponse = updatedResponse
 
-            let loadSequence = page.load(html: updatedResponse.toResultsHTML())
+            let html = await updatedResponse.toResultsHTML()
+            let loadSequence = page.load(html: html)
             for try await value in loadSequence {
                 if value == WebPage.NavigationEvent.finished {
                     self.resultState = .ready

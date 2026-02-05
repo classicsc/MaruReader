@@ -50,7 +50,7 @@ struct TextLookupResponseHTMLGenerationTests {
         #expect(html.contains(".gloss-sc-ul[data-sc-content=glossary]"))
     }
 
-    @Test func textLookupResponse_toResultsHTML_addsDataDictionaryAttribute() {
+    @Test func textLookupResponse_toResultsHTML_addsDataDictionaryAttribute() async {
         let dictionaryID = UUID()
         let dictionaryResults = DictionaryResults(
             dictionaryTitle: "Test Dictionary",
@@ -92,7 +92,7 @@ struct TextLookupResponseHTMLGenerationTests {
             styles: styles
         )
 
-        let html = response.toResultsHTML()
+        let html = await response.toResultsHTML()
         #expect(html.contains("data-dictionary=\"Test Dictionary\""))
     }
 }
