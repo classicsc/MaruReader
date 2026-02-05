@@ -158,13 +158,13 @@ public struct DictionarySearchService: Sendable {
         logger.debug("Performing text lookup for query: \(queryText)")
         logger.debug("Context: \(query.context), Offset: \(query.offset)")
 
-        let results = try await performSearch(query: queryText)
-        let groupedResults = DictionarySearchService.groupResults(results)
+        async let results = performSearch(query: queryText)
+        async let styles = getDisplayStyles()
+        let groupedResults = try await DictionarySearchService.groupResults(results)
         guard !groupedResults.isEmpty else {
             return nil
         }
 
-        let styles = try await getDisplayStyles()
         // Get the top ranked result
         let topResult = groupedResults.first?.dictionariesResults.first?.results.first
         let topTerm = topResult?.term ?? ""
@@ -174,7 +174,7 @@ public struct DictionarySearchService: Sendable {
         let matchedRange = startIndex ..< query.context.index(startIndex, offsetBy: topOriginalSubstring.count)
         logger.debug("Top term: \(topTerm), Matched range: \(matchedRange)")
 
-        return TextLookupResponse(
+        return try await TextLookupResponse(
             request: query,
             results: groupedResults,
             primaryResult: topTerm,
