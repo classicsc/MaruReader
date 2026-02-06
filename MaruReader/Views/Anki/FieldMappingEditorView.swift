@@ -406,7 +406,7 @@ private enum TemplateValueCategory: CaseIterable {
         case .text:
             [.expression, .furigana, .conjugation, .partOfSpeech, .tags]
         case .reading:
-            [.reading, .kunyomi, .onyomi, .onyomiAsHiragana]
+            [.reading]
         case .glossary:
             [.singleGlossary, .multiDictionaryGlossary, .glossaryNoDictionary]
         case .context:
@@ -446,9 +446,6 @@ extension TemplateValue {
             return "HTML: \(truncated)"
         case .furigana: return "Furigana"
         case .glossaryNoDictionary: return "Glossary (No Dictionary)"
-        case .kunyomi: return "Kunyomi"
-        case .onyomi: return "Onyomi"
-        case .onyomiAsHiragana: return "Onyomi (Hiragana)"
         case .reading: return "Reading"
         case .sentence: return "Sentence"
         case .clozePrefix: return "Cloze Prefix"

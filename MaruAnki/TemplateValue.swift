@@ -27,9 +27,6 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case customHTMLValue(value: String)
     case furigana
     case glossaryNoDictionary
-    case kunyomi
-    case onyomi
-    case onyomiAsHiragana
     case reading
     case sentence
     case clozePrefix

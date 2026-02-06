@@ -169,12 +169,6 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case .frequencyOccurrenceHarmonicMeanSortField:
             return resolveFrequencyOccurrenceHarmonicMeanSortField()
 
-        // MARK: - Kanji-specific (not implemented for term lookups)
-
-        case .kunyomi, .onyomi, .onyomiAsHiragana:
-            // These are kanji-specific and not applicable to term lookups
-            return .empty
-
         // MARK: - Custom value passthrough
 
         case let .customHTMLValue(value):
