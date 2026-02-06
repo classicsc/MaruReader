@@ -409,6 +409,20 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }.value
     }
 
+    private func makeDictionaryContextInfo() -> String {
+        let query = normalizedContextInfoPart(currentRequest?.context) ?? "Unknown"
+        let headword = normalizedContextInfoPart(currentResponse?.primaryResult) ?? "Unknown"
+        let dictionaryTitle = normalizedContextInfoPart(currentResponse?.results.first?.dictionariesResults.first?.dictionaryTitle) ?? "Unknown Dictionary"
+        return "Query: \(query) | Headword: \(headword) | Dictionary: \(dictionaryTitle)"
+    }
+
+    private func normalizedContextInfoPart(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
     private func handleTextScan(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         // Check if within debounce window
         if self.focusState {
@@ -428,8 +442,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         popupSearchTask = Task {
             // When scanning text within dictionary results, transition source type to .dictionary.
             let screenshotURL = await captureSearchScreenshotURL()
+            let contextInfo = makeDictionaryContextInfo()
             let transitionedContextValues = baseContextValues.withSourceType(
                 .dictionary,
+                contextInfo: contextInfo,
                 screenshotURL: screenshotURL
             )
             let lookupRequest = TextLookupRequest(

@@ -33,7 +33,7 @@ struct GlossaryHTMLFormatTests {
     private func makeTestSearchResult(
         term: String = "映像",
         reading: String? = "えいぞう",
-        dictionaryTitle: String = "三省堂国語辞典　第八版",
+        dictionaryTitle: String = "Dictionary A",
         dictionaryUUID: UUID = UUID()
     ) -> SearchResult {
         let candidate = LookupCandidate(from: term)
@@ -132,7 +132,7 @@ struct GlossaryHTMLFormatTests {
 
     @Test func singleDictionaryGlossary_hasYomitanGlossaryClass() async {
         let dictionaryUUID = UUID()
-        let dictResults = makeDictionaryResults(dictionaryTitle: "三省堂国語辞典　第八版", dictionaryUUID: dictionaryUUID)
+        let dictResults = makeDictionaryResults(dictionaryTitle: "Dictionary A", dictionaryUUID: dictionaryUUID)
         let group = makeGroupedSearchResults(dictionariesResults: [dictResults])
         let response = makeTextLookupResponse(selectedGroup: group)
 
@@ -154,7 +154,7 @@ struct GlossaryHTMLFormatTests {
 
     @Test func singleDictionaryGlossary_hasDataDictionaryAttribute() async {
         let dictionaryUUID = UUID()
-        let dictionaryTitle = "三省堂国語辞典　第八版"
+        let dictionaryTitle = "Dictionary A"
         let dictResults = makeDictionaryResults(dictionaryTitle: dictionaryTitle, dictionaryUUID: dictionaryUUID)
         let group = makeGroupedSearchResults(dictionariesResults: [dictResults])
         let response = makeTextLookupResponse(selectedGroup: group)
@@ -198,11 +198,33 @@ struct GlossaryHTMLFormatTests {
         #expect(html.contains("<li data-dictionary="), "Missing li with data-dictionary")
     }
 
+    @Test func singleGlossary_usesFirstDisplayedDictionary() async {
+        let firstDictionary = makeDictionaryResults(dictionaryTitle: "Dictionary A")
+        let secondDictionary = makeDictionaryResults(dictionaryTitle: "Dictionary B")
+        let group = makeGroupedSearchResults(dictionariesResults: [firstDictionary, secondDictionary])
+        let response = makeTextLookupResponse(selectedGroup: group)
+
+        let resolver = TextLookupResponseTemplateResolver(
+            response: response,
+            selectedGroup: group
+        )
+
+        let result = await resolver.resolve(.singleGlossary)
+
+        guard let html = result.text else {
+            Issue.record("Expected text in result")
+            return
+        }
+
+        #expect(html.contains("data-dictionary=\"Dictionary A\""))
+        #expect(!html.contains("data-dictionary=\"Dictionary B\""))
+    }
+
     // MARK: - Multi Dictionary Glossary Tests
 
     @Test func multiDictionaryGlossary_hasYomitanGlossaryClass() async {
-        let dict1 = makeDictionaryResults(dictionaryTitle: "三省堂国語辞典　第八版")
-        let dict2 = makeDictionaryResults(dictionaryTitle: "ハイブリッド新辞林")
+        let dict1 = makeDictionaryResults(dictionaryTitle: "Dictionary A")
+        let dict2 = makeDictionaryResults(dictionaryTitle: "Dictionary B")
         let group = makeGroupedSearchResults(dictionariesResults: [dict1, dict2])
         let response = makeTextLookupResponse(selectedGroup: group)
 
@@ -222,8 +244,8 @@ struct GlossaryHTMLFormatTests {
     }
 
     @Test func multiDictionaryGlossary_hasDataDictionaryForEachDictionary() async {
-        let dict1Title = "三省堂国語辞典　第八版"
-        let dict2Title = "ハイブリッド新辞林"
+        let dict1Title = "Dictionary A"
+        let dict2Title = "Dictionary B"
         let dict1 = makeDictionaryResults(dictionaryTitle: dict1Title)
         let dict2 = makeDictionaryResults(dictionaryTitle: dict2Title)
         let group = makeGroupedSearchResults(dictionariesResults: [dict1, dict2])
@@ -274,7 +296,7 @@ struct GlossaryHTMLFormatTests {
     }
 
     @Test func multiDictionaryGlossary_includesDictionaryNameInContent() async {
-        let dictTitle = "三省堂国語辞典　第八版"
+        let dictTitle = "Dictionary A"
         let dict = makeDictionaryResults(dictionaryTitle: dictTitle)
         let group = makeGroupedSearchResults(dictionariesResults: [dict])
         let response = makeTextLookupResponse(selectedGroup: group)

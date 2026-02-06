@@ -146,12 +146,32 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private func makeLookupContextValues() async -> LookupContextValues {
         let coverImageURL = await makeCoverContextImageURL()
         return LookupContextValues(
-            documentTitle: book.title,
-            documentURL: nil,
+            contextInfo: makeBookContextInfo(),
             documentCoverImageURL: coverImageURL,
             screenshotURL: nil,
             sourceType: .book
         )
+    }
+
+    private func makeBookContextInfo() -> String {
+        let title = book.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayTitle = if let title, !title.isEmpty {
+            title
+        } else {
+            "Book"
+        }
+
+        if let locator = currentLocator {
+            if let position = locator.locations.position {
+                return "\(displayTitle) - Position \(position)"
+            }
+            if let totalProgression = locator.locations.totalProgression {
+                let percent = Int(totalProgression * 100)
+                return "\(displayTitle) - \(percent)%"
+            }
+        }
+
+        return displayTitle
     }
 
     init(book: Book) {

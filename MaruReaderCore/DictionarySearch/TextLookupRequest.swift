@@ -35,11 +35,8 @@ public enum ContextSourceType: String, Sendable, Codable, CaseIterable {
 /// rather than from dictionary search results. They are passed through to the response
 /// and used when resolving template values for Anki note creation.
 public struct LookupContextValues: Sendable {
-    /// Title of the document being read (for reader context).
-    public let documentTitle: String?
-
-    /// URL of the document (for reader context).
-    public let documentURL: URL?
+    /// Preformatted context information for template resolution.
+    public let contextInfo: String?
 
     /// URL to the document's cover image.
     public let documentCoverImageURL: URL?
@@ -51,14 +48,12 @@ public struct LookupContextValues: Sendable {
     public let sourceType: ContextSourceType
 
     public init(
-        documentTitle: String? = nil,
-        documentURL: URL? = nil,
+        contextInfo: String? = nil,
         documentCoverImageURL: URL? = nil,
         screenshotURL: URL? = nil,
         sourceType: ContextSourceType = .dictionary
     ) {
-        self.documentTitle = documentTitle
-        self.documentURL = documentURL
+        self.contextInfo = contextInfo
         self.documentCoverImageURL = documentCoverImageURL
         self.screenshotURL = screenshotURL
         self.sourceType = sourceType
@@ -70,14 +65,12 @@ public struct LookupContextValues: Sendable {
     /// such as when tapping on a term within dictionary results.
     public func withSourceType(
         _ newType: ContextSourceType,
-        documentTitle: String? = nil,
+        contextInfo: String? = nil,
         screenshotURL: URL? = nil
     ) -> LookupContextValues {
         if newType == .dictionary {
-            // TODO: Use dictionary title + headword for more specific context.
             return LookupContextValues(
-                documentTitle: documentTitle ?? "Maru Dictionary",
-                documentURL: nil,
+                contextInfo: contextInfo ?? "Dictionary search",
                 documentCoverImageURL: nil,
                 screenshotURL: screenshotURL,
                 sourceType: newType
@@ -85,8 +78,7 @@ public struct LookupContextValues: Sendable {
         }
 
         return LookupContextValues(
-            documentTitle: documentTitle ?? self.documentTitle,
-            documentURL: self.documentURL,
+            contextInfo: contextInfo ?? self.contextInfo,
             documentCoverImageURL: self.documentCoverImageURL,
             screenshotURL: screenshotURL ?? self.screenshotURL,
             sourceType: newType

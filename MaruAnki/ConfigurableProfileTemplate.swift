@@ -141,7 +141,7 @@ public enum ConfigurableProfileTemplates {
             "PitchCategories": [.pitchAccentCategories],
             "Frequency": [.frequencyList],
             "FreqSort": [.frequencyRankHarmonicMeanSortField],
-            "MiscInfo": [.documentTitle],
+            "MiscInfo": [.contextInfo],
             // Is...Card fields configured by user
         ])
     }

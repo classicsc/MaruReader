@@ -389,7 +389,6 @@ private enum TemplateValueCategory: CaseIterable {
     case context
     case frequency
     case pitch
-    case kanji
 
     var displayName: String {
         switch self {
@@ -399,18 +398,17 @@ private enum TemplateValueCategory: CaseIterable {
         case .context: "Context"
         case .frequency: "Frequency"
         case .pitch: "Pitch Accent"
-        case .kanji: "Kanji"
         }
     }
 
     var values: [TemplateValue] {
         switch self {
         case .text:
-            [.expression, .character, .furigana, .conjugation, .partOfSpeech, .tags]
+            [.expression, .furigana, .conjugation, .partOfSpeech, .tags]
         case .reading:
             [.reading, .kunyomi, .onyomi, .onyomiAsHiragana]
         case .glossary:
-            [.multiDictionaryGlossary, .glossaryNoDictionary, .dictionaryTitle]
+            [.singleGlossary, .multiDictionaryGlossary, .glossaryNoDictionary]
         case .context:
             [
                 .sentence,
@@ -421,18 +419,13 @@ private enum TemplateValueCategory: CaseIterable {
                 .clozeFuriganaPrefix,
                 .clozeFuriganaBody,
                 .clozeFuriganaSuffix,
-                .documentTitle,
-                .documentURL,
-                .documentCoverImage,
-                .screenshot,
+                .contextInfo,
                 .contextImage,
             ]
         case .frequency:
             [.frequencyList, .singleFrequency, .frequencyRankHarmonicMeanSortField, .frequencyOccurrenceHarmonicMeanSortField]
         case .pitch:
             [.pitchAccentList, .singlePitchAccent, .pitchAccentDisambiguation, .pitchAccentCategories, .pronunciationAudio]
-        case .kanji:
-            [.strokeCount]
         }
     }
 }
@@ -444,14 +437,13 @@ extension TemplateValue {
             // Show shortened UUID for identification
             let shortID = String(dictionaryID.uuidString.prefix(8))
             return "Glossary (\(shortID)…)"
+        case .singleGlossary: return "Single Glossary (First Dictionary)"
         case .multiDictionaryGlossary: return "Multi-Dictionary Glossary"
         case .pronunciationAudio: return "Pronunciation Audio"
-        case .character: return "Character"
         case .expression: return "Expression"
         case let .customHTMLValue(value):
             let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
             return "HTML: \(truncated)"
-        case .dictionaryTitle: return "Dictionary Title"
         case .furigana: return "Furigana"
         case .glossaryNoDictionary: return "Glossary (No Dictionary)"
         case .kunyomi: return "Kunyomi"
@@ -466,11 +458,8 @@ extension TemplateValue {
         case .clozeFuriganaBody: return "Cloze Furigana Body"
         case .clozeFuriganaSuffix: return "Cloze Furigana Suffix"
         case .tags: return "Tags"
-        case .documentURL: return "Document URL"
-        case .screenshot: return "Screenshot"
-        case .documentCoverImage: return "Document Cover"
         case .contextImage: return "Context Image"
-        case .documentTitle: return "Document Title"
+        case .contextInfo: return "Context Info"
         case .singlePitchAccent: return "Single Pitch Accent"
         case .singlePitchAccentDictionary: return "Pitch Accent (Dictionary)"
         case .pitchAccentList: return "Pitch Accent List"
@@ -484,7 +473,6 @@ extension TemplateValue {
         case .frequencyOccurrenceSortField: return "Frequency Sort (Occurrence)"
         case .frequencyRankHarmonicMeanSortField: return "Frequency Sort (Rank HM)"
         case .frequencyOccurrenceHarmonicMeanSortField: return "Frequency Sort (Occ HM)"
-        case .strokeCount: return "Stroke Count"
         case .partOfSpeech: return "Part of Speech"
         case .sentenceFurigana: return "Sentence (Furigana)"
         @unknown default: return "Unknown"

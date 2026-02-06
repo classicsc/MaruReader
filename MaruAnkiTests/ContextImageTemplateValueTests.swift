@@ -72,8 +72,7 @@ struct ContextImageTemplateValueTests {
         screenshotURL: URL? = nil
     ) -> LookupContextValues {
         LookupContextValues(
-            documentTitle: "Test Document",
-            documentURL: nil,
+            contextInfo: "Test Context",
             documentCoverImageURL: coverURL,
             screenshotURL: screenshotURL,
             sourceType: sourceType

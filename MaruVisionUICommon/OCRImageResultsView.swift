@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruDictionaryUICommon
+import MaruReaderCore
 import MaruVision
 import os.log
 import SwiftUI
@@ -138,7 +139,13 @@ public struct OCRImageResultsView: View {
             }
             .onAppear {
                 // Initialize the view model with the cluster's transcript
-                searchSheetViewModel.performSearch(cluster.transcript)
+                searchSheetViewModel.performSearch(
+                    cluster.transcript,
+                    contextValues: LookupContextValues(
+                        contextInfo: "Scanned image",
+                        sourceType: .dictionary
+                    )
+                )
             }
             .dictionarySheetDetents(for: horizontalSizeClass)
         }

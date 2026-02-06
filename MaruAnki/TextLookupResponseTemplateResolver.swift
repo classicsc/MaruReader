@@ -25,7 +25,6 @@ import MaruReaderCore
 public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private let response: TextLookupResponse
     private let selectedGroup: GroupedSearchResults
-    private let selectedDictionaryID: UUID?
     private let contextImageConfiguration: ContextImageConfiguration
     private let primaryAudioURL: URL?
 
@@ -34,18 +33,17 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     /// - Parameters:
     ///   - response: The search response containing all results and context.
     ///   - selectedGroup: The specific term group to extract values from.
-    ///   - selectedDictionaryID: Optional dictionary ID to prefer for dictionary-specific values.
+    ///   - selectedDictionaryID: Retained for source compatibility. Currently unused.
     ///   - contextImageConfiguration: Configuration for resolving the contextImage template value.
     public init(
         response: TextLookupResponse,
         selectedGroup: GroupedSearchResults,
-        selectedDictionaryID: UUID? = nil,
+        selectedDictionaryID _: UUID? = nil,
         contextImageConfiguration: ContextImageConfiguration = .default,
         primaryAudioURL: URL? = nil
     ) {
         self.response = response
         self.selectedGroup = selectedGroup
-        self.selectedDictionaryID = selectedDictionaryID
         self.contextImageConfiguration = contextImageConfiguration
         self.primaryAudioURL = primaryAudioURL
     }
@@ -60,37 +58,13 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case .reading:
             return .text(selectedGroup.reading)
 
-        case .character:
-            // First character of expression (typically kanji)
-            return .text(selectedGroup.expression.first.map(String.init))
-
         // MARK: - Context values from request
 
         case .sentence:
             return .text(response.effectiveContext)
 
-        case .documentTitle:
-            return .text(response.request.contextValues?.documentTitle)
-
-        case .documentURL:
-            return .text(response.request.contextValues?.documentURL?.absoluteString)
-
-        case .documentCoverImage:
-            if let url = response.request.contextValues?.documentCoverImageURL {
-                // Use a shorter, simpler filename to avoid potential issues
-                let shortID = UUID().uuidString.prefix(8)
-                let fileID = "maru_cover_\(shortID)"
-                return TemplateResolvedValue(mediaFiles: [fileID: url])
-            }
-            return .empty
-
-        case .screenshot:
-            if let url = response.request.contextValues?.screenshotURL {
-                let shortID = UUID().uuidString.prefix(8)
-                let fileID = "maru_screenshot_\(shortID)"
-                return TemplateResolvedValue(mediaFiles: [fileID: url])
-            }
-            return .empty
+        case .contextInfo:
+            return resolveContextInfo()
 
         case .contextImage:
             return resolveContextImage()
@@ -141,14 +115,14 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         case let .singleDictionaryGlossary(dictionaryID):
             return resolveGlossary(forDictionary: dictionaryID)
 
+        case .singleGlossary:
+            return resolveSingleGlossary()
+
         case .multiDictionaryGlossary:
             return resolveMultiDictionaryGlossary()
 
         case .glossaryNoDictionary:
             return resolveGlossaryNoDictionary()
-
-        case .dictionaryTitle:
-            return resolveDictionaryTitle()
 
         // MARK: - Audio
 
@@ -197,7 +171,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
         // MARK: - Kanji-specific (not implemented for term lookups)
 
-        case .kunyomi, .onyomi, .onyomiAsHiragana, .strokeCount:
+        case .kunyomi, .onyomi, .onyomiAsHiragana:
             // These are kanji-specific and not applicable to term lookups
             return .empty
 
@@ -285,6 +259,41 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private func resolveTags() -> TemplateResolvedValue {
         let tagNames = selectedGroup.termTags.map(\.name)
         return .text(tagNames.isEmpty ? nil : tagNames.joined(separator: " "))
+    }
+
+    private func resolveContextInfo() -> TemplateResolvedValue {
+        if let contextInfo = normalizedContextInfo(response.request.contextValues?.contextInfo) {
+            return .text(contextInfo)
+        }
+
+        let sourceType = response.request.contextValues?.sourceType ?? .dictionary
+        guard sourceType == .dictionary else {
+            return .empty
+        }
+        return .text(makeDictionaryContextInfo())
+    }
+
+    private func makeDictionaryContextInfo() -> String {
+        let query = normalizedContextInfo(response.request.context) ?? "Unknown"
+        let headword = normalizedContextInfo(selectedGroup.expression)
+            ?? normalizedContextInfo(response.primaryResult)
+            ?? "Unknown"
+        let dictionaryTitle = normalizedContextInfo(selectedGroup.dictionariesResults.first?.dictionaryTitle) ?? "Unknown Dictionary"
+        return "Query: \(query) | Headword: \(headword) | Dictionary: \(dictionaryTitle)"
+    }
+
+    private func normalizedContextInfo(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return trimmed
+    }
+
+    private func resolveSingleGlossary() -> TemplateResolvedValue {
+        guard let firstDictionaryID = selectedGroup.dictionariesResults.first?.dictionaryUUID else {
+            return .empty
+        }
+        return resolveGlossary(forDictionary: firstDictionaryID)
     }
 
     private func resolveGlossary(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
@@ -397,15 +406,6 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
 
         return mediaFiles
-    }
-
-    private func resolveDictionaryTitle() -> TemplateResolvedValue {
-        if let dictionaryID = selectedDictionaryID,
-           let dictResult = selectedGroup.dictionariesResults.first(where: { $0.dictionaryUUID == dictionaryID })
-        {
-            return .text(dictResult.dictionaryTitle)
-        }
-        return .text(selectedGroup.dictionariesResults.first?.dictionaryTitle)
     }
 
     private func resolveContextImage() -> TemplateResolvedValue {

@@ -20,12 +20,11 @@ import Foundation
 /// The values that can be used to populate note fields.
 public enum TemplateValue: Sendable, Codable, Hashable {
     case singleDictionaryGlossary(dictionaryID: UUID)
+    case singleGlossary
     case multiDictionaryGlossary
     case pronunciationAudio
-    case character
     case expression
     case customHTMLValue(value: String)
-    case dictionaryTitle
     case furigana
     case glossaryNoDictionary
     case kunyomi
@@ -40,11 +39,8 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case clozeFuriganaBody
     case clozeFuriganaSuffix
     case tags
-    case documentURL
-    case screenshot
-    case documentCoverImage
     case contextImage
-    case documentTitle
+    case contextInfo
     case singlePitchAccent
     case singlePitchAccentDictionary(dictionaryID: UUID)
     case pitchAccentList
@@ -58,7 +54,6 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case frequencyOccurrenceSortField(dictionaryID: UUID)
     case frequencyRankHarmonicMeanSortField
     case frequencyOccurrenceHarmonicMeanSortField
-    case strokeCount
     case partOfSpeech
     case sentenceFurigana
 }

@@ -30,7 +30,7 @@ struct LookupContextValuesTests {
 
     @Test func lookupContextValues_withExplicitSourceType_preservesSourceType() {
         let contextValues = LookupContextValues(
-            documentTitle: "Test Book",
+            contextInfo: "Test Book - Position 1",
             sourceType: .book
         )
 
@@ -41,8 +41,7 @@ struct LookupContextValuesTests {
 
     @Test func lookupContextValues_withSourceType_transitionsCorrectly() {
         let original = LookupContextValues(
-            documentTitle: "Test Book",
-            documentURL: URL(string: "file:///test.epub"),
+            contextInfo: "Test Book - Position 12",
             documentCoverImageURL: URL(string: "file:///cover.jpg"),
             screenshotURL: URL(string: "file:///screenshot.png"),
             sourceType: .book
@@ -51,40 +50,38 @@ struct LookupContextValuesTests {
         let dictionaryScreenshotURL = URL(string: "file:///dictionary.png")
         let transitioned = original.withSourceType(
             .dictionary,
+            contextInfo: "Query: 語 | Headword: 語る | Dictionary: Test Dictionary",
             screenshotURL: dictionaryScreenshotURL
         )
 
         #expect(transitioned.sourceType == .dictionary)
-        #expect(transitioned.documentTitle == "Maru Dictionary")
-        #expect(transitioned.documentURL == nil)
+        #expect(transitioned.contextInfo == "Query: 語 | Headword: 語る | Dictionary: Test Dictionary")
         #expect(transitioned.documentCoverImageURL == nil)
         #expect(transitioned.screenshotURL == dictionaryScreenshotURL)
     }
 
     @Test func lookupContextValues_withSourceType_bookToManga() {
         let original = LookupContextValues(
-            documentTitle: "My Manga",
+            contextInfo: "My Manga - Page 4",
             sourceType: .book
         )
 
         let transitioned = original.withSourceType(.manga)
 
         #expect(transitioned.sourceType == .manga)
-        #expect(transitioned.documentTitle == "My Manga")
+        #expect(transitioned.contextInfo == "My Manga - Page 4")
     }
 
     @Test func lookupContextValues_withSourceType_webToDictionary() {
         let original = LookupContextValues(
-            documentTitle: "Web Page",
-            documentURL: URL(string: "https://example.com"),
+            contextInfo: "Web page - https://example.com",
             sourceType: .web
         )
 
         let transitioned = original.withSourceType(.dictionary)
 
         #expect(transitioned.sourceType == .dictionary)
-        #expect(transitioned.documentTitle == "Maru Dictionary")
-        #expect(transitioned.documentURL == nil)
+        #expect(transitioned.contextInfo == "Dictionary search")
     }
 
     // MARK: - All Source Types Tests

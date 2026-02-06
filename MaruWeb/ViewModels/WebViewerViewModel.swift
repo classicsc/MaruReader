@@ -276,9 +276,11 @@ final class WebViewerViewModel {
             )
             guard let cluster = ocrViewModel.nearestCluster(to: normalized) else { return nil }
 
+            let title = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
+            let displayTitle = title.isEmpty ? "Web page" : title
+            let urlString = page.url?.absoluteString ?? "Unknown URL"
             let contextValues = LookupContextValues(
-                documentTitle: page.title,
-                documentURL: page.url,
+                contextInfo: "\(displayTitle) - \(urlString)",
                 documentCoverImageURL: nil,
                 screenshotURL: screenshotURL,
                 sourceType: .web
