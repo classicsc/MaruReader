@@ -66,7 +66,6 @@ enum TermFetcher {
         async let frequencyMap = try fetchFrequencyMap(
             expressions: expressions,
             readings: readings,
-            enabledDictionaryIDs: enabledDictionaryIDs,
             dictionaryMetadata: dictionaryMetadata,
             context: context,
             logger: logger
@@ -136,7 +135,10 @@ enum TermFetcher {
                         // Get frequencies for this term
                         let frequencyKey = "\(expression)|\(reading)"
                         let frequencies = frequencyMapValue[frequencyKey] ?? []
-                        let bestFrequency = frequencies.first
+                        let rankingFrequency = rankingFrequency(
+                            from: frequencies,
+                            dictionaryMetadata: dictionaryMetadata
+                        )
 
                         // Get pitch accents for this term
                         let pitchAccents = pitchAccentMapValue[frequencyKey] ?? []
@@ -157,13 +159,13 @@ enum TermFetcher {
                             tagMetadataMap: tagMetadataMapValue
                         )
 
-                        // Create ranking criteria using best frequency
+                        // Create ranking criteria using the selected ranking dictionary frequency.
                         let rankingCriteria = RankingCriteria(
                             candidate: candidate,
                             term: expression,
                             termScore: entry.score,
                             definitions: definitions,
-                            frequency: (bestFrequency?.value, bestFrequency?.mode),
+                            frequency: (rankingFrequency?.value, rankingFrequency?.mode),
                             dictionaryTitle: dictMetadata.title,
                             dictionaryPriority: dictMetadata.termDisplayPriority
                         )
@@ -176,7 +178,7 @@ enum TermFetcher {
                             term: expression,
                             reading: reading.isEmpty ? nil : reading,
                             definitions: definitions,
-                            frequency: bestFrequency?.value,
+                            frequency: rankingFrequency?.value,
                             frequencies: frequencies,
                             pitchAccents: pitchAccents,
                             dictionaryTitle: dictMetadata.title,
@@ -206,6 +208,15 @@ enum TermFetcher {
 
         // Sort by ranking criteria (best ranks first - reverse sort since we want higher ranking first)
         return searchResults.sorted { $0 > $1 }
+    }
+
+    static func rankingFrequency(
+        from frequencies: [FrequencyInfo],
+        dictionaryMetadata: [UUID: DictionaryMetadata]
+    ) -> FrequencyInfo? {
+        frequencies.first { frequency in
+            dictionaryMetadata[frequency.dictionaryID]?.termFrequencyEnabled == true
+        }
     }
 
     // MARK: Intermediate result types
@@ -276,17 +287,13 @@ enum TermFetcher {
     private static func fetchFrequencyMap(
         expressions: Set<String>,
         readings: Set<String>,
-        enabledDictionaryIDs _: [UUID],
         dictionaryMetadata: [UUID: DictionaryMetadata],
         context: NSManagedObjectContext,
         logger: Logger
     ) async throws -> [String: [FrequencyInfo]] {
-        // Filter to only frequency-enabled dictionaries
-        let frequencyEnabledIDs = dictionaryMetadata
-            .filter(\.value.termFrequencyEnabled)
-            .map(\.key)
+        let frequencyDictionaryIDs = Array(dictionaryMetadata.keys)
 
-        guard !frequencyEnabledIDs.isEmpty else {
+        guard !frequencyDictionaryIDs.isEmpty else {
             return [:]
         }
 
@@ -296,7 +303,7 @@ enum TermFetcher {
                 format: "expression IN %@ AND reading IN %@ AND dictionaryID IN %@",
                 Array(expressions),
                 Array(readings),
-                frequencyEnabledIDs
+                frequencyDictionaryIDs
             )
 
             let frequencyEntries = try context.fetch(fetchRequest)
@@ -317,8 +324,7 @@ enum TermFetcher {
                 var freqInfos: [FrequencyInfo] = []
                 for entry in entries {
                     guard let dictionaryID = entry.dictionaryID,
-                          let dictMetadata = dictionaryMetadata[dictionaryID],
-                          dictMetadata.termFrequencyEnabled
+                          let dictMetadata = dictionaryMetadata[dictionaryID]
                     else {
                         continue
                     }

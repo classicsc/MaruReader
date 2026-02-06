@@ -304,7 +304,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         // Full: expandable with all frequency details
         let freqItemsHTML = sortedFrequencies.map { freq in
             let itemTitle = freq.dictionaryTitle.escapeHTML()
-            let itemMode = freq.mode ?? "N/A"
+            let itemMode = freq.mode ?? "rank-based (auto)"
             let itemTitleWithMode = itemTitle + ": \(itemMode.escapeHTML())"
             return "<span class=\"freq-item\" title=\"\(itemTitleWithMode)\">\(itemTitle): \(freq.displayString.escapeHTML())</span>"
         }.joined(separator: "<span class=\"freq-separator\">·</span>")
