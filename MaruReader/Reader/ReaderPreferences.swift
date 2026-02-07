@@ -461,7 +461,7 @@ final class ReaderPreferences {
     /// Increase the font size within reasonable bounds
     func increaseFontSize() {
         guard let profile else { return }
-        let newSize = min(profile.fontSize + 10.0, 200.0)
+        let newSize = min(currentFontSizeForAdjustment() + 10.0, 200.0)
         profile.fontSize = newSize
         updateTrigger += 1
         saveContext()
@@ -471,11 +471,17 @@ final class ReaderPreferences {
     /// Decrease the font size within reasonable bounds
     func decreaseFontSize() {
         guard let profile else { return }
-        let newSize = max(profile.fontSize - 10.0, 50.0)
+        let newSize = max(currentFontSizeForAdjustment() - 10.0, 50.0)
         profile.fontSize = newSize
         updateTrigger += 1
         saveContext()
         submitToNavigator()
+    }
+
+    /// Uses the stored override when set, otherwise the effective default size.
+    private func currentFontSizeForAdjustment() -> Double {
+        let rawSize = profile?.fontSize ?? 0.0
+        return rawSize != 0.0 ? rawSize : effectiveFontSize
     }
 
     /// Enables or disables follow system theme mode
