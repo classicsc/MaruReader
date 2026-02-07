@@ -33,10 +33,12 @@ struct FieldMappingEditorView: View {
 
     @Bindable var viewModel: AnkiConfigurationViewModel
     let editingProfile: FieldMappingProfileInfo?
+    let setupFieldNames: [String]?
     var onSave: ((UUID) -> Void)?
 
     @State private var profileName: String = ""
     @State private var fieldMappings: [(fieldName: String, values: [TemplateValue])] = []
+    @State private var didInitialize = false
     @State private var isSaving = false
     @State private var error: Error?
     @State private var showError = false
@@ -46,6 +48,18 @@ struct FieldMappingEditorView: View {
     @State private var dictionaryPickerContext: DictionaryPickerContext?
     @State private var availableTermDictionaries: [DictionaryPickerInfo] = []
     @State private var availableFrequencyDictionaries: [DictionaryPickerInfo] = []
+
+    init(
+        viewModel: AnkiConfigurationViewModel,
+        editingProfile: FieldMappingProfileInfo?,
+        setupFieldNames: [String]? = nil,
+        onSave: ((UUID) -> Void)? = nil
+    ) {
+        self.viewModel = viewModel
+        self.editingProfile = editingProfile
+        self.setupFieldNames = setupFieldNames
+        self.onSave = onSave
+    }
 
     private struct DictionaryPickerContext: Identifiable {
         let id = UUID()
@@ -64,6 +78,10 @@ struct FieldMappingEditorView: View {
         editingProfile != nil
     }
 
+    private var isConstrainedToSetupFields: Bool {
+        !isEditing && setupFieldNames != nil
+    }
+
     var body: some View {
         Form {
             Section("Profile Name") {
@@ -74,19 +92,22 @@ struct FieldMappingEditorView: View {
                 ForEach(fieldMappings.indices, id: \.self) { index in
                     fieldMappingRow(at: index)
                 }
-                .onDelete { indexSet in
+                .onDelete(perform: isConstrainedToSetupFields ? nil : { indexSet in
                     fieldMappings.remove(atOffsets: indexSet)
-                }
+                })
 
-                Button {
-                    fieldMappings.append((fieldName: "", values: []))
-                } label: {
-                    Label("Add Field", systemImage: "plus")
+                if !isConstrainedToSetupFields {
+                    // Manual mode allows arbitrary fields.
+                    Button {
+                        fieldMappings.append((fieldName: "", values: []))
+                    } label: {
+                        Label("Add Field", systemImage: "plus")
+                    }
                 }
             }
 
             Section {
-                Text("Field names should match the fields in your Anki note type. Values will be populated from the dictionary entry.")
+                Text(infoFooterText)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -109,13 +130,7 @@ struct FieldMappingEditorView: View {
             }
         }
         .onAppear {
-            if let profile = editingProfile {
-                profileName = profile.displayName
-                if let fieldMap = profile.fieldMap {
-                    fieldMappings = fieldMap.map.map { (fieldName: $0.key, values: $0.value) }
-                        .sorted { $0.fieldName < $1.fieldName }
-                }
-            }
+            initializeIfNeeded()
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -239,13 +254,44 @@ struct FieldMappingEditorView: View {
             fieldMappings.allSatisfy { !$0.fieldName.trimmingCharacters(in: .whitespaces).isEmpty }
     }
 
+    private var infoFooterText: String {
+        if isConstrainedToSetupFields {
+            "Fields are based on the selected note type. Matching values are prefilled automatically."
+        } else {
+            "Field names should match the fields in your Anki note type. Values will be populated from the dictionary entry."
+        }
+    }
+
+    private func initializeIfNeeded() {
+        guard !didInitialize else { return }
+        didInitialize = true
+
+        if let profile = editingProfile {
+            profileName = profile.displayName
+            if let fieldMap = profile.fieldMap {
+                fieldMappings = fieldMap.map.map { (fieldName: $0.key, values: $0.value) }
+                    .sorted { $0.fieldName < $1.fieldName }
+            }
+            return
+        }
+
+        if let setupFieldNames {
+            fieldMappings = AnkiConfigurationViewModel.prefilledSetupFieldMappings(forNoteTypeFields: setupFieldNames)
+        }
+    }
+
     private func fieldMappingRow(at index: Int) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            TextField("Field Name", text: Binding(
-                get: { fieldMappings[index].fieldName },
-                set: { fieldMappings[index].fieldName = $0 }
-            ))
-            .textInputAutocapitalization(.never)
+            if isConstrainedToSetupFields {
+                Text(fieldMappings[index].fieldName)
+                    .font(.body)
+            } else {
+                TextField("Field Name", text: Binding(
+                    get: { fieldMappings[index].fieldName },
+                    set: { fieldMappings[index].fieldName = $0 }
+                ))
+                .textInputAutocapitalization(.never)
+            }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack {

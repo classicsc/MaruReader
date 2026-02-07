@@ -155,6 +155,19 @@ final class AnkiConfigurationViewModel {
         apiKey.isEmpty ? nil : apiKey
     }
 
+    var canGoBack: Bool {
+        currentStep != .connectionType
+    }
+
+    var selectedCompatibleFieldMappingProfile: FieldMappingProfileInfo? {
+        guard let profile = selectedFieldMappingProfile else { return nil }
+        return isFieldMappingProfileCompatibleWithSelectedModel(profile) ? profile : nil
+    }
+
+    var compatibleVisibleFieldMappingProfiles: [FieldMappingProfileInfo] {
+        fieldMappingProfiles.filter { !$0.isHidden && isFieldMappingProfileCompatibleWithSelectedModel($0) }
+    }
+
     var canProceed: Bool {
         switch currentStep {
         case .connectionType:
@@ -170,7 +183,7 @@ final class AnkiConfigurationViewModel {
         case .modelSelection:
             selectedModelName != nil
         case .fieldMappingSelection:
-            selectedFieldMappingProfileID != nil || selectedTemplateID != nil
+            selectedTemplateID != nil || selectedCompatibleFieldMappingProfile != nil
         case .duplicateSettings:
             true // Duplicate settings always has valid defaults
         case .templateConfiguration:
@@ -247,16 +260,15 @@ final class AnkiConfigurationViewModel {
                 currentStep = .mobileDetails
             }
         case .deckSelection:
-            currentStep = .profileSelection
+            if connectionType == .ankiMobile, profiles.isEmpty {
+                currentStep = .mobileDetails
+            } else {
+                currentStep = .profileSelection
+            }
         case .modelSelection:
             currentStep = .deckSelection
         case .fieldMappingSelection:
-            switch connectionType {
-            case .ankiConnect:
-                currentStep = .modelSelection
-            case .ankiMobile:
-                currentStep = .mobileDetails
-            }
+            currentStep = .modelSelection
         case .duplicateSettings:
             currentStep = .fieldMappingSelection
         case .templateConfiguration:
@@ -357,6 +369,94 @@ final class AnkiConfigurationViewModel {
         }
     }
 
+    // MARK: - Field Mapping Compatibility
+
+    func isFieldMappingProfileCompatibleWithSelectedModel(_ profile: FieldMappingProfileInfo) -> Bool {
+        guard let selectedModel else { return true }
+        return Self.isFieldMap(profile.fieldMap, compatibleWithNoteTypeFields: selectedModel.fields)
+    }
+
+    func prefilledSetupFieldMappingsForSelectedModel() -> [(fieldName: String, values: [TemplateValue])] {
+        guard let selectedModel else { return [] }
+        return Self.prefilledSetupFieldMappings(forNoteTypeFields: selectedModel.fields)
+    }
+
+    nonisolated static func isFieldMap(_ fieldMap: AnkiFieldMap?, compatibleWithNoteTypeFields noteTypeFields: [String]) -> Bool {
+        guard let fieldMap else { return false }
+
+        let normalizedNoteTypeFields = Set(noteTypeFields.map(normalizedFieldIdentifier))
+        guard !normalizedNoteTypeFields.isEmpty else { return false }
+
+        return fieldMap.map.keys.allSatisfy { fieldName in
+            normalizedNoteTypeFields.contains(normalizedFieldIdentifier(fieldName))
+        }
+    }
+
+    nonisolated static func prefilledSetupFieldMappings(forNoteTypeFields noteTypeFields: [String])
+        -> [(fieldName: String, values: [TemplateValue])]
+    {
+        noteTypeFields.map { fieldName in
+            let values: [TemplateValue] = if let matchedValue = matchedTemplateValue(forFieldName: fieldName) {
+                [matchedValue]
+            } else {
+                []
+            }
+            return (fieldName: fieldName, values: values)
+        }
+    }
+
+    nonisolated static func matchedTemplateValue(forFieldName fieldName: String) -> TemplateValue? {
+        let normalized = normalizedFieldIdentifier(fieldName)
+        guard !normalized.isEmpty else { return nil }
+        return templateValueAutoFillByNormalizedFieldName[normalized]
+    }
+
+    private nonisolated static func normalizedFieldIdentifier(_ fieldName: String) -> String {
+        let filtered = fieldName.unicodeScalars.filter(CharacterSet.alphanumerics.contains)
+        return String(String.UnicodeScalarView(filtered)).lowercased()
+    }
+
+    private nonisolated static let templateValueAutoFillByNormalizedFieldName: [String: TemplateValue] = {
+        let aliases: [(TemplateValue, [String])] = [
+            (.expression, ["expression"]),
+            (.furigana, ["furigana"]),
+            (.reading, ["reading"]),
+            (.sentence, ["sentence"]),
+            (.sentenceFurigana, ["sentenceFurigana"]),
+            (.clozePrefix, ["clozePrefix"]),
+            (.clozeBody, ["clozeBody"]),
+            (.clozeSuffix, ["clozeSuffix"]),
+            (.clozeFuriganaPrefix, ["clozeFuriganaPrefix"]),
+            (.clozeFuriganaBody, ["clozeFuriganaBody"]),
+            (.clozeFuriganaSuffix, ["clozeFuriganaSuffix"]),
+            (.tags, ["tags"]),
+            (.contextImage, ["contextImage"]),
+            (.contextInfo, ["contextInfo"]),
+            (.singleGlossary, ["singleGlossary", "glossary"]),
+            (.multiDictionaryGlossary, ["multiDictionaryGlossary"]),
+            (.glossaryNoDictionary, ["glossaryNoDictionary"]),
+            (.pronunciationAudio, ["pronunciationAudio", "audio"]),
+            (.singlePitchAccent, ["singlePitchAccent", "pitchAccent"]),
+            (.pitchAccentList, ["pitchAccentList"]),
+            (.pitchAccentDisambiguation, ["pitchAccentDisambiguation"]),
+            (.pitchAccentCategories, ["pitchAccentCategories"]),
+            (.conjugation, ["conjugation"]),
+            (.frequencyList, ["frequencyList"]),
+            (.singleFrequency, ["singleFrequency", "frequency"]),
+            (.frequencyRankHarmonicMeanSortField, ["frequencyRankHarmonicMeanSortField"]),
+            (.frequencyOccurrenceHarmonicMeanSortField, ["frequencyOccurrenceHarmonicMeanSortField"]),
+            (.partOfSpeech, ["partOfSpeech", "pos"]),
+        ]
+
+        var mapping: [String: TemplateValue] = [:]
+        for (value, names) in aliases {
+            for name in names {
+                mapping[normalizedFieldIdentifier(name)] = value
+            }
+        }
+        return mapping
+    }()
+
     private func fetchFieldMappingProfiles() async {
         let context = persistence.newBackgroundContext()
 
@@ -406,10 +506,15 @@ final class AnkiConfigurationViewModel {
         templateConfiguredProfiles = configuredTemplates
 
         // Auto-select Basic if it exists
-        if let basicProfile = fieldMappingProfiles.first(where: { $0.id == SystemProfileManager.basicProfileUUID }) {
+        if let basicProfile = fieldMappingProfiles.first(where: {
+            $0.id == SystemProfileManager.basicProfileUUID && !$0.isHidden &&
+                isFieldMappingProfileCompatibleWithSelectedModel($0)
+        }) {
             selectedFieldMappingProfileID = basicProfile.id
-        } else if let firstProfile = fieldMappingProfiles.first(where: { !$0.isHidden }) {
+        } else if let firstProfile = compatibleVisibleFieldMappingProfiles.first {
             selectedFieldMappingProfileID = firstProfile.id
+        } else {
+            selectedFieldMappingProfileID = nil
         }
 
         currentStep = .fieldMappingSelection
@@ -644,6 +749,12 @@ final class AnkiConfigurationViewModel {
 
         fieldMappingProfiles = profileInfos
         templateConfiguredProfiles = configuredTemplates
+
+        if let selectedFieldMappingProfile,
+           !isFieldMappingProfileCompatibleWithSelectedModel(selectedFieldMappingProfile)
+        {
+            selectedFieldMappingProfileID = nil
+        }
     }
 
     func createFieldMappingProfile(name: String, fieldMap: AnkiFieldMap) async throws -> UUID {

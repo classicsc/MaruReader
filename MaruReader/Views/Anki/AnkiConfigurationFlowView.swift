@@ -55,10 +55,19 @@ struct AnkiConfigurationFlowView: View {
             }
         }
         .toolbar {
+            if viewModel.canGoBack {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("Back") {
+                        viewModel.goBack()
+                    }
+                    .disabled(viewModel.isLoading)
+                }
+            }
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel") {
                     dismiss()
                 }
+                .disabled(viewModel.isLoading)
             }
         }
         .interactiveDismissDisabled(viewModel.isLoading)

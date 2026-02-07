@@ -36,11 +36,6 @@ struct TemplateConfigurationView: View {
         .navigationTitle("Configure Template")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Back") {
-                    viewModel.goBack()
-                }
-            }
             ToolbarItem(placement: .confirmationAction) {
                 Button("Save") {
                     Task {

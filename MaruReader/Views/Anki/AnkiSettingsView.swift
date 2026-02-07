@@ -24,6 +24,7 @@ struct AnkiSettingsView: View {
     private let noteService = AnkiNoteService()
 
     @State private var currentSettings: MaruAnkiSettings?
+    @State private var isAnkiEnabled = false
     @State private var showingConfigurationFlow = false
     @State private var showingFieldMappingManagement = false
     @State private var isLoading = true
@@ -41,37 +42,33 @@ struct AnkiSettingsView: View {
                     Toggle("Enable Anki Integration", isOn: ankiEnabledBinding)
                 }
 
-                if let settings = currentSettings, settings.ankiEnabled {
-                    configurationSection(settings: settings)
+                if let settings = currentSettings {
+                    if isAnkiEnabled {
+                        configurationSection(settings: settings)
 
-                    Section {
-                        Button("Edit Configuration") {
-                            showingConfigurationFlow = true
-                        }
-                        Button("Manage Field Mappings") {
-                            showingFieldMappingManagement = true
-                        }
-                        NavigationLink("Context Image Settings") {
-                            ContextImageSettingsView()
+                        Section {
+                            Button("Edit Configuration") {
+                                showingConfigurationFlow = true
+                            }
+                            Button("Manage Field Mappings") {
+                                showingFieldMappingManagement = true
+                            }
+                            NavigationLink("Context Image Settings") {
+                                ContextImageSettingsView()
+                            }
                         }
                     }
-                } else if currentSettings == nil {
-                    Section {
-                        Button("Configure Anki Integration") {
-                            showingConfigurationFlow = true
-                        }
-                    }
-                }
 
-                Section("Pending Notes") {
-                    if pendingCount > 0 {
-                        NavigationLink(destination: PendingNotesView()) {
-                            Label("Pending Notes", systemImage: "tray")
-                        }
-                        .badge(pendingCount)
-                    } else {
-                        NavigationLink(destination: PendingNotesView()) {
-                            Label("Pending Notes", systemImage: "tray")
+                    Section("Pending Notes") {
+                        if pendingCount > 0 {
+                            NavigationLink(destination: PendingNotesView()) {
+                                Label("Pending Notes", systemImage: "tray")
+                            }
+                            .badge(pendingCount)
+                        } else {
+                            NavigationLink(destination: PendingNotesView()) {
+                                Label("Pending Notes", systemImage: "tray")
+                            }
                         }
                     }
                 }
@@ -128,6 +125,7 @@ struct AnkiSettingsView: View {
             return (settings, options)
         }
         currentSettings = fetchedSettings
+        isAnkiEnabled = fetchedSettings?.ankiEnabled ?? false
         duplicateOptions = parsedDuplicateOptions
         pendingCount = await noteService.pendingNoteCount()
         isLoading = false
@@ -199,11 +197,15 @@ struct AnkiSettingsView: View {
 
     private var ankiEnabledBinding: Binding<Bool> {
         Binding(
-            get: { currentSettings?.ankiEnabled ?? false },
+            get: { isAnkiEnabled },
             set: { newValue in
+                isAnkiEnabled = newValue
                 if let settings = currentSettings {
                     settings.ankiEnabled = newValue
                     try? persistence.container.viewContext.save()
+                    Task {
+                        await loadSettings()
+                    }
                 } else if newValue {
                     // No settings exist, show config flow to create them
                     showingConfigurationFlow = true
