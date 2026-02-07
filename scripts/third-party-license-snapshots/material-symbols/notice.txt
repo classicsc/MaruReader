@@ -1,0 +1,8 @@
+Source: https://fonts.google.com/icons
+Retrieved: 2026-02-07
+
+Material Symbols Outlined notice:
+- The bundled `MaterialSymbolsOutlined.woff2` asset is distributed by Google.
+- Material Symbols are provided under the Apache License, Version 2.0.
+
+Refer to the source URL for current project metadata.

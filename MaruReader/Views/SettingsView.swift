@@ -97,6 +97,9 @@ struct SettingsView: View {
                     }
                 }
                 Section("About") {
+                    NavigationLink(destination: AboutView()) {
+                        Label("About MaruReader", systemImage: "info.circle")
+                    }
                     LabeledContent("App Version", value: appVersion)
                     LabeledContent("Build", value: appBuild)
                 }

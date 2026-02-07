@@ -1,0 +1,542 @@
+{
+  "components" : [
+    {
+      "attribution" : "AdGuard",
+      "category" : "filterList",
+      "homepageURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters",
+      "id" : "manual-adguard-filters",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-adguard-license.txt",
+          "referenceURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters\/blob\/master\/LICENSE",
+          "title" : "AdGuard Filters License (GPLv3)"
+        }
+      ],
+      "name" : "AdGuard Filters (Mobile + Japanese)",
+      "notes" : "Includes AdGuard Mobile and AdGuard Japanese rulesets.\nEnabled rulesets from External\/ublock-rulesets.json: AdGuard\/uBO – Mobile Ads (adguard-mobile), 🇯🇵jp: AdGuard Japanese (jpn-1).",
+      "sourceURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters"
+    },
+    {
+      "attribution" : "The EasyList authors",
+      "category" : "filterList",
+      "homepageURL" : "https:\/\/easylist.to\/",
+      "id" : "manual-easylist-easyprivacy",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-easylist-licence-statement.txt",
+          "referenceURL" : "https:\/\/easylist.to\/pages\/licence.html",
+          "title" : "EasyList License Statement"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-gpl-3.0.txt",
+          "referenceURL" : "https:\/\/www.gnu.org\/licenses\/gpl-3.0.txt",
+          "title" : "GNU GPL v3 Legalcode"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-sa-3.0.txt",
+          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by-sa\/3.0\/legalcode.txt",
+          "title" : "Creative Commons BY-SA 3.0 Legalcode"
+        }
+      ],
+      "name" : "EasyList + EasyPrivacy",
+      "notes" : "Includes EasyList and EasyPrivacy ruleset subscriptions.\nEnabled rulesets from External\/ublock-rulesets.json: EasyList (easylist), EasyPrivacy (easyprivacy).",
+      "sourceURL" : "https:\/\/github.com\/easylist\/easylist"
+    },
+    {
+      "attribution" : "Stephen Kraus",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/jitendex.org\/",
+      "id" : "manual-jitendex",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-jitendex-legal-statement.txt",
+          "referenceURL" : "https:\/\/jitendex.org\/pages\/legal.html",
+          "title" : "Jitendex Legal Statement"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-sa-4.0.txt",
+          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by-sa\/4.0\/legalcode.txt",
+          "title" : "Creative Commons BY-SA 4.0 Legalcode"
+        }
+      ],
+      "name" : "Jitendex",
+      "notes" : "Dictionary content seeded into StarterDictionary for initial distribution.",
+      "sourceURL" : "https:\/\/github.com\/Jitendex\/Jitendex"
+    },
+    {
+      "attribution" : "Harumi Hibino Lory and Arno Bosse",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/kanjialive.com\/",
+      "id" : "manual-kanji-alive",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-kanji-alive-license-statement.txt",
+          "referenceURL" : "https:\/\/github.com\/kanjialive\/kanji-data-media",
+          "title" : "Kanji alive License Statement"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-4.0.txt",
+          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by\/4.0\/legalcode.txt",
+          "title" : "Creative Commons BY 4.0 Legalcode"
+        }
+      ],
+      "name" : "Kanji alive",
+      "notes" : "Audio and media content used for seeded pronunciation data.",
+      "sourceURL" : "https:\/\/github.com\/kanjialive\/kanji-data-media"
+    },
+    {
+      "attribution" : "Google LLC",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/fonts.google.com\/icons",
+      "id" : "manual-material-symbols-outlined",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-material-symbols-outlined-notice.txt",
+          "referenceURL" : "https:\/\/fonts.google.com\/icons",
+          "title" : "Material Symbols Outlined Notice"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-apache-2.0.txt",
+          "referenceURL" : "https:\/\/www.apache.org\/licenses\/LICENSE-2.0.txt",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "Material Symbols Outlined",
+      "notes" : "Bundled icon font at MaruReaderCore\/Assets\/Fonts\/MaterialSymbolsOutlined.woff2.",
+      "sourceURL" : "https:\/\/fonts.google.com\/icons"
+    },
+    {
+      "attribution" : "Raymond Hill",
+      "category" : "filterList",
+      "homepageURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets",
+      "id" : "manual-uassets-filters",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-uassets-license.txt",
+          "referenceURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets\/blob\/master\/LICENSE",
+          "title" : "uAssets License (GPLv3)"
+        }
+      ],
+      "name" : "uAssets Filters",
+      "notes" : "Provides uBlock-maintained rulesets used by content blocking.\nEnabled rulesets from External\/ublock-rulesets.json: uBlock filters – Ads, trackers, and more (ublock-filters), uBlock filters – Badware risks (ublock-badware).",
+      "sourceURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets"
+    },
+    {
+      "attribution" : "Raymond Hill",
+      "category" : "contentBlocker",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "manual-ublock-origin-lite",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-ublock-origin-lite-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/LICENSE.txt",
+          "title" : "uBlock Origin Lite License"
+        }
+      ],
+      "name" : "uBlock Origin Lite",
+      "notes" : "Bundled as uBOLite.safari from External\/uBlock\/dist\/build.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
+      "id" : "spm-cryptoswift",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-cryptoswift-license.txt",
+          "referenceURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "CryptoSwift",
+      "revision" : "e45a26384239e028ec87fbcc788f513b67e10d8f",
+      "sourceURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
+      "version" : "1.9.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/ra1028\/DifferenceKit.git",
+      "id" : "spm-differencekit",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-differencekit-license.txt",
+          "referenceURL" : "https:\/\/github.com\/ra1028\/DifferenceKit.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "DifferenceKit",
+      "revision" : "073b9671ce2b9b5b96398611427a1f929927e428",
+      "sourceURL" : "https:\/\/github.com\/ra1028\/DifferenceKit.git",
+      "version" : "1.3.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/readium\/Fuzi.git",
+      "id" : "spm-fuzi",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-fuzi-license.txt",
+          "referenceURL" : "https:\/\/github.com\/readium\/Fuzi.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "Fuzi",
+      "revision" : "347aab158ff8894966ff80469b384bb5337928cd",
+      "sourceURL" : "https:\/\/github.com\/readium\/Fuzi.git",
+      "version" : "4.0.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/readium\/GCDWebServer.git",
+      "id" : "spm-gcdwebserver",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-gcdwebserver-license.txt",
+          "referenceURL" : "https:\/\/github.com\/readium\/GCDWebServer.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "GCDWebServer",
+      "revision" : "584db89a4c3c3be27206cce6afde037b2b6e38d8",
+      "sourceURL" : "https:\/\/github.com\/readium\/GCDWebServer.git",
+      "version" : "4.0.1"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
+      "id" : "spm-json-stream",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-json-stream-license.txt",
+          "referenceURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "json-stream",
+      "revision" : "703a39ce871e97c4c3831ad8f681d26f4d884559",
+      "sourceURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
+      "version" : "1.0.3"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/nicklockwood\/LRUCache.git",
+      "id" : "spm-lrucache",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-lrucache-license-md.txt",
+          "referenceURL" : "https:\/\/github.com\/nicklockwood\/LRUCache.git",
+          "title" : "LICENSE.md"
+        }
+      ],
+      "name" : "LRUCache",
+      "revision" : "0d91406ecd4d6c1c56275866f00508d9aeacc92a",
+      "sourceURL" : "https:\/\/github.com\/nicklockwood\/LRUCache.git"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
+      "id" : "spm-mecab-swift",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-mecab-swift-license.txt",
+          "referenceURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "Mecab-Swift",
+      "revision" : "1f096492e37fc05fc2e7304091f54889974c5368",
+      "sourceURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
+      "version" : "0.8.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/stephencelis\/SQLite.swift.git",
+      "id" : "spm-sqlite.swift",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-sqlite-swift-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/stephencelis\/SQLite.swift.git",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "SQLite.swift",
+      "revision" : "392dd6058624d9f6c5b4c769d165ddd8c7293394",
+      "sourceURL" : "https:\/\/github.com\/stephencelis\/SQLite.swift.git",
+      "version" : "0.15.4"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/apple\/swift-async-algorithms.git",
+      "id" : "spm-swift-async-algorithms",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swift-async-algorithms-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/apple\/swift-async-algorithms.git",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "swift-async-algorithms",
+      "revision" : "042e1c4d9d19748c9c228f8d4ebc97bb1e339b0b",
+      "sourceURL" : "https:\/\/github.com\/apple\/swift-async-algorithms.git",
+      "version" : "1.0.4"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/apple\/swift-atomics.git",
+      "id" : "spm-swift-atomics",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swift-atomics-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/apple\/swift-atomics.git",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "swift-atomics",
+      "revision" : "b601256eab081c0f92f059e12818ac1d4f178ff7",
+      "sourceURL" : "https:\/\/github.com\/apple\/swift-atomics.git",
+      "version" : "1.3.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/apple\/swift-collections.git",
+      "id" : "spm-swift-collections",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swift-collections-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "swift-collections",
+      "revision" : "7b847a3b7008b2dc2f47ca3110d8c782fb2e5c7e",
+      "sourceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
+      "version" : "1.3.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/swiftlang\/swift-toolchain-sqlite",
+      "id" : "spm-swift-toolchain-sqlite",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swift-toolchain-sqlite-license.txt",
+          "referenceURL" : "https:\/\/github.com\/swiftlang\/swift-toolchain-sqlite",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "swift-toolchain-sqlite",
+      "revision" : "b626d3002773b1a1304166643e7f118f724b2132",
+      "sourceURL" : "https:\/\/github.com\/swiftlang\/swift-toolchain-sqlite",
+      "version" : "1.0.4"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/readium\/swift-toolkit.git",
+      "id" : "spm-swift-toolkit",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swift-toolkit-license.txt",
+          "referenceURL" : "https:\/\/github.com\/readium\/swift-toolkit.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "swift-toolkit",
+      "revision" : "5634c871368177694fec224a492a2191da3f67e0",
+      "sourceURL" : "https:\/\/github.com\/readium\/swift-toolkit.git",
+      "version" : "3.6.0"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
+      "id" : "spm-swiftsoup",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swiftsoup-license.txt",
+          "referenceURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "SwiftSoup",
+      "revision" : "4206bc7b8bd9a4ff8e9511211e1b4bff979ef9c4",
+      "sourceURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
+      "version" : "2.11.1"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/marmelroy\/Zip",
+      "id" : "spm-zip",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-zip-license.txt",
+          "referenceURL" : "https:\/\/github.com\/marmelroy\/Zip",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "Zip",
+      "revision" : "67fa55813b9e7b3b9acee9c0ae501def28746d76",
+      "sourceURL" : "https:\/\/github.com\/marmelroy\/Zip",
+      "version" : "2.1.2"
+    },
+    {
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/readium\/ZIPFoundation.git",
+      "id" : "spm-zipfoundation",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-zipfoundation-license.txt",
+          "referenceURL" : "https:\/\/github.com\/readium\/ZIPFoundation.git",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "ZIPFoundation",
+      "revision" : "adb49c8bfe060cc187370b12fa081012a6440b86",
+      "sourceURL" : "https:\/\/github.com\/readium\/ZIPFoundation.git",
+      "version" : "3.0.1"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-platform-mv3-extension-lib-codemirror-codemirror-ubol-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-platform-mv3-extension-lib-codemirror-codemirror-ubol-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/platform\/mv3\/extension\/lib\/codemirror\/codemirror-ubol\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "codemirror-ubol",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/platform\/mv3\/extension\/lib\/codemirror\/codemirror-ubol\/LICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-publish-extension-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-publish-extension-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/publish-extension\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "publish-extension",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/publish-extension\/LICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-css-fonts-inter-license-txt",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-css-fonts-inter-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Inter\/LICENSE.txt",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "Inter",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Inter\/LICENSE.txt"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-css-fonts-metropolis-unlicense",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-css-fonts-metropolis-unlicense.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Metropolis\/UNLICENSE",
+          "title" : "UNLICENSE"
+        }
+      ],
+      "name" : "Metropolis",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Metropolis\/UNLICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-img-fontawesome-license-txt",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-img-fontawesome-license-txt.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/img\/fontawesome\/LICENSE.txt",
+          "title" : "LICENSE.txt"
+        }
+      ],
+      "name" : "fontawesome",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/img\/fontawesome\/LICENSE.txt"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-lib-codemirror-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-codemirror-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/codemirror\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "codemirror",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/codemirror\/LICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-lib-csstree-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-csstree-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/csstree\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "csstree",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/csstree\/LICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-lib-hsluv-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-hsluv-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/hsluv\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "hsluv",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/hsluv\/LICENSE"
+    },
+    {
+      "attribution" : "Various authors (see included license text)",
+      "category" : "ublockEmbedded",
+      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
+      "id" : "ublock-embedded-src-lib-js-beautify-license",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-js-beautify-license.txt",
+          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE",
+          "title" : "LICENSE"
+        }
+      ],
+      "name" : "js-beautify",
+      "notes" : "Discovered automatically from External\/uBlock.",
+      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
+    }
+  ],
+  "generatedAt" : "2026-02-07T17:16:13.823Z",
+  "schemaVersion" : 1
+}

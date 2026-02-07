@@ -151,6 +151,21 @@ xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPh
 xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruWebTests
 ```
 
+### Bundled license sync
+
+MaruReader ships a bundled third-party license catalog at `MaruReader/About/ThirdPartyLicenses`.  
+To regenerate it from local SwiftPM checkouts and manual snapshots:
+
+```bash
+swift scripts/sync-third-party-licenses.swift
+```
+
+To refresh snapshot files from their configured upstream sources before generating:
+
+```bash
+swift scripts/sync-third-party-licenses.swift --refresh-snapshots
+```
+
 ## Third-party credits
 
 MaruReader is made with the content and libraries listed below. Thank you!
