@@ -471,10 +471,11 @@ struct DictionaryPersistenceTests {
         #expect(termEntry?.sequence == 1)
         #expect(termEntry?.dictionaryID == dictionaryID)
 
-        // Test glossary (definitions)
+        // Test glossary (definitions) from compressed payload
         let decoder = JSONDecoder()
-        let glossary = termEntry?.glossary?.data(using: .utf8)
-        let definitions = try? decoder.decode([Definition].self, from: glossary ?? Data())
+        let glossaryPayload: Data? = termEntry?.glossary
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload)
+        let definitions = try? decoder.decode([Definition].self, from: glossaryJSON ?? Data())
         #expect(definitions?.count == 1)
         if case let .text(glossaryText) = definitions?.first {
             #expect(glossaryText == "to eat")
@@ -733,10 +734,11 @@ struct DictionaryPersistenceTests {
         #expect(termEntry?.sequence == 0) // V1 doesn't have sequence, defaults to 0
         #expect(termEntry?.dictionaryID == dictionaryID)
 
-        // Test glossary (V1 uses remaining elements as string definitions) - now stored as JSON string
+        // Test glossary (V1 uses remaining elements as string definitions) - now stored as compressed payload
         let decoder = JSONDecoder()
-        let glossaryData = termEntry?.glossary?.data(using: .utf8)
-        let definitions = try? decoder.decode([Definition].self, from: glossaryData ?? Data())
+        let glossaryPayload: Data? = termEntry?.glossary
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload)
+        let definitions = try? decoder.decode([Definition].self, from: glossaryJSON ?? Data())
         #expect(definitions?.count == 2)
         if case let .text(firstGlossary) = definitions?[0] {
             #expect(firstGlossary == "cat")
@@ -1250,7 +1252,7 @@ struct DictionaryPersistenceTests {
             termEntry.dictionaryID = dictionaryUUID
             termEntry.expression = "食べる"
             termEntry.reading = "たべる"
-            termEntry.glossary = "[]"
+            termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(Data("[]".utf8))
             termEntry.definitionTags = "[]"
             termEntry.termTags = "[]"
             termEntry.rules = "[]"

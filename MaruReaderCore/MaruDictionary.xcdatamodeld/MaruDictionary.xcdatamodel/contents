@@ -220,7 +220,7 @@
         <attribute name="definitionTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="expression" attributeType="String"/>
-        <attribute name="glossary" attributeType="String"/>
+        <attribute name="glossary" attributeType="Binary" allowsExternalBinaryDataStorage="NO"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="rules" attributeType="String" valueTransformerName="StringArrayTransformer"/>

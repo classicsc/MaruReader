@@ -96,11 +96,18 @@ public final class DictionaryPersistenceController: Sendable {
             }
         }
 
-        // Load persistent stores
-        container.loadPersistentStores { description, error in
-            if let error {
-                let nsError = error as NSError
-                fatalError("Unresolved error loading store at \(description.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)")
+        let loadResult = Self.loadPersistentStores(for: container)
+        if let loadFailure = loadResult.failure {
+            if !inMemory, let storeURL = loadFailure.url {
+                Self.removeStoreFiles(at: storeURL)
+                let retryResult = Self.loadPersistentStores(for: container)
+                if let retryFailure = retryResult.failure {
+                    let nsError = retryFailure.error as NSError
+                    fatalError("Unresolved error loading store at \(retryFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)")
+                }
+            } else {
+                let nsError = loadFailure.error as NSError
+                fatalError("Unresolved error loading store at \(loadFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)")
             }
         }
 
@@ -119,6 +126,40 @@ public final class DictionaryPersistenceController: Sendable {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
         return context
+    }
+
+    private struct PersistentStoreLoadFailure {
+        let error: Error
+        let url: URL?
+    }
+
+    private struct PersistentStoreLoadResult {
+        let failure: PersistentStoreLoadFailure?
+    }
+
+    private static func loadPersistentStores(for container: NSPersistentContainer) -> PersistentStoreLoadResult {
+        var failure: PersistentStoreLoadFailure?
+        container.loadPersistentStores { description, error in
+            if let error {
+                failure = PersistentStoreLoadFailure(error: error, url: description.url)
+            }
+        }
+        return PersistentStoreLoadResult(failure: failure)
+    }
+
+    private static func removeStoreFiles(at storeURL: URL) {
+        guard storeURL.isFileURL, storeURL.path != "/dev/null" else {
+            return
+        }
+
+        let fileManager = FileManager.default
+        let basePath = storeURL.path
+        for suffix in ["", "-wal", "-shm"] {
+            let filePath = basePath + suffix
+            if fileManager.fileExists(atPath: filePath) {
+                try? fileManager.removeItem(atPath: filePath)
+            }
+        }
     }
 
     // MARK: - Bundled Database Seeding

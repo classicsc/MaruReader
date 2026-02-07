@@ -269,8 +269,8 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         let definitionTagsData = (try? encoder.encode(definitionTags)) ?? Data()
         let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
 
-        let glossaryData = (try? encoder.encode(glossary)) ?? Data()
-        let glossaryString = String(data: glossaryData, encoding: .utf8) ?? "[]"
+        let glossaryJSONData = (try? encoder.encode(glossary)) ?? Data("[]".utf8)
+        let compressedGlossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSONData)
 
         let rulesData = (try? encoder.encode(rules)) ?? Data()
         let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"
@@ -280,7 +280,7 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
             "reading": reading,
             "definitionTags": definitionTagsString,
             "dictionaryID": dictionaryID,
-            "glossary": glossaryString,
+            "glossary": compressedGlossary,
             "id": UUID(),
             "rules": rulesString,
             "score": score,

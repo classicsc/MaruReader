@@ -32,7 +32,8 @@ enum TermFetcher {
     static func performFetch(
         candidates: [LookupCandidate],
         dictionaryMetadata: [UUID: DictionaryMetadata],
-        context: NSManagedObjectContext
+        context: NSManagedObjectContext,
+        decodeDefinitions: @escaping @Sendable (Data?) -> [Definition]? = GlossaryCompressionCodec.decodeDefinitions
     ) async throws -> [SearchResult] {
         let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermFetcher")
 
@@ -98,6 +99,11 @@ enum TermFetcher {
                     let reading = entry.reading
                     let dictionaryID = entry.dictionaryID
 
+                    guard let definitions = decodeDefinitions(entry.glossary) else {
+                        logger.debug("Failed to decode glossary for term '\(expression, privacy: .public)'")
+                        return []
+                    }
+
                     // Find matching candidates for this entry
                     let matchingCandidates = candidates.filter {
                         $0.text == expression || $0.text == reading
@@ -124,12 +130,6 @@ enum TermFetcher {
                                 logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate rules: \(candidateRules, privacy: .public)")
                                 continue
                             }
-                        }
-
-                        // Decode glossary
-                        guard let definitions = decodeDefinitions(from: entry.glossary) else {
-                            logger.debug("Failed to decode glossary for term '\(expression, privacy: .public)'")
-                            continue
                         }
 
                         // Get frequencies for this term
@@ -225,7 +225,7 @@ enum TermFetcher {
         let expression: String
         let reading: String
         let dictionaryID: UUID
-        let glossary: String
+        let glossary: Data
         let rules: String?
         let termTags: String?
         let definitionTags: String?
@@ -263,11 +263,16 @@ enum TermFetcher {
             return termEntries.compactMap { entry in
                 guard let expression = entry.expression,
                       let reading = entry.reading,
-                      let dictionaryID = entry.dictionaryID,
-                      let glossary = entry.glossary
+                      let dictionaryID = entry.dictionaryID
                 else {
                     return nil
                 }
+
+                let glossaryData: Data? = entry.glossary
+                guard let glossary = glossaryData else {
+                    return nil
+                }
+
                 return TermEntryData(
                     expression: expression,
                     reading: reading,
@@ -475,17 +480,6 @@ enum TermFetcher {
         }
 
         return try? JSONDecoder().decode([String].self, from: data)
-    }
-
-    /// Decode definitions from JSON string
-    private static func decodeDefinitions(from jsonString: String?) -> [Definition]? {
-        guard let jsonString,
-              let data = jsonString.data(using: .utf8)
-        else {
-            return nil
-        }
-
-        return try? JSONDecoder().decode([Definition].self, from: data)
     }
 
     /// Decode pitch accents from JSON string

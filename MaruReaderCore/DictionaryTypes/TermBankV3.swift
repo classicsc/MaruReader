@@ -77,8 +77,8 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
-        let glossaryData = (try? encoder.encode(self.glossary)) ?? Data()
-        let glossaryString = String(data: glossaryData, encoding: .utf8) ?? "[]"
+        let glossaryJSONData = (try? encoder.encode(self.glossary)) ?? Data("[]".utf8)
+        let compressedGlossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSONData)
 
         let definitionTagsData = self.definitionTags != nil ? (try? encoder.encode(self.definitionTags)) ?? Data() : Data()
         let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
@@ -94,7 +94,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
             "reading": self.reading,
             "definitionTags": definitionTagsString,
             "dictionaryID": dictionaryID,
-            "glossary": glossaryString,
+            "glossary": compressedGlossary,
             "id": UUID(),
             "rules": rulesString,
             "score": self.score,
