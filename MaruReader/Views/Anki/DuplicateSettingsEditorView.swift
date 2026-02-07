@@ -23,7 +23,6 @@ struct DuplicateSettingsEditorView: View {
     @Environment(\.dismiss) private var dismiss
     private let persistence = AnkiPersistenceController.shared
 
-    let isAnkiConnect: Bool
     let decks: [AnkiDeckMeta]
     let selectedDeckName: String?
 
@@ -40,10 +39,8 @@ struct DuplicateSettingsEditorView: View {
                 Section {
                     ProgressView()
                 }
-            } else if isAnkiConnect {
-                ankiConnectContent
             } else {
-                ankiMobileContent
+                ankiConnectContent
             }
         }
         .navigationTitle("Duplicate Detection")
@@ -60,14 +57,6 @@ struct DuplicateSettingsEditorView: View {
         }
         .task {
             await loadSettings()
-        }
-    }
-
-    private var ankiMobileContent: some View {
-        Section {
-            Toggle("Allow Duplicate Notes", isOn: allowDuplicatesBinding)
-        } footer: {
-            Text("AnkiMobile only supports allowing or blocking all duplicates. More advanced options available with Anki-Connect.")
         }
     }
 
@@ -118,15 +107,6 @@ struct DuplicateSettingsEditorView: View {
                 Text("Only notes of the same type will be checked for duplicates.")
             }
         }
-    }
-
-    private var allowDuplicatesBinding: Binding<Bool> {
-        Binding(
-            get: { duplicateScope == .none },
-            set: { allowDuplicates in
-                duplicateScope = allowDuplicates ? .none : .deck
-            }
-        )
     }
 
     private func loadSettings() async {
@@ -195,7 +175,6 @@ struct DuplicateSettingsEditorView: View {
 #Preview {
     NavigationStack {
         DuplicateSettingsEditorView(
-            isAnkiConnect: true,
             decks: [],
             selectedDeckName: "Default"
         )

@@ -30,6 +30,7 @@ struct AnkiSettingsView: View {
     @State private var isLoading = true
     @State private var pendingCount = 0
     @State private var duplicateOptions: DuplicateDetectionOptions?
+    @State private var isSavingDuplicateOptions = false
 
     var body: some View {
         Form {
@@ -164,15 +165,69 @@ struct AnkiSettingsView: View {
         }
 
         Section("Duplicate Detection") {
-            NavigationLink {
-                DuplicateSettingsEditorView(
-                    isAnkiConnect: settings.isAnkiConnect,
-                    decks: [],
-                    selectedDeckName: settings.defaultDeckName
-                )
-            } label: {
-                LabeledContent("Scope", value: duplicateScopeDisplayName)
+            if settings.isAnkiConnect {
+                NavigationLink {
+                    DuplicateSettingsEditorView(
+                        decks: [],
+                        selectedDeckName: settings.defaultDeckName
+                    )
+                } label: {
+                    LabeledContent("Scope", value: duplicateScopeDisplayName)
+                }
+            } else {
+                Toggle("Allow Duplicate Notes", isOn: allowDuplicatesBinding)
+                    .disabled(isSavingDuplicateOptions)
             }
+        }
+    }
+
+    private var allowDuplicatesBinding: Binding<Bool> {
+        Binding(
+            get: { duplicateOptions?.scope == DuplicateNoteScope.none },
+            set: { allowDuplicates in
+                let currentOptions = duplicateOptions ?? DuplicateDetectionOptions(
+                    scope: .deck,
+                    deckName: nil,
+                    includeChildDecks: false,
+                    checkAllModels: false
+                )
+                let updatedOptions = DuplicateDetectionOptions(
+                    scope: allowDuplicates ? .none : .deck,
+                    deckName: currentOptions.deckName,
+                    includeChildDecks: currentOptions.includeChildDecks,
+                    checkAllModels: currentOptions.checkAllModels
+                )
+
+                duplicateOptions = updatedOptions
+                Task {
+                    await saveDuplicateOptions(updatedOptions)
+                }
+            }
+        )
+    }
+
+    private func saveDuplicateOptions(_ options: DuplicateDetectionOptions) async {
+        isSavingDuplicateOptions = true
+        defer { isSavingDuplicateOptions = false }
+
+        let context = persistence.newBackgroundContext()
+
+        do {
+            try await context.perform {
+                let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
+                request.fetchLimit = 1
+                guard let settings = try context.fetch(request).first else {
+                    return
+                }
+
+                let data = try JSONEncoder().encode(options)
+                settings.duplicateNoteSettings = String(data: data, encoding: .utf8)
+                try context.save()
+            }
+            await loadSettings()
+        } catch {
+            await loadSettings()
+            print("Failed to save duplicate settings: \(error)")
         }
     }
 
