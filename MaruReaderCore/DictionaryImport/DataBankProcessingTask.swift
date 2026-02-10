@@ -31,6 +31,16 @@ struct DataBankProcessingTask {
     let persistentContainer: NSPersistentContainer
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermBankProcessingTask")
 
+    /// Thread-safe counter for tracking total entries processed across concurrent channels.
+    private actor ProgressCounter {
+        private var value = 0
+
+        func add(_ count: Int) -> Int {
+            value += count
+            return value
+        }
+    }
+
     init(jobID: NSManagedObjectID, dictionaryID: UUID, archiveURL: URL, bankPaths: DictionaryBankPaths, container: NSPersistentContainer) {
         self.jobID = jobID
         self.dictionaryID = dictionaryID
@@ -95,6 +105,8 @@ struct DataBankProcessingTask {
     private func processV1DataBanks(bankPaths: DictionaryBankPaths, archiveURL: URL, context: NSManagedObjectContext) async throws {
         let termEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let kanjiEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
+        let progressCounter = ProgressCounter()
+        let progressContext = persistentContainer.newBackgroundContext()
 
         Task {
             await withTaskGroup(of: Void.self) { group in
@@ -136,8 +148,8 @@ struct DataBankProcessingTask {
             kanjiEntryChannel.finish()
         }
 
-        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context)
-        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context)
+        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
         let results = try await [
             termsProcessed,
             kanjiProcessed,
@@ -153,6 +165,8 @@ struct DataBankProcessingTask {
         let pitchAccentEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let ipaEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let dictionaryTagMetaEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
+        let progressCounter = ProgressCounter()
+        let progressContext = persistentContainer.newBackgroundContext()
 
         Task {
             await withTaskGroup(of: Void.self) { group in
@@ -267,13 +281,13 @@ struct DataBankProcessingTask {
             ipaEntryChannel.finish()
         }
 
-        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context)
-        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context)
-        async let termFrequencyProcessed = processChannel(channel: termFrequencyEntryChannel, entityName: "TermFrequencyEntry", context: context)
-        async let kanjiFrequencyProcessed = processChannel(channel: kanjiFrequencyEntryChannel, entityName: "KanjiFrequencyEntry", context: context)
-        async let pitchAccentProcessed = processChannel(channel: pitchAccentEntryChannel, entityName: "PitchAccentEntry", context: context)
-        async let ipaProcessed = processChannel(channel: ipaEntryChannel, entityName: "IPAEntry", context: context)
-        async let tagMetaProcessed = processChannel(channel: dictionaryTagMetaEntryChannel, entityName: "DictionaryTagMeta", context: context)
+        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let termFrequencyProcessed = processChannel(channel: termFrequencyEntryChannel, entityName: "TermFrequencyEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let kanjiFrequencyProcessed = processChannel(channel: kanjiFrequencyEntryChannel, entityName: "KanjiFrequencyEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let pitchAccentProcessed = processChannel(channel: pitchAccentEntryChannel, entityName: "PitchAccentEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let ipaProcessed = processChannel(channel: ipaEntryChannel, entityName: "IPAEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
+        async let tagMetaProcessed = processChannel(channel: dictionaryTagMetaEntryChannel, entityName: "DictionaryTagMeta", context: context, progressCounter: progressCounter, progressContext: progressContext)
         let results = try await [
             termsProcessed,
             kanjiProcessed,
@@ -300,7 +314,13 @@ struct DataBankProcessingTask {
         logger.info("Processed \(results.reduce(0, +)) entries: Terms=\(results[0]), Kanji=\(results[1]), TermFrequency=\(results[2]), KanjiFrequency=\(results[3]), PitchAccent=\(results[4]), IPA=\(results[5]), TagMeta=\(results[6])")
     }
 
-    private func processChannel(channel: AsyncThrowingChannel<[String: Sendable], Error>, entityName: String, context: NSManagedObjectContext) async throws -> Int {
+    private func processChannel(
+        channel: AsyncThrowingChannel<[String: Sendable], Error>,
+        entityName: String,
+        context: NSManagedObjectContext,
+        progressCounter: ProgressCounter,
+        progressContext: NSManagedObjectContext
+    ) async throws -> Int {
         var batch: [[String: Sendable]] = []
         var itemsProcessed = 0
         for try await entry in channel {
@@ -309,13 +329,19 @@ struct DataBankProcessingTask {
             batch.append(entry)
 
             if batch.count >= Self.batchSize {
-                itemsProcessed += try await processBatch(batch: batch, entity: entityName, context: context)
+                let batchCount = try await processBatch(batch: batch, entity: entityName, context: context)
+                itemsProcessed += batchCount
+                let newTotal = await progressCounter.add(batchCount)
+                await reportBankProgress(count: newTotal, context: progressContext)
                 batch.removeAll(keepingCapacity: true)
             }
         }
         // Process any remaining items in the batch
         if !batch.isEmpty {
-            itemsProcessed += try await processBatch(batch: batch, entity: entityName, context: context)
+            let batchCount = try await processBatch(batch: batch, entity: entityName, context: context)
+            itemsProcessed += batchCount
+            let newTotal = await progressCounter.add(batchCount)
+            await reportBankProgress(count: newTotal, context: progressContext)
             batch.removeAll()
         }
         return itemsProcessed
@@ -327,6 +353,15 @@ struct DataBankProcessingTask {
             batchInsert.resultType = .count
             let result = try context.execute(batchInsert) as? NSBatchInsertResult
             return result?.result as? Int ?? 0
+        }
+    }
+
+    private func reportBankProgress(count: Int, context: NSManagedObjectContext) async {
+        let jobID = self.jobID
+        await context.perform {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else { return }
+            dictionary.displayProgressMessage = "Processing dictionary data… (\(count.formatted()) entries)"
+            try? context.save()
         }
     }
 

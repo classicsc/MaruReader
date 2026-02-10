@@ -97,14 +97,13 @@ struct MediaCopyProcessingTask {
         } catch {
             throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
-        for entry in entries where entry.type == .file {
+        let mediaEntries = entries.filter { $0.type == .file && !$0.path.lowercased().hasSuffix(".json") }
+        let totalMediaFiles = mediaEntries.count
+        var filesCopied = 0
+        for entry in mediaEntries {
             try Task.checkCancellation()
 
             let path = entry.path
-            if path.lowercased().hasSuffix(".json") {
-                continue
-            }
-
             let destinationURL = mediaDir.appendingPathComponent(path)
             guard destinationURL.isContained(in: mediaDir) else {
                 MediaCopyProcessingTask.logger.error("Skipped media path outside destination: \(path, privacy: .public)")
@@ -118,6 +117,18 @@ struct MediaCopyProcessingTask {
                 MediaCopyProcessingTask.logger.debug("Copied media file to \(destinationURL.path, privacy: .public)")
             } catch {
                 throw DictionaryImportError.unzipFailed(underlyingError: error)
+            }
+
+            filesCopied += 1
+            if filesCopied % 10 == 0 || filesCopied == totalMediaFiles {
+                let currentCount = filesCopied
+                try await context.perform {
+                    guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
+                        throw DictionaryImportError.databaseError
+                    }
+                    dictionary.displayProgressMessage = "Copying media files… (\(currentCount.formatted()) of \(totalMediaFiles.formatted()))"
+                    try context.save()
+                }
             }
         }
 
