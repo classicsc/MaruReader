@@ -19,17 +19,14 @@ import SwiftUI
 
 struct WebReadingModeOverlay: View {
     let isProcessing: Bool
-    let pagingBehavior: ReadingPagingBehavior
     let onTap: (CGPoint, CGSize) -> Void
-    let onPageAction: (_ axis: ReadingPagingAxis, _ behavior: ReadingPagingBehavior, _ direction: Int) -> Void
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
                 Color.clear
                     .contentShape(Rectangle())
-                    .gesture(swipeGesture)
-                    .simultaneousGesture(tapGesture(in: geometry.size))
+                    .gesture(tapGesture(in: geometry.size))
 
                 if isProcessing {
                     ProgressView("Scanning...")
@@ -48,19 +45,6 @@ struct WebReadingModeOverlay: View {
                 if case let .second(_, drag) = value, let location = drag?.location {
                     onTap(location, size)
                 }
-            }
-    }
-
-    private var swipeGesture: some Gesture {
-        DragGesture(minimumDistance: 50)
-            .onEnded { value in
-                let horizontalDistance = value.translation.width
-                let verticalDistance = value.translation.height
-                let isHorizontal = abs(horizontalDistance) > abs(verticalDistance)
-                let axis: ReadingPagingAxis = isHorizontal ? .horizontal : .vertical
-                let primaryDistance = isHorizontal ? horizontalDistance : verticalDistance
-                let direction = primaryDistance < 0 ? 1 : -1
-                onPageAction(axis, pagingBehavior, direction)
             }
     }
 }

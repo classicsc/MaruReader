@@ -25,20 +25,16 @@ public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
     @ScaledMetric(relativeTo: .body) private var addressAccessorySize: CGFloat = 28
-    @ScaledMetric(relativeTo: .body) private var collapsedAddressMaxWidth: CGFloat = 180
 
     @State private var viewModel: WebViewerViewModel
     @State private var selectedLookup: WebLookupSelection?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var isEditingAddress = false
-    @State private var readingModeMenuExpanded = false
     @State private var addressSelection: TextSelection?
     @State private var isAddressFocused = false
     @State private var toolbarTourManager = TourManager()
-    @State private var readingModeTourManager = TourManager()
     @Namespace private var glassNamespace
 
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dismiss) private var dismiss
 
     public init(initialURL: URL? = nil) {
@@ -65,7 +61,6 @@ public struct WebViewerView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
-        .animation(.easeInOut(duration: 0.25), value: readingModeMenuExpanded)
         .task {
             await viewModel.prepareSessionIfNeeded()
         }
@@ -76,15 +71,7 @@ public struct WebViewerView: View {
             viewModel.refreshBookmarkState()
         }
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
-            if isEnabled {
-                viewModel.overlayState = .none
-                if readingModeTourManager.startIfNeeded(WebViewerReadingModeTour.self) {
-                    readingModeMenuExpanded = true
-                }
-            } else {
-                readingModeMenuExpanded = false
-                viewModel.overlayState = .showingToolbars
-            }
+            viewModel.overlayState = isEnabled ? .none : .showingToolbars
         }
         .onChange(of: isAddressFocused) { _, newValue in
             if isEditingAddress != newValue {
@@ -129,7 +116,6 @@ public struct WebViewerView: View {
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
         .tourOverlay(manager: toolbarTourManager)
-        .tourOverlay(manager: readingModeTourManager)
         .onAppear {
             if toolbarTourManager.startIfNeeded(WebViewerToolbarTour.self) {
                 viewModel.overlayState = .showingToolbars
@@ -150,16 +136,13 @@ public struct WebViewerView: View {
                 if viewModel.readingModeEnabled {
                     WebReadingModeOverlay(
                         isProcessing: viewModel.ocrViewModel.isProcessing,
-                        pagingBehavior: viewModel.pagingBehavior,
                         onTap: { location, size in
                             Task {
                                 if let selection = await viewModel.lookupCluster(at: location, in: size) {
+                                    viewModel.readingModeEnabled = false
                                     selectedLookup = selection
                                 }
                             }
-                        },
-                        onPageAction: { axis, behavior, direction in
-                            viewModel.performPagingAction(axis: axis, behavior: behavior, direction: direction)
                         }
                     )
                 }
@@ -176,19 +159,14 @@ public struct WebViewerView: View {
     private var bottomControlsOverlay: some View {
         GlassEffectContainer(spacing: 10) {
             ZStack {
-                if shouldShowCollapsedAddress {
-                    collapsedAddressCapsule
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-
                 if shouldShowFullControls {
                     bottomControlsRow
                 }
 
-                if readingModeMenuExpanded {
-                    readingModeMenu
+                if shouldShowReadingModeExitButton {
+                    readingModeExitButton
                         .frame(maxWidth: .infinity, alignment: .trailing)
-                } else if shouldShowReadingModeButtonOnly {
+                } else if shouldShowFloatingReadingModeButton {
                     readingModeButton
                         .frame(maxWidth: .infinity, alignment: .trailing)
                 }
@@ -266,20 +244,6 @@ public struct WebViewerView: View {
         .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
     }
 
-    private var collapsedAddressCapsule: some View {
-        CollapsedAddressCapsuleView(
-            displayText: addressDisplayText,
-            namespace: glassNamespace,
-            iconSize: floatingButtonIconSize,
-            maxWidth: collapsedAddressMaxWidth,
-            onTap: {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    viewModel.overlayState = .showingToolbars
-                }
-            }
-        )
-    }
-
     private var bookmarkButton: some View {
         let isCurrentLocationBookmarked = viewModel.isBookmarked
         return Menu {
@@ -327,7 +291,6 @@ public struct WebViewerView: View {
             withAnimation(.easeInOut(duration: 0.25)) {
                 isAddressFocused = false
                 viewModel.readingModeEnabled = true
-                readingModeMenuExpanded = true
                 viewModel.overlayState = .none
             }
         } label: {
@@ -340,63 +303,27 @@ public struct WebViewerView: View {
         .glassEffect(in: Circle())
         .glassEffectID("readingMode", in: glassNamespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel(viewModel.readingModeEnabled ? "Reading Mode Options" : "Enable Reading Mode")
+        .accessibilityLabel("Enable OCR Mode")
         .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
     }
 
-    private var readingModeMenu: some View {
-        VStack(alignment: .trailing, spacing: 12) {
-            Button {
-                viewModel.togglePagingBehavior()
-            } label: {
-                Image(systemName: viewModel.pagingBehavior == .scroll ? "hand.draw" : "keyboard")
-                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
+    private var readingModeExitButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.readingModeEnabled = false
+                viewModel.overlayState = .showingToolbars
             }
-            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-            .contentShape(.circle)
-            .buttonStyle(.plain)
-            .glassEffect(in: Circle())
-            .glassEffectTransition(GlassEffectTransition.materialize)
-            .accessibilityLabel(viewModel.pagingBehavior == .scroll ? "Switch to Keypress Paging" : "Switch to Scroll Paging")
-            .tourAnchor(WebViewerReadingModeTourAnchor.pagingToggle)
-
-            HStack(spacing: 12) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        readingModeMenuExpanded = false
-                        viewModel.readingModeEnabled = false
-                        viewModel.overlayState = .showingToolbars
-                    }
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                }
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                .contentShape(.circle)
-                .buttonStyle(.plain)
-                .glassEffect(in: Circle())
-                .glassEffectTransition(GlassEffectTransition.materialize)
-                .accessibilityLabel("Exit Reading Mode")
-                .tourAnchor(WebViewerReadingModeTourAnchor.exitButton)
-
-                Button {
-                    withAnimation(.easeInOut(duration: 0.25)) {
-                        readingModeMenuExpanded = false
-                    }
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                }
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                .contentShape(.circle)
-                .buttonStyle(.plain)
-                .glassEffect(in: Circle())
-                .glassEffectID("readingMode", in: glassNamespace)
-                .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-                .accessibilityLabel("Collapse Reading Mode Menu")
-                .tourAnchor(WebViewerReadingModeTourAnchor.collapseButton)
-            }
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
         }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .glassEffectID("readingMode", in: glassNamespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel("Exit OCR Mode")
     }
 
     private var dismissButton: some View {
@@ -448,15 +375,15 @@ public struct WebViewerView: View {
     }
 
     private var shouldShowFullControls: Bool {
-        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
+        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
     }
 
-    private var shouldShowCollapsedAddress: Bool {
-        !viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !readingModeMenuExpanded
+    private var shouldShowFloatingReadingModeButton: Bool {
+        !viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
     }
 
-    private var shouldShowReadingModeButtonOnly: Bool {
-        viewModel.readingModeEnabled && !readingModeMenuExpanded
+    private var shouldShowReadingModeExitButton: Bool {
+        viewModel.readingModeEnabled
     }
 
     private func navigationButton(
@@ -557,34 +484,5 @@ private struct AddressBarCapsuleView: View {
         .glassEffect(in: Capsule())
         .glassEffectID("address", in: namespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-    }
-}
-
-private struct CollapsedAddressCapsuleView: View {
-    let displayText: String
-    let namespace: Namespace.ID
-    let iconSize: CGFloat
-    let maxWidth: CGFloat
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 6) {
-                Image(systemName: "globe")
-                    .font(.system(size: iconSize - 2, weight: .semibold))
-                Text(displayText)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .font(.subheadline)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(maxWidth: maxWidth)
-        }
-        .buttonStyle(.plain)
-        .glassEffect(in: Capsule())
-        .glassEffectID("address", in: namespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("Show Controls")
     }
 }

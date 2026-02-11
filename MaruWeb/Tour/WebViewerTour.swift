@@ -53,43 +53,8 @@ public enum WebViewerToolbarTour: TourDefinition {
         ),
         TourStep(
             id: WebViewerToolbarTourAnchor.readingModeButton,
-            title: "Reading Mode",
-            description: "Enable tap-to-look-up mode for dictionary lookups on any visible text.",
-            popoverEdge: .top
-        ),
-    ]
-}
-
-// MARK: - Reading Mode Tour
-
-/// Tour anchor identifiers for WebViewerView reading mode elements.
-public enum WebViewerReadingModeTourAnchor {
-    public static let pagingToggle = "webViewer.readingMode.pagingToggle"
-    public static let exitButton = "webViewer.readingMode.exit"
-    public static let collapseButton = "webViewer.readingMode.collapse"
-}
-
-/// Tour definition for the web viewer reading mode.
-public enum WebViewerReadingModeTour: TourDefinition {
-    public static let tourID = "webViewerReadingMode"
-
-    public static let steps: [TourStep] = [
-        TourStep(
-            id: WebViewerReadingModeTourAnchor.pagingToggle,
-            title: "Page Navigation",
-            description: "Switch between scroll-based and keypress-based page navigation.",
-            popoverEdge: .top
-        ),
-        TourStep(
-            id: WebViewerReadingModeTourAnchor.exitButton,
-            title: "Exit Reading Mode",
-            description: "Tap to leave reading mode and return to normal browsing.",
-            popoverEdge: .top
-        ),
-        TourStep(
-            id: WebViewerReadingModeTourAnchor.collapseButton,
-            title: "Collapse Menu",
-            description: "Tap to hide these buttons while staying in reading mode. Tap the button again to show them.",
+            title: "OCR Mode",
+            description: "Enable tap-to-look-up mode for dictionary lookups on visible text.",
             popoverEdge: .top
         ),
     ]

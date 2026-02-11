@@ -37,20 +37,6 @@ enum WebOverlayState {
     }
 }
 
-// MARK: - Reading Paging
-
-/// Determines the swipe axis in reading mode.
-enum ReadingPagingAxis: String, CaseIterable {
-    case vertical
-    case horizontal
-}
-
-/// Determines how paging is triggered for a given axis.
-enum ReadingPagingBehavior: String, CaseIterable {
-    case scroll
-    case keypress
-}
-
 struct WebLookupSelection: Identifiable {
     let id: UUID
     let cluster: TextCluster
@@ -80,7 +66,6 @@ final class WebViewerViewModel {
     var isBookmarked = false
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
-    var pagingBehavior: ReadingPagingBehavior = .scroll
 
     private var initialURL: URL?
 
@@ -125,10 +110,6 @@ final class WebViewerViewModel {
         case .showingToolbars:
             overlayState = .none
         }
-    }
-
-    func togglePagingBehavior() {
-        pagingBehavior = pagingBehavior == .scroll ? .keypress : .scroll
     }
 
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
@@ -407,80 +388,5 @@ final class WebViewerViewModel {
                 return nil
             }
         }.value
-    }
-
-    // MARK: - Reading Mode Paging
-
-    func performPagingAction(axis: ReadingPagingAxis, behavior: ReadingPagingBehavior, direction: Int) {
-        switch behavior {
-        case .scroll:
-            scrollByPage(axis: axis, direction: direction)
-        case .keypress:
-            sendPagingKey(axis: axis, direction: direction)
-        }
-    }
-
-    /// Scrolls the page by a specified amount relative to the viewport.
-    /// - Parameter direction: Positive scrolls down/right, negative scrolls up/left.
-    func scrollByPage(axis: ReadingPagingAxis, direction: Int) {
-        guard let page else { return }
-        let script = switch axis {
-        case .vertical:
-            """
-            window.scrollBy({
-                top: window.innerHeight * \(direction) * 0.9,
-                behavior: 'smooth'
-            });
-            """
-        case .horizontal:
-            """
-            window.scrollBy({
-                left: window.innerWidth * \(direction) * 0.9,
-                behavior: 'smooth'
-            });
-            """
-        }
-        Task { @MainActor in
-            _ = try? await page.callJavaScript(script)
-        }
-    }
-
-    /// Sends an arrow key press to the page for paging.
-    /// Tries multiple dispatch targets and event types to maximize compatibility with web readers.
-    /// - Parameter direction: Positive moves down/right, negative moves up/left.
-    func sendPagingKey(axis: ReadingPagingAxis, direction: Int) {
-        guard let page else { return }
-        let (key, keyCode): (String, Int)
-        switch axis {
-        case .horizontal:
-            let isLeft = direction < 0
-            key = isLeft ? "ArrowLeft" : "ArrowRight"
-            keyCode = isLeft ? 37 : 39
-        case .vertical:
-            let isUp = direction < 0
-            key = isUp ? "ArrowUp" : "ArrowDown"
-            keyCode = isUp ? 38 : 40
-        }
-        let script = """
-        if (!document.activeElement || document.activeElement === document.body) {
-          document.body.tabIndex = document.body.tabIndex || 0;
-          document.body.focus();
-        }
-        const opts = {
-            key: '\(key)',
-            code: '\(key)',
-            keyCode: \(keyCode),
-            which: \(keyCode),
-            bubbles: true,
-            cancelable: true
-        };
-
-        const target = document.activeElement || document;
-        target.dispatchEvent(new KeyboardEvent('keydown', opts));
-        target.dispatchEvent(new KeyboardEvent('keyup', opts));
-        """
-        Task { @MainActor in
-            _ = try? await page.callJavaScript(script)
-        }
     }
 }

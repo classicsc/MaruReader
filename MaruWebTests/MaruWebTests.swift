@@ -108,4 +108,29 @@ struct MaruWebTests {
         let secondSession = await store.makeSession(enableContentBlocking: false)
         #expect(firstSession !== secondSession)
     }
+
+    @Test @MainActor func scrollHidesAndShowsToolbarsWhenNotInOCRMode() {
+        let viewModel = WebViewerViewModel()
+        viewModel.readingModeEnabled = false
+        viewModel.overlayState = .showingToolbars
+
+        viewModel.handleScrollOffsetChange(from: 0, to: 24)
+        #expect(viewModel.overlayState == .none)
+
+        viewModel.handleScrollOffsetChange(from: 24, to: 0)
+        #expect(viewModel.overlayState == .showingToolbars)
+    }
+
+    @Test @MainActor func scrollDoesNotChangeToolbarVisibilityInOCRMode() {
+        let viewModel = WebViewerViewModel()
+        viewModel.readingModeEnabled = true
+        viewModel.overlayState = .showingToolbars
+
+        viewModel.handleScrollOffsetChange(from: 0, to: 24)
+        #expect(viewModel.overlayState == .showingToolbars)
+
+        viewModel.overlayState = .none
+        viewModel.handleScrollOffsetChange(from: 24, to: 0)
+        #expect(viewModel.overlayState == .none)
+    }
 }
