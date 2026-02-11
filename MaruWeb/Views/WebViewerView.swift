@@ -125,6 +125,8 @@ public struct WebViewerView: View {
 
     private func webContent(for page: WebPage) -> some View {
         VStack(spacing: 0) {
+            Color.clear
+                .frame(height: 1)
             ZStack {
                 WebView(page)
                     .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
@@ -147,6 +149,8 @@ public struct WebViewerView: View {
                     )
                 }
             }
+            Color.clear
+                .frame(height: 1)
         }
     }
 
