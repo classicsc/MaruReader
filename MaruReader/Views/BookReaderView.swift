@@ -34,7 +34,6 @@ struct BookReaderView: View {
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(book: Book) {
         _viewModel = State(wrappedValue: BookReaderViewModel(book: book))
@@ -85,7 +84,7 @@ struct BookReaderView: View {
                             searchSheetViewModel = DictionarySearchViewModel(session: session)
                         }
                     }
-                    .dictionarySheetDetents(for: horizontalSizeClass)
+                    .presentationDetents([.medium, .large])
                 }
                 .sheet(isPresented: showingTableOfContents) {
                     if let publication = viewModel.publication {
@@ -115,7 +114,7 @@ struct BookReaderView: View {
                                 viewModel.overlayState = .showingToolbars
                             }
                         )
-                        .dictionarySheetDetents(for: horizontalSizeClass)
+                        .presentationDetents([.medium, .large])
                     }
                 }
                 .onChange(of: colorScheme) {

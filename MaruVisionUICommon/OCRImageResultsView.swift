@@ -34,7 +34,6 @@ public struct OCRImageResultsView: View {
 
     @State private var selectedCluster: TextCluster?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     // Pan-zoom state
     @State private var scale: CGFloat = 1.0
@@ -147,7 +146,7 @@ public struct OCRImageResultsView: View {
                     )
                 )
             }
-            .dictionarySheetDetents(for: horizontalSizeClass)
+            .presentationDetents([.medium, .large])
         }
     }
 
