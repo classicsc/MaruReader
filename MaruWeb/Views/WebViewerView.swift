@@ -25,6 +25,7 @@ public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
     @ScaledMetric(relativeTo: .body) private var addressAccessorySize: CGFloat = 28
+    @ScaledMetric(relativeTo: .body) private var collapsedAddressMaxWidth: CGFloat = 180
 
     @State private var viewModel: WebViewerViewModel
     @State private var selectedLookup: WebLookupSelection?
@@ -163,6 +164,11 @@ public struct WebViewerView: View {
     private var bottomControlsOverlay: some View {
         GlassEffectContainer(spacing: 10) {
             ZStack {
+                if shouldShowFloatingReadingModeButton {
+                    collapsedAddressCapsule
+                        .frame(maxWidth: .infinity, alignment: .center)
+                }
+
                 if shouldShowFullControls {
                     bottomControlsRow
                 }
@@ -247,6 +253,20 @@ public struct WebViewerView: View {
             onStopLoading: viewModel.stopLoading
         )
         .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
+    }
+
+    private var collapsedAddressCapsule: some View {
+        CollapsedAddressCapsuleView(
+            displayText: addressDisplayText,
+            namespace: glassNamespace,
+            iconSize: floatingButtonIconSize,
+            maxWidth: collapsedAddressMaxWidth,
+            onTap: {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    viewModel.overlayState = .showingToolbars
+                }
+            }
+        )
     }
 
     private var bookmarkButton: some View {
@@ -489,5 +509,34 @@ private struct AddressBarCapsuleView: View {
         .glassEffect(in: Capsule())
         .glassEffectID("address", in: namespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+    }
+}
+
+private struct CollapsedAddressCapsuleView: View {
+    let displayText: String
+    let namespace: Namespace.ID
+    let iconSize: CGFloat
+    let maxWidth: CGFloat
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 6) {
+                Image(systemName: "globe")
+                    .font(.system(size: iconSize - 2, weight: .semibold))
+                Text(displayText)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .font(.subheadline)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(maxWidth: maxWidth)
+        }
+        .buttonStyle(.plain)
+        .glassEffect(in: Capsule())
+        .glassEffectID("address", in: namespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel("Show Controls")
     }
 }
