@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Top layer: round orange owl (maru = circle).
+       Positioned center-upper so it appears to perch on the book layer below. -->
+
+  <!-- Wings (drawn first so they sit behind the body) -->
+  <ellipse cx="318" cy="430" rx="38" ry="85" fill="#D4781E" transform="rotate(-10,318,430)"/>
+  <ellipse cx="706" cy="430" rx="38" ry="85" fill="#D4781E" transform="rotate(10,706,430)"/>
+
+  <!-- Body — one big circle for the round "maru" silhouette -->
+  <circle cx="512" cy="400" r="200" fill="#F2922B"/>
+
+  <!-- Belly patch -->
+  <ellipse cx="512" cy="445" rx="125" ry="140" fill="#FDEBC8"/>
+
+  <!-- Ear tufts -->
+  <polygon points="375,225 408,310 348,280" fill="#D4781E"/>
+  <polygon points="649,225 616,310 676,280" fill="#D4781E"/>
+
+  <!-- Left eye -->
+  <circle cx="440" cy="350" r="52" fill="white"/>
+  <circle cx="452" cy="348" r="30" fill="#2B2B2B"/>
+  <circle cx="462" cy="336" r="11" fill="white"/>
+
+  <!-- Right eye -->
+  <circle cx="584" cy="350" r="52" fill="white"/>
+  <circle cx="572" cy="348" r="30" fill="#2B2B2B"/>
+  <circle cx="562" cy="336" r="11" fill="white"/>
+
+  <!-- Beak -->
+  <polygon points="512,395 496,422 528,422" fill="#E8852A"/>
+
+  <!-- Feet (visible below body, resting on book layer) -->
+  <ellipse cx="460" cy="595" rx="28" ry="11" fill="#D4781E"/>
+  <ellipse cx="564" cy="595" rx="28" ry="11" fill="#D4781E"/>
+</svg>

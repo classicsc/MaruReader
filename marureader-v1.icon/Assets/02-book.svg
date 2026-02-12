@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Middle layer: open book that the owl perches on.
+       Positioned in the lower portion of the canvas so the owl
+       in the top layer appears to rest on it. -->
+
+  <!-- Left cover (visible edge behind page) -->
+  <path d="M 512,555 Q 395,548 290,565 L 290,755 Q 395,748 512,745 Z" fill="#6B3410"/>
+  <!-- Right cover -->
+  <path d="M 512,555 Q 629,548 734,565 L 734,755 Q 629,748 512,745 Z" fill="#7B4420"/>
+
+  <!-- Left page -->
+  <path d="M 512,560 Q 400,554 300,570 L 300,748 Q 400,742 512,738 Z" fill="#FFF8E7"/>
+  <!-- Right page -->
+  <path d="M 512,560 Q 624,554 724,570 L 724,748 Q 624,742 512,738 Z" fill="#FFFDF5"/>
+
+  <!-- Spine -->
+  <rect x="507" y="553" width="10" height="190" rx="2" fill="#5C2D0E"/>
+</svg>
