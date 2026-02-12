@@ -178,6 +178,7 @@ public struct WebViewerView: View {
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
+        .padding(.top, 5)
     }
 
     private var bottomControlsRow: some View {
