@@ -1,7 +1,28 @@
 {
-  "fill" : {
-    "automatic-gradient" : "extended-srgb:0.00000,0.53333,1.00000,1.00000"
-  },
+  "fill-specializations" : [
+    {
+      "value" : {
+        "linear-gradient" : [
+          "display-p3:0.22745,0.54510,0.22745,1.00000",
+          "srgb:0.43137,0.76078,0.74941,1.00000"
+        ],
+        "orientation" : {
+          "start" : {
+            "x" : 0.5,
+            "y" : 0
+          },
+          "stop" : {
+            "x" : 0.5,
+            "y" : 0.7
+          }
+        }
+      }
+    },
+    {
+      "appearance" : "dark",
+      "value" : "automatic"
+    }
+  ],
   "groups" : [
     {
       "layers" : [
@@ -15,7 +36,7 @@
         }
       ],
       "position" : {
-        "scale" : 1.1,
+        "scale" : 1.2,
         "translation-in-points" : [
           0,
           0
@@ -25,27 +46,21 @@
         "kind" : "neutral",
         "opacity" : 0.5
       },
-      "translucency" : {
-        "enabled" : false,
-        "value" : 0.5
-      }
-    },
-    {
-      "layers" : [
+      "translucency-specializations" : [
         {
-          "fill" : "automatic",
-          "image-name" : "01-background.svg",
-          "name" : "01-background"
+          "value" : {
+            "enabled" : true,
+            "value" : 0.15
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.15
+          }
         }
-      ],
-      "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
-      },
-      "translucency" : {
-        "enabled" : true,
-        "value" : 0.5
-      }
+      ]
     }
   ],
   "supported-platforms" : {
