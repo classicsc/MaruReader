@@ -298,7 +298,7 @@ final class MangaReaderViewModel {
             highlightedCluster = cluster
 
             // Brief delay for highlight animation
-            try? await Task.sleep(nanoseconds: 250_000_000)
+            try? await Task.sleep(nanoseconds: 100_000_000)
 
             // Perform dictionary lookup
             await performDictionaryLookup(text: cluster.transcript, pageIndex: pageIndex)
