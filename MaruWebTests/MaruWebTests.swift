@@ -310,6 +310,34 @@ struct MaruWebTests {
         #expect(viewportInfo == nil)
     }
 
+    @Test @MainActor func newTabPageShownForFreshTab() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+
+        #expect(viewModel.isShowingNewTabPage == true)
+    }
+
+    @Test @MainActor func newTabPageHiddenWhenPageHasURL() async throws {
+        let viewModel = WebViewerViewModel(
+            initialURL: URL(string: "https://example.com")
+        )
+        await viewModel.prepareSessionIfNeeded()
+
+        // Wait for WKWebView KVO to propagate url/isLoading
+        for _ in 0 ..< 60 {
+            if !viewModel.isShowingNewTabPage { break }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        #expect(viewModel.isShowingNewTabPage == false)
+    }
+
+    @Test @MainActor func newTabPageFalseWithoutPage() {
+        let viewModel = WebViewerViewModel()
+        #expect(viewModel.page == nil)
+        #expect(viewModel.isShowingNewTabPage == false)
+    }
+
     @MainActor
     private func waitForTabCount(_ expectedCount: Int, in viewModel: WebViewerViewModel) async {
         for _ in 0 ..< 60 {

@@ -85,6 +85,11 @@ final class WebViewerViewModel {
         activeTab?.page
     }
 
+    var isShowingNewTabPage: Bool {
+        guard let page else { return false }
+        return page.url == nil && !page.isLoading
+    }
+
     var tabSummaries: [WebTabSummary] {
         tabs.map { tab in
             let page = tab.page

@@ -63,6 +63,7 @@ public struct WebViewerView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.isShowingNewTabPage)
         .task {
             await viewModel.prepareSessionIfNeeded()
         }
@@ -191,6 +192,16 @@ public struct WebViewerView: View {
                     model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                 }
                 .id(page.webView)
+
+                if viewModel.isShowingNewTabPage {
+                    NewTabPageView(
+                        bookmarks: viewModel.bookmarks,
+                        onNavigate: { url in
+                            viewModel.navigate(to: url)
+                        }
+                    )
+                    .transition(.opacity)
+                }
 
                 if viewModel.readingModeEnabled {
                     GeometryReader { geometry in
