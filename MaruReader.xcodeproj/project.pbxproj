@@ -14,9 +14,7 @@
 		DB1C34312EB857B000315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DB1C34362EB857C400315E79 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
 		DB1C343E2EB85BFB00315E79 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
-		DB1C343F2EB85BFB00315E79 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB1C34442EB8685200315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
-		DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB3379E62F3D8FBD0062E31B /* marureader-v1.icon in Resources */ = {isa = PBXBuildFile; fileRef = DB3379E52F3D8FBD0062E31B /* marureader-v1.icon */; };
 		DB3C42EA2F343601007F2896 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB3C42E92F343601007F2896 /* LRUCache */; };
 		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
@@ -36,7 +34,6 @@
 		DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB6FDFB32EAB4BCD005DF219 /* Zip */; };
 		DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB6FDFC92EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
-		DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */ = {isa = PBXBuildFile; productRef = DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */; };
 		DB97CED22E8B332D00E9723D /* ReadiumAdapterGCDWebServer in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED12E8B332D00E9723D /* ReadiumAdapterGCDWebServer */; };
 		DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */ = {isa = PBXBuildFile; productRef = DB97CED32E8B332D00E9723D /* ReadiumNavigator */; };
@@ -394,19 +391,6 @@
 				DB6FDFC32EAB54C6005DF219 /* MaruShareExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		DB6FDFD12EAB54E8005DF219 /* Embed Frameworks */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = "";
-			dstSubfolderSpec = 10;
-			files = (
-				DB1C34452EB8685200315E79 /* MaruVision.framework in Embed Frameworks */,
-				DB1C343F2EB85BFB00315E79 /* MaruVisionUICommon.framework in Embed Frameworks */,
-				DB6FDFCA2EAB54E8005DF219 /* MaruDictionaryUICommon.framework in Embed Frameworks */,
-			);
-			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */ = {
@@ -1057,7 +1041,6 @@
 				DB6FDFB52EAB54C6005DF219 /* Sources */,
 				DB6FDFB62EAB54C6005DF219 /* Frameworks */,
 				DB6FDFB72EAB54C6005DF219 /* Resources */,
-				DB6FDFD12EAB54E8005DF219 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
