@@ -21,6 +21,7 @@ import MaruReaderCore
 import MaruVision
 import Observation
 import os.log
+import UIKit
 import WebKit
 
 // MARK: - WebOverlayState
@@ -56,16 +57,51 @@ struct WebTextSelection: Identifiable {
     let contextValues: LookupContextValues
 }
 
+struct WebTabState: Identifiable {
+    let id: UUID
+    let session: WebSession
+
+    var page: WebBrowserPage {
+        session.page
+    }
+}
+
+struct WebTabSummary: Identifiable {
+    let id: UUID
+    let title: String
+    let host: String
+    let isLoading: Bool
+}
+
 // MARK: - WebViewerViewModel
 
 @MainActor
 @Observable
 final class WebViewerViewModel {
-    var page: WebBrowserPage?
+    var tabs: [WebTabState] = []
+    var selectedTabID: UUID?
+    var dismissViewerRequestID: UUID?
+    var page: WebBrowserPage? {
+        activeTab?.page
+    }
+
+    var tabSummaries: [WebTabSummary] {
+        tabs.map { tab in
+            let page = tab.page
+            let title = tabTitle(for: page)
+            let host = page.url?.host ?? "New Tab"
+            return WebTabSummary(
+                id: tab.id,
+                title: title,
+                host: host,
+                isLoading: page.isLoading
+            )
+        }
+    }
+
     let ocrViewModel: WebOCRViewModel
     private let bookmarkManager: WebBookmarkManager
     private let sessionStore: WebSessionStore
-    private var session: WebSession?
     private var isPreparingSession = false
     private let logger = Logger(subsystem: "net.undefinedstar.MaruWeb", category: "WebViewerViewModel")
 
@@ -79,6 +115,10 @@ final class WebViewerViewModel {
     var editMenuSelection: WebTextSelection?
 
     private var initialURL: URL?
+    private var activeTab: WebTabState? {
+        guard let selectedTabID else { return nil }
+        return tabs.first(where: { $0.id == selectedTabID })
+    }
 
     /// Minimum scroll distance required to trigger toolbar visibility change
     private let scrollThreshold: CGFloat = 20
@@ -99,18 +139,10 @@ final class WebViewerViewModel {
     }
 
     func prepareSessionIfNeeded() async {
-        guard session == nil, !isPreparingSession else { return }
+        guard tabs.isEmpty, !isPreparingSession else { return }
         isPreparingSession = true
         defer { isPreparingSession = false }
-        let session = await sessionStore.makeSession(
-            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
-        )
-        guard !Task.isCancelled else { return }
-        self.session = session
-        page = session.page
-        page?.setDictionaryLookupHandler { [weak self] selectedText in
-            self?.handleEditMenuLookup(selectedText)
-        }
+        _ = await createTab(select: true)
         loadInitialURLIfNeeded()
         refreshBookmarkState()
     }
@@ -157,6 +189,65 @@ final class WebViewerViewModel {
         guard let initialURL, page != nil else { return }
         self.initialURL = nil
         navigate(to: initialURL)
+    }
+
+    func addTab() {
+        Task {
+            _ = await createTab(select: true)
+        }
+    }
+
+    func switchToTab(id: UUID) {
+        guard tabs.contains(where: { $0.id == id }) else { return }
+        guard selectedTabID != id else { return }
+        selectedTabID = id
+        readingModeEnabled = false
+        showBoundingBoxes = false
+        highlightedCluster = nil
+        ocrViewModel.reset()
+        overlayState = .showingToolbars
+        updateAddressBar(from: page?.url)
+        refreshBookmarkState()
+    }
+
+    func closeCurrentTab() {
+        guard let selectedTabID else { return }
+        closeTab(id: selectedTabID)
+    }
+
+    func closeTab(id: UUID) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let wasSelected = selectedTabID == id
+        if tabs.count == 1 {
+            tabs.removeAll()
+            selectedTabID = nil
+            dismissViewerRequestID = UUID()
+            return
+        }
+        tabs.remove(at: index)
+        guard wasSelected else { return }
+        let replacementIndex = min(index, tabs.count - 1)
+        selectedTabID = tabs[replacementIndex].id
+        readingModeEnabled = false
+        showBoundingBoxes = false
+        highlightedCluster = nil
+        ocrViewModel.reset()
+        overlayState = .showingToolbars
+        updateAddressBar(from: page?.url)
+        refreshBookmarkState()
+    }
+
+    func moveTabs(from source: IndexSet, to destination: Int) {
+        guard !source.isEmpty, source.allSatisfy({ $0 < tabs.count }) else { return }
+        var reordered = tabs
+        let movingItems = source.sorted().map { reordered[$0] }
+        for index in source.sorted(by: >) {
+            reordered.remove(at: index)
+        }
+        let adjustedDestination = source.filter { $0 < destination }.count
+        let insertionIndex = max(0, min(destination - adjustedDestination, reordered.count))
+        reordered.insert(contentsOf: movingItems, at: insertionIndex)
+        tabs = reordered
     }
 
     func navigate(to rawValue: String) {
@@ -261,7 +352,7 @@ final class WebViewerViewModel {
     func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
         guard !ocrViewModel.isProcessing else { return nil }
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
-        guard let page else { return nil }
+        guard page != nil else { return nil }
 
         // If no cached results, capture and run OCR first
         if ocrViewModel.clusters.isEmpty {
@@ -305,8 +396,11 @@ final class WebViewerViewModel {
     }
 
     func updateAddressBar(from url: URL?) {
-        guard let url else { return }
-        addressBarText = url.absoluteString
+        if let url {
+            addressBarText = url.absoluteString
+        } else {
+            addressBarText = ""
+        }
     }
 
     func refreshBookmarkState() {
@@ -359,6 +453,84 @@ final class WebViewerViewModel {
             region: nil,
             snapshotWidth: viewportSize.width > 0 ? viewportSize.width : nil
         )
+    }
+
+    private func createTab(
+        initialURL: URL? = nil,
+        initialRequest: URLRequest? = nil,
+        select: Bool
+    ) async -> UUID? {
+        let session = await sessionStore.makeSession(
+            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
+        )
+        guard !Task.isCancelled else { return nil }
+        let page = session.page
+        configureHandlers(for: page)
+        let tabID = UUID()
+        tabs.append(WebTabState(id: tabID, session: session))
+
+        if let initialRequest {
+            page.load(initialRequest)
+        } else if let initialURL {
+            page.load(initialURL)
+        }
+
+        if select || selectedTabID == nil {
+            if selectedTabID == tabID {
+                updateAddressBar(from: page.url)
+            } else {
+                switchToTab(id: tabID)
+            }
+        }
+        return tabID
+    }
+
+    private func configureHandlers(for page: WebBrowserPage) {
+        page.setDictionaryLookupHandler { [weak self] selectedText in
+            self?.handleEditMenuLookup(selectedText)
+        }
+        page.setOpenRequestInNewTabHandler { [weak self] request in
+            self?.openRequestInNewTab(request)
+        }
+        page.setLinkContextMenuHandlers(
+            openInCurrentTab: { [weak self] url in
+                self?.navigate(to: url)
+            },
+            openInNewTab: { [weak self] url in
+                self?.openURLInNewTab(url)
+            },
+            copyLink: { [weak self] url in
+                self?.copyLinkToPasteboard(url)
+            }
+        )
+    }
+
+    private func openRequestInNewTab(_ request: URLRequest) {
+        Task {
+            _ = await createTab(initialRequest: request, select: true)
+        }
+    }
+
+    private func openURLInNewTab(_ url: URL) {
+        Task {
+            _ = await createTab(initialURL: url, select: true)
+        }
+    }
+
+    private func copyLinkToPasteboard(_ url: URL) {
+        UIPasteboard.general.url = url
+    }
+
+    private func tabTitle(for page: WebBrowserPage) -> String {
+        if let title = page.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !title.isEmpty
+        {
+            return title
+        }
+        if let host = page.url?.host, !host.isEmpty {
+            return host
+        }
+        return "New Tab"
     }
 
     nonisolated static func viewportInfo(from result: Any?) -> ViewportInfo? {

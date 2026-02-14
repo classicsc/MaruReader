@@ -58,6 +58,20 @@ final class WebBrowserPage {
         (webView as? DictionaryLookupWebView)?.onDictionaryLookup = handler
     }
 
+    func setOpenRequestInNewTabHandler(_ handler: (@MainActor (URLRequest) -> Void)?) {
+        delegateProxy.onOpenRequestInNewTab = handler
+    }
+
+    func setLinkContextMenuHandlers(
+        openInCurrentTab: (@MainActor (URL) -> Void)?,
+        openInNewTab: (@MainActor (URL) -> Void)?,
+        copyLink: (@MainActor (URL) -> Void)?
+    ) {
+        delegateProxy.onOpenLinkInCurrentTab = openInCurrentTab
+        delegateProxy.onOpenLinkInNewTab = openInNewTab
+        delegateProxy.onCopyLink = copyLink
+    }
+
     func load(_ url: URL) {
         webView.load(URLRequest(url: url))
     }
@@ -213,6 +227,11 @@ final class DictionaryLookupWebView: WKWebView {
 }
 
 private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate {
+    var onOpenRequestInNewTab: (@MainActor (URLRequest) -> Void)?
+    var onOpenLinkInCurrentTab: (@MainActor (URL) -> Void)?
+    var onOpenLinkInNewTab: (@MainActor (URL) -> Void)?
+    var onCopyLink: (@MainActor (URL) -> Void)?
+
     func webView(
         _ webView: WKWebView,
         createWebViewWith _: WKWebViewConfiguration,
@@ -220,7 +239,56 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         windowFeatures _: WKWindowFeatures
     ) -> WKWebView? {
         guard navigationAction.targetFrame == nil else { return nil }
-        webView.load(navigationAction.request)
+        if let onOpenRequestInNewTab {
+            Task { @MainActor in
+                onOpenRequestInNewTab(navigationAction.request)
+            }
+        } else {
+            webView.load(navigationAction.request)
+        }
         return nil
+    }
+
+    func webView(
+        _: WKWebView,
+        contextMenuConfigurationForElement elementInfo: WKContextMenuElementInfo,
+        completionHandler: @escaping @MainActor (UIContextMenuConfiguration?) -> Void
+    ) {
+        guard let linkURL = elementInfo.linkURL else {
+            completionHandler(nil)
+            return
+        }
+
+        let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
+            let openAction = UIAction(
+                title: "Open",
+                image: UIImage(systemName: "arrow.right.circle")
+            ) { _ in
+                guard let onOpenLinkInCurrentTab = self?.onOpenLinkInCurrentTab else { return }
+                Task { @MainActor in
+                    onOpenLinkInCurrentTab(linkURL)
+                }
+            }
+            let openInNewTabAction = UIAction(
+                title: "Open in New Tab",
+                image: UIImage(systemName: "plus.square.on.square")
+            ) { _ in
+                guard let onOpenLinkInNewTab = self?.onOpenLinkInNewTab else { return }
+                Task { @MainActor in
+                    onOpenLinkInNewTab(linkURL)
+                }
+            }
+            let copyAction = UIAction(
+                title: "Copy Link",
+                image: UIImage(systemName: "doc.on.doc")
+            ) { _ in
+                guard let onCopyLink = self?.onCopyLink else { return }
+                Task { @MainActor in
+                    onCopyLink(linkURL)
+                }
+            }
+            return UIMenu(children: [openAction, openInNewTabAction, copyAction])
+        }
+        completionHandler(configuration)
     }
 }

@@ -111,6 +111,71 @@ struct MaruWebTests {
         #expect(firstSession !== secondSession)
     }
 
+    @Test @MainActor func webViewerPreparesSingleInitialTab() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+
+        #expect(viewModel.tabs.count == 1)
+        #expect(viewModel.selectedTabID == viewModel.tabs.first?.id)
+        #expect(viewModel.page != nil)
+    }
+
+    @Test @MainActor func closingLastTabRequestsDismissal() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        let tabID = try #require(viewModel.selectedTabID)
+
+        viewModel.closeTab(id: tabID)
+
+        #expect(viewModel.dismissViewerRequestID != nil)
+        #expect(viewModel.tabs.isEmpty)
+    }
+
+    @Test @MainActor func addTabSelectsNewTab() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        let initialSelected = try #require(viewModel.selectedTabID)
+
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+
+        #expect(viewModel.tabs.count == 2)
+        #expect(viewModel.selectedTabID != initialSelected)
+    }
+
+    @Test @MainActor func closingSelectedTabSelectsAdjacentTab() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+
+        let firstTab = try #require(viewModel.tabs.first?.id)
+        let secondTab = try #require(viewModel.tabs.last?.id)
+        viewModel.switchToTab(id: firstTab)
+
+        viewModel.closeTab(id: firstTab)
+
+        #expect(viewModel.tabs.count == 1)
+        #expect(viewModel.selectedTabID == secondTab)
+    }
+
+    @Test @MainActor func moveTabsReordersAndPreservesSelection() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        viewModel.addTab()
+        await waitForTabCount(3, in: viewModel)
+
+        let originalIDs = viewModel.tabs.map(\.id)
+        let selectedBeforeMove = viewModel.selectedTabID
+
+        viewModel.moveTabs(from: IndexSet(integer: 2), to: 0)
+
+        #expect(viewModel.tabs.count == 3)
+        #expect(viewModel.tabs.first?.id == originalIDs[2])
+        #expect(viewModel.selectedTabID == selectedBeforeMove)
+    }
+
     @Test @MainActor func scrollHidesAndShowsToolbarsWhenNotInOCRMode() {
         let viewModel = WebViewerViewModel()
         viewModel.readingModeEnabled = false
@@ -211,5 +276,15 @@ struct MaruWebTests {
         let viewportInfo = WebViewerViewModel.viewportInfo(from: value)
 
         #expect(viewportInfo == nil)
+    }
+
+    @MainActor
+    private func waitForTabCount(_ expectedCount: Int, in viewModel: WebViewerViewModel) async {
+        for _ in 0 ..< 60 {
+            if viewModel.tabs.count == expectedCount {
+                return
+            }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 }
