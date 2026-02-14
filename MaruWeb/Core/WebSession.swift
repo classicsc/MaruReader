@@ -31,12 +31,12 @@ private extension Bundle {
 
 @MainActor
 final class WebSession {
-    let page: WebPage
+    let page: WebBrowserPage
     let dataStore: WKWebsiteDataStore
     private let extensionController: WKWebExtensionController?
 
     private init(
-        page: WebPage,
+        page: WebBrowserPage,
         dataStore: WKWebsiteDataStore,
         extensionController: WKWebExtensionController?
     ) {
@@ -49,7 +49,7 @@ final class WebSession {
         dataStore: WKWebsiteDataStore = WebsiteDataStore.main,
         enableContentBlocking: Bool = true
     ) async -> WebSession {
-        var configuration = WebPage.Configuration()
+        let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
 
         var extensionController: WKWebExtensionController?
@@ -66,8 +66,9 @@ final class WebSession {
             }
         }
 
-        let page = WebPage(configuration: configuration)
-        page.isInspectable = true
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.isInspectable = true
+        let page = WebBrowserPage(webView: webView)
         return WebSession(page: page, dataStore: dataStore, extensionController: extensionController)
     }
 

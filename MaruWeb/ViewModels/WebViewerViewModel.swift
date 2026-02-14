@@ -20,6 +20,7 @@ import Foundation
 import MaruReaderCore
 import MaruVision
 import Observation
+import os.log
 import WebKit
 
 // MARK: - WebOverlayState
@@ -54,12 +55,13 @@ struct WebLookupSelection: Identifiable {
 @MainActor
 @Observable
 final class WebViewerViewModel {
-    var page: WebPage?
+    var page: WebBrowserPage?
     let ocrViewModel: WebOCRViewModel
     private let bookmarkManager: WebBookmarkManager
     private let sessionStore: WebSessionStore
     private var session: WebSession?
     private var isPreparingSession = false
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruWeb", category: "WebViewerViewModel")
 
     var addressBarText: String = ""
     var readingModeEnabled = false
@@ -71,8 +73,6 @@ final class WebViewerViewModel {
 
     private var initialURL: URL?
 
-    /// Tracks the last scroll offset for scroll direction detection
-    private var lastScrollOffset: CGFloat = 0
     /// Minimum scroll distance required to trigger toolbar visibility change
     private let scrollThreshold: CGFloat = 20
 
@@ -157,42 +157,22 @@ final class WebViewerViewModel {
     func navigate(to url: URL) {
         guard let page else { return }
         addressBarText = url.absoluteString
-        Task {
-            let loadSequence = page.load(url)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        page.load(url)
     }
 
     func goBack() {
-        guard let page, let item = page.backForwardList.backList.last else { return }
-        Task {
-            let loadSequence = page.load(item)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        guard let page, page.canGoBack else { return }
+        page.goBack()
     }
 
     func goForward() {
-        guard let page, let item = page.backForwardList.forwardList.first else { return }
-        Task {
-            let loadSequence = page.load(item)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        guard let page, page.canGoForward else { return }
+        page.goForward()
     }
 
     func reload() {
         guard let page else { return }
-        Task {
-            let loadSequence = page.reload()
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        page.reload()
     }
 
     func stopLoading() {
@@ -257,8 +237,10 @@ final class WebViewerViewModel {
 
         do {
             let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
-            _ = await ocrViewModel.performOCR(imageData: imageData)
+            let clusters = await ocrViewModel.performOCR(imageData: imageData)
+            logger.debug("OCR produced \(clusters.count, privacy: .public) clusters")
         } catch {
+            logger.error("OCR capture failed: \(error.localizedDescription, privacy: .public)")
             ocrViewModel.errorMessage = error.localizedDescription
         }
     }
@@ -285,13 +267,14 @@ final class WebViewerViewModel {
         // Hit-test: require exact bounding box match (no nearest-cluster fallback)
         guard let cluster = ocrViewModel.clusters.first(where: { $0.boundingBox.contains(normalized) }) else {
             // Tap missed all clusters — re-OCR in case viewport changed
+            logger.debug("OCR hit-test miss. Cached clusters: \(self.ocrViewModel.clusters.count, privacy: .public)")
             ocrViewModel.reset()
             await captureAndRunOCR(viewSize: viewSize)
             return nil
         }
 
         let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
-        let title = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let title = page.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let displayTitle = title.isEmpty ? "Web page" : title
         let urlString = page.url?.absoluteString ?? "Unknown URL"
         let contextValues = LookupContextValues(
@@ -301,6 +284,11 @@ final class WebViewerViewModel {
             sourceType: .web
         )
         return WebLookupSelection(cluster: cluster, contextValues: contextValues)
+    }
+
+    func exitReadingModeAfterLookupSelection() {
+        readingModeEnabled = false
+        overlayState = .showingToolbars
     }
 
     func updateAddressBar(from url: URL?) {
@@ -346,40 +334,22 @@ final class WebViewerViewModel {
         }
     }
 
-    private struct ViewportInfo {
+    struct ViewportInfo: Equatable {
         let rect: CGRect
         let snapshotWidth: CGFloat
     }
 
-    private func captureViewportSnapshot(page: WebPage, viewportSize: CGSize) async throws -> Data {
-        if let viewportInfo = try await fetchViewportInfo(page: page) {
-            let configuration = WebPage.ExportedContentConfiguration.image(
-                region: .rect(viewportInfo.rect),
-                snapshotWidth: viewportInfo.snapshotWidth
-            )
-            return try await page.exported(as: configuration)
-        }
-
-        let configuration = WebPage.ExportedContentConfiguration.image(
-            region: .contents,
+    private func captureViewportSnapshot(page: WebBrowserPage, viewportSize: CGSize) async throws -> Data {
+        // WKWebView snapshots with no rect capture the currently visible viewport, which keeps
+        // OCR bounding boxes aligned with tap coordinates after scrolling.
+        try await page.takeSnapshot(
+            region: nil,
             snapshotWidth: viewportSize.width > 0 ? viewportSize.width : nil
         )
-        return try await page.exported(as: configuration)
     }
 
-    private func fetchViewportInfo(page: WebPage) async throws -> ViewportInfo? {
-        let script = """
-        (() => ({
-            scrollX: window.scrollX,
-            scrollY: window.scrollY,
-            width: window.innerWidth,
-            height: window.innerHeight
-        }))()
-        """
-
-        let result = try await page.callJavaScript(script)
+    nonisolated static func viewportInfo(from result: Any?) -> ViewportInfo? {
         guard let dictionary = result as? [String: Any] else { return nil }
-
         guard let scrollX = doubleValue(dictionary["scrollX"]),
               let scrollY = doubleValue(dictionary["scrollY"]),
               let width = doubleValue(dictionary["width"]),
@@ -392,7 +362,7 @@ final class WebViewerViewModel {
         return ViewportInfo(rect: rect, snapshotWidth: CGFloat(width))
     }
 
-    private func doubleValue(_ value: Any?) -> Double? {
+    private nonisolated static func doubleValue(_ value: Any?) -> Double? {
         if let value = value as? Double {
             return value
         }

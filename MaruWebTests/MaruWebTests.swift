@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreGraphics
 import Foundation
 import MaruVision
 @testable import MaruWeb
@@ -160,6 +161,17 @@ struct MaruWebTests {
         #expect(viewModel.highlightedCluster == nil)
     }
 
+    @Test @MainActor func lookupSelectionExitsReadingMode() {
+        let viewModel = WebViewerViewModel()
+        viewModel.readingModeEnabled = true
+        viewModel.overlayState = .none
+
+        viewModel.exitReadingModeAfterLookupSelection()
+
+        #expect(viewModel.readingModeEnabled == false)
+        #expect(viewModel.overlayState == .showingToolbars)
+    }
+
     @Test @MainActor func ocrCacheResetClearsAllState() {
         let ocrVM = WebOCRViewModel()
         ocrVM.clusters = [
@@ -173,5 +185,31 @@ struct MaruWebTests {
         #expect(ocrVM.image == nil)
         #expect(ocrVM.errorMessage == nil)
         #expect(ocrVM.isProcessing == false)
+    }
+
+    @Test func viewportInfoParsesNSNumberValues() {
+        let value: [String: Any] = [
+            "scrollX": NSNumber(value: 12.5),
+            "scrollY": NSNumber(value: 48),
+            "width": NSNumber(value: 375),
+            "height": NSNumber(value: 812),
+        ]
+
+        let viewportInfo = WebViewerViewModel.viewportInfo(from: value)
+
+        #expect(viewportInfo?.rect == CGRect(x: 12.5, y: 48, width: 375, height: 812))
+        #expect(viewportInfo?.snapshotWidth == 375)
+    }
+
+    @Test func viewportInfoRejectsMissingKeys() {
+        let value: [String: Any] = [
+            "scrollX": NSNumber(value: 12.5),
+            "width": NSNumber(value: 375),
+            "height": NSNumber(value: 812),
+        ]
+
+        let viewportInfo = WebViewerViewModel.viewportInfo(from: value)
+
+        #expect(viewportInfo == nil)
     }
 }

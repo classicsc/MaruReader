@@ -128,17 +128,15 @@ public struct WebViewerView: View {
         }
     }
 
-    private func webContent(for page: WebPage) -> some View {
+    private func webContent(for page: WebBrowserPage) -> some View {
         VStack(spacing: 0) {
             Color.clear
                 .frame(height: 1)
             ZStack {
-                WebView(page)
-                    .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentOffset.y
-                    } action: { oldOffset, newOffset in
-                        viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
-                    }
+                let model = viewModel
+                WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
+                    model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                }
 
                 if viewModel.readingModeEnabled {
                     GeometryReader { geometry in
@@ -152,6 +150,9 @@ public struct WebViewerView: View {
                                     if let selection = await viewModel.lookupCluster(at: location, in: size) {
                                         viewModel.highlightedCluster = selection.cluster
                                         try? await Task.sleep(nanoseconds: 100_000_000)
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            viewModel.exitReadingModeAfterLookupSelection()
+                                        }
                                         selectedLookup = selection
                                         viewModel.highlightedCluster = nil
                                     }
@@ -403,7 +404,7 @@ public struct WebViewerView: View {
         .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
     }
 
-    private func loadingProgressOverlay(for page: WebPage) -> some View {
+    private func loadingProgressOverlay(for page: WebBrowserPage) -> some View {
         Group {
             if page.isLoading {
                 ProgressView(value: page.estimatedProgress)
@@ -429,11 +430,11 @@ public struct WebViewerView: View {
     }
 
     private var canGoBack: Bool {
-        viewModel.page?.backForwardList.backList.isEmpty == false
+        viewModel.page?.canGoBack == true
     }
 
     private var canGoForward: Bool {
-        viewModel.page?.backForwardList.forwardList.isEmpty == false
+        viewModel.page?.canGoForward == true
     }
 
     private var shouldShowFullControls: Bool {
