@@ -69,6 +69,9 @@ public struct OCRImageResultsView: View {
             let imageRect = calculateImageRect(image: image, in: geometry.size)
 
             ZStack {
+                Color.black
+                    .ignoresSafeArea()
+
                 // Image with bounding box overlay - transforms together
                 ZStack(alignment: .topLeading) {
                     Image(uiImage: image)
