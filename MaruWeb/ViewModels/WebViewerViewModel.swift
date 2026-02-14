@@ -20,6 +20,8 @@ import Foundation
 import MaruReaderCore
 import MaruVision
 import Observation
+import os.log
+import UIKit
 import WebKit
 
 // MARK: - WebOverlayState
@@ -49,17 +51,64 @@ struct WebLookupSelection: Identifiable {
     }
 }
 
+struct WebTextSelection: Identifiable {
+    let id = UUID()
+    let text: String
+    let contextValues: LookupContextValues
+}
+
+struct WebTabState: Identifiable {
+    let id: UUID
+    let session: WebSession
+
+    var page: WebBrowserPage {
+        session.page
+    }
+}
+
+struct WebTabSummary: Identifiable {
+    let id: UUID
+    let title: String
+    let host: String
+    let isLoading: Bool
+}
+
 // MARK: - WebViewerViewModel
 
 @MainActor
 @Observable
 final class WebViewerViewModel {
-    var page: WebPage?
+    var tabs: [WebTabState] = []
+    var selectedTabID: UUID?
+    var dismissViewerRequestID: UUID?
+    var page: WebBrowserPage? {
+        activeTab?.page
+    }
+
+    var isShowingNewTabPage: Bool {
+        guard let page else { return false }
+        return page.url == nil && !page.isLoading
+    }
+
+    var tabSummaries: [WebTabSummary] {
+        tabs.map { tab in
+            let page = tab.page
+            let title = tabTitle(for: page)
+            let host = page.url?.host ?? "New Tab"
+            return WebTabSummary(
+                id: tab.id,
+                title: title,
+                host: host,
+                isLoading: page.isLoading
+            )
+        }
+    }
+
     let ocrViewModel: WebOCRViewModel
     private let bookmarkManager: WebBookmarkManager
     private let sessionStore: WebSessionStore
-    private var session: WebSession?
     private var isPreparingSession = false
+    private let logger = Logger(subsystem: "net.undefinedstar.MaruWeb", category: "WebViewerViewModel")
 
     var addressBarText: String = ""
     var readingModeEnabled = false
@@ -68,11 +117,14 @@ final class WebViewerViewModel {
     var isBookmarked = false
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
+    var editMenuSelection: WebTextSelection?
 
     private var initialURL: URL?
+    private var activeTab: WebTabState? {
+        guard let selectedTabID else { return nil }
+        return tabs.first(where: { $0.id == selectedTabID })
+    }
 
-    /// Tracks the last scroll offset for scroll direction detection
-    private var lastScrollOffset: CGFloat = 0
     /// Minimum scroll distance required to trigger toolbar visibility change
     private let scrollThreshold: CGFloat = 20
 
@@ -92,15 +144,10 @@ final class WebViewerViewModel {
     }
 
     func prepareSessionIfNeeded() async {
-        guard session == nil, !isPreparingSession else { return }
+        guard tabs.isEmpty, !isPreparingSession else { return }
         isPreparingSession = true
         defer { isPreparingSession = false }
-        let session = await sessionStore.makeSession(
-            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
-        )
-        guard !Task.isCancelled else { return }
-        self.session = session
-        page = session.page
+        _ = await createTab(select: true)
         loadInitialURLIfNeeded()
         refreshBookmarkState()
     }
@@ -117,7 +164,7 @@ final class WebViewerViewModel {
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
     /// Scrolling down hides toolbars, scrolling up shows them.
     func handleScrollOffsetChange(from oldOffset: CGFloat, to newOffset: CGFloat) {
-        // Don't auto-hide in reading mode (already hidden)
+        // Don't auto-hide in reading mode (toolbars keep their layout reservation)
         guard !readingModeEnabled else {
             // Invalidate cached OCR results when scrolling in reading mode
             let delta = newOffset - oldOffset
@@ -149,6 +196,65 @@ final class WebViewerViewModel {
         navigate(to: initialURL)
     }
 
+    func addTab() {
+        Task {
+            _ = await createTab(select: true)
+        }
+    }
+
+    func switchToTab(id: UUID) {
+        guard tabs.contains(where: { $0.id == id }) else { return }
+        guard selectedTabID != id else { return }
+        selectedTabID = id
+        readingModeEnabled = false
+        showBoundingBoxes = false
+        highlightedCluster = nil
+        ocrViewModel.reset()
+        overlayState = .showingToolbars
+        updateAddressBar(from: page?.url)
+        refreshBookmarkState()
+    }
+
+    func closeCurrentTab() {
+        guard let selectedTabID else { return }
+        closeTab(id: selectedTabID)
+    }
+
+    func closeTab(id: UUID) {
+        guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        let wasSelected = selectedTabID == id
+        if tabs.count == 1 {
+            tabs.removeAll()
+            selectedTabID = nil
+            dismissViewerRequestID = UUID()
+            return
+        }
+        tabs.remove(at: index)
+        guard wasSelected else { return }
+        let replacementIndex = min(index, tabs.count - 1)
+        selectedTabID = tabs[replacementIndex].id
+        readingModeEnabled = false
+        showBoundingBoxes = false
+        highlightedCluster = nil
+        ocrViewModel.reset()
+        overlayState = .showingToolbars
+        updateAddressBar(from: page?.url)
+        refreshBookmarkState()
+    }
+
+    func moveTabs(from source: IndexSet, to destination: Int) {
+        guard !source.isEmpty, source.allSatisfy({ $0 < tabs.count }) else { return }
+        var reordered = tabs
+        let movingItems = source.sorted().map { reordered[$0] }
+        for index in source.sorted(by: >) {
+            reordered.remove(at: index)
+        }
+        let adjustedDestination = source.filter { $0 < destination }.count
+        let insertionIndex = max(0, min(destination - adjustedDestination, reordered.count))
+        reordered.insert(contentsOf: movingItems, at: insertionIndex)
+        tabs = reordered
+    }
+
     func navigate(to rawValue: String) {
         guard let url = WebAddressParser.normalizedURL(from: rawValue) else { return }
         navigate(to: url)
@@ -157,42 +263,22 @@ final class WebViewerViewModel {
     func navigate(to url: URL) {
         guard let page else { return }
         addressBarText = url.absoluteString
-        Task {
-            let loadSequence = page.load(url)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        page.load(url)
     }
 
     func goBack() {
-        guard let page, let item = page.backForwardList.backList.last else { return }
-        Task {
-            let loadSequence = page.load(item)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        guard let page, page.canGoBack else { return }
+        page.goBack()
     }
 
     func goForward() {
-        guard let page, let item = page.backForwardList.forwardList.first else { return }
-        Task {
-            let loadSequence = page.load(item)
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        guard let page, page.canGoForward else { return }
+        page.goForward()
     }
 
     func reload() {
         guard let page else { return }
-        Task {
-            let loadSequence = page.reload()
-            for try await _ in loadSequence {
-                if Task.isCancelled { return }
-            }
-        }
+        page.reload()
     }
 
     func stopLoading() {
@@ -257,8 +343,10 @@ final class WebViewerViewModel {
 
         do {
             let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
-            _ = await ocrViewModel.performOCR(imageData: imageData)
+            let clusters = await ocrViewModel.performOCR(imageData: imageData)
+            logger.debug("OCR produced \(clusters.count, privacy: .public) clusters")
         } catch {
+            logger.error("OCR capture failed: \(error.localizedDescription, privacy: .public)")
             ocrViewModel.errorMessage = error.localizedDescription
         }
     }
@@ -269,7 +357,7 @@ final class WebViewerViewModel {
     func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
         guard !ocrViewModel.isProcessing else { return nil }
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
-        guard let page else { return nil }
+        guard page != nil else { return nil }
 
         // If no cached results, capture and run OCR first
         if ocrViewModel.clusters.isEmpty {
@@ -285,27 +373,39 @@ final class WebViewerViewModel {
         // Hit-test: require exact bounding box match (no nearest-cluster fallback)
         guard let cluster = ocrViewModel.clusters.first(where: { $0.boundingBox.contains(normalized) }) else {
             // Tap missed all clusters — re-OCR in case viewport changed
+            logger.debug("OCR hit-test miss. Cached clusters: \(self.ocrViewModel.clusters.count, privacy: .public)")
             ocrViewModel.reset()
             await captureAndRunOCR(viewSize: viewSize)
             return nil
         }
 
         let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
-        let title = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let displayTitle = title.isEmpty ? "Web page" : title
-        let urlString = page.url?.absoluteString ?? "Unknown URL"
-        let contextValues = LookupContextValues(
-            contextInfo: "\(displayTitle) - \(urlString)",
-            documentCoverImageURL: nil,
-            screenshotURL: screenshotURL,
-            sourceType: .web
-        )
+        let contextValues = webContextValues(screenshotURL: screenshotURL)
         return WebLookupSelection(cluster: cluster, contextValues: contextValues)
     }
 
+    func exitReadingModeAfterLookupSelection() {
+        readingModeEnabled = false
+        overlayState = .showingToolbars
+    }
+
+    func handleEditMenuLookup(_ selectedText: String) {
+        Task {
+            let screenshotURL = await captureScreenshotForContext()
+            let contextValues = webContextValues(screenshotURL: screenshotURL)
+            editMenuSelection = WebTextSelection(
+                text: selectedText,
+                contextValues: contextValues
+            )
+        }
+    }
+
     func updateAddressBar(from url: URL?) {
-        guard let url else { return }
-        addressBarText = url.absoluteString
+        if let url {
+            addressBarText = url.absoluteString
+        } else {
+            addressBarText = ""
+        }
     }
 
     func refreshBookmarkState() {
@@ -346,40 +446,100 @@ final class WebViewerViewModel {
         }
     }
 
-    private struct ViewportInfo {
+    struct ViewportInfo: Equatable {
         let rect: CGRect
         let snapshotWidth: CGFloat
     }
 
-    private func captureViewportSnapshot(page: WebPage, viewportSize: CGSize) async throws -> Data {
-        if let viewportInfo = try await fetchViewportInfo(page: page) {
-            let configuration = WebPage.ExportedContentConfiguration.image(
-                region: .rect(viewportInfo.rect),
-                snapshotWidth: viewportInfo.snapshotWidth
-            )
-            return try await page.exported(as: configuration)
-        }
-
-        let configuration = WebPage.ExportedContentConfiguration.image(
-            region: .contents,
+    private func captureViewportSnapshot(page: WebBrowserPage, viewportSize: CGSize) async throws -> Data {
+        // WKWebView snapshots with no rect capture the currently visible viewport, which keeps
+        // OCR bounding boxes aligned with tap coordinates after scrolling.
+        try await page.takeSnapshot(
+            region: nil,
             snapshotWidth: viewportSize.width > 0 ? viewportSize.width : nil
         )
-        return try await page.exported(as: configuration)
     }
 
-    private func fetchViewportInfo(page: WebPage) async throws -> ViewportInfo? {
-        let script = """
-        (() => ({
-            scrollX: window.scrollX,
-            scrollY: window.scrollY,
-            width: window.innerWidth,
-            height: window.innerHeight
-        }))()
-        """
+    private func createTab(
+        initialURL: URL? = nil,
+        initialRequest: URLRequest? = nil,
+        select: Bool
+    ) async -> UUID? {
+        let session = await sessionStore.makeSession(
+            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
+        )
+        guard !Task.isCancelled else { return nil }
+        let page = session.page
+        configureHandlers(for: page)
+        let tabID = UUID()
+        tabs.append(WebTabState(id: tabID, session: session))
 
-        let result = try await page.callJavaScript(script)
+        if let initialRequest {
+            page.load(initialRequest)
+        } else if let initialURL {
+            page.load(initialURL)
+        }
+
+        if select || selectedTabID == nil {
+            if selectedTabID == tabID {
+                updateAddressBar(from: page.url)
+            } else {
+                switchToTab(id: tabID)
+            }
+        }
+        return tabID
+    }
+
+    private func configureHandlers(for page: WebBrowserPage) {
+        page.setDictionaryLookupHandler { [weak self] selectedText in
+            self?.handleEditMenuLookup(selectedText)
+        }
+        page.setOpenRequestInNewTabHandler { [weak self] request in
+            self?.openRequestInNewTab(request)
+        }
+        page.setLinkContextMenuHandlers(
+            openInCurrentTab: { [weak self] url in
+                self?.navigate(to: url)
+            },
+            openInNewTab: { [weak self] url in
+                self?.openURLInNewTab(url)
+            },
+            copyLink: { [weak self] url in
+                self?.copyLinkToPasteboard(url)
+            }
+        )
+    }
+
+    private func openRequestInNewTab(_ request: URLRequest) {
+        Task {
+            _ = await createTab(initialRequest: request, select: true)
+        }
+    }
+
+    private func openURLInNewTab(_ url: URL) {
+        Task {
+            _ = await createTab(initialURL: url, select: true)
+        }
+    }
+
+    private func copyLinkToPasteboard(_ url: URL) {
+        UIPasteboard.general.url = url
+    }
+
+    private func tabTitle(for page: WebBrowserPage) -> String {
+        if let title = page.title?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !title.isEmpty
+        {
+            return title
+        }
+        if let host = page.url?.host, !host.isEmpty {
+            return host
+        }
+        return "New Tab"
+    }
+
+    nonisolated static func viewportInfo(from result: Any?) -> ViewportInfo? {
         guard let dictionary = result as? [String: Any] else { return nil }
-
         guard let scrollX = doubleValue(dictionary["scrollX"]),
               let scrollY = doubleValue(dictionary["scrollY"]),
               let width = doubleValue(dictionary["width"]),
@@ -392,7 +552,7 @@ final class WebViewerViewModel {
         return ViewportInfo(rect: rect, snapshotWidth: CGFloat(width))
     }
 
-    private func doubleValue(_ value: Any?) -> Double? {
+    private nonisolated static func doubleValue(_ value: Any?) -> Double? {
         if let value = value as? Double {
             return value
         }
@@ -419,5 +579,29 @@ final class WebViewerViewModel {
                 return nil
             }
         }.value
+    }
+
+    private func webContextValues(screenshotURL: URL?) -> LookupContextValues {
+        let title = page?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let displayTitle = title.isEmpty ? "Web page" : title
+        let urlString = page?.url?.absoluteString ?? "Unknown URL"
+        return LookupContextValues(
+            contextInfo: "\(displayTitle) - \(urlString)",
+            documentCoverImageURL: nil,
+            screenshotURL: screenshotURL,
+            sourceType: .web
+        )
+    }
+
+    private func captureScreenshotForContext() async -> URL? {
+        guard let page else { return nil }
+        do {
+            let imageData = try await page.takeSnapshot(region: nil, snapshotWidth: nil)
+            guard let image = UIImage(data: imageData) else { return nil }
+            return await writeJPEGContextImage(from: image, prefix: "web_snapshot")
+        } catch {
+            logger.error("Edit menu screenshot capture failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 }

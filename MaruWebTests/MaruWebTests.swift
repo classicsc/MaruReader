@@ -15,10 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreGraphics
 import Foundation
 import MaruVision
 @testable import MaruWeb
 import Testing
+import WebKit
 
 struct MaruWebTests {
     @Test func normalizedURLAddsScheme() {
@@ -110,6 +112,102 @@ struct MaruWebTests {
         #expect(firstSession !== secondSession)
     }
 
+    @Test @MainActor func extensionManagerReturnsSameController() async {
+        let manager = WebExtensionManager()
+        let first = await manager.extensionController()
+        let second = await manager.extensionController()
+        #expect(first === second)
+    }
+
+    @Test @MainActor func extensionManagerCoalescesConcurrentCalls() async {
+        let manager = WebExtensionManager()
+        async let a = manager.extensionController()
+        async let b = manager.extensionController()
+        let (first, second) = await (a, b)
+        #expect(first === second)
+    }
+
+    @Test @MainActor func sessionsShareExtensionController() async {
+        let store = WebSessionStore()
+        let first = await store.makeSession(enableContentBlocking: true)
+        let second = await store.makeSession(enableContentBlocking: true)
+        let firstController = first.page.webView.configuration.webExtensionController
+        let secondController = second.page.webView.configuration.webExtensionController
+        #expect(firstController != nil)
+        #expect(firstController === secondController)
+    }
+
+    @Test @MainActor func sessionHasNoControllerWhenBlockingDisabled() async {
+        let store = WebSessionStore()
+        let session = await store.makeSession(enableContentBlocking: false)
+        #expect(session.page.webView.configuration.webExtensionController == nil)
+    }
+
+    @Test @MainActor func webViewerPreparesSingleInitialTab() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+
+        #expect(viewModel.tabs.count == 1)
+        #expect(viewModel.selectedTabID == viewModel.tabs.first?.id)
+        #expect(viewModel.page != nil)
+    }
+
+    @Test @MainActor func closingLastTabRequestsDismissal() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        let tabID = try #require(viewModel.selectedTabID)
+
+        viewModel.closeTab(id: tabID)
+
+        #expect(viewModel.dismissViewerRequestID != nil)
+        #expect(viewModel.tabs.isEmpty)
+    }
+
+    @Test @MainActor func addTabSelectsNewTab() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        let initialSelected = try #require(viewModel.selectedTabID)
+
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+
+        #expect(viewModel.tabs.count == 2)
+        #expect(viewModel.selectedTabID != initialSelected)
+    }
+
+    @Test @MainActor func closingSelectedTabSelectsAdjacentTab() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+
+        let firstTab = try #require(viewModel.tabs.first?.id)
+        let secondTab = try #require(viewModel.tabs.last?.id)
+        viewModel.switchToTab(id: firstTab)
+
+        viewModel.closeTab(id: firstTab)
+
+        #expect(viewModel.tabs.count == 1)
+        #expect(viewModel.selectedTabID == secondTab)
+    }
+
+    @Test @MainActor func moveTabsReordersAndPreservesSelection() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        viewModel.addTab()
+        await waitForTabCount(3, in: viewModel)
+
+        let originalIDs = viewModel.tabs.map(\.id)
+        let selectedBeforeMove = viewModel.selectedTabID
+
+        viewModel.moveTabs(from: IndexSet(integer: 2), to: 0)
+
+        #expect(viewModel.tabs.count == 3)
+        #expect(viewModel.tabs.first?.id == originalIDs[2])
+        #expect(viewModel.selectedTabID == selectedBeforeMove)
+    }
+
     @Test @MainActor func scrollHidesAndShowsToolbarsWhenNotInOCRMode() {
         let viewModel = WebViewerViewModel()
         viewModel.readingModeEnabled = false
@@ -160,6 +258,17 @@ struct MaruWebTests {
         #expect(viewModel.highlightedCluster == nil)
     }
 
+    @Test @MainActor func lookupSelectionExitsReadingMode() {
+        let viewModel = WebViewerViewModel()
+        viewModel.readingModeEnabled = true
+        viewModel.overlayState = .none
+
+        viewModel.exitReadingModeAfterLookupSelection()
+
+        #expect(viewModel.readingModeEnabled == false)
+        #expect(viewModel.overlayState == .showingToolbars)
+    }
+
     @Test @MainActor func ocrCacheResetClearsAllState() {
         let ocrVM = WebOCRViewModel()
         ocrVM.clusters = [
@@ -173,5 +282,69 @@ struct MaruWebTests {
         #expect(ocrVM.image == nil)
         #expect(ocrVM.errorMessage == nil)
         #expect(ocrVM.isProcessing == false)
+    }
+
+    @Test func viewportInfoParsesNSNumberValues() {
+        let value: [String: Any] = [
+            "scrollX": NSNumber(value: 12.5),
+            "scrollY": NSNumber(value: 48),
+            "width": NSNumber(value: 375),
+            "height": NSNumber(value: 812),
+        ]
+
+        let viewportInfo = WebViewerViewModel.viewportInfo(from: value)
+
+        #expect(viewportInfo?.rect == CGRect(x: 12.5, y: 48, width: 375, height: 812))
+        #expect(viewportInfo?.snapshotWidth == 375)
+    }
+
+    @Test func viewportInfoRejectsMissingKeys() {
+        let value: [String: Any] = [
+            "scrollX": NSNumber(value: 12.5),
+            "width": NSNumber(value: 375),
+            "height": NSNumber(value: 812),
+        ]
+
+        let viewportInfo = WebViewerViewModel.viewportInfo(from: value)
+
+        #expect(viewportInfo == nil)
+    }
+
+    @Test @MainActor func newTabPageShownForFreshTab() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+
+        #expect(viewModel.isShowingNewTabPage == true)
+    }
+
+    @Test @MainActor func newTabPageHiddenWhenPageHasURL() async throws {
+        let viewModel = WebViewerViewModel(
+            initialURL: URL(string: "https://example.com")
+        )
+        await viewModel.prepareSessionIfNeeded()
+
+        // Wait for WKWebView KVO to propagate url/isLoading
+        for _ in 0 ..< 60 {
+            if !viewModel.isShowingNewTabPage { break }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+
+        #expect(viewModel.isShowingNewTabPage == false)
+    }
+
+    @Test @MainActor func newTabPageFalseWithoutPage() {
+        let viewModel = WebViewerViewModel()
+        #expect(viewModel.page == nil)
+        #expect(viewModel.isShowingNewTabPage == false)
+    }
+
+    @MainActor
+    private func waitForTabCount(_ expectedCount: Int, in viewModel: WebViewerViewModel) async {
+        for _ in 0 ..< 60 {
+            if viewModel.tabs.count == expectedCount {
+                return
+            }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 }

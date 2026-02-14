@@ -33,6 +33,7 @@ public struct WebViewerView: View {
     @State private var isEditingAddress = false
     @State private var addressSelection: TextSelection?
     @State private var isAddressFocused = false
+    @State private var isTabSwitcherPresented = false
     @State private var toolbarTourManager = TourManager()
     @Namespace private var glassNamespace
 
@@ -62,6 +63,7 @@ public struct WebViewerView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
+        .animation(.easeInOut(duration: 0.25), value: viewModel.isShowingNewTabPage)
         .task {
             await viewModel.prepareSessionIfNeeded()
         }
@@ -71,9 +73,13 @@ public struct WebViewerView: View {
             }
             viewModel.refreshBookmarkState()
         }
+        .onChange(of: viewModel.dismissViewerRequestID) { _, newValue in
+            guard newValue != nil else { return }
+            dismiss()
+        }
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
-            viewModel.overlayState = isEnabled ? .none : .showingToolbars
             if !isEnabled {
+                viewModel.overlayState = .showingToolbars
                 viewModel.ocrViewModel.reset()
                 viewModel.showBoundingBoxes = false
             }
@@ -117,10 +123,58 @@ public struct WebViewerView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .sheet(
+            item: Binding(
+                get: { viewModel.editMenuSelection },
+                set: { viewModel.editMenuSelection = $0 }
+            )
+        ) { selection in
+            NavigationStack {
+                DictionarySearchView()
+                    .environment(searchSheetViewModel)
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                viewModel.editMenuSelection = nil
+                            }
+                        }
+                    }
+            }
+            .onAppear {
+                searchSheetViewModel.performSearch(
+                    selection.text,
+                    contextValues: selection.contextValues
+                )
+            }
+            .presentationDetents([.medium, .large])
+        }
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
         .tourOverlay(manager: toolbarTourManager)
+        .sheet(isPresented: $isTabSwitcherPresented) {
+            TabSwitcherSheet(
+                tabs: viewModel.tabSummaries,
+                selectedTabID: viewModel.selectedTabID,
+                onSelect: { tabID in
+                    viewModel.switchToTab(id: tabID)
+                    isTabSwitcherPresented = false
+                },
+                onClose: { tabID in
+                    viewModel.closeTab(id: tabID)
+                },
+                onMove: { source, destination in
+                    viewModel.moveTabs(from: source, to: destination)
+                },
+                onAddTab: {
+                    viewModel.addTab()
+                    isTabSwitcherPresented = false
+                }
+            )
+        }
         .onAppear {
             if toolbarTourManager.startIfNeeded(WebViewerToolbarTour.self) {
                 viewModel.overlayState = .showingToolbars
@@ -128,17 +182,29 @@ public struct WebViewerView: View {
         }
     }
 
-    private func webContent(for page: WebPage) -> some View {
+    private func webContent(for page: WebBrowserPage) -> some View {
         VStack(spacing: 0) {
             Color.clear
                 .frame(height: 1)
             ZStack {
-                WebView(page)
-                    .webViewOnScrollGeometryChange(for: CGFloat.self) { geometry in
-                        geometry.contentOffset.y
-                    } action: { oldOffset, newOffset in
-                        viewModel.handleScrollOffsetChange(from: oldOffset, to: newOffset)
-                    }
+                let model = viewModel
+                WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
+                    model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                }
+                .id(page.webView)
+                .onAppear {
+                    page.webView.allowsBackForwardNavigationGestures = true
+                }
+
+                if viewModel.isShowingNewTabPage {
+                    NewTabPageView(
+                        bookmarks: viewModel.bookmarks,
+                        onNavigate: { url in
+                            viewModel.navigate(to: url)
+                        }
+                    )
+                    .transition(.opacity)
+                }
 
                 if viewModel.readingModeEnabled {
                     GeometryReader { geometry in
@@ -152,6 +218,9 @@ public struct WebViewerView: View {
                                     if let selection = await viewModel.lookupCluster(at: location, in: size) {
                                         viewModel.highlightedCluster = selection.cluster
                                         try? await Task.sleep(nanoseconds: 100_000_000)
+                                        withAnimation(.easeInOut(duration: 0.25)) {
+                                            viewModel.exitReadingModeAfterLookupSelection()
+                                        }
                                         selectedLookup = selection
                                         viewModel.highlightedCluster = nil
                                     }
@@ -187,6 +256,13 @@ public struct WebViewerView: View {
                     bottomControlsRow
                 }
 
+                // Transparent placeholder that maintains the two-row toolbar height when
+                // reading mode hides the full controls, preventing a safeAreaBar layout
+                // shift that would misalign OCR bounding boxes.
+                if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
+                    readingModeToolbarPlaceholder
+                }
+
                 if shouldShowReadingModeExitButton {
                     readingModeControlsRow
                 } else if shouldShowFloatingReadingModeButton {
@@ -200,21 +276,47 @@ public struct WebViewerView: View {
         .padding(.top, 5)
     }
 
+    private var readingModeToolbarPlaceholder: some View {
+        VStack(spacing: 10) {
+            Color.clear.frame(height: floatingButtonFrameSize)
+            Color.clear.frame(height: floatingButtonFrameSize)
+        }
+        .accessibilityHidden(true)
+    }
+
     private var bottomControlsRow: some View {
+        VStack(spacing: 10) {
+            primaryControlsRow
+            secondaryControlsRow
+        }
+    }
+
+    private var primaryControlsRow: some View {
         HStack(alignment: .bottom) {
             dismissButton
+            Spacer()
+            addressBarCapsule
+            Spacer()
+            readingModeButton
+        }
+    }
 
+    private var secondaryControlsRow: some View {
+        HStack(alignment: .bottom) {
             if canGoBack || canGoForward {
                 navigationCluster
             }
 
             Spacer()
+            tabControlsCluster
+            bookmarkButton
+        }
+    }
 
-            addressCluster
-
-            Spacer()
-
-            readingModeButton
+    private var tabControlsCluster: some View {
+        HStack(spacing: 12) {
+            newTabButton
+            tabsButton
         }
     }
 
@@ -239,13 +341,6 @@ public struct WebViewerView: View {
                 .glassEffectID("navForward", in: glassNamespace)
                 .glassEffectTransition(.matchedGeometry)
             }
-        }
-    }
-
-    private var addressCluster: some View {
-        HStack(spacing: 12) {
-            addressBarCapsule
-            bookmarkButton
         }
     }
 
@@ -329,7 +424,6 @@ public struct WebViewerView: View {
             withAnimation(.easeInOut(duration: 0.25)) {
                 isAddressFocused = false
                 viewModel.readingModeEnabled = true
-                viewModel.overlayState = .none
             }
         } label: {
             Image(systemName: "hand.tap")
@@ -403,7 +497,44 @@ public struct WebViewerView: View {
         .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
     }
 
-    private func loadingProgressOverlay(for page: WebPage) -> some View {
+    private var newTabButton: some View {
+        Button {
+            viewModel.addTab()
+        } label: {
+            Image(systemName: "plus")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .accessibilityLabel("New Tab")
+    }
+
+    private var tabsButton: some View {
+        Button {
+            isTabSwitcherPresented = true
+        } label: {
+            Image(systemName: "square.on.square")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .overlay(alignment: .topTrailing) {
+            Text("\(viewModel.tabs.count)")
+                .font(.caption2.weight(.bold))
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(.thinMaterial, in: Capsule())
+                .offset(x: 8, y: -8)
+        }
+        .accessibilityLabel("Tabs")
+        .accessibilityValue("\(viewModel.tabs.count)")
+    }
+
+    private func loadingProgressOverlay(for page: WebBrowserPage) -> some View {
         Group {
             if page.isLoading {
                 ProgressView(value: page.estimatedProgress)
@@ -429,11 +560,11 @@ public struct WebViewerView: View {
     }
 
     private var canGoBack: Bool {
-        viewModel.page?.backForwardList.backList.isEmpty == false
+        viewModel.page?.canGoBack == true
     }
 
     private var canGoForward: Bool {
-        viewModel.page?.backForwardList.forwardList.isEmpty == false
+        viewModel.page?.canGoForward == true
     }
 
     private var shouldShowFullControls: Bool {
@@ -575,5 +706,80 @@ private struct CollapsedAddressCapsuleView: View {
         .glassEffectID("address", in: namespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
         .accessibilityLabel("Show Controls")
+    }
+}
+
+private struct TabSwitcherSheet: View {
+    let tabs: [WebTabSummary]
+    let selectedTabID: UUID?
+    let onSelect: (UUID) -> Void
+    let onClose: (UUID) -> Void
+    let onMove: (IndexSet, Int) -> Void
+    let onAddTab: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(tabs) { tab in
+                    TabSwitcherRow(
+                        tab: tab,
+                        isSelected: tab.id == selectedTabID,
+                        onSelect: { onSelect(tab.id) },
+                        onClose: { onClose(tab.id) }
+                    )
+                }
+                .onMove(perform: onMove)
+            }
+            .navigationTitle("Tabs")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button("New Tab", action: onAddTab)
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    EditButton()
+                }
+            }
+        }
+    }
+}
+
+private struct TabSwitcherRow: View {
+    let tab: WebTabSummary
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onClose: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: onSelect) {
+                HStack(spacing: 10) {
+                    Image(systemName: tab.isLoading ? "arrow.trianglehead.2.clockwise.rotate.90" : "globe")
+                        .symbolEffect(.rotate, isActive: tab.isLoading)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(tab.title)
+                            .font(.body)
+                            .lineLimit(1)
+                        Text(tab.host)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.tint)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(.plain)
+
+            Button(role: .destructive, action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Close Tab")
+        }
+        .padding(.vertical, 2)
     }
 }

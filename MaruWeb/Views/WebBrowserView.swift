@@ -1,4 +1,4 @@
-// WebSession.swift
+// WebBrowserView.swift
 // MaruReader
 // Copyright (c) 2025  Sam Smoker
 //
@@ -15,33 +15,34 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
+import CoreGraphics
+import SwiftUI
 import WebKit
 
-@MainActor
-final class WebSession {
+struct WebBrowserView: UIViewRepresentable {
     let page: WebBrowserPage
-    let dataStore: WKWebsiteDataStore
+    let onScrollOffsetChange: (@MainActor (CGFloat, CGFloat) -> Void)?
 
-    private init(
+    init(
         page: WebBrowserPage,
-        dataStore: WKWebsiteDataStore
+        onScrollOffsetChange: (@MainActor (CGFloat, CGFloat) -> Void)? = nil
     ) {
         self.page = page
-        self.dataStore = dataStore
+        self.onScrollOffsetChange = onScrollOffsetChange
     }
 
-    static func make(
-        dataStore: WKWebsiteDataStore = WebsiteDataStore.main,
-        extensionController: WKWebExtensionController? = nil
-    ) -> WebSession {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = dataStore
-        configuration.webExtensionController = extensionController
-
-        let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
-        webView.isInspectable = true
-        let page = WebBrowserPage(webView: webView)
-        return WebSession(page: page, dataStore: dataStore)
+    func makeUIView(context _: Context) -> WKWebView {
+        page.setScrollOffsetChangeHandler { oldOffset, newOffset in
+            onScrollOffsetChange?(oldOffset, newOffset)
+        }
+        return page.webView
     }
+
+    func updateUIView(_: WKWebView, context _: Context) {
+        page.setScrollOffsetChangeHandler { oldOffset, newOffset in
+            onScrollOffsetChange?(oldOffset, newOffset)
+        }
+    }
+
+    static func dismantleUIView(_: WKWebView, coordinator _: ()) {}
 }
