@@ -255,6 +255,10 @@ private struct InProgressAudioSourceRow: View {
         return source.isStarted ? "Importing..." : "Queued for import."
     }
 
+    private var canCancel: Bool {
+        !source.isComplete && !source.isFailed && !source.isCancelled && !source.pendingDeletion
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
@@ -267,20 +271,38 @@ private struct InProgressAudioSourceRow: View {
                         .font(.headline)
                         .lineLimit(1)
 
-                    Text(statusMessage)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    HStack(alignment: .center, spacing: 6) {
+                        if source.isStarted {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
+
+                        Text(statusMessage)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                    }
                 }
 
                 Spacer()
 
-                Button("Cancel", action: onCancel)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                if canCancel {
+                    Button("Cancel", action: onCancel)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
             }
         }
         .padding(.vertical, 2)
+        .opacity(source.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if source.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
+        }
+        .disabled(source.pendingDeletion)
     }
 }
 
@@ -330,12 +352,23 @@ private struct FailedAudioSourceRow: View {
 
                 Spacer()
 
-                Button("Remove", action: onRemove)
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                if !source.pendingDeletion {
+                    Button("Remove", action: onRemove)
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
             }
         }
         .padding(.vertical, 2)
+        .opacity(source.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if source.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
+        }
+        .disabled(source.pendingDeletion)
     }
 }
 
@@ -344,59 +377,94 @@ private struct CompletedAudioSourceRow: View {
 
     let source: AudioSource
     let onDelete: () -> Void
-
-    private var statusLine: String? {
-        if let message = source.displayProgressMessage, !message.isEmpty {
-            return message
-        }
-        if source.indexedByHeadword {
-            return "Import complete."
-        }
-        return "Ready."
-    }
+    @State private var showExpandedMetadata = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .firstTextBaseline) {
-                Text(verbatim: source.name ?? "Unknown Source")
-                    .font(.headline)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(verbatim: source.name ?? "Unknown Source")
+                        .font(.headline)
+
+                    Text(typeDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
                 Spacer()
 
-                Toggle(
-                    "Enabled",
-                    isOn: Binding(
-                        get: { source.enabled },
-                        set: { newValue in
-                            source.enabled = newValue
-                            try? viewContext.save()
-                        }
+                HStack(alignment: .center, spacing: 12) {
+                    Toggle(
+                        "Enabled",
+                        isOn: Binding(
+                            get: { source.enabled },
+                            set: { newValue in
+                                source.enabled = newValue
+                                try? viewContext.save()
+                            }
+                        )
                     )
-                )
-                .labelsHidden()
+                    .labelsHidden()
+                    .disabled(source.pendingDeletion)
+
+                    Button(action: { showExpandedMetadata.toggle() }) {
+                        Image(systemName: showExpandedMetadata ? "chevron.up" : "chevron.down")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                }
             }
 
-            Text(typeDescription)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            if showExpandedMetadata {
+                VStack(alignment: .leading, spacing: 4) {
+                    if let pattern = source.urlPattern, !pattern.isEmpty {
+                        LabeledContent("URL Pattern", value: pattern)
+                            .font(.caption)
+                    }
 
-            if let statusLine {
-                Label(statusLine, systemImage: "checkmark.circle.fill")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
+                    if let baseRemoteURL = source.baseRemoteURL, !baseRemoteURL.isEmpty {
+                        LabeledContent("Base URL", value: baseRemoteURL)
+                            .font(.caption)
+                    }
 
-            if let detail = detailLine {
-                Text(detail)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    if let audioExtensions = source.audioFileExtensions, !audioExtensions.isEmpty {
+                        LabeledContent("Audio Extensions", value: audioExtensions)
+                            .font(.caption)
+                    }
+
+                    if let fileURL = source.file, source.isLocal {
+                        LabeledContent("Archive", value: fileURL.lastPathComponent)
+                            .font(.caption)
+                    }
+
+                    if source.version > 0 {
+                        LabeledContent("Version", value: String(source.version))
+                            .font(.caption)
+                    }
+
+                    if source.year > 0 {
+                        LabeledContent("Year", value: String(source.year))
+                            .font(.caption)
+                    }
+                }
+                .padding(.top, 4)
             }
         }
         .padding(.vertical, 2)
-        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-            Button("Delete", role: .destructive, action: onDelete)
+        .opacity(source.pendingDeletion ? 0.5 : 1.0)
+        .overlay(alignment: .trailing) {
+            if source.pendingDeletion {
+                ProgressView()
+                    .scaleEffect(0.8)
+                    .padding(.trailing, 8)
+            }
         }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if !source.pendingDeletion {
+                Button("Delete", role: .destructive, action: onDelete)
+            }
+        }
+        .disabled(source.pendingDeletion)
     }
 
     private var typeDescription: String {
@@ -410,23 +478,6 @@ private struct CompletedAudioSourceRow: View {
             return "URL Pattern (JSON)"
         }
         return "URL Pattern"
-    }
-
-    private var detailLine: String? {
-        if source.indexedByHeadword {
-            if let base = source.baseRemoteURL, !base.isEmpty {
-                return base
-            }
-            if let extensions = source.audioFileExtensions, !extensions.isEmpty {
-                return "Extensions: \(extensions)"
-            }
-            return nil
-        }
-
-        if let pattern = source.urlPattern, !pattern.isEmpty {
-            return pattern
-        }
-        return nil
     }
 }
 
