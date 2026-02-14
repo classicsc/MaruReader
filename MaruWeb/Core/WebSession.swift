@@ -66,7 +66,7 @@ final class WebSession {
             }
         }
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
+        let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
         webView.isInspectable = true
         let page = WebBrowserPage(webView: webView)
         return WebSession(page: page, dataStore: dataStore, extensionController: extensionController)

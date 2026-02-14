@@ -117,6 +117,34 @@ public struct WebViewerView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .sheet(
+            item: Binding(
+                get: { viewModel.editMenuSelection },
+                set: { viewModel.editMenuSelection = $0 }
+            )
+        ) { selection in
+            NavigationStack {
+                DictionarySearchView()
+                    .environment(searchSheetViewModel)
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                viewModel.editMenuSelection = nil
+                            }
+                        }
+                    }
+            }
+            .onAppear {
+                searchSheetViewModel.performSearch(
+                    selection.text,
+                    contextValues: selection.contextValues
+                )
+            }
+            .presentationDetents([.medium, .large])
+        }
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()

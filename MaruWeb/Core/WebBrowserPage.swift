@@ -54,6 +54,10 @@ final class WebBrowserPage {
         scrollOffsetChangeHandler = handler
     }
 
+    func setDictionaryLookupHandler(_ handler: (@MainActor (String) -> Void)?) {
+        (webView as? DictionaryLookupWebView)?.onDictionaryLookup = handler
+    }
+
     func load(_ url: URL) {
         webView.load(URLRequest(url: url))
     }
@@ -176,6 +180,35 @@ final class WebBrowserPage {
                 }
             }
         )
+    }
+}
+
+final class DictionaryLookupWebView: WKWebView {
+    var onDictionaryLookup: (@MainActor (String) -> Void)?
+
+    override func buildMenu(with builder: UIMenuBuilder) {
+        super.buildMenu(with: builder)
+
+        let lookupAction = UIAction(
+            title: "Dictionary",
+            image: UIImage(systemName: "character.book.closed.ja")
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { @MainActor in
+                guard let result = try? await self.evaluateJavaScript("window.getSelection().toString()"),
+                      let selectedText = result as? String,
+                      !selectedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                else { return }
+                self.onDictionaryLookup?(selectedText)
+            }
+        }
+
+        let menu = UIMenu(options: .displayInline, children: [lookupAction])
+        if builder.menu(for: .lookup) != nil {
+            builder.insertSibling(menu, beforeMenu: .lookup)
+        } else {
+            builder.insertChild(menu, atEndOfMenu: .root)
+        }
     }
 }
 

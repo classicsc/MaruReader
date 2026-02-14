@@ -50,6 +50,12 @@ struct WebLookupSelection: Identifiable {
     }
 }
 
+struct WebTextSelection: Identifiable {
+    let id = UUID()
+    let text: String
+    let contextValues: LookupContextValues
+}
+
 // MARK: - WebViewerViewModel
 
 @MainActor
@@ -70,6 +76,7 @@ final class WebViewerViewModel {
     var isBookmarked = false
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
+    var editMenuSelection: WebTextSelection?
 
     private var initialURL: URL?
 
@@ -101,6 +108,9 @@ final class WebViewerViewModel {
         guard !Task.isCancelled else { return }
         self.session = session
         page = session.page
+        page?.setDictionaryLookupHandler { [weak self] selectedText in
+            self?.handleEditMenuLookup(selectedText)
+        }
         loadInitialURLIfNeeded()
         refreshBookmarkState()
     }
@@ -274,21 +284,24 @@ final class WebViewerViewModel {
         }
 
         let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
-        let title = page.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let displayTitle = title.isEmpty ? "Web page" : title
-        let urlString = page.url?.absoluteString ?? "Unknown URL"
-        let contextValues = LookupContextValues(
-            contextInfo: "\(displayTitle) - \(urlString)",
-            documentCoverImageURL: nil,
-            screenshotURL: screenshotURL,
-            sourceType: .web
-        )
+        let contextValues = webContextValues(screenshotURL: screenshotURL)
         return WebLookupSelection(cluster: cluster, contextValues: contextValues)
     }
 
     func exitReadingModeAfterLookupSelection() {
         readingModeEnabled = false
         overlayState = .showingToolbars
+    }
+
+    func handleEditMenuLookup(_ selectedText: String) {
+        Task {
+            let screenshotURL = await captureScreenshotForContext()
+            let contextValues = webContextValues(screenshotURL: screenshotURL)
+            editMenuSelection = WebTextSelection(
+                text: selectedText,
+                contextValues: contextValues
+            )
+        }
     }
 
     func updateAddressBar(from url: URL?) {
@@ -389,5 +402,29 @@ final class WebViewerViewModel {
                 return nil
             }
         }.value
+    }
+
+    private func webContextValues(screenshotURL: URL?) -> LookupContextValues {
+        let title = page?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let displayTitle = title.isEmpty ? "Web page" : title
+        let urlString = page?.url?.absoluteString ?? "Unknown URL"
+        return LookupContextValues(
+            contextInfo: "\(displayTitle) - \(urlString)",
+            documentCoverImageURL: nil,
+            screenshotURL: screenshotURL,
+            sourceType: .web
+        )
+    }
+
+    private func captureScreenshotForContext() async -> URL? {
+        guard let page else { return nil }
+        do {
+            let imageData = try await page.takeSnapshot(region: nil, snapshotWidth: nil)
+            guard let image = UIImage(data: imageData) else { return nil }
+            return await writeJPEGContextImage(from: image, prefix: "web_snapshot")
+        } catch {
+            logger.error("Edit menu screenshot capture failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 }
