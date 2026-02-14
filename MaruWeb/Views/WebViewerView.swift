@@ -230,20 +230,30 @@ public struct WebViewerView: View {
     }
 
     private var bottomControlsRow: some View {
+        VStack(spacing: 10) {
+            primaryControlsRow
+            secondaryControlsRow
+        }
+    }
+
+    private var primaryControlsRow: some View {
         HStack(alignment: .bottom) {
             dismissButton
+            Spacer()
+            addressBarCapsule
+            Spacer()
+            readingModeButton
+        }
+    }
 
+    private var secondaryControlsRow: some View {
+        HStack(alignment: .bottom) {
             if canGoBack || canGoForward {
                 navigationCluster
             }
 
             Spacer()
-
-            addressCluster
-
-            Spacer()
-
-            readingModeButton
+            bookmarkButton
         }
     }
 
@@ -268,13 +278,6 @@ public struct WebViewerView: View {
                 .glassEffectID("navForward", in: glassNamespace)
                 .glassEffectTransition(.matchedGeometry)
             }
-        }
-    }
-
-    private var addressCluster: some View {
-        HStack(spacing: 12) {
-            addressBarCapsule
-            bookmarkButton
         }
     }
 
