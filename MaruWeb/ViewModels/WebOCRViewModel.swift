@@ -66,19 +66,4 @@ final class WebOCRViewModel {
             return []
         }
     }
-
-    func nearestCluster(to normalizedPoint: CGPoint) -> TextCluster? {
-        if let exactMatch = clusters.first(where: { $0.boundingBox.contains(normalizedPoint) }) {
-            return exactMatch
-        }
-
-        return clusters.min(by: { clusterDistanceSquared($0, to: normalizedPoint) < clusterDistanceSquared($1, to: normalizedPoint) })
-    }
-
-    private func clusterDistanceSquared(_ cluster: TextCluster, to point: CGPoint) -> CGFloat {
-        let center = CGPoint(x: cluster.boundingBox.midX, y: cluster.boundingBox.midY)
-        let dx = center.x - point.x
-        let dy = center.y - point.y
-        return dx * dx + dy * dy
-    }
 }

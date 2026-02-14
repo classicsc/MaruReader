@@ -16,6 +16,7 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruVision
 @testable import MaruWeb
 import Testing
 
@@ -132,5 +133,45 @@ struct MaruWebTests {
         viewModel.overlayState = .none
         viewModel.handleScrollOffsetChange(from: 24, to: 0)
         #expect(viewModel.overlayState == .none)
+    }
+
+    @Test @MainActor func scrollInReadingModeInvalidatesOCRCache() {
+        let viewModel = WebViewerViewModel()
+        viewModel.readingModeEnabled = true
+
+        // Simulate cached OCR results (empty observations, but cluster exists)
+        viewModel.ocrViewModel.clusters = [
+            TextCluster(observations: [], direction: .horizontal),
+        ]
+        #expect(!viewModel.ocrViewModel.clusters.isEmpty)
+
+        // Scroll should clear cached results
+        viewModel.handleScrollOffsetChange(from: 0, to: 24)
+        #expect(viewModel.ocrViewModel.clusters.isEmpty)
+    }
+
+    @Test @MainActor func showBoundingBoxesDefaultsToFalse() {
+        let viewModel = WebViewerViewModel()
+        #expect(viewModel.showBoundingBoxes == false)
+    }
+
+    @Test @MainActor func highlightedClusterDefaultsToNil() {
+        let viewModel = WebViewerViewModel()
+        #expect(viewModel.highlightedCluster == nil)
+    }
+
+    @Test @MainActor func ocrCacheResetClearsAllState() {
+        let ocrVM = WebOCRViewModel()
+        ocrVM.clusters = [
+            TextCluster(observations: [], direction: .vertical),
+        ]
+        ocrVM.errorMessage = "test error"
+
+        ocrVM.reset()
+
+        #expect(ocrVM.clusters.isEmpty)
+        #expect(ocrVM.image == nil)
+        #expect(ocrVM.errorMessage == nil)
+        #expect(ocrVM.isProcessing == false)
     }
 }

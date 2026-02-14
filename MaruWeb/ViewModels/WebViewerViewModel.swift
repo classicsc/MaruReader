@@ -63,6 +63,8 @@ final class WebViewerViewModel {
 
     var addressBarText: String = ""
     var readingModeEnabled = false
+    var showBoundingBoxes = false
+    var highlightedCluster: TextCluster?
     var isBookmarked = false
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
@@ -116,7 +118,14 @@ final class WebViewerViewModel {
     /// Scrolling down hides toolbars, scrolling up shows them.
     func handleScrollOffsetChange(from oldOffset: CGFloat, to newOffset: CGFloat) {
         // Don't auto-hide in reading mode (already hidden)
-        guard !readingModeEnabled else { return }
+        guard !readingModeEnabled else {
+            // Invalidate cached OCR results when scrolling in reading mode
+            let delta = newOffset - oldOffset
+            if abs(delta) >= scrollThreshold {
+                ocrViewModel.reset()
+            }
+            return
+        }
 
         let delta = newOffset - oldOffset
         guard abs(delta) >= scrollThreshold else { return }
@@ -240,37 +249,58 @@ final class WebViewerViewModel {
         }
     }
 
+    /// Captures a viewport snapshot and runs OCR, caching the results for subsequent taps.
+    func captureAndRunOCR(viewSize: CGSize) async {
+        guard !ocrViewModel.isProcessing else { return }
+        guard viewSize.width > 0, viewSize.height > 0 else { return }
+        guard let page else { return }
+
+        do {
+            let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
+            _ = await ocrViewModel.performOCR(imageData: imageData)
+        } catch {
+            ocrViewModel.errorMessage = error.localizedDescription
+        }
+    }
+
+    /// Hit-tests cached OCR clusters at the given location.
+    /// If no cached results exist, captures and runs OCR first.
+    /// Returns the matched cluster wrapped in a lookup selection, or nil.
     func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
         guard !ocrViewModel.isProcessing else { return nil }
         guard viewSize.width > 0, viewSize.height > 0 else { return nil }
         guard let page else { return nil }
 
-        do {
-            let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
-            let screenshotURL = await writeJPEGContextImage(imageData, prefix: "web_snapshot")
-            let clusters = await ocrViewModel.performOCR(imageData: imageData)
-            guard !clusters.isEmpty else { return nil }
+        // If no cached results, capture and run OCR first
+        if ocrViewModel.clusters.isEmpty {
+            await captureAndRunOCR(viewSize: viewSize)
+            guard !ocrViewModel.clusters.isEmpty else { return nil }
+        }
 
-            let normalized = CGPoint(
-                x: location.x / viewSize.width,
-                y: 1 - (location.y / viewSize.height)
-            )
-            guard let cluster = ocrViewModel.nearestCluster(to: normalized) else { return nil }
+        let normalized = CGPoint(
+            x: location.x / viewSize.width,
+            y: 1 - (location.y / viewSize.height)
+        )
 
-            let title = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
-            let displayTitle = title.isEmpty ? "Web page" : title
-            let urlString = page.url?.absoluteString ?? "Unknown URL"
-            let contextValues = LookupContextValues(
-                contextInfo: "\(displayTitle) - \(urlString)",
-                documentCoverImageURL: nil,
-                screenshotURL: screenshotURL,
-                sourceType: .web
-            )
-            return WebLookupSelection(cluster: cluster, contextValues: contextValues)
-        } catch {
-            ocrViewModel.errorMessage = error.localizedDescription
+        // Hit-test: require exact bounding box match (no nearest-cluster fallback)
+        guard let cluster = ocrViewModel.clusters.first(where: { $0.boundingBox.contains(normalized) }) else {
+            // Tap missed all clusters — re-OCR in case viewport changed
+            ocrViewModel.reset()
+            await captureAndRunOCR(viewSize: viewSize)
             return nil
         }
+
+        let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
+        let title = page.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let displayTitle = title.isEmpty ? "Web page" : title
+        let urlString = page.url?.absoluteString ?? "Unknown URL"
+        let contextValues = LookupContextValues(
+            contextInfo: "\(displayTitle) - \(urlString)",
+            documentCoverImageURL: nil,
+            screenshotURL: screenshotURL,
+            sourceType: .web
+        )
+        return WebLookupSelection(cluster: cluster, contextValues: contextValues)
     }
 
     func updateAddressBar(from url: URL?) {
@@ -372,9 +402,10 @@ final class WebViewerViewModel {
         return nil
     }
 
-    private func writeJPEGContextImage(_ data: Data, prefix: String) async -> URL? {
-        await Task.detached {
-            guard let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9) else {
+    private func writeJPEGContextImage(from image: UIImage?, prefix: String) async -> URL? {
+        guard let image else { return nil }
+        return await Task.detached {
+            guard let jpegData = image.jpegData(compressionQuality: 0.9) else {
                 return nil
             }
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("MaruContextMedia", isDirectory: true)

@@ -73,6 +73,10 @@ public struct WebViewerView: View {
         }
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
             viewModel.overlayState = isEnabled ? .none : .showingToolbars
+            if !isEnabled {
+                viewModel.ocrViewModel.reset()
+                viewModel.showBoundingBoxes = false
+            }
         }
         .onChange(of: isAddressFocused) { _, newValue in
             if isEditingAddress != newValue {
@@ -137,17 +141,27 @@ public struct WebViewerView: View {
                     }
 
                 if viewModel.readingModeEnabled {
-                    WebReadingModeOverlay(
-                        isProcessing: viewModel.ocrViewModel.isProcessing,
-                        onTap: { location, size in
-                            Task {
-                                if let selection = await viewModel.lookupCluster(at: location, in: size) {
-                                    viewModel.readingModeEnabled = false
-                                    selectedLookup = selection
+                    GeometryReader { geometry in
+                        WebReadingModeOverlay(
+                            clusters: viewModel.ocrViewModel.clusters,
+                            showBoundingBoxes: viewModel.showBoundingBoxes,
+                            highlightedCluster: viewModel.highlightedCluster,
+                            isProcessing: viewModel.ocrViewModel.isProcessing,
+                            onTap: { location, size in
+                                Task {
+                                    if let selection = await viewModel.lookupCluster(at: location, in: size) {
+                                        viewModel.highlightedCluster = selection.cluster
+                                        try? await Task.sleep(nanoseconds: 100_000_000)
+                                        selectedLookup = selection
+                                        viewModel.highlightedCluster = nil
+                                    }
                                 }
                             }
+                        )
+                        .task {
+                            await viewModel.captureAndRunOCR(viewSize: geometry.size)
                         }
-                    )
+                    }
                 }
             }
             Color.clear
@@ -174,8 +188,7 @@ public struct WebViewerView: View {
                 }
 
                 if shouldShowReadingModeExitButton {
-                    readingModeExitButton
-                        .frame(maxWidth: .infinity, alignment: .trailing)
+                    readingModeControlsRow
                 } else if shouldShowFloatingReadingModeButton {
                     readingModeButton
                         .frame(maxWidth: .infinity, alignment: .trailing)
@@ -349,6 +362,30 @@ public struct WebViewerView: View {
         .glassEffectID("readingMode", in: glassNamespace)
         .glassEffectTransition(GlassEffectTransition.matchedGeometry)
         .accessibilityLabel("Exit OCR Mode")
+    }
+
+    private var readingModeControlsRow: some View {
+        HStack(spacing: 12) {
+            Spacer()
+            boundingBoxToggleButton
+            readingModeExitButton
+        }
+    }
+
+    private var boundingBoxToggleButton: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                viewModel.showBoundingBoxes.toggle()
+            }
+        } label: {
+            Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
     }
 
     private var dismissButton: some View {

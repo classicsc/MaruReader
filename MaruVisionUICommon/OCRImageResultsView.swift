@@ -32,6 +32,8 @@ public struct OCRImageResultsView: View {
     /// Whether to show individual observation boxes (for debugging)
     var showObservationBoxes: Bool = false
 
+    @State private var showBoundingBoxes: Bool = false
+    @State private var highlightedCluster: TextCluster?
     @State private var selectedCluster: TextCluster?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
 
@@ -80,8 +82,14 @@ public struct OCRImageResultsView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height)
 
                     // Bounding box overlay
-                    if !isProcessing, !clusters.isEmpty {
-                        boundingBoxOverlay(imageRect: imageRect)
+                    if !isProcessing, !clusters.isEmpty,
+                       showBoundingBoxes || highlightedCluster != nil
+                    {
+                        boundingBoxOverlay(
+                            imageRect: imageRect,
+                            highlightedClusterID: highlightedCluster?.id,
+                            showAllBoxes: showBoundingBoxes
+                        )
                     }
                 }
                 .scaleEffect(scale)
@@ -151,6 +159,18 @@ public struct OCRImageResultsView: View {
             }
             .presentationDetents([.medium, .large])
         }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showBoundingBoxes.toggle()
+                    }
+                } label: {
+                    Image(systemName: showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+                }
+                .accessibilityLabel(showBoundingBoxes ? "Hide text regions" : "Show text regions")
+            }
+        }
     }
 
     /// Calculate the actual rect where the image is displayed within the container
@@ -203,17 +223,43 @@ public struct OCRImageResultsView: View {
 
     // MARK: - Bounding Box Overlay
 
-    /// Creates a Canvas overlay that draws all bounding boxes
-    private func boundingBoxOverlay(imageRect: CGRect) -> some View {
+    /// Creates a Canvas overlay that draws bounding boxes with highlight support
+    private func boundingBoxOverlay(
+        imageRect: CGRect,
+        highlightedClusterID: UUID?,
+        showAllBoxes: Bool
+    ) -> some View {
         Canvas { context, _ in
-            // Draw cluster boxes (primary hit targets)
             for cluster in clusters {
+                let isHighlighted = cluster.id == highlightedClusterID
+
+                if !showAllBoxes, !isHighlighted {
+                    continue
+                }
+
                 let clusterRect = calculateClusterRect(cluster: cluster, in: imageRect)
                 let path = Path(clusterRect)
 
-                // Use different colors for different directions
-                let color: Color = cluster.direction == .vertical ? .blue : .green
-                context.stroke(path, with: .color(color), lineWidth: 2)
+                let strokeColor: Color
+                let fillColor: Color?
+
+                if isHighlighted {
+                    strokeColor = .yellow
+                    fillColor = .yellow.opacity(0.3)
+                } else {
+                    strokeColor = cluster.direction == .vertical ? .blue : .green
+                    fillColor = nil
+                }
+
+                if let fillColor {
+                    context.fill(path, with: .color(fillColor))
+                }
+
+                context.stroke(
+                    path,
+                    with: .color(strokeColor.opacity(0.8)),
+                    lineWidth: isHighlighted ? 3 : 2
+                )
             }
 
             // Optionally draw individual observation boxes (debug mode)
@@ -321,7 +367,12 @@ public struct OCRImageResultsView: View {
 
         if let match = bestMatch {
             logger.debug("Tapped cluster with \(match.observations.count) observations: \(match.transcript.prefix(50))...")
-            selectedCluster = match
+            Task {
+                highlightedCluster = match
+                try? await Task.sleep(nanoseconds: 100_000_000)
+                selectedCluster = match
+                highlightedCluster = nil
+            }
         }
     }
 }

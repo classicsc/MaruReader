@@ -15,9 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import MaruVision
 import SwiftUI
 
 struct WebReadingModeOverlay: View {
+    let clusters: [TextCluster]
+    let showBoundingBoxes: Bool
+    let highlightedCluster: TextCluster?
     let isProcessing: Bool
     let onTap: (CGPoint, CGSize) -> Void
 
@@ -28,6 +32,12 @@ struct WebReadingModeOverlay: View {
                     .contentShape(Rectangle())
                     .gesture(tapGesture(in: geometry.size))
 
+                if !isProcessing, !clusters.isEmpty,
+                   showBoundingBoxes || highlightedCluster != nil
+                {
+                    boundingBoxOverlay(in: geometry.size)
+                }
+
                 if isProcessing {
                     ProgressView("Scanning...")
                         .padding(12)
@@ -36,6 +46,53 @@ struct WebReadingModeOverlay: View {
                 }
             }
         }
+    }
+
+    /// Canvas overlay that draws bounding boxes over the viewport.
+    /// Normalized OCR coords map directly to view coords (flip Y only).
+    private func boundingBoxOverlay(in viewSize: CGSize) -> some View {
+        Canvas { context, _ in
+            let highlightedID = highlightedCluster?.id
+
+            for cluster in clusters {
+                let isHighlighted = cluster.id == highlightedID
+
+                if !showBoundingBoxes, !isHighlighted {
+                    continue
+                }
+
+                let bbox = cluster.boundingBox
+                let clusterRect = CGRect(
+                    x: bbox.minX * viewSize.width,
+                    y: (1 - bbox.maxY) * viewSize.height,
+                    width: bbox.width * viewSize.width,
+                    height: bbox.height * viewSize.height
+                )
+                let path = Path(clusterRect)
+
+                let strokeColor: Color
+                let fillColor: Color?
+
+                if isHighlighted {
+                    strokeColor = .yellow
+                    fillColor = .yellow.opacity(0.3)
+                } else {
+                    strokeColor = cluster.direction == .vertical ? .blue : .green
+                    fillColor = nil
+                }
+
+                if let fillColor {
+                    context.fill(path, with: .color(fillColor))
+                }
+
+                context.stroke(
+                    path,
+                    with: .color(strokeColor.opacity(0.8)),
+                    lineWidth: isHighlighted ? 3 : 2
+                )
+            }
+        }
+        .allowsHitTesting(false)
     }
 
     private func tapGesture(in size: CGSize) -> some Gesture {
