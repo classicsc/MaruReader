@@ -78,8 +78,8 @@ public struct WebViewerView: View {
             dismiss()
         }
         .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
-            viewModel.overlayState = isEnabled ? .none : .showingToolbars
             if !isEnabled {
+                viewModel.overlayState = .showingToolbars
                 viewModel.ocrViewModel.reset()
                 viewModel.showBoundingBoxes = false
             }
@@ -256,6 +256,13 @@ public struct WebViewerView: View {
                     bottomControlsRow
                 }
 
+                // Transparent placeholder that maintains the two-row toolbar height when
+                // reading mode hides the full controls, preventing a safeAreaBar layout
+                // shift that would misalign OCR bounding boxes.
+                if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
+                    readingModeToolbarPlaceholder
+                }
+
                 if shouldShowReadingModeExitButton {
                     readingModeControlsRow
                 } else if shouldShowFloatingReadingModeButton {
@@ -267,6 +274,14 @@ public struct WebViewerView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 16)
         .padding(.top, 5)
+    }
+
+    private var readingModeToolbarPlaceholder: some View {
+        VStack(spacing: 10) {
+            Color.clear.frame(height: floatingButtonFrameSize)
+            Color.clear.frame(height: floatingButtonFrameSize)
+        }
+        .accessibilityHidden(true)
     }
 
     private var bottomControlsRow: some View {
@@ -409,7 +424,6 @@ public struct WebViewerView: View {
             withAnimation(.easeInOut(duration: 0.25)) {
                 isAddressFocused = false
                 viewModel.readingModeEnabled = true
-                viewModel.overlayState = .none
             }
         } label: {
             Image(systemName: "hand.tap")

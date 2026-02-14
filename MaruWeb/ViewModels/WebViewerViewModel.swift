@@ -164,7 +164,7 @@ final class WebViewerViewModel {
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
     /// Scrolling down hides toolbars, scrolling up shows them.
     func handleScrollOffsetChange(from oldOffset: CGFloat, to newOffset: CGFloat) {
-        // Don't auto-hide in reading mode (already hidden)
+        // Don't auto-hide in reading mode (toolbars keep their layout reservation)
         guard !readingModeEnabled else {
             // Invalidate cached OCR results when scrolling in reading mode
             let delta = newOffset - oldOffset
