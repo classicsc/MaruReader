@@ -20,6 +20,7 @@ import Foundation
 import MaruVision
 @testable import MaruWeb
 import Testing
+import WebKit
 
 struct MaruWebTests {
     @Test func normalizedURLAddsScheme() {
@@ -109,6 +110,37 @@ struct MaruWebTests {
         let firstSession = await store.makeSession(enableContentBlocking: false)
         let secondSession = await store.makeSession(enableContentBlocking: false)
         #expect(firstSession !== secondSession)
+    }
+
+    @Test @MainActor func extensionManagerReturnsSameController() async {
+        let manager = WebExtensionManager()
+        let first = await manager.extensionController()
+        let second = await manager.extensionController()
+        #expect(first === second)
+    }
+
+    @Test @MainActor func extensionManagerCoalescesConcurrentCalls() async {
+        let manager = WebExtensionManager()
+        async let a = manager.extensionController()
+        async let b = manager.extensionController()
+        let (first, second) = await (a, b)
+        #expect(first === second)
+    }
+
+    @Test @MainActor func sessionsShareExtensionController() async {
+        let store = WebSessionStore()
+        let first = await store.makeSession(enableContentBlocking: true)
+        let second = await store.makeSession(enableContentBlocking: true)
+        let firstController = first.page.webView.configuration.webExtensionController
+        let secondController = second.page.webView.configuration.webExtensionController
+        #expect(firstController != nil)
+        #expect(firstController === secondController)
+    }
+
+    @Test @MainActor func sessionHasNoControllerWhenBlockingDisabled() async {
+        let store = WebSessionStore()
+        let session = await store.makeSession(enableContentBlocking: false)
+        #expect(session.page.webView.configuration.webExtensionController == nil)
     }
 
     @Test @MainActor func webViewerPreparesSingleInitialTab() async {

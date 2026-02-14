@@ -21,6 +21,7 @@ import Foundation
 final class WebSessionStore {
     static let shared = WebSessionStore()
 
+    private let extensionManager = WebExtensionManager()
     private var prewarmTask: Task<WebSession, Never>?
     private var prewarmContentBlockingEnabled: Bool?
 
@@ -34,7 +35,12 @@ final class WebSessionStore {
         }
         guard prewarmTask == nil else { return }
         prewarmContentBlockingEnabled = enableContentBlocking
-        prewarmTask = Task { await WebSession.make(enableContentBlocking: enableContentBlocking) }
+        prewarmTask = Task {
+            let controller = enableContentBlocking
+                ? await extensionManager.extensionController()
+                : nil
+            return WebSession.make(extensionController: controller)
+        }
     }
 
     func makeSession(enableContentBlocking: Bool) async -> WebSession {
@@ -50,6 +56,10 @@ final class WebSessionStore {
         prewarmTask?.cancel()
         prewarmTask = nil
         prewarmContentBlockingEnabled = nil
-        return await WebSession.make(enableContentBlocking: enableContentBlocking)
+
+        let controller = enableContentBlocking
+            ? await extensionManager.extensionController()
+            : nil
+        return WebSession.make(extensionController: controller)
     }
 }
