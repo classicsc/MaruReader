@@ -33,7 +33,7 @@ struct WebAddressBar: View {
             Image(systemName: "globe")
                 .foregroundStyle(.secondary)
 
-            TextField("Enter URL", text: $text, selection: $selection)
+            TextField("Search or enter URL", text: $text, selection: $selection)
                 .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

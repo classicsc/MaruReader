@@ -18,7 +18,9 @@
 import Foundation
 
 enum WebAddressParser {
-    static func normalizedURL(from rawValue: String) -> URL? {
+    /// Resolves user input into a URL. If the input looks like a URL, normalizes it.
+    /// Otherwise, constructs a search query URL using the given engine.
+    static func resolvedURL(from rawValue: String, engine: SearchEngine = WebSearchEngineSettings.searchEngine) -> URL? {
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return nil
@@ -28,10 +30,16 @@ enum WebAddressParser {
             return url
         }
 
-        if trimmed.contains(" ") {
-            return nil
+        if looksLikeDomain(trimmed) {
+            return URL(string: "https://\(trimmed)")
         }
 
-        return URL(string: "https://\(trimmed)")
+        return engine.searchURL(for: trimmed)
+    }
+
+    /// Returns true when the input looks like a domain or URL without a scheme,
+    /// rather than a search query.
+    private static func looksLikeDomain(_ input: String) -> Bool {
+        !input.contains(" ") && input.contains(".")
     }
 }

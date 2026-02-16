@@ -23,19 +23,223 @@ import Testing
 import WebKit
 
 struct MaruWebTests {
-    @Test func normalizedURLAddsScheme() {
-        let url = WebAddressParser.normalizedURL(from: "bookwalker.jp")
+    // MARK: - Address parser: URL resolution
+
+    @Test func resolvedURLAddsScheme() {
+        let url = WebAddressParser.resolvedURL(from: "bookwalker.jp")
         #expect(url?.absoluteString == "https://bookwalker.jp")
     }
 
-    @Test func normalizedURLPreservesScheme() {
-        let url = WebAddressParser.normalizedURL(from: "https://example.com/path")
+    @Test func resolvedURLPreservesScheme() {
+        let url = WebAddressParser.resolvedURL(from: "https://example.com/path")
         #expect(url?.absoluteString == "https://example.com/path")
     }
 
-    @Test func normalizedURLRejectsWhitespace() {
-        let url = WebAddressParser.normalizedURL(from: "not a url")
-        #expect(url == nil)
+    @Test func resolvedURLSearchesPlainText() {
+        let url = WebAddressParser.resolvedURL(from: "not a url", engine: .google)
+        #expect(url?.host == "www.google.co.jp")
+        #expect(url?.absoluteString.contains("q=not%20a%20url") == true)
+    }
+
+    @Test func resolvedURLSearchesJapaneseText() {
+        let url = WebAddressParser.resolvedURL(from: "日本語", engine: .google)
+        #expect(url != nil)
+        #expect(url?.host == "www.google.co.jp")
+    }
+
+    @Test func resolvedURLReturnsNilForEmpty() {
+        #expect(WebAddressParser.resolvedURL(from: "") == nil)
+        #expect(WebAddressParser.resolvedURL(from: "   ") == nil)
+    }
+
+    @Test func resolvedURLPreservesHTTPScheme() {
+        let url = WebAddressParser.resolvedURL(from: "http://insecure.example.com")
+        #expect(url?.scheme == "http")
+        #expect(url?.host == "insecure.example.com")
+    }
+
+    @Test func resolvedURLHandlesDomainWithPath() {
+        let url = WebAddressParser.resolvedURL(from: "example.com/page")
+        #expect(url?.absoluteString == "https://example.com/page")
+    }
+
+    @Test func resolvedURLUsesBingEngine() {
+        let url = WebAddressParser.resolvedURL(from: "search query", engine: .bing)
+        #expect(url?.host == "www.bing.com")
+        #expect(url?.absoluteString.contains("q=search%20query") == true)
+    }
+
+    @Test func resolvedURLUsesCustomEngine() {
+        let engine = SearchEngine.custom(
+            searchURL: "https://search.example.com/?q=%s",
+            suggestionsURL: nil
+        )
+        let url = WebAddressParser.resolvedURL(from: "test query", engine: engine)
+        #expect(url?.host == "search.example.com")
+        #expect(url?.absoluteString.contains("q=test%20query") == true)
+    }
+
+    @Test func resolvedURLHandlesSpecialCharacters() {
+        let url = WebAddressParser.resolvedURL(from: "c++ tutorial", engine: .google)
+        #expect(url != nil)
+        #expect(url?.host == "www.google.co.jp")
+    }
+
+    @Test func resolvedURLTreatsNoDotTextAsSearch() {
+        let url = WebAddressParser.resolvedURL(from: "localhost", engine: .google)
+        // No dot → treated as search
+        #expect(url?.host == "www.google.co.jp")
+    }
+
+    // MARK: - Search engine model
+
+    @Test func searchEngineGoogleSearchURL() {
+        let url = SearchEngine.google.searchURL(for: "test")
+        #expect(url?.absoluteString == "https://www.google.co.jp/search?q=test")
+    }
+
+    @Test func searchEngineBingSearchURL() {
+        let url = SearchEngine.bing.searchURL(for: "test")
+        #expect(url?.absoluteString == "https://www.bing.com/search?q=test")
+    }
+
+    @Test func searchEngineGoogleSuggestionsURL() {
+        let url = SearchEngine.google.suggestionsURL(for: "hello")
+        #expect(url?.absoluteString.contains("suggestqueries.google.com") == true)
+        #expect(url?.absoluteString.contains("q=hello") == true)
+    }
+
+    @Test func searchEngineBingSuggestionsURL() {
+        let url = SearchEngine.bing.suggestionsURL(for: "hello")
+        #expect(url?.absoluteString.contains("api.bing.com") == true)
+        #expect(url?.absoluteString.contains("query=hello") == true)
+    }
+
+    @Test func searchEngineCustomNoSuggestions() {
+        let engine = SearchEngine.custom(searchURL: "https://s.example.com/?q=%s", suggestionsURL: nil)
+        #expect(engine.suggestionsURL(for: "test") == nil)
+    }
+
+    @Test func searchEngineCustomWithSuggestions() {
+        let engine = SearchEngine.custom(
+            searchURL: "https://s.example.com/?q=%s",
+            suggestionsURL: "https://s.example.com/suggest?q=%s"
+        )
+        let url = engine.suggestionsURL(for: "test")
+        #expect(url?.absoluteString == "https://s.example.com/suggest?q=test")
+    }
+
+    @Test func searchEngineKindRoundTrips() {
+        #expect(SearchEngine.google.kind == .google)
+        #expect(SearchEngine.bing.kind == .bing)
+        #expect(SearchEngine.custom(searchURL: "", suggestionsURL: nil).kind == .custom)
+    }
+
+    // MARK: - Search engine settings persistence
+
+    @Test func searchEngineSettingsDefaultsToGoogle() {
+        let defaults = UserDefaults.standard
+        let key = WebSearchEngineSettings.searchEngineKey
+        let previous = defaults.data(forKey: key)
+        defer {
+            if let previous { defaults.set(previous, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+
+        defaults.removeObject(forKey: key)
+        #expect(WebSearchEngineSettings.searchEngine == .google)
+    }
+
+    @Test func searchEngineSettingsPersistsChanges() {
+        let defaults = UserDefaults.standard
+        let key = WebSearchEngineSettings.searchEngineKey
+        let previous = defaults.data(forKey: key)
+        defer {
+            if let previous { defaults.set(previous, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+
+        WebSearchEngineSettings.searchEngine = .bing
+        #expect(WebSearchEngineSettings.searchEngine == .bing)
+
+        WebSearchEngineSettings.searchEngine = .custom(
+            searchURL: "https://example.com/?q=%s",
+            suggestionsURL: "https://example.com/suggest?q=%s"
+        )
+        let engine = WebSearchEngineSettings.searchEngine
+        if case let .custom(searchURL, suggestionsURL) = engine {
+            #expect(searchURL == "https://example.com/?q=%s")
+            #expect(suggestionsURL == "https://example.com/suggest?q=%s")
+        } else {
+            Issue.record("Expected custom engine")
+        }
+    }
+
+    @Test func searchSuggestionsSettingsDefaultsToEnabled() {
+        let defaults = UserDefaults.standard
+        let key = WebSearchEngineSettings.searchSuggestionsEnabledKey
+        let previous = defaults.object(forKey: key)
+        defer {
+            if let previous { defaults.set(previous, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+
+        defaults.removeObject(forKey: key)
+        #expect(WebSearchEngineSettings.searchSuggestionsEnabled == true)
+    }
+
+    @Test func searchSuggestionsSettingsPersists() {
+        let defaults = UserDefaults.standard
+        let key = WebSearchEngineSettings.searchSuggestionsEnabledKey
+        let previous = defaults.object(forKey: key)
+        defer {
+            if let previous { defaults.set(previous, forKey: key) }
+            else { defaults.removeObject(forKey: key) }
+        }
+
+        WebSearchEngineSettings.searchSuggestionsEnabled = false
+        #expect(WebSearchEngineSettings.searchSuggestionsEnabled == false)
+        WebSearchEngineSettings.searchSuggestionsEnabled = true
+        #expect(WebSearchEngineSettings.searchSuggestionsEnabled == true)
+    }
+
+    // MARK: - Suggestion provider parsing
+
+    @Test func suggestionProviderParsesGoogleFormat() {
+        let json = """
+        ["test",["test flight","testing","test cricket"]]
+        """
+        let data = Data(json.utf8)
+        let provider = WebSearchSuggestionProvider()
+        let results = provider.parseSuggestions(from: data)
+        #expect(results == ["test flight", "testing", "test cricket"])
+    }
+
+    @Test func suggestionProviderHandlesEmptySuggestions() {
+        let json = """
+        ["query",[]]
+        """
+        let data = Data(json.utf8)
+        let provider = WebSearchSuggestionProvider()
+        let results = provider.parseSuggestions(from: data)
+        #expect(results.isEmpty)
+    }
+
+    @Test func suggestionProviderHandlesMalformedJSON() {
+        let data = Data("not json".utf8)
+        let provider = WebSearchSuggestionProvider()
+        let results = provider.parseSuggestions(from: data)
+        #expect(results.isEmpty)
+    }
+
+    @Test func suggestionProviderHandlesWrongStructure() {
+        let json = """
+        {"results": ["a", "b"]}
+        """
+        let data = Data(json.utf8)
+        let provider = WebSearchSuggestionProvider()
+        let results = provider.parseSuggestions(from: data)
+        #expect(results.isEmpty)
     }
 
     @Test func addBookmarkPersistsEntry() async throws {
@@ -317,7 +521,7 @@ struct MaruWebTests {
         #expect(viewModel.isShowingNewTabPage == true)
     }
 
-    @Test @MainActor func newTabPageHiddenWhenPageHasURL() async throws {
+    @Test @MainActor func newTabPageHiddenWhenPageHasURL() async {
         let viewModel = WebViewerViewModel(
             initialURL: URL(string: "https://example.com")
         )

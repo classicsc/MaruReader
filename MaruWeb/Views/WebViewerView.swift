@@ -30,7 +30,9 @@ public struct WebViewerView: View {
     @State private var viewModel: WebViewerViewModel
     @State private var selectedLookup: WebLookupSelection?
     @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
+    @State private var suggestionViewModel = WebSearchSuggestionViewModel()
     @State private var isEditingAddress = false
+    @State private var addressSnapshot = ""
     @State private var addressSelection: TextSelection?
     @State private var isAddressFocused = false
     @State private var isTabSwitcherPresented = false
@@ -64,6 +66,7 @@ public struct WebViewerView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
         .animation(.easeInOut(duration: 0.25), value: viewModel.isShowingNewTabPage)
+        .animation(.easeInOut(duration: 0.25), value: isEditingAddress)
         .task {
             await viewModel.prepareSessionIfNeeded()
         }
@@ -98,6 +101,14 @@ public struct WebViewerView: View {
                 Task { @MainActor in
                     addressSelection = TextSelection(range: viewModel.addressBarText.startIndex ..< viewModel.addressBarText.endIndex)
                 }
+            }
+            if !newValue {
+                suggestionViewModel.cancel()
+            }
+        }
+        .onChange(of: viewModel.addressBarText) { _, newValue in
+            if isEditingAddress, newValue != addressSnapshot {
+                suggestionViewModel.updateQuery(newValue)
             }
         }
         .sheet(item: $selectedLookup) { selection in
@@ -196,7 +207,7 @@ public struct WebViewerView: View {
                     page.webView.allowsBackForwardNavigationGestures = true
                 }
 
-                if viewModel.isShowingNewTabPage {
+                if viewModel.isShowingNewTabPage, !isEditingAddress {
                     NewTabPageView(
                         bookmarks: viewModel.bookmarks,
                         onNavigate: { url in
@@ -204,6 +215,11 @@ public struct WebViewerView: View {
                         }
                     )
                     .transition(.opacity)
+                }
+
+                if isEditingAddress {
+                    addressEditingOverlay
+                        .transition(.opacity)
                 }
 
                 if viewModel.readingModeEnabled {
@@ -599,13 +615,43 @@ public struct WebViewerView: View {
         withAnimation(.easeInOut(duration: 0.25)) {
             viewModel.overlayState = .showingToolbars
         }
+        addressSnapshot = viewModel.addressBarText
         isEditingAddress = true
         isAddressFocused = true
     }
 
     private func submitAddress() {
+        suggestionViewModel.cancel()
         viewModel.navigate(to: viewModel.addressBarText)
         isAddressFocused = false
+    }
+
+    private func selectSuggestion(_ suggestion: String) {
+        viewModel.addressBarText = suggestion
+        submitAddress()
+    }
+
+    private var isAddressTextDirty: Bool {
+        viewModel.addressBarText != addressSnapshot
+    }
+
+    @ViewBuilder
+    private var addressEditingOverlay: some View {
+        if isAddressTextDirty {
+            WebSearchSuggestionsView(
+                suggestions: suggestionViewModel.suggestions,
+                isLoading: suggestionViewModel.isLoading,
+                onSelect: selectSuggestion
+            )
+        } else {
+            NewTabPageView(
+                bookmarks: viewModel.bookmarks,
+                onNavigate: { url in
+                    viewModel.navigate(to: url)
+                    isAddressFocused = false
+                }
+            )
+        }
     }
 }
 
@@ -642,7 +688,7 @@ private struct AddressBarCapsuleView: View {
                         .onTapGesture(perform: onBeginEditing)
                 }
 
-                TextField("Enter URL", text: $addressText, selection: $addressSelection)
+                TextField("Search or enter URL", text: $addressText, selection: $addressSelection)
                     .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

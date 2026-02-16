@@ -91,7 +91,7 @@ public struct WebBookmarksView: View {
     }
 
     private func openAddress() {
-        guard let url = WebAddressParser.normalizedURL(from: addressText) else { return }
+        guard let url = WebAddressParser.resolvedURL(from: addressText) else { return }
         navigationTarget = url
     }
 

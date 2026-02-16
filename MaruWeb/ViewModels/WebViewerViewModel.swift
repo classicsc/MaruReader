@@ -256,7 +256,7 @@ final class WebViewerViewModel {
     }
 
     func navigate(to rawValue: String) {
-        guard let url = WebAddressParser.normalizedURL(from: rawValue) else { return }
+        guard let url = WebAddressParser.resolvedURL(from: rawValue) else { return }
         navigate(to: url)
     }
 
