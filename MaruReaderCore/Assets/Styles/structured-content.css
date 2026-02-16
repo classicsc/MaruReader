@@ -1427,6 +1427,10 @@ body:not([data-links-active="true"]) .gloss-link {
     box-shadow: var(--glass-shadow);
 }
 
+.anki-button[hidden] {
+    display: none
+}
+
 .anki-button:hover {
     background: var(--glass-bg-light-hover);
     transform: scale(1.05);

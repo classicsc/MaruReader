@@ -42,7 +42,6 @@ window.MaruReader.ankiDisplay = {
                 return;
             }
 
-            // Allow re-adding even if exists (per user preference)
             var audioURL = self.getPrimaryAudioURL(button, termKey);
             self.addNote(termKey, expression, reading, audioURL);
         }, true);
