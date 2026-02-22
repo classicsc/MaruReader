@@ -24,7 +24,6 @@ import WebKit
 public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
-    @ScaledMetric(relativeTo: .body) private var addressAccessorySize: CGFloat = 28
     @ScaledMetric(relativeTo: .body) private var collapsedAddressMaxWidth: CGFloat = 180
 
     @State private var viewModel: WebViewerViewModel
@@ -269,7 +268,7 @@ public struct WebViewerView: View {
                     bottomControlsRow
                 }
 
-                // Transparent placeholder that maintains the two-row toolbar height when
+                // Transparent placeholder that maintains the single-row toolbar height when
                 // reading mode hides the full controls, preventing a safeAreaBar layout
                 // shift that would misalign OCR bounding boxes.
                 if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
@@ -290,59 +289,38 @@ public struct WebViewerView: View {
     }
 
     private var readingModeToolbarPlaceholder: some View {
-        VStack(spacing: 10) {
-            Color.clear.frame(height: floatingButtonFrameSize)
-            Color.clear.frame(height: floatingButtonFrameSize)
-        }
-        .accessibilityHidden(true)
+        Color.clear.frame(height: floatingButtonFrameSize)
+            .accessibilityHidden(true)
     }
 
     private var bottomControlsRow: some View {
-        VStack(spacing: 10) {
-            primaryControlsRow
-            secondaryControlsRow
-        }
-    }
-
-    private var primaryControlsRow: some View {
-        HStack(alignment: .bottom) {
-            dismissButton
-            Spacer()
-            addressBarCapsule
-            Spacer()
-            readingModeButton
-        }
-    }
-
-    private var secondaryControlsRow: some View {
-        HStack(alignment: .bottom) {
+        HStack(alignment: .bottom, spacing: 12) {
             if canGoBack || canGoForward {
                 navigationCluster
             }
 
-            Spacer()
-            tabControlsCluster
-            bookmarkButton
-        }
-    }
+            addressBarCapsule
+                .frame(maxWidth: .infinity)
 
-    private var tabControlsCluster: some View {
-        HStack(spacing: 12) {
-            newTabButton
             tabsButton
+            readingModeButton
+            overflowMenuButton
         }
     }
 
     private var navigationCluster: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 0) {
             if canGoBack {
                 navigationButton(
                     systemName: "chevron.backward",
                     accessibilityLabel: "Back",
                     action: viewModel.goBack
                 )
-                .glassEffectID("navBack", in: glassNamespace)
-                .glassEffectTransition(.matchedGeometry)
+            }
+
+            if canGoBack, canGoForward {
+                Divider()
+                    .frame(height: floatingButtonFrameSize - 12)
             }
 
             if canGoForward {
@@ -351,10 +329,12 @@ public struct WebViewerView: View {
                     accessibilityLabel: "Forward",
                     action: viewModel.goForward
                 )
-                .glassEffectID("navForward", in: glassNamespace)
-                .glassEffectTransition(.matchedGeometry)
             }
         }
+        .padding(.horizontal, 2)
+        .glassEffect(in: Capsule())
+        .glassEffectID("navCluster", in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
     }
 
     private var addressBarCapsule: some View {
@@ -364,14 +344,10 @@ public struct WebViewerView: View {
             shouldFocus: $isAddressFocused,
             isEditingAddress: isEditingAddress,
             displayText: addressDisplayText,
-            isLoading: viewModel.page?.isLoading ?? false,
             namespace: glassNamespace,
             iconSize: floatingButtonIconSize,
-            accessorySize: addressAccessorySize,
             onBeginEditing: beginAddressEditing,
-            onSubmit: submitAddress,
-            onReload: viewModel.reload,
-            onStopLoading: viewModel.stopLoading
+            onSubmit: submitAddress
         )
         .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
     }
@@ -390,10 +366,43 @@ public struct WebViewerView: View {
         )
     }
 
-    private var bookmarkButton: some View {
-        let isCurrentLocationBookmarked = viewModel.isBookmarked
-        return Menu {
-            if isCurrentLocationBookmarked {
+    private var overflowMenuButton: some View {
+        Menu {
+            reloadOverflowMenuItem
+            bookmarksOverflowSubmenu
+            Divider()
+            exitOverflowMenuItem
+        } label: {
+            overflowMenuLabel
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .glassEffectID("overflow", in: glassNamespace)
+        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
+        .accessibilityLabel("More Actions")
+        .tourAnchor(WebViewerToolbarTourAnchor.bookmarkButton)
+    }
+
+    private var reloadOverflowMenuItem: some View {
+        Button {
+            if viewModel.page?.isLoading == true {
+                viewModel.stopLoading()
+            } else {
+                viewModel.reload()
+            }
+        } label: {
+            Label(
+                viewModel.page?.isLoading == true ? "Stop Loading" : "Reload",
+                systemImage: viewModel.page?.isLoading == true ? "xmark" : "arrow.clockwise"
+            )
+        }
+    }
+
+    private var bookmarksOverflowSubmenu: some View {
+        Menu {
+            if viewModel.isBookmarked {
                 Button(role: .destructive) {
                     viewModel.removeBookmarkForCurrentPage()
                 } label: {
@@ -408,7 +417,7 @@ public struct WebViewerView: View {
             }
 
             if !viewModel.bookmarks.isEmpty {
-                Section("Bookmarks") {
+                Section("Saved Bookmarks") {
                     ForEach(viewModel.bookmarks, id: \.id) { bookmark in
                         Button {
                             viewModel.navigate(to: bookmark.url)
@@ -419,17 +428,27 @@ public struct WebViewerView: View {
                 }
             }
         } label: {
-            Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+            Label("Bookmarks", systemImage: viewModel.isBookmarked ? "bookmark.fill" : "bookmark")
         }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .glassEffectID("bookmark", in: glassNamespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("Bookmarks")
-        .tourAnchor(WebViewerToolbarTourAnchor.bookmarkButton)
+    }
+
+    private var exitOverflowMenuItem: some View {
+        Button {
+            dismiss()
+        } label: {
+            Label("Exit Web Viewer", systemImage: "xmark")
+        }
+    }
+
+    private var overflowMenuLabel: some View {
+        ZStack {
+            Image(systemName: "ellipsis")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+
+            Color.clear
+                .allowsHitTesting(false)
+                .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
+        }
     }
 
     private var readingModeButton: some View {
@@ -493,35 +512,6 @@ public struct WebViewerView: View {
         .buttonStyle(.plain)
         .glassEffect(in: Circle())
         .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
-    }
-
-    private var dismissButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .accessibilityLabel("Exit Web Viewer")
-        .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
-    }
-
-    private var newTabButton: some View {
-        Button {
-            viewModel.addTab()
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .accessibilityLabel("New Tab")
     }
 
     private var tabsButton: some View {
@@ -601,10 +591,9 @@ public struct WebViewerView: View {
             Image(systemName: systemName)
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
         }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
+        .frame(width: floatingButtonFrameSize - 4, height: floatingButtonFrameSize)
+        .contentShape(.rect)
         .buttonStyle(.plain)
-        .glassEffect(in: Circle())
         .accessibilityLabel(accessibilityLabel)
     }
 
@@ -658,14 +647,10 @@ private struct AddressBarCapsuleView: View {
     @Binding var shouldFocus: Bool
     let isEditingAddress: Bool
     let displayText: String
-    let isLoading: Bool
     let namespace: Namespace.ID
     let iconSize: CGFloat
-    let accessorySize: CGFloat
     let onBeginEditing: () -> Void
     let onSubmit: () -> Void
-    let onReload: () -> Void
-    let onStopLoading: () -> Void
 
     @FocusState private var isFocused: Bool
 
@@ -706,15 +691,6 @@ private struct AddressBarCapsuleView: View {
                     }
             }
             .padding(.vertical, 10)
-
-            Button(action: isLoading ? onStopLoading : onReload) {
-                Image(systemName: isLoading ? "xmark" : "arrow.clockwise")
-                    .font(.system(size: iconSize, weight: .semibold))
-            }
-            .frame(width: accessorySize, height: accessorySize)
-            .contentShape(.circle)
-            .buttonStyle(.plain)
-            .accessibilityLabel(isLoading ? "Stop Loading" : "Reload")
         }
         .padding(.horizontal, 14)
         .glassEffect(in: Capsule())

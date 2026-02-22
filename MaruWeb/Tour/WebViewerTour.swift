@@ -36,7 +36,7 @@ public enum WebViewerToolbarTour: TourDefinition {
         TourStep(
             id: WebViewerToolbarTourAnchor.dismissButton,
             title: "Exit Web Viewer",
-            description: "Tap here to close the web viewer and return to the app.",
+            description: "Open the more actions menu, then tap Exit Web Viewer to close and return to the app.",
             popoverEdge: .top
         ),
         TourStep(
@@ -48,7 +48,7 @@ public enum WebViewerToolbarTour: TourDefinition {
         TourStep(
             id: WebViewerToolbarTourAnchor.bookmarkButton,
             title: "Bookmarks",
-            description: "Save your favorite pages and quickly navigate to them.",
+            description: "Open the more actions menu to add or remove bookmarks and jump to saved pages.",
             popoverEdge: .top
         ),
         TourStep(
