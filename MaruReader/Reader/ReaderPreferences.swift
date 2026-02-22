@@ -342,6 +342,7 @@ final class ReaderPreferences {
             preferences.scroll = scrollValue
         }
 
+        // Readium hardcodes some preferences like turning off pagination for vertical text, so we always set verticalText to false
         preferences.verticalText = false
 
         if let spreadValue = book.value(forKey: "spread") as? Bool {
