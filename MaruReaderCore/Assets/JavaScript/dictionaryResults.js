@@ -147,8 +147,35 @@ window.MaruReader.dictionaryResults = {
             }
         }
 
+        if (state.webTheme) {
+            this.applyWebTheme(state.webTheme);
+        }
+
         if (state.styles) {
             this.applyDisplayStyles(state.styles);
+        }
+    },
+
+    applyWebTheme: function(theme) {
+        if (!theme || !document.documentElement) return;
+
+        if (theme.colorScheme) {
+            document.documentElement.style.colorScheme = theme.colorScheme;
+        }
+        if (theme.textColor) {
+            document.documentElement.style.setProperty('--text-color', theme.textColor);
+        }
+        if (theme.backgroundColor) {
+            document.documentElement.style.setProperty('--background-color', theme.backgroundColor);
+        }
+        if (theme.accentColor) {
+            document.documentElement.style.setProperty('--accent-color', theme.accentColor);
+        }
+        if (theme.linkColor) {
+            document.documentElement.style.setProperty('--link-color', theme.linkColor);
+        }
+        if (theme.glossImageBackgroundColor) {
+            document.documentElement.style.setProperty('--gloss-image-background-color', theme.glossImageBackgroundColor);
         }
     },
 

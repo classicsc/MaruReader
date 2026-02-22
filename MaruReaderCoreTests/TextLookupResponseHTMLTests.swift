@@ -41,6 +41,22 @@ struct DictionaryResultsHTMLTests {
         #expect(html.contains("data-state=\"disabled\""))
         #expect(html.contains("hidden"))
     }
+
+    @Test func dictionaryWebThemeRoundTripsThroughJSON() throws {
+        let theme = DictionaryWebTheme(
+            colorScheme: "light",
+            textColor: "#111111",
+            backgroundColor: "#F5EDD6",
+            accentColor: "#0A84FF",
+            linkColor: "#0A84FF",
+            glossImageBackgroundColor: "#F5EDD6"
+        )
+
+        let data = try JSONEncoder().encode(theme)
+        let decoded = try JSONDecoder().decode(DictionaryWebTheme.self, from: data)
+
+        #expect(decoded == theme)
+    }
 }
 
 private func makeResponse() -> TextLookupResponse {

@@ -18,6 +18,7 @@
 import Foundation
 import MaruDictionaryUICommon
 import MaruReaderCore
+import ReadiumNavigator
 import SwiftUI
 import WebKit
 
@@ -66,6 +67,7 @@ struct BookReaderView: View {
                         if let sheetViewModel = searchSheetViewModel {
                             DictionarySearchView()
                                 .environment(sheetViewModel)
+                                .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
                                 .navigationTitle("Dictionary")
                                 .navigationBarTitleDisplayMode(.inline)
                                 .navigationBarBackButtonHidden(true)
@@ -78,10 +80,15 @@ struct BookReaderView: View {
                                 }
                         }
                     }
+                    .background(dictionarySheetBackgroundColor)
+                    .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
                     .onAppear {
                         // Initialize the view model with the lookup session
                         if let session = viewModel.sheetLookupSession {
-                            searchSheetViewModel = DictionarySearchViewModel(session: session)
+                            searchSheetViewModel = DictionarySearchViewModel(
+                                session: session,
+                                dictionaryWebTheme: readerDictionaryPresentationTheme.dictionaryWebTheme
+                            )
                         }
                     }
                     .presentationDetents([.medium, .large])
@@ -120,10 +127,15 @@ struct BookReaderView: View {
                 .onChange(of: colorScheme) {
                     viewModel.readerPreferences.systemColorScheme = colorScheme
                     viewModel.readerPreferences.submitToNavigator()
+                    applyReaderDictionaryTheme()
+                }
+                .onChange(of: viewModel.readerPreferences.selectedAppearanceMode) {
+                    applyReaderDictionaryTheme()
                 }
                 .tourOverlay(manager: tourManager)
                 .onAppear {
                     viewModel.readerPreferences.systemColorScheme = colorScheme
+                    applyReaderDictionaryTheme()
                     if tourManager.startIfNeeded(BookReaderTour.self) {
                         viewModel.overlayState = .showingToolbars
                     }
@@ -171,6 +183,8 @@ struct BookReaderView: View {
                     attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                 ) {
                     WebView(viewModel.popupPage)
+                        .background(dictionarySheetBackgroundColor)
+                        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
                         .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                         .presentationCompactAdaptation(.popover)
                 }
@@ -320,6 +334,7 @@ struct BookReaderView: View {
                         isSelected: viewModel.readerPreferences.selectedAppearanceMode == mode
                     ) {
                         viewModel.readerPreferences.setAppearanceMode(mode)
+                        applyReaderDictionaryTheme()
                     }
                 }
             }
@@ -410,18 +425,95 @@ struct BookReaderView: View {
 
     // MARK: - Theme Color Helpers
 
-    private var readerBackgroundColor: Color {
+    private var readerBackgroundColor: SwiftUI.Color {
         viewModel.readerPreferences.currentPageBackgroundColor
     }
 
-    private func toolbarForegroundColor(isPrimary: Bool) -> Color {
+    private var dictionarySheetBackgroundColor: SwiftUI.Color {
+        readerDictionaryPresentationTheme.backgroundColor
+    }
+
+    private var readerDictionaryPresentationTheme: DictionaryPresentationTheme {
+        let interfaceBackground = viewModel.readerPreferences.currentInterfaceBackgroundColor ?? viewModel.readerPreferences.currentPageBackgroundColor
+        let interfaceForeground = viewModel.readerPreferences.currentInterfaceForegroundColor ?? .primary
+        let secondary = viewModel.readerPreferences.currentInterfaceSecondaryColor ?? interfaceForeground.opacity(0.6)
+        let separator = secondary.opacity(0.35)
+
+        let preferredColorScheme: ColorScheme? = switch viewModel.readerPreferences.selectedAppearanceMode {
+        case .dark:
+            .dark
+        case .light, .sepia:
+            .light
+        case .followSystem:
+            colorScheme
+        }
+
+        return DictionaryPresentationTheme(
+            preferredColorScheme: preferredColorScheme,
+            backgroundColor: interfaceBackground,
+            foregroundColor: interfaceForeground,
+            secondaryForegroundColor: secondary,
+            separatorColor: separator,
+            dictionaryWebTheme: makeDictionaryWebTheme(
+                preferredColorScheme: preferredColorScheme,
+                backgroundColor: interfaceBackground,
+                foregroundColor: interfaceForeground
+            )
+        )
+    }
+
+    private func applyReaderDictionaryTheme() {
+        let webTheme = readerDictionaryPresentationTheme.dictionaryWebTheme
+        viewModel.setDictionaryWebTheme(webTheme)
+        searchSheetViewModel?.setDictionaryWebTheme(webTheme)
+    }
+
+    private func makeDictionaryWebTheme(
+        preferredColorScheme: ColorScheme?,
+        backgroundColor: SwiftUI.Color,
+        foregroundColor: SwiftUI.Color
+    ) -> DictionaryWebTheme? {
+        let backgroundHex = cssHex(for: backgroundColor)
+        let foregroundHex = cssHex(for: foregroundColor)
+        let accentHex = cssHex(for: .accentColor)
+
+        guard backgroundHex != nil || foregroundHex != nil || accentHex != nil else {
+            return nil
+        }
+
+        let colorSchemeString: String? = switch preferredColorScheme {
+        case .light:
+            "light"
+        case .dark:
+            "dark"
+        case nil:
+            nil
+        @unknown default:
+            nil
+        }
+
+        return DictionaryWebTheme(
+            colorScheme: colorSchemeString,
+            textColor: foregroundHex,
+            backgroundColor: backgroundHex,
+            accentColor: accentHex,
+            linkColor: accentHex,
+            glossImageBackgroundColor: backgroundHex
+        )
+    }
+
+    private func cssHex(for color: SwiftUI.Color) -> String? {
+        ReadiumNavigator.Color(swiftUIColor: color)?.cssHex
+    }
+
+    private func toolbarForegroundColor(isPrimary: Bool) -> SwiftUI.Color {
         if let color = viewModel.readerPreferences.currentInterfaceForegroundColor {
             return isPrimary ? color : color.opacity(0.6)
         }
         return isPrimary ? .primary : .secondary
     }
 
-    private var toolbarSecondaryColor: Color {
+    private var toolbarSecondaryColor: SwiftUI.Color {
         viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
     }
 

@@ -24,6 +24,7 @@ public final actor DictionaryResultsURLSchemeHandler: URLSchemeHandler {
 
     private var currentSession: TextLookupSession?
     private var currentRequestID: String?
+    private var webTheme: DictionaryWebTheme?
 
     public init() {}
 
@@ -35,6 +36,10 @@ public final actor DictionaryResultsURLSchemeHandler: URLSchemeHandler {
         } else {
             currentRequestID = nil
         }
+    }
+
+    public func setWebTheme(_ theme: DictionaryWebTheme?) {
+        webTheme = theme
     }
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
@@ -97,7 +102,8 @@ public final actor DictionaryResultsURLSchemeHandler: URLSchemeHandler {
         let response = DictionaryResultsStateResponse(
             requestId: requestId.uuidString,
             styles: styles,
-            dictionaryStyles: dictionaryStyles
+            dictionaryStyles: dictionaryStyles,
+            webTheme: webTheme
         )
 
         return try Self.createJSONResponse(response, url: url)
@@ -190,6 +196,7 @@ private struct DictionaryResultsStateResponse: Encodable {
     let requestId: String
     let styles: DisplayStyles
     let dictionaryStyles: String
+    let webTheme: DictionaryWebTheme?
 }
 
 private struct DictionaryResultsBatchResponse: Encodable {

@@ -27,6 +27,8 @@ import MaruReaderCore
 import SwiftUI
 
 struct ContextDisplayView: View {
+    @Environment(\.dictionaryPresentationTheme) private var presentationTheme
+
     let context: String
     let matchRange: Range<String.Index>?
     let furiganaSegments: [FuriganaSegment]
@@ -60,6 +62,22 @@ struct ContextDisplayView: View {
         baseFontSize + furiganaFontSize + 6
     }
 
+    private var themedBackgroundColor: Color {
+        presentationTheme?.backgroundColor ?? Color(.systemBackground)
+    }
+
+    private var themedForegroundColor: Color {
+        presentationTheme?.foregroundColor ?? .primary
+    }
+
+    private var themedSecondaryColor: Color {
+        presentationTheme?.secondaryForegroundColor ?? .secondary
+    }
+
+    private var themedSeparatorColor: Color {
+        presentationTheme?.separatorColor ?? Color(.separator)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             headerView
@@ -72,10 +90,11 @@ struct ContextDisplayView: View {
                 }
             }
         }
-        .background(Color(.systemBackground))
+        .background(themedBackgroundColor)
+        .foregroundStyle(themedForegroundColor)
         .overlay(
             Rectangle()
-                .stroke(Color(.separator), lineWidth: 0.5)
+                .stroke(themedSeparatorColor, lineWidth: 0.5)
         )
         .shadow(color: Color.black.opacity(0.1), radius: 4, y: 2)
     }
@@ -93,7 +112,7 @@ struct ContextDisplayView: View {
                 Spacer()
                 Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(themedSecondaryColor)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
@@ -187,7 +206,7 @@ struct ContextDisplayView: View {
             if furiganaEnabled, let reading = segment.reading {
                 Text(reading)
                     .font(.system(size: furiganaFontSize))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(themedSecondaryColor)
             } else {
                 // Use the reading text (invisible) to reserve the same width, or a space for height
                 Text(segment.reading ?? " ")

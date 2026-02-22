@@ -59,6 +59,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
+    private var dictionaryWebTheme: DictionaryWebTheme?
 
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
@@ -136,21 +137,25 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
 
-    public init(resultState: ResultDisplayState = .startPage) {
+    public init(resultState: ResultDisplayState = .startPage, dictionaryWebTheme: DictionaryWebTheme? = nil) {
         self.resultState = resultState
         self.searchService = DictionarySearchService()
+        self.dictionaryWebTheme = dictionaryWebTheme
         super.init()
         initializeWebPage()
         initializePopupPage()
+        applyDictionaryWebTheme()
     }
 
     /// Initialize with an existing lookup session to preserve context/results.
-    public init(session: TextLookupSession) {
+    public init(session: TextLookupSession, dictionaryWebTheme: DictionaryWebTheme? = nil) {
         self.resultState = .ready
         self.searchService = DictionarySearchService()
+        self.dictionaryWebTheme = dictionaryWebTheme
         super.init()
         initializeWebPage()
         initializePopupPage()
+        applyDictionaryWebTheme()
 
         Task {
             await session.resetRenderCursor()
@@ -174,6 +179,72 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     self.updateLinksActiveState()
                     return
                 }
+            }
+        }
+    }
+
+    public func setDictionaryWebTheme(_ theme: DictionaryWebTheme?) {
+        guard dictionaryWebTheme != theme else { return }
+        dictionaryWebTheme = theme
+        applyDictionaryWebTheme()
+        reloadWebContentForThemeChangeIfNeeded()
+    }
+
+    private func applyDictionaryWebTheme() {
+        let theme = dictionaryWebTheme
+        Task {
+            await resultsSchemeHandler.setWebTheme(theme)
+            await popupResultsSchemeHandler.setWebTheme(theme)
+        }
+    }
+
+    private func reloadWebContentForThemeChangeIfNeeded() {
+        if case .ready = resultState {
+            reloadResultsPageForCurrentSession()
+        }
+        if showPopup {
+            reloadPopupPageForCurrentSession()
+        }
+    }
+
+    private func reloadResultsPageForCurrentSession() {
+        guard let currentRequest, let currentSession else { return }
+
+        Task {
+            await currentSession.resetRenderCursor()
+            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(currentRequest.id.uuidString)"
+            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
+
+            do {
+                for try await value in loadSequence {
+                    if value == WebPage.NavigationEvent.finished {
+                        self.updateLinksActiveState()
+                        return
+                    }
+                }
+            } catch {
+                self.logger.error("Failed to reload dictionary results page for theme update: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func reloadPopupPageForCurrentSession() {
+        guard let currentPopupSession else { return }
+
+        Task {
+            await currentPopupSession.resetRenderCursor()
+            let requestId = await currentPopupSession.requestId
+            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(requestId.uuidString)"
+            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
+
+            do {
+                for try await value in loadSequence {
+                    if value == WebPage.NavigationEvent.finished {
+                        return
+                    }
+                }
+            } catch {
+                self.logger.error("Failed to reload dictionary popup page for theme update: \(error.localizedDescription)")
             }
         }
     }

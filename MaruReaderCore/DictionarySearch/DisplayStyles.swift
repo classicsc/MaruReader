@@ -50,3 +50,28 @@ public struct DisplayStyles: Sendable, Codable {
         self.pitchResultsAreaEnabled = pitchResultsAreaEnabled
     }
 }
+
+public struct DictionaryWebTheme: Sendable, Codable, Equatable {
+    public let colorScheme: String?
+    public let textColor: String?
+    public let backgroundColor: String?
+    public let accentColor: String?
+    public let linkColor: String?
+    public let glossImageBackgroundColor: String?
+
+    public init(
+        colorScheme: String? = nil,
+        textColor: String? = nil,
+        backgroundColor: String? = nil,
+        accentColor: String? = nil,
+        linkColor: String? = nil,
+        glossImageBackgroundColor: String? = nil
+    ) {
+        self.colorScheme = colorScheme
+        self.textColor = textColor
+        self.backgroundColor = backgroundColor
+        self.accentColor = accentColor
+        self.linkColor = linkColor
+        self.glossImageBackgroundColor = glossImageBackgroundColor
+    }
+}

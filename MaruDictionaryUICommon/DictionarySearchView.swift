@@ -26,9 +26,46 @@ import os.log
 import SwiftUI
 import WebKit
 
+public struct DictionaryPresentationTheme: Sendable {
+    public let preferredColorScheme: ColorScheme?
+    public let backgroundColor: Color
+    public let foregroundColor: Color
+    public let secondaryForegroundColor: Color
+    public let separatorColor: Color
+    public let dictionaryWebTheme: DictionaryWebTheme?
+
+    public init(
+        preferredColorScheme: ColorScheme? = nil,
+        backgroundColor: Color,
+        foregroundColor: Color,
+        secondaryForegroundColor: Color,
+        separatorColor: Color,
+        dictionaryWebTheme: DictionaryWebTheme? = nil
+    ) {
+        self.preferredColorScheme = preferredColorScheme
+        self.backgroundColor = backgroundColor
+        self.foregroundColor = foregroundColor
+        self.secondaryForegroundColor = secondaryForegroundColor
+        self.separatorColor = separatorColor
+        self.dictionaryWebTheme = dictionaryWebTheme
+    }
+}
+
+private struct DictionaryPresentationThemeKey: EnvironmentKey {
+    static let defaultValue: DictionaryPresentationTheme? = nil
+}
+
+public extension EnvironmentValues {
+    var dictionaryPresentationTheme: DictionaryPresentationTheme? {
+        get { self[DictionaryPresentationThemeKey.self] }
+        set { self[DictionaryPresentationThemeKey.self] = newValue }
+    }
+}
+
 public struct DictionarySearchView: View {
     @Environment(DictionarySearchViewModel.self) private var viewModel
     @Environment(\.openURL) private var openURL
+    @Environment(\.dictionaryPresentationTheme) private var presentationTheme
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
 
@@ -37,6 +74,18 @@ public struct DictionarySearchView: View {
     /// Whether to show the bottom toolbar (when context exists or navigation is possible)
     private var showToolbar: Bool {
         viewModel.currentRequest != nil || viewModel.history.canGoBack || viewModel.history.canGoForward
+    }
+
+    private var themedBackgroundColor: Color {
+        presentationTheme?.backgroundColor ?? Color(.systemBackground)
+    }
+
+    private var themedForegroundColor: Color {
+        presentationTheme?.foregroundColor ?? .primary
+    }
+
+    private var themedSeparatorColor: Color {
+        presentationTheme?.separatorColor ?? Color(.separator)
     }
 
     public var body: some View {
@@ -73,6 +122,8 @@ public struct DictionarySearchView: View {
                                 attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                             ) {
                                 WebView(viewModel.popupPage)
+                                    .background(themedBackgroundColor)
+                                    .preferredColorScheme(presentationTheme?.preferredColorScheme)
                                     .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                                     .presentationCompactAdaptation(.popover)
                             }
@@ -91,6 +142,8 @@ public struct DictionarySearchView: View {
                                         viewModel.showExternalLinkConfirmation = false
                                     }
                                 )
+                                .environment(\.dictionaryPresentationTheme, presentationTheme)
+                                .preferredColorScheme(presentationTheme?.preferredColorScheme)
                                 .presentationCompactAdaptation(.popover)
                             }
                             // Tooltip popover for title attributes
@@ -100,8 +153,11 @@ public struct DictionarySearchView: View {
                             ) {
                                 Text(viewModel.tooltipText)
                                     .font(.callout)
+                                    .foregroundStyle(themedForegroundColor)
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 8)
+                                    .background(themedBackgroundColor)
+                                    .preferredColorScheme(presentationTheme?.preferredColorScheme)
                                     .presentationCompactAdaptation(.popover)
                             }
                     case let .noResults(query):
@@ -114,7 +170,7 @@ public struct DictionarySearchView: View {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(Color(.systemBackground))
+                            .background(themedBackgroundColor)
                     }
                 }
             }
@@ -125,8 +181,15 @@ public struct DictionarySearchView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
+        .foregroundStyle(themedForegroundColor)
+        .background(themedBackgroundColor)
+        .preferredColorScheme(presentationTheme?.preferredColorScheme)
         .onAppear {
             viewModel.loadContextDisplaySettings()
+            viewModel.setDictionaryWebTheme(presentationTheme?.dictionaryWebTheme)
+        }
+        .onChange(of: presentationTheme?.dictionaryWebTheme) {
+            viewModel.setDictionaryWebTheme(presentationTheme?.dictionaryWebTheme)
         }
     }
 
@@ -188,7 +251,13 @@ public struct DictionarySearchView: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .background(themedBackgroundColor)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(themedSeparatorColor)
+                .frame(height: 0.5)
+        }
+        .foregroundStyle(themedForegroundColor)
     }
 }
 
@@ -196,16 +265,31 @@ public struct DictionarySearchView: View {
 private struct ExternalLinkConfirmationView: View {
     let url: URL?
     let onOpen: () -> Void
+    @Environment(\.dictionaryPresentationTheme) private var presentationTheme
+
+    private var themedBackgroundColor: Color {
+        presentationTheme?.backgroundColor ?? Color(.systemBackground)
+    }
+
+    private var themedForegroundColor: Color {
+        presentationTheme?.foregroundColor ?? .primary
+    }
+
+    private var themedSecondaryColor: Color {
+        presentationTheme?.secondaryForegroundColor ?? .secondary
+    }
 
     var body: some View {
         VStack(alignment: .center, spacing: 12) {
             Text("Open \(url?.host ?? url?.absoluteString ?? "link") in browser?")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(themedSecondaryColor)
 
             Button("Open", action: onOpen)
         }
         .padding()
+        .foregroundStyle(themedForegroundColor)
+        .background(themedBackgroundColor)
     }
 }
 

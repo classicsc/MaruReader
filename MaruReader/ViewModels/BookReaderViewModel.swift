@@ -286,6 +286,26 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         showingDictionarySheet = true
     }
 
+    func setDictionaryWebTheme(_ theme: DictionaryWebTheme?) {
+        Task {
+            do {
+                await resultsSchemeHandler.setWebTheme(theme)
+                guard self.showPopup, let currentPopupSession = self.currentPopupSession else { return }
+                await currentPopupSession.resetRenderCursor()
+                let requestId = await currentPopupSession.requestId
+                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(requestId.uuidString)"
+                let loadSequence = self.popupPage.load(URLRequest(url: URL(string: urlString)!))
+                for try await value in loadSequence {
+                    if value == WebPage.NavigationEvent.finished {
+                        return
+                    }
+                }
+            } catch {
+                logger.error("Failed to reload book reader dictionary popup for theme update: \(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Returns the bookmark at the current location, if any
     var currentLocationBookmark: Bookmark? {
         guard let locator = currentLocator,
