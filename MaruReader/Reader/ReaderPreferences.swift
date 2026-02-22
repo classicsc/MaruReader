@@ -23,9 +23,47 @@ import os.log
 import ReadiumNavigator
 import SwiftUI
 
+enum ReaderFontFamilyOption: String, CaseIterable {
+    case mincho
+    case gothic
+
+    var displayName: String {
+        switch self {
+        case .mincho:
+            "Mincho"
+        case .gothic:
+            "Gothic"
+        }
+    }
+}
+
+enum ReaderAppearanceMode: String, CaseIterable {
+    case followSystem
+    case light
+    case dark
+    case sepia
+
+    var displayName: String {
+        switch self {
+        case .followSystem:
+            "Follow System"
+        case .light:
+            "Light"
+        case .dark:
+            "Dark"
+        case .sepia:
+            "Sepia"
+        }
+    }
+}
+
 @MainActor
 @Observable
 final class ReaderPreferences {
+    // Readium only takes one font family, so no fallbacks defined here.
+    private static let minchoFontFamilyStack = "Hiragino Mincho ProN"
+    private static let gothicFontFamilyStack = "Hiragino Kaku Gothic ProN"
+
     private(set) var book: Book
     private let context: NSManagedObjectContext
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ReaderPreferences")
@@ -35,6 +73,7 @@ final class ReaderPreferences {
 
     /// Update trigger to force SwiftUI to re-render when Core Data values change
     private var updateTrigger = 0
+    var systemColorScheme: ColorScheme = .light
 
     /// Current profile for this book
     var profile: ReaderProfile? {
@@ -120,6 +159,23 @@ final class ReaderPreferences {
             saveContext()
             submitToNavigator()
         }
+    }
+
+    var selectedFontFamilyOption: ReaderFontFamilyOption {
+        _ = updateTrigger
+
+        guard let fontFamily, !fontFamily.isEmpty else {
+            return .mincho
+        }
+
+        if fontFamily.localizedCaseInsensitiveContains("Hiragino Kaku") ||
+            fontFamily.localizedCaseInsensitiveContains("Hiragino Sans") ||
+            fontFamily.localizedCaseInsensitiveContains("sans-serif")
+        {
+            return .gothic
+        }
+
+        return .mincho
     }
 
     var fontWeight: Double {
@@ -270,15 +326,8 @@ final class ReaderPreferences {
     /// Current theme (respects system dark mode if profile has both themes)
     var currentTheme: ReaderTheme? {
         _ = updateTrigger
-        guard let profile else { return nil }
-
-        // If profile has both light and dark themes, use appropriate one
-        if let theme = profile.theme, let darkTheme = profile.darkTheme {
-            return UITraitCollection.current.userInterfaceStyle == .dark ? darkTheme : theme
-        }
-
-        // Otherwise use the single theme
-        return profile.theme
+        _ = systemColorScheme
+        return resolvedThemeForCurrentAppearance()
     }
 
     // MARK: - Interface Colors
@@ -316,7 +365,7 @@ final class ReaderPreferences {
 
         // Ensure book has a profile
         if book.readerProfile == nil {
-            let themeManager = SystemThemeManager()
+            let themeManager = SystemThemeManager(context: context)
             themeManager.ensureSystemThemesExist()
             book.readerProfile = themeManager.getProfile(for: book)
         }
@@ -330,6 +379,68 @@ final class ReaderPreferences {
     }
 
     // MARK: - Navigator Integration
+
+    var selectedAppearanceMode: ReaderAppearanceMode {
+        _ = updateTrigger
+        guard let profile else { return .followSystem }
+
+        if profile.darkTheme != nil {
+            return .followSystem
+        }
+
+        let themeManager = SystemThemeManager(context: context)
+        switch themeManager.kind(for: profile.theme) {
+        case .light:
+            return .light
+        case .dark:
+            return .dark
+        case .sepia:
+            return .sepia
+        case nil:
+            return .light
+        }
+    }
+
+    func setFontFamilyOption(_ option: ReaderFontFamilyOption) {
+        guard let profile else { return }
+
+        switch option {
+        case .mincho:
+            profile.fontFamily = Self.minchoFontFamilyStack
+        case .gothic:
+            profile.fontFamily = Self.gothicFontFamilyStack
+        }
+
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
+
+    func setAppearanceMode(_ mode: ReaderAppearanceMode) {
+        guard let profile else { return }
+
+        let themeManager = SystemThemeManager(context: context)
+        themeManager.ensureSystemThemesExist()
+
+        switch mode {
+        case .followSystem:
+            profile.theme = themeManager.fetchSystemTheme(.light)
+            profile.darkTheme = themeManager.fetchSystemTheme(.dark)
+        case .light:
+            profile.theme = themeManager.fetchSystemTheme(.light)
+            profile.darkTheme = nil
+        case .dark:
+            profile.theme = themeManager.fetchSystemTheme(.dark)
+            profile.darkTheme = nil
+        case .sepia:
+            profile.theme = themeManager.fetchSystemTheme(.sepia)
+            profile.darkTheme = nil
+        }
+
+        updateTrigger += 1
+        saveContext()
+        submitToNavigator()
+    }
 
     /// Builds EPUBPreferences from current Core Data values
     func buildEPUBPreferences() -> EPUBPreferences {
@@ -376,10 +487,15 @@ final class ReaderPreferences {
             preferences.pageMargins = 0
         }
 
-        if UITraitCollection.current.userInterfaceStyle == .dark {
-            preferences.theme = .dark
-        } else {
+        switch selectedAppearanceMode {
+        case .followSystem:
+            preferences.theme = systemColorScheme == .dark ? .dark : .light
+        case .light:
             preferences.theme = .light
+        case .dark:
+            preferences.theme = .dark
+        case .sepia:
+            preferences.theme = .sepia
         }
 
         return preferences
@@ -489,30 +605,7 @@ final class ReaderPreferences {
     /// When enabled, both light and dark themes should be set
     /// When disabled, clears the dark theme
     func setFollowSystemTheme(_ enabled: Bool) {
-        guard let profile else { return }
-
-        if !enabled {
-            // Disable follow system: clear dark theme
-            profile.darkTheme = nil
-        } else {
-            // Enable follow system: ensure both themes are set
-            // If dark theme is nil, set it to the current theme or default dark theme
-            if profile.darkTheme == nil {
-                // Try to get the system dark theme as default
-                let request = ReaderTheme.fetchRequest()
-                request.predicate = NSPredicate(format: "isSystemTheme == YES AND name == %@", "Dark")
-                request.fetchLimit = 1
-                if let darkTheme = try? context.fetch(request).first {
-                    profile.darkTheme = darkTheme
-                } else {
-                    profile.darkTheme = profile.theme
-                }
-            }
-        }
-
-        updateTrigger += 1
-        saveContext()
-        submitToNavigator()
+        setAppearanceMode(enabled ? .followSystem : .light)
     }
 
     /// Returns whether the profile is in follow system theme mode
@@ -520,5 +613,29 @@ final class ReaderPreferences {
         _ = updateTrigger
         guard let profile else { return false }
         return profile.darkTheme != nil
+    }
+
+    private func resolvedThemeForCurrentAppearance() -> ReaderTheme? {
+        guard let profile else { return nil }
+
+        switch selectedAppearanceMode {
+        case .followSystem:
+            if systemColorScheme == .dark {
+                return profile.darkTheme ?? profile.theme ?? fallbackSystemTheme(.dark)
+            }
+            return profile.theme ?? fallbackSystemTheme(.light)
+        case .light:
+            return fallbackSystemTheme(.light) ?? profile.theme
+        case .dark:
+            return fallbackSystemTheme(.dark) ?? profile.theme
+        case .sepia:
+            return fallbackSystemTheme(.sepia) ?? profile.theme
+        }
+    }
+
+    private func fallbackSystemTheme(_ kind: SystemThemeManager.ThemeKind) -> ReaderTheme? {
+        let themeManager = SystemThemeManager(context: context)
+        themeManager.ensureSystemThemesExist()
+        return themeManager.fetchSystemTheme(kind)
     }
 }

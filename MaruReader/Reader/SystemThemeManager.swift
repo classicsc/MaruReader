@@ -23,12 +23,22 @@ import SwiftUI
 
 @MainActor
 struct SystemThemeManager {
-    private let context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
+    enum ThemeKind {
+        case light
+        case dark
+        case sepia
+    }
+
+    private let context: NSManagedObjectContext
 
     // Stable IDs for system themes
     private let lightThemeID = UUID(uuidString: "E4D81462-B651-43E3-A670-79A13C0B9A65")!
     private let darkThemeID = UUID(uuidString: "AE912579-49EF-49E7-BFB4-7C228A932E14")!
     private let sepiaThemeID = UUID(uuidString: "31A30AB8-0382-4C50-B982-9E2D8BA61A39")!
+
+    init(context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext) {
+        self.context = context
+    }
 
     /// Creates default system themes if they don't exist
     func ensureSystemThemesExist() {
@@ -45,18 +55,36 @@ struct SystemThemeManager {
         }
 
         // Create Dark theme if missing
-        if !existingThemeIDs.contains(sepiaThemeID) {
+        if !existingThemeIDs.contains(darkThemeID) {
             createDarkTheme()
         }
 
         // Create Sepia theme if missing
-        if !existingThemeIDs.contains(darkThemeID) {
+        if !existingThemeIDs.contains(sepiaThemeID) {
             createSepiaTheme()
         }
 
         // Save if any themes were created
         if context.hasChanges {
             try? context.save()
+        }
+    }
+
+    func fetchSystemTheme(_ kind: ThemeKind) -> ReaderTheme? {
+        fetchSystemTheme(with: themeID(for: kind))
+    }
+
+    func kind(for theme: ReaderTheme?) -> ThemeKind? {
+        guard let id = theme?.id else { return nil }
+        switch id {
+        case lightThemeID:
+            return .light
+        case darkThemeID:
+            return .dark
+        case sepiaThemeID:
+            return .sepia
+        default:
+            return nil
         }
     }
 
@@ -184,5 +212,16 @@ struct SystemThemeManager {
         request.fetchLimit = 1
 
         return try? context.fetch(request).first
+    }
+
+    private func themeID(for kind: ThemeKind) -> UUID {
+        switch kind {
+        case .light:
+            lightThemeID
+        case .dark:
+            darkThemeID
+        case .sepia:
+            sepiaThemeID
+        }
     }
 }

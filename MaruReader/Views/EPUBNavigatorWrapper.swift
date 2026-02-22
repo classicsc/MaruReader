@@ -27,6 +27,7 @@ import UIKit
 
 struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     @State var viewModel: BookReaderViewModel
+    let colorScheme: ColorScheme
 
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "EPUBNavigatorWrapper")
 
@@ -43,6 +44,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
 
             // Build initial preferences from stored settings
             // The CSS override is required for pagination of vertical writing
+            viewModel.readerPreferences.systemColorScheme = colorScheme
             let initialPreferences = viewModel.readerPreferences.buildEPUBPreferences()
             let config = EPUBNavigatorViewController.Configuration(
                 preferences: initialPreferences,

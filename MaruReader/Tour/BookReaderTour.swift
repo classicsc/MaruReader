@@ -25,8 +25,7 @@ enum BookReaderTourAnchor {
     static let tableOfContents = "bookReader.tableOfContents"
     static let dictionaryMode = "bookReader.dictionaryMode"
     static let bookmark = "bookReader.bookmark"
-    static let fontSizeSmaller = "bookReader.fontSizeSmaller"
-    static let fontSizeLarger = "bookReader.fontSizeLarger"
+    static let appearanceMenu = "bookReader.appearanceMenu"
 }
 
 /// Tour definition for the book reader view.
@@ -65,9 +64,9 @@ enum BookReaderTour: TourDefinition {
             popoverEdge: .top
         ),
         TourStep(
-            id: BookReaderTourAnchor.fontSizeLarger,
-            title: "Adjust Text Size",
-            description: "Make text larger or smaller to suit your reading preference.",
+            id: BookReaderTourAnchor.appearanceMenu,
+            title: "Appearance and Text",
+            description: "Adjust text size, switch between Mincho and Gothic fonts, and choose light, dark, sepia, or follow system appearance.",
             popoverEdge: .top
         ),
     ]

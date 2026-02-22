@@ -118,10 +118,12 @@ struct BookReaderView: View {
                     }
                 }
                 .onChange(of: colorScheme) {
+                    viewModel.readerPreferences.systemColorScheme = colorScheme
                     viewModel.readerPreferences.submitToNavigator()
                 }
                 .tourOverlay(manager: tourManager)
                 .onAppear {
+                    viewModel.readerPreferences.systemColorScheme = colorScheme
                     if tourManager.startIfNeeded(BookReaderTour.self) {
                         viewModel.overlayState = .showingToolbars
                     }
@@ -132,9 +134,10 @@ struct BookReaderView: View {
     private var readerView: some View {
         GeometryReader { _ in
             ZStack(alignment: .topLeading) {
-                Color(.systemBackground)
+                readerBackgroundColor
                 EPUBNavigatorWrapper(
-                    viewModel: viewModel
+                    viewModel: viewModel,
+                    colorScheme: colorScheme
                 )
                 .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
                 .overlay {
@@ -241,25 +244,13 @@ struct BookReaderView: View {
             bookmarkButton
                 .tourAnchor(BookReaderTourAnchor.bookmark)
 
-            Button {
-                viewModel.readerPreferences.decreaseFontSize()
-            } label: {
-                Image(systemName: "textformat.size.smaller.ja")
-            }
-            .accessibilityLabel("Decrease font size")
-            .tourAnchor(BookReaderTourAnchor.fontSizeSmaller)
-
-            Button {
-                viewModel.readerPreferences.increaseFontSize()
-            } label: {
-                Image(systemName: "textformat.size.larger.ja")
-            }
-            .accessibilityLabel("Increase font size")
-            .tourAnchor(BookReaderTourAnchor.fontSizeLarger)
+            appearanceMenuButton
+                .tourAnchor(BookReaderTourAnchor.appearanceMenu)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
         .buttonStyle(.plain)
+        .foregroundStyle(toolbarForegroundColor(isPrimary: true))
         .background(
             Capsule()
                 .fill(.clear)
@@ -292,6 +283,50 @@ struct BookReaderView: View {
                 }
             }
         }
+    }
+
+    private var appearanceMenuButton: some View {
+        Menu {
+            Section("Text Size") {
+                Button {
+                    viewModel.readerPreferences.decreaseFontSize()
+                } label: {
+                    Label("Smaller", systemImage: "textformat.size.smaller")
+                }
+
+                Button {
+                    viewModel.readerPreferences.increaseFontSize()
+                } label: {
+                    Label("Larger", systemImage: "textformat.size.larger")
+                }
+            }
+
+            Section("Font") {
+                ForEach(ReaderFontFamilyOption.allCases, id: \.self) { option in
+                    appearanceMenuSelectionButton(
+                        title: option.displayName,
+                        isSelected: viewModel.readerPreferences.selectedFontFamilyOption == option
+                    ) {
+                        viewModel.readerPreferences.setFontFamilyOption(option)
+                    }
+                }
+            }
+
+            Section("Appearance") {
+                ForEach(ReaderAppearanceMode.allCases, id: \.self) { mode in
+                    appearanceMenuSelectionButton(
+                        title: mode.displayName,
+                        isSelected: viewModel.readerPreferences.selectedAppearanceMode == mode
+                    ) {
+                        viewModel.readerPreferences.setAppearanceMode(mode)
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "textformat")
+                .accessibilityLabel("Appearance and text")
+        }
+        .accessibilityLabel("Appearance and text")
     }
 
     private var floatingBackButton: some View {
@@ -374,6 +409,10 @@ struct BookReaderView: View {
 
     // MARK: - Theme Color Helpers
 
+    private var readerBackgroundColor: Color {
+        viewModel.readerPreferences.currentInterfaceBackgroundColor ?? Color(.systemBackground)
+    }
+
     private func toolbarForegroundColor(isPrimary: Bool) -> Color {
         if let color = viewModel.readerPreferences.currentInterfaceForegroundColor {
             return isPrimary ? color : color.opacity(0.6)
@@ -383,6 +422,22 @@ struct BookReaderView: View {
 
     private var toolbarSecondaryColor: Color {
         viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
+    }
+
+    private func appearanceMenuSelectionButton(
+        title: String,
+        isSelected: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                }
+            }
+        }
     }
 
     private enum ProgressDisplayMode: CaseIterable {
