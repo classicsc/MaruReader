@@ -147,7 +147,7 @@ struct SystemThemeManager {
         theme.displayPriority = 2
 
         // Readium defaults for sepia mode
-        theme.setValue(ReadiumNavigator.Color(hex: "#faf4e8"), forKey: "backgroundColor")
+        theme.setValue(ReadiumNavigator.Color(hex: "#F9F4E9"), forKey: "backgroundColor")
         theme.setValue(ReadiumNavigator.Color(hex: "#121212"), forKey: "textColor")
 
         // Interface colors for SwiftUI components

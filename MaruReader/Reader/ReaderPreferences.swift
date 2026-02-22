@@ -341,6 +341,28 @@ final class ReaderPreferences {
         return color.swiftUIColor
     }
 
+    /// Returns the effective page background color used by Readium's built-in themes.
+    /// This is used to match reader margins and surrounding safe-area regions.
+    var currentPageBackgroundColor: SwiftUI.Color {
+        _ = updateTrigger
+        _ = systemColorScheme
+
+        switch selectedAppearanceMode {
+        case .followSystem:
+            return systemColorScheme == .dark ? .black : .white
+        case .light:
+            return .white
+        case .dark:
+            return .black
+        case .sepia:
+            return Color(
+                red: 249.0 / 255.0,
+                green: 244.0 / 255.0,
+                blue: 233.0 / 255.0
+            )
+        }
+    }
+
     /// Returns the current theme's interface foreground color
     var currentInterfaceForegroundColor: SwiftUI.Color? {
         _ = updateTrigger

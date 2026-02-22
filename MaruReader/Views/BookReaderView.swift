@@ -194,6 +194,7 @@ struct BookReaderView: View {
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
+        .background(readerBackgroundColor.ignoresSafeArea())
     }
 
     private var topToolbarOverlay: some View {
@@ -410,7 +411,7 @@ struct BookReaderView: View {
     // MARK: - Theme Color Helpers
 
     private var readerBackgroundColor: Color {
-        viewModel.readerPreferences.currentInterfaceBackgroundColor ?? Color(.systemBackground)
+        viewModel.readerPreferences.currentPageBackgroundColor
     }
 
     private func toolbarForegroundColor(isPrimary: Bool) -> Color {
