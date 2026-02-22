@@ -76,12 +76,20 @@ struct BookReaderView: View {
                                         Button("Done") {
                                             viewModel.showingDictionarySheet = false
                                         }
+                                        .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
                                     }
                                 }
                         }
                     }
                     .background(dictionarySheetBackgroundColor)
                     .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
+                    .tint(readerDictionaryPresentationTheme.foregroundColor)
+                    .toolbarBackground(dictionarySheetBackgroundColor, for: .navigationBar)
+                    .toolbarBackground(.visible, for: .navigationBar)
+                    .toolbarColorScheme(
+                        readerDictionaryPresentationTheme.preferredColorScheme ?? colorScheme,
+                        for: .navigationBar
+                    )
                     .onAppear {
                         // Initialize the view model with the lookup session
                         if let session = viewModel.sheetLookupSession {
@@ -456,7 +464,7 @@ struct BookReaderView: View {
             separatorColor: separator,
             dictionaryWebTheme: makeDictionaryWebTheme(
                 preferredColorScheme: preferredColorScheme,
-                backgroundColor: interfaceBackground,
+                interfaceBackgroundColor: interfaceBackground,
                 foregroundColor: interfaceForeground
             )
         )
@@ -470,14 +478,15 @@ struct BookReaderView: View {
 
     private func makeDictionaryWebTheme(
         preferredColorScheme: ColorScheme?,
-        backgroundColor: SwiftUI.Color,
+        interfaceBackgroundColor: SwiftUI.Color,
         foregroundColor: SwiftUI.Color
     ) -> DictionaryWebTheme? {
-        let backgroundHex = cssHex(for: backgroundColor)
+        let interfaceBackgroundHex = cssHex(for: interfaceBackgroundColor)
+        let pageBackgroundHex = cssHex(for: viewModel.readerPreferences.currentPageBackgroundColor)
         let foregroundHex = cssHex(for: foregroundColor)
         let accentHex = cssHex(for: .accentColor)
 
-        guard backgroundHex != nil || foregroundHex != nil || accentHex != nil else {
+        guard pageBackgroundHex != nil || interfaceBackgroundHex != nil || foregroundHex != nil || accentHex != nil else {
             return nil
         }
 
@@ -495,10 +504,11 @@ struct BookReaderView: View {
         return DictionaryWebTheme(
             colorScheme: colorSchemeString,
             textColor: foregroundHex,
-            backgroundColor: backgroundHex,
+            backgroundColor: pageBackgroundHex,
+            interfaceBackgroundColor: interfaceBackgroundHex,
             accentColor: accentHex,
             linkColor: accentHex,
-            glossImageBackgroundColor: backgroundHex
+            glossImageBackgroundColor: pageBackgroundHex
         )
     }
 

@@ -168,6 +168,9 @@ window.MaruReader.dictionaryResults = {
         if (theme.backgroundColor) {
             document.documentElement.style.setProperty('--background-color', theme.backgroundColor);
         }
+        if (theme.interfaceBackgroundColor) {
+            document.documentElement.style.setProperty('--interface-background-color', theme.interfaceBackgroundColor);
+        }
         if (theme.accentColor) {
             document.documentElement.style.setProperty('--accent-color', theme.accentColor);
         }

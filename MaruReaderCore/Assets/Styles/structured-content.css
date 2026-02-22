@@ -25,6 +25,7 @@
     /* Color system */
     --text-color: CanvasText;
     --background-color: Canvas;
+    --interface-background-color: var(--background-color);
     --accent-color: AccentColor;
     --link-color: var(--accent-color);
     --text-color-light1: color-mix(in srgb, CanvasText 70% transparent);
@@ -204,7 +205,7 @@ body {
     line-height: var(--line-height);
     font-size: calc(1em * var(--content-font-size-multiplier, 1.0));
     color: var(--text-color);
-    background-color: var(--background-color);
+    background-color: var(--interface-background-color, var(--background-color));
 }
 
 .term-group {

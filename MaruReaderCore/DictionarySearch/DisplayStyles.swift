@@ -55,6 +55,7 @@ public struct DictionaryWebTheme: Sendable, Codable, Equatable {
     public let colorScheme: String?
     public let textColor: String?
     public let backgroundColor: String?
+    public let interfaceBackgroundColor: String?
     public let accentColor: String?
     public let linkColor: String?
     public let glossImageBackgroundColor: String?
@@ -63,6 +64,7 @@ public struct DictionaryWebTheme: Sendable, Codable, Equatable {
         colorScheme: String? = nil,
         textColor: String? = nil,
         backgroundColor: String? = nil,
+        interfaceBackgroundColor: String? = nil,
         accentColor: String? = nil,
         linkColor: String? = nil,
         glossImageBackgroundColor: String? = nil
@@ -70,6 +72,7 @@ public struct DictionaryWebTheme: Sendable, Codable, Equatable {
         self.colorScheme = colorScheme
         self.textColor = textColor
         self.backgroundColor = backgroundColor
+        self.interfaceBackgroundColor = interfaceBackgroundColor
         self.accentColor = accentColor
         self.linkColor = linkColor
         self.glossImageBackgroundColor = glossImageBackgroundColor
