@@ -103,6 +103,7 @@ struct BookReaderView: View {
                 }
                 .sheet(isPresented: showingTableOfContents) {
                     if let publication = viewModel.publication {
+                        let tableOfContentsTheme = readerTableOfContentsTheme
                         TableOfContentsView(
                             publication: publication,
                             bookTitle: viewModel.book.title,
@@ -125,9 +126,20 @@ struct BookReaderView: View {
                             onUpdateBookmarkTitle: { bookmark, title in
                                 viewModel.updateBookmarkTitle(bookmark, title: title)
                             },
+                            theme: tableOfContentsTheme,
                             onDismiss: {
                                 viewModel.overlayState = .showingToolbars
                             }
+                        )
+                        .background(tableOfContentsTheme.backgroundColor)
+                        .preferredColorScheme(tableOfContentsTheme.preferredColorScheme)
+                        .tint(tableOfContentsTheme.foregroundColor)
+                        .presentationBackground(tableOfContentsTheme.backgroundColor)
+                        .toolbarBackground(tableOfContentsTheme.backgroundColor, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                        .toolbarColorScheme(
+                            tableOfContentsTheme.preferredColorScheme ?? colorScheme,
+                            for: .navigationBar
                         )
                         .presentationDetents([.medium, .large])
                     }
@@ -351,6 +363,8 @@ struct BookReaderView: View {
                 .accessibilityLabel("Appearance and text")
         }
         .accessibilityLabel("Appearance and text")
+        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
+        .tint(readerDictionaryPresentationTheme.foregroundColor)
     }
 
     private var floatingBackButton: some View {
@@ -409,6 +423,8 @@ struct BookReaderView: View {
             Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
         }
         .accessibilityLabel("Bookmarks")
+        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
+        .tint(readerDictionaryPresentationTheme.foregroundColor)
     }
 
     private func errorView(error: Error) -> some View {
@@ -439,6 +455,17 @@ struct BookReaderView: View {
 
     private var dictionarySheetBackgroundColor: SwiftUI.Color {
         readerDictionaryPresentationTheme.backgroundColor
+    }
+
+    private var readerTableOfContentsTheme: TableOfContentsTheme {
+        let theme = readerDictionaryPresentationTheme
+        return TableOfContentsTheme(
+            preferredColorScheme: theme.preferredColorScheme,
+            backgroundColor: theme.backgroundColor,
+            foregroundColor: theme.foregroundColor,
+            secondaryForegroundColor: theme.secondaryForegroundColor,
+            separatorColor: theme.separatorColor
+        )
     }
 
     private var readerDictionaryPresentationTheme: DictionaryPresentationTheme {

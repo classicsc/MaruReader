@@ -23,6 +23,14 @@ private enum ContentTab: String, CaseIterable {
     case bookmarks = "Bookmarks"
 }
 
+struct TableOfContentsTheme {
+    let preferredColorScheme: ColorScheme?
+    let backgroundColor: Color
+    let foregroundColor: Color
+    let secondaryForegroundColor: Color
+    let separatorColor: Color
+}
+
 @MainActor
 struct TableOfContentsView: View {
     let publication: Publication
@@ -36,6 +44,7 @@ struct TableOfContentsView: View {
     let onNavigateToBookmark: (Bookmark) -> Void
     let onDeleteBookmark: (Bookmark) -> Void
     let onUpdateBookmarkTitle: (Bookmark, String) -> Void
+    let theme: TableOfContentsTheme
     let onDismiss: () -> Void
 
     @State private var selectedTab: ContentTab = .contents
@@ -50,9 +59,10 @@ struct TableOfContentsView: View {
             VStack(spacing: 0) {
                 headerView
                     .padding()
-                    .background(Color(.systemBackground))
+                    .background(theme.backgroundColor)
 
                 Divider()
+                    .overlay(theme.separatorColor)
 
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(ContentTab.allCases, id: \.self) { tab in
@@ -71,12 +81,14 @@ struct TableOfContentsView: View {
                         bookmarks: bookmarks,
                         publication: publication,
                         currentLocator: currentLocator,
+                        theme: theme,
                         onNavigate: onNavigateToBookmark,
                         onDelete: onDeleteBookmark,
                         onUpdateTitle: onUpdateBookmarkTitle
                     )
                 }
             }
+            .background(theme.backgroundColor)
             .alert("Go to position", isPresented: $isShowingPositionPrompt) {
                 TextField("Position", text: $positionInput)
                     .keyboardType(.numberPad)
@@ -95,6 +107,9 @@ struct TableOfContentsView: View {
                 }
             }
         }
+        .background(theme.backgroundColor)
+        .preferredColorScheme(theme.preferredColorScheme)
+        .tint(theme.foregroundColor)
         .task {
             await loadTableOfContents()
         }
@@ -130,18 +145,19 @@ struct TableOfContentsView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 40, height: 50)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.secondaryForegroundColor)
                     .padding(.horizontal, 5)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(bookTitle ?? "Unknown Title")
                     .font(.headline)
+                    .foregroundStyle(theme.foregroundColor)
                     .lineLimit(2)
 
                 Text(displayAuthor)
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(theme.secondaryForegroundColor)
                     .lineLimit(1)
 
                 VStack(alignment: .leading, spacing: 2) {
@@ -157,7 +173,7 @@ struct TableOfContentsView: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.secondaryForegroundColor)
             }
 
             Spacer()
@@ -173,11 +189,15 @@ struct TableOfContentsView: View {
                         level: 0,
                         expandedItems: $expandedItems,
                         currentHref: currentLocator?.href.string,
+                        theme: theme,
                         onNavigate: onNavigate
                     )
+                    .listRowBackground(theme.backgroundColor)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(theme.backgroundColor)
             .onAppear {
                 scrollToCurrentChapter(proxy: proxy)
             }
@@ -276,6 +296,7 @@ private struct BookmarksListView: View {
     let bookmarks: [Bookmark]
     let publication: Publication
     let currentLocator: Locator?
+    let theme: TableOfContentsTheme
     let onNavigate: (Bookmark) -> Void
     let onDelete: (Bookmark) -> Void
     let onUpdateTitle: (Bookmark, String) -> Void
@@ -296,7 +317,8 @@ private struct BookmarksListView: View {
                     BookmarkRowView(
                         bookmark: bookmark,
                         publication: publication,
-                        currentLocator: currentLocator
+                        currentLocator: currentLocator,
+                        theme: theme
                     )
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -316,9 +338,12 @@ private struct BookmarksListView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
+                    .listRowBackground(theme.backgroundColor)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(theme.backgroundColor)
             .alert("Rename Bookmark", isPresented: .init(
                 get: { editingBookmark != nil },
                 set: { if !$0 { editingBookmark = nil } }
@@ -346,6 +371,7 @@ private struct BookmarkRowView: View {
     @ObservedObject var bookmark: Bookmark
     let publication: Publication
     let currentLocator: Locator?
+    let theme: TableOfContentsTheme
 
     private var locator: Locator? {
         guard let locationJSON = bookmark.location else { return nil }
@@ -384,7 +410,7 @@ private struct BookmarkRowView: View {
                 Text(displayTitle)
                     .font(.body)
                     .fontWeight(isCurrent ? .semibold : .regular)
-                    .foregroundStyle(isCurrent ? Color.accentColor : Color.primary)
+                    .foregroundStyle(isCurrent ? Color.accentColor : theme.foregroundColor)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
@@ -397,7 +423,7 @@ private struct BookmarkRowView: View {
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(theme.secondaryForegroundColor)
             }
 
             Spacer()
@@ -434,6 +460,7 @@ private struct TOCItemView: View {
     let level: Int
     @Binding var expandedItems: Set<String>
     let currentHref: String?
+    let theme: TableOfContentsTheme
     let onNavigate: (ReadiumShared.Link) -> Void
 
     private var hasChildren: Bool {
@@ -478,7 +505,7 @@ private struct TOCItemView: View {
                     } label: {
                         Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
                             .font(.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(theme.secondaryForegroundColor)
                             .frame(width: 16, height: 16)
                     }
                     .buttonStyle(.plain)
@@ -492,7 +519,7 @@ private struct TOCItemView: View {
                 } label: {
                     HStack {
                         Text(displayTitle)
-                            .foregroundStyle(isCurrent ? Color.accentColor : Color.primary)
+                            .foregroundStyle(isCurrent ? Color.accentColor : theme.foregroundColor)
                             .fontWeight(isCurrent ? .semibold : .regular)
                             .lineLimit(2)
                             .multilineTextAlignment(.leading)
@@ -518,6 +545,7 @@ private struct TOCItemView: View {
                         level: level + 1,
                         expandedItems: $expandedItems,
                         currentHref: currentHref,
+                        theme: theme,
                         onNavigate: onNavigate
                     )
                 }
