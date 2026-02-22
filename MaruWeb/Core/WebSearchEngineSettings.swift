@@ -25,9 +25,9 @@ public enum SearchEngine: Codable, Equatable, Sendable {
     var searchTemplate: String {
         switch self {
         case .google:
-            "https://www.google.co.jp/search?q=%s"
+            "https://www.google.co.jp/search?q=%s&hl=ja"
         case .bing:
-            "https://www.bing.com/search?q=%s"
+            "https://www.bing.com/search?setmkt=ja-JP&q=%s"
         case let .custom(searchURL, _):
             searchURL
         }
@@ -38,7 +38,7 @@ public enum SearchEngine: Codable, Equatable, Sendable {
         case .google:
             "https://suggestqueries.google.com/complete/search?client=firefox&q=%s"
         case .bing:
-            "https://api.bing.com/osjson.svc?query=%s"
+            "https://www.bing.com/osjson.aspx?query=%s&mkt=ja-JP"
         case let .custom(_, suggestionsURL):
             suggestionsURL
         }
