@@ -288,9 +288,10 @@ final class WebViewerViewModel {
     func toggleBookmark() {
         guard let page, let url = page.url else { return }
         let title = page.title
+        let favicon = page.faviconData
         Task {
             do {
-                let isNowBookmarked = try await bookmarkManager.toggleBookmark(url: url, title: title)
+                let isNowBookmarked = try await bookmarkManager.toggleBookmark(url: url, title: title, favicon: favicon)
                 let snapshots = try await bookmarkManager.fetchBookmarks()
                 await MainActor.run {
                     self.isBookmarked = isNowBookmarked
@@ -305,9 +306,10 @@ final class WebViewerViewModel {
     func addBookmarkForCurrentPage() {
         guard let page, let url = page.url else { return }
         let title = page.title
+        let favicon = page.faviconData
         Task {
             do {
-                _ = try await bookmarkManager.addBookmark(url: url, title: title)
+                _ = try await bookmarkManager.addBookmark(url: url, title: title, favicon: favicon)
                 let snapshots = try await bookmarkManager.fetchBookmarks()
                 await MainActor.run {
                     self.isBookmarked = true
@@ -411,37 +413,34 @@ final class WebViewerViewModel {
     func refreshBookmarkState() {
         let page = page
         Task {
+            let currentURL = page?.url
+            let currentTitle = page?.title
+            let currentFavicon = page?.faviconData
+
+            let isBookmarkedForCurrentPage: Bool
+            if let currentURL {
+                isBookmarkedForCurrentPage = await bookmarkManager.isBookmarked(url: currentURL)
+                if isBookmarkedForCurrentPage {
+                    try? await bookmarkManager.updateBookmarkMetadata(
+                        url: currentURL,
+                        title: currentTitle,
+                        favicon: currentFavicon
+                    )
+                }
+            } else {
+                isBookmarkedForCurrentPage = false
+            }
+
             let snapshots: [WebBookmarkSnapshot]
             do {
                 snapshots = try await bookmarkManager.fetchBookmarks()
             } catch {
                 snapshots = []
             }
+
             await MainActor.run {
+                self.isBookmarked = isBookmarkedForCurrentPage
                 self.bookmarks = snapshots
-            }
-
-            guard let page else {
-                await MainActor.run {
-                    self.isBookmarked = false
-                }
-                return
-            }
-
-            guard let url = page.url else {
-                await MainActor.run {
-                    self.isBookmarked = false
-                }
-                return
-            }
-
-            let bookmarked = await bookmarkManager.isBookmarked(url: url)
-            await MainActor.run {
-                self.isBookmarked = bookmarked
-            }
-
-            if bookmarked {
-                try? await bookmarkManager.updateBookmarkMetadata(url: url, title: page.title)
             }
         }
     }

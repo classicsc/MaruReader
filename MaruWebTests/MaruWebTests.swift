@@ -256,6 +256,64 @@ struct MaruWebTests {
         #expect(bookmarks.first?.url == url)
     }
 
+    @Test func addBookmarkPersistsFavicon() async throws {
+        let persistence = WebDataPersistenceController(inMemory: true)
+        let manager = WebBookmarkManager(persistenceController: persistence)
+        let url = try #require(URL(string: "https://example.com"))
+        let favicon = Data([0x01, 0x02, 0x03, 0x04])
+
+        _ = try await manager.addBookmark(url: url, title: "Example", favicon: favicon)
+
+        let bookmarks = try await manager.fetchBookmarks()
+        #expect(bookmarks.count == 1)
+        #expect(bookmarks.first?.favicon == favicon)
+    }
+
+    @Test func updateBookmarkMetadataUpdatesTitleAndFavicon() async throws {
+        let persistence = WebDataPersistenceController(inMemory: true)
+        let manager = WebBookmarkManager(persistenceController: persistence)
+        let url = try #require(URL(string: "https://example.com"))
+        let favicon = Data([0x11, 0x22, 0x33])
+
+        _ = try await manager.addBookmark(url: url, title: "Old Title")
+        try await manager.updateBookmarkMetadata(url: url, title: "New Title", favicon: favicon)
+
+        let bookmarks = try await manager.fetchBookmarks()
+        let bookmark = try #require(bookmarks.first)
+        #expect(bookmark.title == "New Title")
+        #expect(bookmark.favicon == favicon)
+    }
+
+    @Test func updateBookmarkMetadataPreservesExistingFaviconWhenNil() async throws {
+        let persistence = WebDataPersistenceController(inMemory: true)
+        let manager = WebBookmarkManager(persistenceController: persistence)
+        let url = try #require(URL(string: "https://example.com"))
+        let favicon = Data([0xAA, 0xBB, 0xCC])
+
+        _ = try await manager.addBookmark(url: url, title: "Example", favicon: favicon)
+        try await manager.updateBookmarkMetadata(url: url, title: "Updated", favicon: nil)
+
+        let bookmarks = try await manager.fetchBookmarks()
+        let bookmark = try #require(bookmarks.first)
+        #expect(bookmark.title == "Updated")
+        #expect(bookmark.favicon == favicon)
+    }
+
+    @Test func addBookmarkPreservesExistingFaviconWhenUpdatingWithoutOne() async throws {
+        let persistence = WebDataPersistenceController(inMemory: true)
+        let manager = WebBookmarkManager(persistenceController: persistence)
+        let url = try #require(URL(string: "https://example.com"))
+        let favicon = Data([0xFE, 0xED, 0xFA, 0xCE])
+
+        _ = try await manager.addBookmark(url: url, title: "Example", favicon: favicon)
+        _ = try await manager.addBookmark(url: url, title: "Example 2", favicon: nil)
+
+        let bookmarks = try await manager.fetchBookmarks()
+        let bookmark = try #require(bookmarks.first)
+        #expect(bookmark.title == "Example 2")
+        #expect(bookmark.favicon == favicon)
+    }
+
     @Test func toggleBookmarkRemovesExisting() async throws {
         let persistence = WebDataPersistenceController(inMemory: true)
         let manager = WebBookmarkManager(persistenceController: persistence)

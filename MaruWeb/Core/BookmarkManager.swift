@@ -91,15 +91,26 @@ actor WebBookmarkManager {
         }
     }
 
-    func updateBookmarkMetadata(url: URL, title: String?) async throws {
+    func updateBookmarkMetadata(url: URL, title: String?, favicon: Data? = nil) async throws {
         let context = persistenceController.newBackgroundContext()
         try await context.perform {
             guard let bookmark = try self.fetchBookmark(url: url, in: context) else { return }
+            var needsSave = false
             bookmark.lastVisitedAt = Date()
+            needsSave = true
             if let title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                bookmark.title = title
+                if bookmark.title != title {
+                    bookmark.title = title
+                    needsSave = true
+                }
             }
-            try context.save()
+            if let favicon, bookmark.favicon != favicon {
+                bookmark.favicon = favicon
+                needsSave = true
+            }
+            if needsSave {
+                try context.save()
+            }
         }
     }
 

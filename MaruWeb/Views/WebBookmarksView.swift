@@ -128,14 +128,18 @@ private struct WebBookmarkRow: View {
     let bookmark: WebBookmark
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(displayTitle)
-                .font(.headline)
-                .foregroundStyle(.primary)
-            if let urlString = bookmark.url {
-                Text(urlString)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+        HStack(alignment: .top, spacing: 10) {
+            BookmarkFaviconView(data: bookmark.favicon, size: 24)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(displayTitle)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if let urlString = bookmark.url {
+                    Text(urlString)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

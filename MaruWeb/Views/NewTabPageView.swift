@@ -67,9 +67,7 @@ private struct BookmarkCard: View {
 
     var body: some View {
         VStack(spacing: 6) {
-            Image(systemName: "globe")
-                .font(.title2)
-                .foregroundStyle(.secondary)
+            BookmarkFaviconView(data: bookmark.favicon, size: 28)
                 .frame(height: 32)
 
             Text(bookmark.title)

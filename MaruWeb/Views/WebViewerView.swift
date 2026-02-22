@@ -75,6 +75,9 @@ public struct WebViewerView: View {
             }
             viewModel.refreshBookmarkState()
         }
+        .onChange(of: viewModel.page?.faviconData) { _, _ in
+            viewModel.refreshBookmarkState()
+        }
         .onChange(of: viewModel.dismissViewerRequestID) { _, newValue in
             guard newValue != nil else { return }
             dismiss()
@@ -422,7 +425,10 @@ public struct WebViewerView: View {
                         Button {
                             viewModel.navigate(to: bookmark.url)
                         } label: {
-                            Text(bookmark.title)
+                            HStack(spacing: 8) {
+                                BookmarkFaviconView(data: bookmark.favicon, size: 16)
+                                Text(bookmark.title)
+                            }
                         }
                     }
                 }
