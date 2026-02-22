@@ -41,6 +41,7 @@ final class WebSession {
 
         let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
         webView.isInspectable = true
+        webView.allowsBackForwardNavigationGestures = true
         let page = WebBrowserPage(webView: webView)
         return WebSession(page: page, dataStore: dataStore)
     }

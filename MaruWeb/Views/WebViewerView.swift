@@ -203,9 +203,6 @@ public struct WebViewerView: View {
                     model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                 }
                 .id(page.webView)
-                .onAppear {
-                    page.webView.allowsBackForwardNavigationGestures = true
-                }
 
                 if viewModel.isShowingNewTabPage, !isEditingAddress {
                     NewTabPageView(
