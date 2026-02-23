@@ -102,43 +102,33 @@ Please open an issue. For problems, include as many specifics as possible: the d
 
 ## Development
 
+For development, these tools are required:
+
+- [swiftformat](https://github.com/nicklockwood/SwiftFormat)
+- [just](https://github.com/casey/just)
+- [xcbeautify](https://github.com/cpisciotta/xcbeautify)
+
+For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and raw/parsed logs are written under `build/logs/` with timestamped files plus `latest-*.log` aliases.
+
 ### Building
 
 #### Content Blocker Extension
 
-```bash
-git submodule update --init --recursive
-
-./scripts/prepare-ubol.sh
-```
-
-If the build went well, you should see a `uBOLite.safari` folder under `External/uBlock/dist/build`
-
-The app checks for `MaruDictionary.sqlite` and the `AudioMedia` and `Media` directories in `MaruReader/StarterDictionary` whenever there is no existing database.
+`just contentblocker`
 
 #### Main App
 
-```bash
-xcodebuild -project MaruReader.xcodeproj -scheme MaruReader -destination generic/platform=iOS -configuration Debug build
-```
+`just build`
 
-#### Testing and formatting
+#### Formatting
 
-If you plan to send a pull request, please run [swiftformat](https://github.com/nicklockwood/SwiftFormat) on the files you added or changed for consistency.
+`just format`
 
-Tests are organized with Xcode test plans according to the framework structure. For example, to run all the tests from the command line, you could run:
+#### Tests
 
-```bash
-xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruReaderTests
+`just test`. Specify a simulator target like `just test 'iPhone 17 Pro'` (default) or `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`.
 
-xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruReaderCoreTests
-
-xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruMangaTests
-
-xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruAnkiTests
-
-xcodebuild test -scheme MaruReader -destination 'platform=iOS Simulator,name=iPhone 17 Pro' -testPlan MaruWebTests
-```
+You can also run a specific test plan with `just test-plan MaruReaderCoreTests` or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' 'iPhone 17 Pro' MaruReaderCoreTests`
 
 #### Bundled license sync
 
@@ -156,12 +146,6 @@ swift scripts/sync-third-party-licenses.swift --refresh-snapshots
 
 #### Starter Dictionaries
 
-This is only needed if you want to distribute the app with preloaded dictionaries.
+This is only needed if you want to distribute the app with preloaded dictionaries, for regular dev builds it's usually unnecessary and makes the build a bit slower.
 
-Build the dictionary seeder tool and run it with an output folder and one or more valid yomitan dictionaries. Audio ZIPs are given with `--audio`.
-
-```bash
-xcodebuild -project MaruReader.xcodeproj -scheme DictionarySeeder -destination generic/platform=macOS -configuration Debug build
-
-./DerivedData/MaruReader/Build/Products/Debug/DictionarySeeder MaruReader/StarterDictionary /path/to/jitendex-yomitan.zip --audio /path/to/kanji-alive.zip
-```
+`just starterdict`

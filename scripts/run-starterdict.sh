@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+LOG_DIR="$ROOT_DIR/build/logs"
+DOWNLOAD_DIR="$ROOT_DIR/build/starterdict/downloads"
+DERIVED_DATA_PATH="$ROOT_DIR/DerivedData/DictionarySeeder"
+STARTER_OUTPUT_DIR="$ROOT_DIR/MaruReader/StarterDictionary"
+
+JITENDEX_URL="https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip"
+KANJI_ALIVE_URL="https://github.com/classicsc/kanji-alive-indexer/releases/latest/download/kanji-alive-mp3-indexed.zip"
+JITENDEX_ZIP_PATH="$DOWNLOAD_DIR/jitendex-yomitan.zip"
+KANJI_ALIVE_ZIP_PATH="$DOWNLOAD_DIR/kanji-alive-mp3-indexed.zip"
+SEEDER_BINARY_PATH="$DERIVED_DATA_PATH/Build/Products/Debug/DictionarySeeder"
+
+mkdir -p "$LOG_DIR" "$DOWNLOAD_DIR"
+
+echo "Downloading starter dictionary archives..."
+curl --fail --location --output "$JITENDEX_ZIP_PATH" "$JITENDEX_URL"
+curl --fail --location --output "$KANJI_ALIVE_ZIP_PATH" "$KANJI_ALIVE_URL"
+
+echo "Building DictionarySeeder..."
+"$ROOT_DIR/scripts/run-xcodebuild-with-logs.sh" "build-dictionaryseeder-debug" \
+  -project "$ROOT_DIR/MaruReader.xcodeproj" \
+  -scheme DictionarySeeder \
+  -destination generic/platform=macOS \
+  -configuration Debug \
+  -derivedDataPath "$DERIVED_DATA_PATH" \
+  build
+
+if [[ ! -x "$SEEDER_BINARY_PATH" ]]; then
+  echo "DictionarySeeder binary not found at $SEEDER_BINARY_PATH" >&2
+  exit 1
+fi
+
+timestamp="$(date +%Y%m%d-%H%M%S)"
+seed_log_path="$LOG_DIR/${timestamp}-starterdict-seed.log"
+latest_seed_log_path="$LOG_DIR/latest-starterdict-seed.log"
+
+echo "Seeding starter dictionary output to $STARTER_OUTPUT_DIR..."
+set +e
+"$SEEDER_BINARY_PATH" "$STARTER_OUTPUT_DIR" "$JITENDEX_ZIP_PATH" --audio "$KANJI_ALIVE_ZIP_PATH" 2>&1 | tee "$seed_log_path"
+seed_exit_code=${PIPESTATUS[0]}
+set -e
+
+cp "$seed_log_path" "$latest_seed_log_path"
+
+echo "Seeder log: $seed_log_path"
+echo "Latest seeder log: $latest_seed_log_path"
+
+exit "$seed_exit_code"

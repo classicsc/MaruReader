@@ -60,7 +60,10 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# build artifacts
 DerivedData/
+build/
 buildServer.json
 MaruReader/StarterDictionary/MaruDictionary.sqlite
 MaruReader/StarterDictionary/AudioMedia
