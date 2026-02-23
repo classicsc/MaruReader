@@ -677,7 +677,6 @@ private struct AddressBarCapsuleView: View {
                 }
 
                 TextField("Search or enter URL", text: $addressText, selection: $addressSelection)
-                    .keyboardType(.URL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.go)

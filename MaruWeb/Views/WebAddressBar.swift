@@ -34,7 +34,6 @@ struct WebAddressBar: View {
                 .foregroundStyle(.secondary)
 
             TextField("Search or enter URL", text: $text, selection: $selection)
-                .keyboardType(.URL)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.go)
