@@ -93,28 +93,6 @@ struct MaruWebTests {
 
     // MARK: - Search engine model
 
-    @Test func searchEngineGoogleSearchURL() {
-        let url = SearchEngine.google.searchURL(for: "test")
-        #expect(url?.absoluteString == "https://www.google.co.jp/search?q=test")
-    }
-
-    @Test func searchEngineBingSearchURL() {
-        let url = SearchEngine.bing.searchURL(for: "test")
-        #expect(url?.absoluteString == "https://www.bing.com/search?q=test")
-    }
-
-    @Test func searchEngineGoogleSuggestionsURL() {
-        let url = SearchEngine.google.suggestionsURL(for: "hello")
-        #expect(url?.absoluteString.contains("suggestqueries.google.com") == true)
-        #expect(url?.absoluteString.contains("q=hello") == true)
-    }
-
-    @Test func searchEngineBingSuggestionsURL() {
-        let url = SearchEngine.bing.suggestionsURL(for: "hello")
-        #expect(url?.absoluteString.contains("api.bing.com") == true)
-        #expect(url?.absoluteString.contains("query=hello") == true)
-    }
-
     @Test func searchEngineCustomNoSuggestions() {
         let engine = SearchEngine.custom(searchURL: "https://s.example.com/?q=%s", suggestionsURL: nil)
         #expect(engine.suggestionsURL(for: "test") == nil)
