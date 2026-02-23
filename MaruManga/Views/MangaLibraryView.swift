@@ -344,11 +344,11 @@ struct MangaArchiveGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            "Importing..."
+            String(localized: "Importing...")
         case .failed:
-            book.importErrorMessage ?? "Import failed."
+            book.importErrorMessage ?? String(localized: "Import failed.")
         case .cancelled:
-            "Import cancelled."
+            String(localized: "Import cancelled.")
         }
     }
 

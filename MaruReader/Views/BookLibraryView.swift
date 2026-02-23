@@ -335,11 +335,11 @@ struct BookGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            book.displayProgressMessage ?? "Importing..."
+            book.displayProgressMessage ?? String(localized: "Importing...")
         case .failed:
-            book.errorMessage ?? book.displayProgressMessage ?? "Import failed."
+            book.errorMessage ?? book.displayProgressMessage ?? String(localized: "Import failed.")
         case .cancelled:
-            book.displayProgressMessage ?? "Import cancelled."
+            book.displayProgressMessage ?? String(localized: "Import cancelled.")
         }
     }
 

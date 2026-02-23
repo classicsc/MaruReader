@@ -68,7 +68,7 @@ public actor DictionaryImportManager {
             let baseTitle = zipURL.deletingPathExtension().lastPathComponent
             dictionary.title = baseTitle.isEmpty ? "Imported Dictionary" : baseTitle
             dictionary.timeQueued = Date()
-            dictionary.displayProgressMessage = "Queued for import."
+            dictionary.displayProgressMessage = String(localized: "Queued for import.")
             dictionary.isComplete = false
             dictionary.isFailed = false
             dictionary.isCancelled = false
@@ -99,7 +99,7 @@ public actor DictionaryImportManager {
                     dictionary.isFailed = false
                     dictionary.isComplete = false
                     dictionary.timeCancelled = Date()
-                    dictionary.displayProgressMessage = "Import cancelled."
+                    dictionary.displayProgressMessage = String(localized: "Import cancelled.")
                     dictionary.errorMessage = nil
                     try? viewContext.save()
                 }
@@ -150,7 +150,7 @@ public actor DictionaryImportManager {
                     dictionary.isCancelled = false
                     dictionary.isComplete = false
                     dictionary.isStarted = false
-                    dictionary.displayProgressMessage = "Retrying update import."
+                    dictionary.displayProgressMessage = String(localized: "Retrying update import.")
                     dictionary.errorMessage = nil
                     dictionary.timeQueued = now
                     dictionary.timeStarted = nil
@@ -161,8 +161,8 @@ public actor DictionaryImportManager {
                     dictionary.isFailed = true
                     dictionary.isCancelled = false
                     dictionary.isComplete = false
-                    dictionary.displayProgressMessage = "Import interrupted."
-                    dictionary.errorMessage = "Import interrupted."
+                    dictionary.displayProgressMessage = String(localized: "Import interrupted.")
+                    dictionary.errorMessage = String(localized: "Import interrupted.")
                     dictionary.timeFailed = now
                 }
                 dictionary.termCount = 0
@@ -229,7 +229,7 @@ public actor DictionaryImportManager {
                 dictionary.isFailed = false
                 dictionary.isCancelled = false
                 dictionary.timeStarted = Date()
-                dictionary.displayProgressMessage = "Starting import..."
+                dictionary.displayProgressMessage = String(localized: "Starting import...")
                 dictionary.errorMessage = nil
                 try context.save()
                 return dictionary.id
@@ -272,7 +272,7 @@ public actor DictionaryImportManager {
                 context.refresh(dictionary, mergeChanges: true)
                 dictionary.isComplete = true
                 dictionary.timeCompleted = Date()
-                dictionary.displayProgressMessage = "Import complete."
+                dictionary.displayProgressMessage = String(localized: "Import complete.")
                 dictionary.isFailed = false
                 dictionary.isCancelled = false
                 dictionary.errorMessage = nil
@@ -329,7 +329,7 @@ public actor DictionaryImportManager {
                 dictionary.isFailed = false
                 dictionary.isComplete = false
                 dictionary.timeCancelled = Date()
-                dictionary.displayProgressMessage = "Import cancelled."
+                dictionary.displayProgressMessage = String(localized: "Import cancelled.")
                 dictionary.errorMessage = nil
                 dictionary.termCount = 0
                 dictionary.kanjiCount = 0
@@ -357,7 +357,7 @@ public actor DictionaryImportManager {
                 dictionary.isFailed = true
                 dictionary.isCancelled = false
                 dictionary.isComplete = false
-                dictionary.displayProgressMessage = "Import failed."
+                dictionary.displayProgressMessage = String(localized: "Import failed.")
                 dictionary.errorMessage = error.localizedDescription
                 dictionary.timeFailed = Date()
                 dictionary.termCount = 0

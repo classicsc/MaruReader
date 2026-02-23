@@ -252,7 +252,7 @@ private struct InProgressAudioSourceRow: View {
         if let message = source.displayProgressMessage, !message.isEmpty {
             return message
         }
-        return source.isStarted ? "Importing..." : "Queued for import."
+        return source.isStarted ? String(localized: "Importing...") : String(localized: "Queued for import.")
     }
 
     private var canCancel: Bool {
@@ -327,9 +327,9 @@ private struct FailedAudioSourceRow: View {
 
     private var statusMessage: String {
         if source.isCancelled {
-            return "Import cancelled."
+            return String(localized: "Import cancelled.")
         }
-        return source.displayProgressMessage ?? "Import failed."
+        return source.displayProgressMessage ?? String(localized: "Import failed.")
     }
 
     var body: some View {

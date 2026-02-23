@@ -151,7 +151,7 @@ struct AudioSourceMediaCopyTask {
         try Task.checkCancellation()
 
         let totalFilesCopied = filesCopied
-        let progressMessage = totalFilesCopied == 0 ? "No media files to copy." : "Copied \(totalFilesCopied) audio files."
+        let progressMessage = totalFilesCopied == 0 ? String(localized: "No media files to copy.") : String(localized: "Copied \(totalFilesCopied) audio files.")
         try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound

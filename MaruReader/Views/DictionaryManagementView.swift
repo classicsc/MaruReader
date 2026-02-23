@@ -284,7 +284,7 @@ struct InProgressDictionaryRow: View {
         if let message = dictionary.displayProgressMessage, !message.isEmpty {
             return message
         }
-        return dictionary.isStarted ? "Importing..." : "Queued for import."
+        return dictionary.isStarted ? String(localized: "Importing...") : String(localized: "Queued for import.")
     }
 
     private var canCancel: Bool {
@@ -352,9 +352,9 @@ struct FailedDictionaryRow: View {
 
     private var statusMessage: String {
         if dictionary.isCancelled {
-            return "Import cancelled."
+            return String(localized: "Import cancelled.")
         }
-        return dictionary.errorMessage ?? dictionary.displayProgressMessage ?? "Import failed."
+        return dictionary.errorMessage ?? dictionary.displayProgressMessage ?? String(localized: "Import failed.")
     }
 
     var body: some View {
@@ -530,7 +530,7 @@ struct DictionaryUpdateTaskRow: View {
         if let message = task.displayProgressMessage, !message.isEmpty {
             return message
         }
-        return task.isStarted ? "Updating..." : "Queued for update."
+        return task.isStarted ? String(localized: "Updating...") : String(localized: "Queued for update.")
     }
 
     var body: some View {

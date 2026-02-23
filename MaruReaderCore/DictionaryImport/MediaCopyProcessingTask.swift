@@ -126,7 +126,7 @@ struct MediaCopyProcessingTask {
                     guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                         throw DictionaryImportError.databaseError
                     }
-                    dictionary.displayProgressMessage = "Copying media files… (\(currentCount.formatted()) of \(totalMediaFiles.formatted()))"
+                    dictionary.displayProgressMessage = String(localized: "Copying media files… (\(currentCount.formatted()) of \(totalMediaFiles.formatted()))")
                     try context.save()
                 }
             }

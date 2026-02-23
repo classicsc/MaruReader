@@ -45,27 +45,27 @@ public enum AudioSourceImportError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .notAnAudioSource:
-            "The archive does not contain a valid audio source index."
+            String(localized: "The archive does not contain a valid audio source index.")
         case .invalidFormat:
-            "The audio source index has an invalid format."
+            String(localized: "The audio source index has an invalid format.")
         case .importNotFound:
-            "The import job was not found."
+            String(localized: "The import job was not found.")
         case .sourceCreationFailed:
-            "Failed to create the audio source."
+            String(localized: "Failed to create the audio source.")
         case .invalidData:
-            "The audio source data is invalid."
+            String(localized: "The audio source data is invalid.")
         case .databaseError:
-            "A database error occurred."
+            String(localized: "A database error occurred.")
         case .fileAccessDenied:
-            "Unable to access the source file."
+            String(localized: "Unable to access the source file.")
         case .missingFile:
-            "A required file is missing."
+            String(localized: "A required file is missing.")
         case let .unzipFailed(error):
-            "Failed to read archive: \(error.localizedDescription)"
+            String(localized: "Failed to read archive: \(error.localizedDescription)")
         case .deletionFailed:
-            "Failed to delete the audio source."
+            String(localized: "Failed to delete the audio source.")
         case .mediaDirectoryCreationFailed:
-            "Failed to create the audio media directory."
+            String(localized: "Failed to create the audio media directory.")
         }
     }
 }

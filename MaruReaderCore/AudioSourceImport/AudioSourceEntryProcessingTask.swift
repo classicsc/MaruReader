@@ -72,7 +72,7 @@ struct AudioSourceEntryProcessingTask {
                 throw AudioSourceImportError.importNotFound
             }
             job.entriesProcessed = true
-            job.displayProgressMessage = "Processed \(headwordCount) headwords and \(fileCount) audio files."
+            job.displayProgressMessage = String(localized: "Processed \(headwordCount) headwords and \(fileCount) audio files.")
             try context.save()
         }
     }

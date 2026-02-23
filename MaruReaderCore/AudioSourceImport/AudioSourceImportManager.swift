@@ -81,7 +81,7 @@ public actor AudioSourceImportManager {
             job.indexProcessed = false
             job.entriesProcessed = false
             job.mediaImported = false
-            job.displayProgressMessage = "Queued for import."
+            job.displayProgressMessage = String(localized: "Queued for import.")
             job.priority = try Self.getNextPriority(in: context)
             job.timeQueued = Date()
             try context.save()
@@ -107,7 +107,7 @@ public actor AudioSourceImportManager {
                     job.isFailed = false
                     job.isComplete = false
                     job.timeCancelled = Date()
-                    job.displayProgressMessage = "Import cancelled."
+                    job.displayProgressMessage = String(localized: "Import cancelled.")
                     try? viewContext.save()
                 }
             }
@@ -153,7 +153,7 @@ public actor AudioSourceImportManager {
                 source.isComplete = false
                 source.isStarted = false
                 source.timeFailed = now
-                source.displayProgressMessage = "Import interrupted."
+                source.displayProgressMessage = String(localized: "Import interrupted.")
                 source.indexProcessed = false
                 source.entriesProcessed = false
                 source.mediaImported = false
@@ -215,7 +215,7 @@ public actor AudioSourceImportManager {
                 job.isCancelled = false
                 job.isStarted = true
                 job.timeStarted = Date()
-                job.displayProgressMessage = "Starting import..."
+                job.displayProgressMessage = String(localized: "Starting import...")
                 try context.save()
                 guard let id = job.id else {
                     throw AudioSourceImportError.databaseError
@@ -286,7 +286,7 @@ public actor AudioSourceImportManager {
                 job.isFailed = false
                 job.isCancelled = false
                 job.timeCompleted = Date()
-                job.displayProgressMessage = "Import complete."
+                job.displayProgressMessage = String(localized: "Import complete.")
                 try context.save()
             }
 
@@ -306,7 +306,7 @@ public actor AudioSourceImportManager {
                 job.isFailed = false
                 job.isComplete = false
                 job.timeCancelled = Date()
-                job.displayProgressMessage = "Import cancelled."
+                job.displayProgressMessage = String(localized: "Import cancelled.")
                 try? context.save()
             }
         } catch {

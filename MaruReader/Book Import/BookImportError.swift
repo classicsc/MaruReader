@@ -15,6 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import Foundation
+
 enum BookImportError: Error, Equatable {
     case notABook
     case unsupportedFormat
@@ -31,27 +33,27 @@ enum BookImportError: Error, Equatable {
     var localizedDescription: String {
         switch self {
         case .notABook:
-            "The selected file is not a valid book."
+            String(localized: "The selected file is not a valid book.")
         case .unsupportedFormat:
-            "The book format is unsupported."
+            String(localized: "The book format is unsupported.")
         case .importNotFound:
-            "The import operation was not found."
+            String(localized: "The import operation was not found.")
         case .bookCreationFailed:
-            "Failed to create book in database."
+            String(localized: "Failed to create book in database.")
         case .invalidData:
-            "The book contains invalid data."
+            String(localized: "The book contains invalid data.")
         case .databaseError:
-            "A database error occurred while importing the book."
+            String(localized: "A database error occurred while importing the book.")
         case .fileAccessDenied:
-            "Could not access the book file."
+            String(localized: "Could not access the book file.")
         case .missingFile:
-            "The book file is missing."
+            String(localized: "The book file is missing.")
         case let .fileCopyFailed(underlyingError):
-            "Failed to copy the book file: \(underlyingError.localizedDescription)"
+            String(localized: "Failed to copy the book file: \(underlyingError.localizedDescription)")
         case let .coverExtractionFailed(underlyingError):
-            "Failed to extract book cover: \(underlyingError.localizedDescription)"
+            String(localized: "Failed to extract book cover: \(underlyingError.localizedDescription)")
         case let .metadataExtractionFailed(underlyingError):
-            "Failed to extract book metadata: \(underlyingError.localizedDescription)"
+            String(localized: "Failed to extract book metadata: \(underlyingError.localizedDescription)")
         }
     }
 

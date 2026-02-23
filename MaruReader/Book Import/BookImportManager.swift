@@ -51,7 +51,7 @@ actor BookImportManager {
             let now = Date()
             book.timeQueued = now
             book.added = now
-            book.displayProgressMessage = "Queued for import."
+            book.displayProgressMessage = String(localized: "Queued for import.")
             try context.save()
             return book.objectID
         }
@@ -76,7 +76,7 @@ actor BookImportManager {
                 if let book = try? context.existingObject(with: jobID) as? Book {
                     book.isCancelled = true
                     book.timeCancelled = Date()
-                    book.displayProgressMessage = "Import cancelled."
+                    book.displayProgressMessage = String(localized: "Import cancelled.")
                     book.importFile = nil
                     try? context.save()
                 }
@@ -120,8 +120,8 @@ actor BookImportManager {
                 book.isComplete = false
                 book.isCancelled = false
                 book.isStarted = false
-                book.displayProgressMessage = "Import interrupted."
-                book.errorMessage = "Import interrupted."
+                book.displayProgressMessage = String(localized: "Import interrupted.")
+                book.errorMessage = String(localized: "Import interrupted.")
                 book.importFile = nil
 
                 let fileName = book.fileName
@@ -198,7 +198,7 @@ actor BookImportManager {
                 }
                 book.isStarted = true
                 book.timeStarted = Date()
-                book.displayProgressMessage = "Starting import..."
+                book.displayProgressMessage = String(localized: "Starting import...")
                 try context.save()
             }
             try Task.checkCancellation()
@@ -233,7 +233,7 @@ actor BookImportManager {
                 }
                 book.isComplete = true
                 book.timeCompleted = Date()
-                book.displayProgressMessage = "Import complete."
+                book.displayProgressMessage = String(localized: "Import complete.")
                 book.errorMessage = nil
                 book.importFile = nil
 
@@ -250,7 +250,7 @@ actor BookImportManager {
                 }
                 book.isCancelled = true
                 book.timeCancelled = Date()
-                book.displayProgressMessage = "Import cancelled."
+                book.displayProgressMessage = String(localized: "Import cancelled.")
                 book.importFile = nil
 
                 let fileName = book.fileName

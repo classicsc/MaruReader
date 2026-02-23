@@ -96,7 +96,7 @@ public actor MangaImportManager {
             context.shouldDeleteInaccessibleFaults = true
             await context.perform {
                 if let manga = try? context.existingObject(with: jobID) as? MangaArchive {
-                    manga.importErrorMessage = "Import cancelled."
+                    manga.importErrorMessage = String(localized: "Import cancelled.")
                     manga.importFile = nil
                     try? context.save()
                 }
@@ -134,7 +134,7 @@ public actor MangaImportManager {
 
             var infos: [(URL?, URL?)] = []
             for manga in archives {
-                manga.importErrorMessage = "Import interrupted."
+                manga.importErrorMessage = String(localized: "Import interrupted.")
                 manga.importFile = nil
 
                 let localPath = manga.localPath
@@ -396,7 +396,7 @@ public actor MangaImportManager {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
-            manga.importErrorMessage = "Import cancelled."
+            manga.importErrorMessage = String(localized: "Import cancelled.")
             manga.importFile = nil
 
             let localPath = manga.localPath

@@ -33,27 +33,27 @@ enum DictionaryImportError: Error, Equatable, LocalizedError {
     var errorDescription: String {
         switch self {
         case .notADictionary:
-            "The selected file is not a valid dictionary."
+            String(localized: "The selected file is not a valid dictionary.")
         case .unsupportedFormat:
-            "The dictionary format is unsupported."
+            String(localized: "The dictionary format is unsupported.")
         case .importNotFound:
-            "The import operation the component requested was not found."
+            String(localized: "The import operation the component requested was not found.")
         case .dictionaryCreationFailed:
-            "A database error occurred."
+            String(localized: "A database error occurred.")
         case .invalidData:
-            "The dictionary contains invalid data."
+            String(localized: "The dictionary contains invalid data.")
         case .databaseError:
-            "A database error occurred while importing the dictionary."
+            String(localized: "A database error occurred while importing the dictionary.")
         case .fileAccessDenied:
-            "Could not access the dictionary file."
+            String(localized: "Could not access the dictionary file.")
         case .missingFile:
-            "The dictionary file is missing."
+            String(localized: "The dictionary file is missing.")
         case let .unzipFailed(underlyingError):
-            "Failed to read the dictionary archive: \(underlyingError.localizedDescription)"
+            String(localized: "Failed to read the dictionary archive: \(underlyingError.localizedDescription)")
         case .deletionFailed:
-            "Failed to delete the dictionary."
+            String(localized: "Failed to delete the dictionary.")
         case .mediaDirectoryCreationFailed:
-            "Failed to create media directory for the dictionary."
+            String(localized: "Failed to create media directory for the dictionary.")
         }
     }
 

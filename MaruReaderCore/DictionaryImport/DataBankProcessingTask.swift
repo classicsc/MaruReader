@@ -360,7 +360,7 @@ struct DataBankProcessingTask {
         let jobID = self.jobID
         await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else { return }
-            dictionary.displayProgressMessage = "Processing dictionary data… (\(count.formatted()) entries)"
+            dictionary.displayProgressMessage = String(localized: "Processing dictionary data… (\(count.formatted()) entries)")
             try? context.save()
         }
     }
