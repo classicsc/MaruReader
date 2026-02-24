@@ -25,22 +25,24 @@ public struct LookupCandidate: Sendable {
     public let preprocessorRules: [[String]]
     /// The deinflection rule chains that produced this candidate.
     public let deinflectionInputRules: [[String]]
-    /// The deinflection output rules for matching the `rules` attribute of dictionary entries.
-    public let deinflectionOutputRules: [String]
+    /// Per-chain output conditions for POS matching against dictionary entries.
+    /// Parallel to `deinflectionInputRules`: element at index `i` contains the output
+    /// conditions for the chain at `deinflectionInputRules[i]`.
+    public let deinflectionOutputRulesPerChain: [[String]]
 
     public init(from text: String) {
         self.text = text
         self.originalSubstring = text
         self.preprocessorRules = []
         self.deinflectionInputRules = []
-        self.deinflectionOutputRules = []
+        self.deinflectionOutputRulesPerChain = []
     }
 
-    public init(text: String, originalSubstring: String, preprocessorRules: [[String]], deinflectionInputRules: [[String]], deinflectionOutputRules: [String]) {
+    public init(text: String, originalSubstring: String, preprocessorRules: [[String]], deinflectionInputRules: [[String]], deinflectionOutputRulesPerChain: [[String]]) {
         self.text = text
         self.originalSubstring = originalSubstring
         self.preprocessorRules = preprocessorRules
         self.deinflectionInputRules = deinflectionInputRules
-        self.deinflectionOutputRules = deinflectionOutputRules
+        self.deinflectionOutputRulesPerChain = deinflectionOutputRulesPerChain
     }
 }

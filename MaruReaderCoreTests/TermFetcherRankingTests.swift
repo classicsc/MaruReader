@@ -27,14 +27,14 @@ struct TermFetcherRankingTests {
         originalSubstring: String,
         preprocessorRules: [[String]] = [],
         deinflectionInputRules: [[String]] = [],
-        deinflectionOutputRules: [String] = []
+        deinflectionOutputRulesPerChain: [[String]] = []
     ) -> LookupCandidate {
         LookupCandidate(
             text: text,
             originalSubstring: originalSubstring,
             preprocessorRules: preprocessorRules,
             deinflectionInputRules: deinflectionInputRules,
-            deinflectionOutputRules: deinflectionOutputRules
+            deinflectionOutputRulesPerChain: deinflectionOutputRulesPerChain
         )
     }
 

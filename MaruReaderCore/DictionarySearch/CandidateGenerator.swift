@@ -73,7 +73,8 @@ struct DictionaryCandidateGenerator {
                     // Skip empty candidates
                     guard !candidate.text.isEmpty else { continue }
 
-                    let candidateKey = candidate.text + "|" + (candidate.deinflectionOutputRules.isEmpty ? "exact" : "deinflected")
+                    let isDeinflected = candidate.deinflectionOutputRulesPerChain.contains { !$0.isEmpty }
+                    let candidateKey = candidate.text + "|" + (isDeinflected ? "deinflected" : "exact")
 
                     if var accumulator = candidatesByText[candidateKey] {
                         // Merge transformation chains only for candidates of the same type
@@ -160,21 +161,21 @@ private struct CandidateAccumulator {
     let originalSubstring: String
     var preprocessorRules: [[String]]
     var deinflectionInputRules: [[String]]
-    var deinflectionOutputRules: Set<String>
+    var deinflectionOutputRulesPerChain: [[String]]
 
     init(_ candidate: LookupCandidate) {
         self.text = candidate.text
         self.originalSubstring = candidate.originalSubstring
         self.preprocessorRules = candidate.preprocessorRules
         self.deinflectionInputRules = candidate.deinflectionInputRules
-        self.deinflectionOutputRules = Set(candidate.deinflectionOutputRules)
+        self.deinflectionOutputRulesPerChain = candidate.deinflectionOutputRulesPerChain
     }
 
     mutating func addCandidate(_ candidate: LookupCandidate) {
-        // Merge all transformation chains
+        // Merge all transformation chains (keeping per-chain output rules parallel)
         preprocessorRules.append(contentsOf: candidate.preprocessorRules)
         deinflectionInputRules.append(contentsOf: candidate.deinflectionInputRules)
-        deinflectionOutputRules.formUnion(candidate.deinflectionOutputRules)
+        deinflectionOutputRulesPerChain.append(contentsOf: candidate.deinflectionOutputRulesPerChain)
     }
 
     func toLookupCandidate() -> LookupCandidate {
@@ -183,7 +184,7 @@ private struct CandidateAccumulator {
             originalSubstring: originalSubstring,
             preprocessorRules: preprocessorRules,
             deinflectionInputRules: deinflectionInputRules,
-            deinflectionOutputRules: Array(deinflectionOutputRules)
+            deinflectionOutputRulesPerChain: deinflectionOutputRulesPerChain
         )
     }
 }

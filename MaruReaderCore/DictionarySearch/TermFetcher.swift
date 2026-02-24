@@ -119,15 +119,33 @@ enum TermFetcher {
                             continue
                         }
 
-                        // Check if deinflection rules match
+                        // Check if deinflection rules match (per-chain validation)
                         let entryRules = decodeStringArray(from: entry.rules) ?? []
-                        if !candidate.deinflectionOutputRules.isEmpty, !entryRules.isEmpty {
-                            let candidateRules = Set(candidate.deinflectionOutputRules)
-                            let entryRulesSet = Set(entryRules)
+                        let entryRulesSet = Set(entryRules)
 
-                            // Skip if no rule overlap
-                            if entryRulesSet.isDisjoint(with: candidateRules) {
-                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate rules: \(candidateRules, privacy: .public)")
+                        // Filter deinflection chains: only include chains whose output
+                        // conditions match the dictionary entry's POS rules.
+                        let validatedChains: [[String]]
+                        if entryRulesSet.isEmpty {
+                            // No entry rules to filter against — keep all chains
+                            validatedChains = candidate.deinflectionInputRules
+                        } else {
+                            let inputRules = candidate.deinflectionInputRules
+                            let outputRulesPerChain = candidate.deinflectionOutputRulesPerChain
+                            validatedChains = zip(inputRules, outputRulesPerChain).compactMap { inputChain, outputConditions in
+                                // Identity chains (empty output conditions) always match
+                                if outputConditions.isEmpty { return inputChain }
+                                // Check if this chain's output conditions overlap with entry POS
+                                if !entryRulesSet.isDisjoint(with: outputConditions) { return inputChain }
+                                return nil
+                            }
+                        }
+
+                        // Skip entry entirely if no chains matched
+                        if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
+                            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap { $0 }
+                            if !allOutputRules.isEmpty {
+                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
                                 continue
                             }
                         }
@@ -187,7 +205,7 @@ enum TermFetcher {
                             rankingCriteria: rankingCriteria,
                             termTags: termTags,
                             definitionTags: definitionTags,
-                            deinflectionRules: candidate.deinflectionInputRules,
+                            deinflectionRules: validatedChains,
                             sequence: entry.sequence,
                             score: entry.score
                         )

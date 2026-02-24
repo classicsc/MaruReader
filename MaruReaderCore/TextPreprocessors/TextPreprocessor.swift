@@ -94,7 +94,7 @@ enum JapaneseTextPreprocessor {
                 originalSubstring: candidate.originalSubstring,
                 preprocessorRules: newPreprocessorRules,
                 deinflectionInputRules: candidate.deinflectionInputRules,
-                deinflectionOutputRules: candidate.deinflectionOutputRules
+                deinflectionOutputRulesPerChain: candidate.deinflectionOutputRulesPerChain
             )
         }
     }

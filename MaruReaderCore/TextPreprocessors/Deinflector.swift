@@ -342,7 +342,7 @@ enum JapaneseDeinflector {
                 originalSubstring: candidate.originalSubstring,
                 preprocessorRules: candidate.preprocessorRules,
                 deinflectionInputRules: newDeinflectionInputRules,
-                deinflectionOutputRules: deinflectionCandidate.conditions
+                deinflectionOutputRulesPerChain: [deinflectionCandidate.conditions]
             )
         }
     }
