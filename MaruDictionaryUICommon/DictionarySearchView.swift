@@ -151,14 +151,17 @@ public struct DictionarySearchView: View {
                                 isPresented: $viewModel.showTooltip,
                                 attachmentAnchor: .rect(.rect(viewModel.tooltipAnchorRect))
                             ) {
-                                Text(viewModel.tooltipText)
-                                    .font(.callout)
-                                    .foregroundStyle(themedForegroundColor)
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(themedBackgroundColor)
-                                    .preferredColorScheme(presentationTheme?.preferredColorScheme)
-                                    .presentationCompactAdaptation(.popover)
+                                ScrollView {
+                                    Text(viewModel.tooltipText)
+                                        .font(.callout)
+                                        .foregroundStyle(themedForegroundColor)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 8)
+                                }
+                                .background(themedBackgroundColor)
+                                .preferredColorScheme(presentationTheme?.preferredColorScheme)
+                                .frame(minWidth: 200, maxWidth: 320, maxHeight: 240)
+                                .presentationCompactAdaptation(.popover)
                             }
                     case let .noResults(query):
                         ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))

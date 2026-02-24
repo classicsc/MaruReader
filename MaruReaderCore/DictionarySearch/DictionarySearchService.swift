@@ -233,6 +233,7 @@ public struct DictionarySearchService: Sendable {
 
             // Format deinflection info from top result
             let deinflectionInfo = formatDeinflectionInfo(from: firstResult.deinflectionRules, language: deinflectionLanguage)
+            let deinflectionInfoHTML = formatDeinflectionInfoHTML(from: firstResult.deinflectionRules, language: deinflectionLanguage)
 
             return GroupedSearchResults(
                 termKey: termKey,
@@ -241,7 +242,8 @@ public struct DictionarySearchService: Sendable {
                 dictionariesResults: dictionaryResults,
                 pitchAccentResults: pitchAccentResults,
                 termTags: mergedTermTags,
-                deinflectionInfo: deinflectionInfo
+                deinflectionInfo: deinflectionInfo,
+                deinflectionInfoHTML: deinflectionInfoHTML
             )
         }.sorted { lhs, rhs in
             guard let lhsFirst = lhs.dictionariesResults.first?.results.first,
@@ -332,6 +334,38 @@ public struct DictionarySearchService: Sendable {
         // Multiple chains - show them as alternatives
         let chainDescriptions = rules.map { chain in
             chain.isEmpty ? "" : chain.map(localizeRule).joined(separator: " \u{2192} ")
+        }.filter { !$0.isEmpty }
+
+        return chainDescriptions.joined(separator: " | ")
+    }
+
+    /// Format deinflection rules as HTML, wrapping each rule name in a span with its description as a tooltip title.
+    private static func formatDeinflectionInfoHTML(from rules: [[String]], language: DeinflectionLanguage) -> String? {
+        guard !rules.isEmpty else { return nil }
+
+        let ruleHTML: (String) -> String = { name in
+            let localization = JapaneseDeinflector.transforms[name]?.localization
+            let displayName = localization?.displayName(for: language) ?? name
+            let description = localization?.description(for: language) ?? ""
+            let escapedName = escapeHTML(displayName)
+            if description.isEmpty {
+                return escapedName
+            }
+            return "<span class=\"deinflection-rule\" title=\"\(escapeHTML(description))\">\(escapedName)</span>"
+        }
+
+        if rules.count == 1, let chain = rules.first {
+            if chain.isEmpty {
+                return nil
+            } else if chain.count == 1 {
+                return ruleHTML(chain[0])
+            } else {
+                return chain.map(ruleHTML).joined(separator: " \u{2192} ")
+            }
+        }
+
+        let chainDescriptions = rules.map { chain in
+            chain.isEmpty ? "" : chain.map(ruleHTML).joined(separator: " \u{2192} ")
         }.filter { !$0.isEmpty }
 
         return chainDescriptions.joined(separator: " | ")

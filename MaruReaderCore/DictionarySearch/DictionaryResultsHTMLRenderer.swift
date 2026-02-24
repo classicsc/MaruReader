@@ -66,9 +66,9 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         """
 
         // Generate deinflection info HTML
-        let deinflectionHTML = termGroup.deinflectionInfo.map { info in
+        let deinflectionHTML = (termGroup.deinflectionInfoHTML ?? termGroup.deinflectionInfo?.escapeHTML()).map { info in
             """
-            <div class=\"deinflection-info\">\(info.escapeHTML())</div>
+            <div class=\"deinflection-info\">\(info)</div>
             """
         } ?? ""
 
@@ -141,9 +141,9 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         """
 
         // Generate deinflection info HTML
-        let deinflectionHTML = termGroup.deinflectionInfo.map { info in
+        let deinflectionHTML = (termGroup.deinflectionInfoHTML ?? termGroup.deinflectionInfo?.escapeHTML()).map { info in
             """
-            <div class=\"popup-deinflection-info\">\(info.escapeHTML())</div>
+            <div class=\"popup-deinflection-info\">\(info)</div>
             """
         } ?? ""
 
