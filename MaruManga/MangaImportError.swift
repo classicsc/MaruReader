@@ -17,7 +17,7 @@
 
 import Foundation
 
-enum MangaImportError: Error, Equatable {
+enum MangaImportError: Error, Equatable, LocalizedError {
     case noImagesFound
     case invalidArchive
     case archiveNotFound
@@ -27,7 +27,7 @@ enum MangaImportError: Error, Equatable {
     case fileCopyFailed(underlyingError: Error)
     case coverExtractionFailed(underlyingError: Error)
 
-    var localizedDescription: String {
+    var errorDescription: String? {
         switch self {
         case .noImagesFound:
             String(localized: "The archive contains no supported image files.")

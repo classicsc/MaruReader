@@ -30,7 +30,7 @@ enum DictionaryImportError: Error, Equatable, LocalizedError {
     case deletionFailed
     case mediaDirectoryCreationFailed
 
-    var errorDescription: String {
+    var errorDescription: String? {
         switch self {
         case .notADictionary:
             String(localized: "The selected file is not a valid dictionary.")

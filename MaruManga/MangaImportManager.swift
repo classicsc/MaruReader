@@ -418,8 +418,7 @@ public actor MangaImportManager {
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
 
-        // Use our custom error description if it's a MangaImportError
-        let errorMessage = (error as? MangaImportError)?.localizedDescription ?? error.localizedDescription
+        let errorMessage = error.localizedDescription
 
         let cleanupInfo: (URL?, URL?)? = await cleanupContext.perform {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
