@@ -275,6 +275,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "navigateToTerm")
+        userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true
