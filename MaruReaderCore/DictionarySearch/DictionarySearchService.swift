@@ -103,6 +103,7 @@ public struct DictionarySearchService: Sendable {
                     contentFontSize: pref.fontSize,
                     popupFontSize: pref.popupFontSize,
                     showDeinflection: pref.showDeinflection,
+                    deinflectionDescriptionLanguage: pref.deinflectionDescriptionLanguage ?? DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage,
                     pitchDownstepNotationInHeaderEnabled: pref.pitchDownstepNotationInHeaderEnabled,
                     pitchResultsAreaCollapsedDisplay: pref.pitchResultsAreaCollapsedDisplay,
                     pitchResultsAreaDownstepNotationEnabled: pref.pitchResultsAreaDownstepNotationEnabled,
@@ -130,6 +131,7 @@ public struct DictionarySearchService: Sendable {
                     contentFontSize: DictionaryDisplayDefaults.defaultFontSize,
                     popupFontSize: DictionaryDisplayDefaults.defaultPopupFontSize,
                     showDeinflection: DictionaryDisplayDefaults.defaultShowDeinflection,
+                    deinflectionDescriptionLanguage: DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage,
                     pitchDownstepNotationInHeaderEnabled: DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled,
                     pitchResultsAreaCollapsedDisplay: DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay,
                     pitchResultsAreaDownstepNotationEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled,
@@ -177,7 +179,7 @@ public struct DictionarySearchService: Sendable {
         )
     }
 
-    static func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
+    static func groupResults(_ results: [SearchResult], deinflectionLanguage: DeinflectionLanguage = .en) -> [GroupedSearchResults] {
         let grouped = Swift.Dictionary(grouping: results, by: { result in
             "\(result.term)|\(result.reading ?? "")"
         })
@@ -230,7 +232,7 @@ public struct DictionarySearchService: Sendable {
             }.sorted { $0.priority < $1.priority }
 
             // Format deinflection info from top result
-            let deinflectionInfo = formatDeinflectionInfo(from: firstResult.deinflectionRules)
+            let deinflectionInfo = formatDeinflectionInfo(from: firstResult.deinflectionRules, language: deinflectionLanguage)
 
             return GroupedSearchResults(
                 termKey: termKey,
@@ -307,9 +309,13 @@ public struct DictionarySearchService: Sendable {
         )
     }
 
-    /// Format deinflection rules into a human-readable string
-    private static func formatDeinflectionInfo(from rules: [[String]]) -> String? {
+    /// Format deinflection rules into a human-readable string using localized display names.
+    private static func formatDeinflectionInfo(from rules: [[String]], language: DeinflectionLanguage) -> String? {
         guard !rules.isEmpty else { return nil }
+
+        let localizeRule: (String) -> String = { name in
+            JapaneseDeinflector.transforms[name]?.localization.displayName(for: language) ?? name
+        }
 
         // Each inner array is a chain of rules that were applied
         // If there's only one chain with one rule, show it simply
@@ -317,15 +323,15 @@ public struct DictionarySearchService: Sendable {
             if chain.isEmpty {
                 return nil
             } else if chain.count == 1 {
-                return chain[0]
+                return localizeRule(chain[0])
             } else {
-                return chain.joined(separator: " \u{2192} ")
+                return chain.map(localizeRule).joined(separator: " \u{2192} ")
             }
         }
 
         // Multiple chains - show them as alternatives
         let chainDescriptions = rules.map { chain in
-            chain.isEmpty ? "" : chain.joined(separator: " \u{2192} ")
+            chain.isEmpty ? "" : chain.map(localizeRule).joined(separator: " \u{2192} ")
         }.filter { !$0.isEmpty }
 
         return chainDescriptions.joined(separator: " | ")

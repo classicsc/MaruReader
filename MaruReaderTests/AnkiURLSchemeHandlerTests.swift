@@ -292,6 +292,7 @@ private func makeResponse(termKey: String) -> TextLookupResponse {
         contentFontSize: 14,
         popupFontSize: 14,
         showDeinflection: true,
+        deinflectionDescriptionLanguage: "system",
         pitchDownstepNotationInHeaderEnabled: false,
         pitchResultsAreaCollapsedDisplay: false,
         pitchResultsAreaDownstepNotationEnabled: false,

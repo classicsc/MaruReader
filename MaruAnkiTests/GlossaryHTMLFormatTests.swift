@@ -109,6 +109,7 @@ struct GlossaryHTMLFormatTests {
             contentFontSize: 1.0,
             popupFontSize: 1.0,
             showDeinflection: false,
+            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,

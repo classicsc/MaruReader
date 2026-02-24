@@ -45,8 +45,22 @@ enum Condition: String, CaseIterable, Hashable {
     case nasai = "-なさい"
     case ya = "-ゃ"
 
-    /// Metadata (port name for UI)
-    var displayName: String {
+    /// Metadata (localized display name for UI)
+    func displayName(for language: DeinflectionLanguage) -> String {
+        let key = language.resolved.jsonKey
+        switch key {
+        case "ja":
+            return jaDisplayName
+        case "zh-Hant":
+            return zhHantDisplayName
+        case "zh-Hans":
+            return zhHansDisplayName
+        default:
+            return enDisplayName
+        }
+    }
+
+    private var enDisplayName: String {
         switch self {
         case .v: "Verb"
         case .v1: "Ichidan verb"
@@ -72,6 +86,87 @@ enum Condition: String, CaseIterable, Hashable {
         case .ya: "Intermediate -や ending (conditional contraction)"
         }
     }
+
+    private var jaDisplayName: String {
+        switch self {
+        case .v: "動詞"
+        case .v1: "一段動詞"
+        case .v1d: "一段動詞・辞書形"
+        case .v1p: "一段動詞・進行形または完了形"
+        case .v5: "五段動詞"
+        case .v5d: "五段動詞・辞書形"
+        case .v5s: "五段動詞・使役短縮形"
+        case .v5ss: "五段動詞・さす型使役短縮形（受身不可）"
+        case .v5sp: "五段動詞・非さす型使役短縮形（受身可）"
+        case .vk: "カ行変格動詞"
+        case .vs: "サ行変格動詞"
+        case .vz: "ザ行変格動詞"
+        case .adj_i: "い形容詞"
+        case .masu: "丁寧語 -ます"
+        case .masen: "丁寧語否定 -ません"
+        case .te: "中間 -て（進行形・完了形）"
+        case .ba: "中間 -ば（条件縮約）"
+        case .ku: "中間 -く（副詞化）"
+        case .ta: "-た形"
+        case .n: "-ん（否定）"
+        case .nasai: "中間 -なさい（丁寧命令）"
+        case .ya: "中間 -や（条件縮約）"
+        }
+    }
+
+    private var zhHantDisplayName: String {
+        switch self {
+        case .v: "動詞"
+        case .v1: "一段動詞"
+        case .v1d: "一段動詞・辭書形"
+        case .v1p: "一段動詞・進行或完成形"
+        case .v5: "五段動詞"
+        case .v5d: "五段動詞・辭書形"
+        case .v5s: "五段動詞・使役縮約形"
+        case .v5ss: "五段動詞・さす型使役縮約形（不可接受身）"
+        case .v5sp: "五段動詞・非さす型使役縮約形（可接受身）"
+        case .vk: "カ行變格動詞"
+        case .vs: "サ行變格動詞"
+        case .vz: "ザ行變格動詞"
+        case .adj_i: "い形容詞"
+        case .masu: "禮貌語 -ます"
+        case .masen: "禮貌語否定 -ません"
+        case .te: "中間 -て（進行・完成）"
+        case .ba: "中間 -ば（條件縮約）"
+        case .ku: "中間 -く（副詞化）"
+        case .ta: "-た形"
+        case .n: "-ん（否定）"
+        case .nasai: "中間 -なさい（禮貌命令）"
+        case .ya: "中間 -や（條件縮約）"
+        }
+    }
+
+    private var zhHansDisplayName: String {
+        switch self {
+        case .v: "动词"
+        case .v1: "一段动词"
+        case .v1d: "一段动词・辞书形"
+        case .v1p: "一段动词・进行或完成形"
+        case .v5: "五段动词"
+        case .v5d: "五段动词・辞书形"
+        case .v5s: "五段动词・使役缩约形"
+        case .v5ss: "五段动词・さす型使役缩约形（不可接受身）"
+        case .v5sp: "五段动词・非さす型使役缩约形（可接受身）"
+        case .vk: "カ行变格动词"
+        case .vs: "サ行变格动词"
+        case .vz: "ザ行变格动词"
+        case .adj_i: "い形容词"
+        case .masu: "礼貌语 -ます"
+        case .masen: "礼貌语否定 -ません"
+        case .te: "中间 -て（进行・完成）"
+        case .ba: "中间 -ば（条件缩约）"
+        case .ku: "中间 -く（副词化）"
+        case .ta: "-た形"
+        case .n: "-ん（否定）"
+        case .nasai: "中间 -なさい（礼貌命令）"
+        case .ya: "中间 -や（条件缩约）"
+        }
+    }
 }
 
 /// Struct for individual rules (suffix-only for Japanese)
@@ -95,8 +190,7 @@ struct SuffixRule {
 /// Struct for transforms (groups rules with metadata; rule names are transform keys)
 struct Transform {
     let name: String // e.g., "-ば" (used as "reason" in candidates)
-    let description: String // Port English description
-    let i18nDescription: String? // Optional ja description
+    let localization: LocalizedDeinflectionContent
     let rules: [SuffixRule] // Array of suffixInflection ports
 }
 

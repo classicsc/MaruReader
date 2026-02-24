@@ -72,6 +72,7 @@ struct PitchAccentCategoriesResolverTests {
             contentFontSize: 1,
             popupFontSize: 1,
             showDeinflection: false,
+            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,

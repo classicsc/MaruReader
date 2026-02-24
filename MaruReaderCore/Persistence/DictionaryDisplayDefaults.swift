@@ -20,6 +20,7 @@ public enum DictionaryDisplayDefaults {
     public static let defaultFontSize: Double = 1.0
     public static let defaultPopupFontSize: Double = 1.0
     public static let defaultShowDeinflection: Bool = true
+    public static let defaultDeinflectionDescriptionLanguage: String = DeinflectionLanguage.followSystem.rawValue
     public static let defaultPitchDownstepNotationInHeaderEnabled: Bool = true
     public static let defaultPitchResultsAreaCollapsedDisplay: Bool = false
     public static let defaultPitchResultsAreaDownstepNotationEnabled: Bool = false

@@ -77,6 +77,7 @@ struct TextLookupResponseHTMLGenerationTests {
             contentFontSize: 1.0,
             popupFontSize: 1.0,
             showDeinflection: true,
+            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,

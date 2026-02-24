@@ -20,13 +20,15 @@
 // Used under the terms of the GNU General Public License v3.0
 
 extension JapaneseDeinflector {
+    static let localizations: [String: LocalizedDeinflectionContent] = loadDeinflectionLocalizations()
+
     static let transforms: [String: Transform] = {
+        let loc = localizations
         var dict: [String: Transform] = [:]
 
         dict["-ば"] = Transform(
             name: "-ば",
-            description: "1. Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur.\n2. Shows a trigger for a latter stated perception or judgment.\nUsage: Attach ば to the hypothetical form (仮定形) of verbs and i-adjectives.",
-            i18nDescription: "～ば",
+            localization: loc["-ば"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ければ", deinflectedSuffix: "い", conditionsIn: [.ba], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "えば", deinflectedSuffix: "う", conditionsIn: [.ba], conditionsOut: [.v5]),
@@ -44,8 +46,7 @@ extension JapaneseDeinflector {
 
         dict["-ゃ"] = Transform(
             name: "-ゃ",
-            description: "Contraction of -ば.",
-            i18nDescription: "～ゃ",
+            localization: loc["-ゃ"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "けりゃ", deinflectedSuffix: "ければ", conditionsIn: [.ya], conditionsOut: [.ba]),
                 SuffixRule(inflectedSuffix: "きゃ", deinflectedSuffix: "ければ", conditionsIn: [.ya], conditionsOut: [.ba]),
@@ -63,8 +64,7 @@ extension JapaneseDeinflector {
 
         dict["-ちゃ"] = Transform(
             name: "-ちゃ",
-            description: "Contraction of ～ては.\n1. Explains how something always happens under the condition that it marks.\n2. Expresses the repetition (of a series of) actions.\n3. Indicates a hypothetical situation in which the speaker gives a (negative) evaluation about the other party's intentions.\n4. Used in \"Must Not\" patterns like ～てはいけない.\nUsage: Attach は after the て-form of verbs, contract ては into ちゃ.",
-            i18nDescription: "～ちゃ",
+            localization: loc["-ちゃ"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ちゃ", deinflectedSuffix: "る", conditionsIn: [.v5], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "いじゃ", deinflectedSuffix: "ぐ", conditionsIn: [.v5], conditionsOut: [.v5]),
@@ -88,8 +88,7 @@ extension JapaneseDeinflector {
 
         dict["-ちゃう"] = Transform(
             name: "-ちゃう",
-            description: "Contraction of -しまう.\n1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–“accidentally”.\nUsage: Attach しまう after the て-form of verbs, contract てしまう into ちゃう.",
-            i18nDescription: "～ちゃう",
+            localization: loc["-ちゃう"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ちゃう", deinflectedSuffix: "る", conditionsIn: [.v5], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "いじゃう", deinflectedSuffix: "ぐ", conditionsIn: [.v5], conditionsOut: [.v5]),
@@ -113,8 +112,7 @@ extension JapaneseDeinflector {
 
         dict["-ちまう"] = Transform(
             name: "-ちまう",
-            description: "Contraction of -しまう.\n1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–“accidentally”.\nUsage: Attach しまう after the て-form of verbs, contract てしまう into ちまう.",
-            i18nDescription: "～ちまう",
+            localization: loc["-ちまう"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ちまう", deinflectedSuffix: "る", conditionsIn: [.v5], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "いじまう", deinflectedSuffix: "ぐ", conditionsIn: [.v5], conditionsOut: [.v5]),
@@ -138,8 +136,7 @@ extension JapaneseDeinflector {
 
         dict["-しまう"] = Transform(
             name: "-しまう",
-            description: "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–“accidentally”.\nUsage: Attach しまう after the て-form of verbs.",
-            i18nDescription: "～しまう",
+            localization: loc["-しまう"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "てしまう", deinflectedSuffix: "て", conditionsIn: [.v5], conditionsOut: [.te]),
                 SuffixRule(inflectedSuffix: "でしまう", deinflectedSuffix: "で", conditionsIn: [.v5], conditionsOut: [.te]),
@@ -148,8 +145,7 @@ extension JapaneseDeinflector {
 
         dict["-なさい"] = Transform(
             name: "-なさい",
-            description: "Polite imperative suffix.\nUsage: Attach なさい after the continuative form (連用形) of verbs.",
-            i18nDescription: "～なさい",
+            localization: loc["-なさい"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "なさい", deinflectedSuffix: "る", conditionsIn: [.nasai], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "いなさい", deinflectedSuffix: "う", conditionsIn: [.nasai], conditionsOut: [.v5]),
@@ -172,8 +168,7 @@ extension JapaneseDeinflector {
 
         dict["-そう"] = Transform(
             name: "-そう",
-            description: "Appearing that; looking like.\nUsage: Attach そう to the continuative form (連用形) of verbs, or to the stem of adjectives.",
-            i18nDescription: "～そう",
+            localization: loc["-そう"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "そう", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "そう", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
@@ -197,8 +192,7 @@ extension JapaneseDeinflector {
 
         dict["-すぎる"] = Transform(
             name: "-すぎる",
-            description: "Shows something \"is too...\" or someone is doing something \"too much\".\nUsage: Attach すぎる to the continuative form (連用形) of verbs, or to the stem of adjectives.",
-            i18nDescription: "～すぎる",
+            localization: loc["-すぎる"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "すぎる", deinflectedSuffix: "い", conditionsIn: [.v1], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "すぎる", deinflectedSuffix: "る", conditionsIn: [.v1], conditionsOut: [.v1]),
@@ -222,8 +216,7 @@ extension JapaneseDeinflector {
 
         dict["-過ぎる"] = Transform(
             name: "-過ぎる",
-            description: "Shows something \"is too...\" or someone is doing something \"too much\".\nUsage: Attach 過ぎる to the continuative form (連用形) of verbs, or to the stem of adjectives.",
-            i18nDescription: "～過ぎる",
+            localization: loc["-過ぎる"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "過ぎる", deinflectedSuffix: "い", conditionsIn: [.v1], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "過ぎる", deinflectedSuffix: "る", conditionsIn: [.v1], conditionsOut: [.v1]),
@@ -247,8 +240,7 @@ extension JapaneseDeinflector {
 
         dict["-たい"] = Transform(
             name: "-たい",
-            description: "1. Expresses the feeling of desire or hope.\n2. Used in ...たいと思います, an indirect way of saying what the speaker intends to do.\nUsage: Attach たい to the continuative form (連用形) of verbs. たい itself conjugates as i-adjective.",
-            i18nDescription: "～たい",
+            localization: loc["-たい"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "たい", deinflectedSuffix: "る", conditionsIn: [.adj_i], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "いたい", deinflectedSuffix: "う", conditionsIn: [.adj_i], conditionsOut: [.v5]),
@@ -271,8 +263,7 @@ extension JapaneseDeinflector {
 
         dict["-たら"] = Transform(
             name: "-たら",
-            description: "1. Denotes the latter stated event is a continuation of the previous stated event.\n2. Assumes that a matter has been completed or concluded.\nUsage: Attach たら to the continuative form (連用形) of verbs after euphonic change form, かったら to the stem of i-adjectives.",
-            i18nDescription: "～たら",
+            localization: loc["-たら"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "かったら", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "たら", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
@@ -317,8 +308,7 @@ extension JapaneseDeinflector {
 
         dict["-たり"] = Transform(
             name: "-たり",
-            description: "1. Shows two actions occurring back and forth (when used with two verbs).\n2. Shows examples of actions and states (when used with multiple verbs and adjectives).\nUsage: Attach たり to the continuative form (連用形) of verbs after euphonic change form, かったり to the stem of i-adjectives",
-            i18nDescription: "～たり",
+            localization: loc["-たり"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "かったり", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "たり", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
@@ -362,8 +352,7 @@ extension JapaneseDeinflector {
 
         dict["-て"] = Transform(
             name: "-て",
-            description: "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives.",
-            i18nDescription: "～て",
+            localization: loc["-て"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "くて", deinflectedSuffix: "い", conditionsIn: [.te], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "て", deinflectedSuffix: "る", conditionsIn: [.te], conditionsOut: [.v1]),
@@ -408,8 +397,7 @@ extension JapaneseDeinflector {
 
         dict["-ず"] = Transform(
             name: "-ず",
-            description: "1. Negative form of verbs.\n2. Continuative form (連用形) of the particle ぬ (nu).\nUsage: Attach ず to the irrealis form (未然形) of verbs.",
-            i18nDescription: "～ず",
+            localization: loc["-ず"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ず", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かず", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.v5]),
@@ -432,8 +420,7 @@ extension JapaneseDeinflector {
 
         dict["-ぬ"] = Transform(
             name: "-ぬ",
-            description: "Negative form of verbs.\nUsage: Attach ぬ to the irrealis form (未然形) of verbs.\nする becomes せぬ",
-            i18nDescription: "～ぬ",
+            localization: loc["-ぬ"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ぬ", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かぬ", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.v5]),
@@ -456,8 +443,7 @@ extension JapaneseDeinflector {
 
         dict["-ん"] = Transform(
             name: "-ん",
-            description: "Negative form of verbs; a sound change of ぬ.\nUsage: Attach ん to the irrealis form (未然形) of verbs.\nする becomes せん",
-            i18nDescription: "～ん",
+            localization: loc["-ん"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ん", deinflectedSuffix: "る", conditionsIn: [.n], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かん", deinflectedSuffix: "く", conditionsIn: [.n], conditionsOut: [.v5]),
@@ -480,8 +466,7 @@ extension JapaneseDeinflector {
 
         dict["-んばかり"] = Transform(
             name: "-んばかり",
-            description: "Shows an action or condition is on the verge of occurring, or an excessive/extreme degree.\nUsage: Attach んばかり to the irrealis form (未然形) of verbs.\nする becomes せんばかり",
-            i18nDescription: "～んばかり",
+            localization: loc["-んばかり"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "んばかり", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かんばかり", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.v5]),
@@ -504,8 +489,7 @@ extension JapaneseDeinflector {
 
         dict["-んとする"] = Transform(
             name: "-んとする",
-            description: "1. Shows the speaker's will or intention.\n2. Shows an action or condition is on the verge of occurring.\nUsage: Attach んとする to the irrealis form (未然形) of verbs.\nする becomes せんとする",
-            i18nDescription: "～んとする",
+            localization: loc["-んとする"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "んとする", deinflectedSuffix: "る", conditionsIn: [.vs], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かんとする", deinflectedSuffix: "く", conditionsIn: [.vs], conditionsOut: [.v5]),
@@ -528,8 +512,7 @@ extension JapaneseDeinflector {
 
         dict["-む"] = Transform(
             name: "-む",
-            description: "Archaic.\n1. Shows an inference of a certain matter.\n2. Shows speaker's intention.\nUsage: Attach む to the irrealis form (未然形) of verbs.\nする becomes せむ",
-            i18nDescription: "～む",
+            localization: loc["-む"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "む", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かむ", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.v5]),
@@ -552,8 +535,7 @@ extension JapaneseDeinflector {
 
         dict["-ざる"] = Transform(
             name: "-ざる",
-            description: "Negative form of verbs.\nUsage: Attach ざる to the irrealis form (未然形) of verbs.\nする becomes せざる",
-            i18nDescription: "～ざる",
+            localization: loc["-ざる"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ざる", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かざる", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.v5]),
@@ -576,8 +558,7 @@ extension JapaneseDeinflector {
 
         dict["-ねば"] = Transform(
             name: "-ねば",
-            description: "1. Shows a hypothetical negation; if not ...\n2. Shows a must. Used with or without ならぬ.\nUsage: Attach ねば to the irrealis form (未然形) of verbs.\nする becomes せねば",
-            i18nDescription: "～ねば",
+            localization: loc["-ねば"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ねば", deinflectedSuffix: "る", conditionsIn: [.ba], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かねば", deinflectedSuffix: "く", conditionsIn: [.ba], conditionsOut: [.v5]),
@@ -600,8 +581,7 @@ extension JapaneseDeinflector {
 
         dict["-く"] = Transform(
             name: "-く",
-            description: "Adverbial form of i-adjectives.",
-            i18nDescription: "～く",
+            localization: loc["-く"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "く", deinflectedSuffix: "い", conditionsIn: [.ku], conditionsOut: [.adj_i]),
             ]
@@ -609,8 +589,7 @@ extension JapaneseDeinflector {
 
         dict["causative"] = Transform(
             name: "causative",
-            description: "Describes the intention to make someone do something.\nUsage: Attach させる to the irrealis form (未然形) of ichidan verbs and くる.\nAttach せる to the irrealis form (未然形) of godan verbs and する.\nIt itself conjugates as an ichidan verb.",
-            i18nDescription: "～せる・させる",
+            localization: loc["causative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "させる", deinflectedSuffix: "る", conditionsIn: [.v1], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かせる", deinflectedSuffix: "く", conditionsIn: [.v1], conditionsOut: [.v5]),
@@ -636,8 +615,7 @@ extension JapaneseDeinflector {
 
         dict["short causative"] = Transform(
             name: "short causative",
-            description: "Contraction of the causative form.\nDescribes the intention to make someone do something.\nUsage: Attach す to the irrealis form (未然形) of godan verbs.\nAttach さす to the dictionary form (終止形) of ichidan verbs.\nする becomes さす, くる becomes こさす.\nIt itself conjugates as an godan verb.",
-            i18nDescription: "～す・さす",
+            localization: loc["short causative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "さす", deinflectedSuffix: "る", conditionsIn: [.v5ss], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "かす", deinflectedSuffix: "く", conditionsIn: [.v5sp], conditionsOut: [.v5]),
@@ -661,8 +639,7 @@ extension JapaneseDeinflector {
 
         dict["imperative"] = Transform(
             name: "imperative",
-            description: "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope.",
-            i18nDescription: "命令形",
+            localization: loc["imperative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ろ", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "よ", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
@@ -689,8 +666,7 @@ extension JapaneseDeinflector {
 
         dict["continuative"] = Transform(
             name: "continuative",
-            description: "Used to indicate actions that are (being) carried out.\nRefers to 連用形, the part of the verb after conjugating with -ます and dropping ます.",
-            i18nDescription: "連用形",
+            localization: loc["continuative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "い", deinflectedSuffix: "いる", conditionsIn: [], conditionsOut: [.v1d]),
                 SuffixRule(inflectedSuffix: "え", deinflectedSuffix: "える", conditionsIn: [], conditionsOut: [.v1d]),
@@ -732,8 +708,7 @@ extension JapaneseDeinflector {
 
         dict["negative"] = Transform(
             name: "negative",
-            description: "1. Negative form of verbs.\n2. Expresses a feeling of solicitation to the other party.\nUsage: Attach ない to the irrealis form (未然形) of verbs, くない to the stem of i-adjectives. ない itself conjugates as i-adjective. ます becomes ません.",
-            i18nDescription: "～ない",
+            localization: loc["negative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "くない", deinflectedSuffix: "い", conditionsIn: [.adj_i], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "ない", deinflectedSuffix: "る", conditionsIn: [.adj_i], conditionsOut: [.v1]),
@@ -758,8 +733,7 @@ extension JapaneseDeinflector {
 
         dict["-さ"] = Transform(
             name: "-さ",
-            description: "Nominalizing suffix of i-adjectives indicating nature, state, mind or degree.\nUsage: Attach さ to the stem of i-adjectives.",
-            i18nDescription: "～さ",
+            localization: loc["-さ"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "さ", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
             ]
@@ -767,8 +741,7 @@ extension JapaneseDeinflector {
 
         dict["passive"] = Transform(
             name: "passive",
-            description: "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\nUsage: Attach れる to the irrealis form (未然形) of godan verbs.",
-            i18nDescription: "～れる",
+            localization: loc["passive"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "かれる", deinflectedSuffix: "く", conditionsIn: [.v1], conditionsOut: [.v5]),
                 SuffixRule(inflectedSuffix: "がれる", deinflectedSuffix: "ぐ", conditionsIn: [.v1], conditionsOut: [.v5]),
@@ -791,8 +764,7 @@ extension JapaneseDeinflector {
 
         dict["-た"] = Transform(
             name: "-た",
-            description: "1. Indicates a reality that has happened in the past.\n2. Indicates the completion of an action.\n3. Indicates the confirmation of a matter.\n4. Indicates the speaker's confidence that the action will definitely be fulfilled.\n5. Indicates the events that occur before the main clause are represented as relative past.\n6. Indicates a mild imperative/command.\nUsage: Attach た to the continuative form (連用形) of verbs after euphonic change form, かった to the stem of i-adjectives.",
-            i18nDescription: "～た",
+            localization: loc["-た"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "かった", deinflectedSuffix: "い", conditionsIn: [.ta], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "た", deinflectedSuffix: "る", conditionsIn: [.ta], conditionsOut: [.v1]),
@@ -839,8 +811,7 @@ extension JapaneseDeinflector {
 
         dict["-ます"] = Transform(
             name: "-ます",
-            description: "Polite conjugation of verbs and adjectives.\nUsage: Attach ます to the continuative form (連用形) of verbs.",
-            i18nDescription: "～ます",
+            localization: loc["-ます"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ます", deinflectedSuffix: "る", conditionsIn: [.masu], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "います", deinflectedSuffix: "う", conditionsIn: [.masu], conditionsOut: [.v5d]),
@@ -864,8 +835,7 @@ extension JapaneseDeinflector {
 
         dict["potential"] = Transform(
             name: "potential",
-            description: "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる",
-            i18nDescription: "～(ら)れる",
+            localization: loc["potential"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "れる", deinflectedSuffix: "る", conditionsIn: [.v1], conditionsOut: [.v1, .v5d]),
                 SuffixRule(inflectedSuffix: "える", deinflectedSuffix: "う", conditionsIn: [.v1], conditionsOut: [.v5d]),
@@ -886,8 +856,7 @@ extension JapaneseDeinflector {
 
         dict["potential or passive"] = Transform(
             name: "potential or passive",
-            description: "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\n3. Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach られる to the irrealis form (未然形) of ichidan verbs.\nする becomes せられる, くる becomes こられる",
-            i18nDescription: "～られる",
+            localization: loc["potential or passive"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "られる", deinflectedSuffix: "る", conditionsIn: [.v1], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "ざれる", deinflectedSuffix: "ずる", conditionsIn: [.v1], conditionsOut: [.vz]),
@@ -902,8 +871,7 @@ extension JapaneseDeinflector {
 
         dict["volitional"] = Transform(
             name: "volitional",
-            description: "1. Expresses speaker's will or intention.\n2. Expresses an invitation to the other party.\n3. (Used in …ようとする) Indicates being on the verge of initiating an action or transforming a state.\n4. Indicates an inference of a matter.\nUsage: Attach よう to the irrealis form (未然形) of ichidan verbs.\nAttach う to the irrealis form (未然形) of godan verbs after -o euphonic change form.\nAttach かろう to the stem of i-adjectives (4th meaning only).",
-            i18nDescription: "～う・よう",
+            localization: loc["volitional"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "よう", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "おう", deinflectedSuffix: "う", conditionsIn: [], conditionsOut: [.v5]),
@@ -928,8 +896,7 @@ extension JapaneseDeinflector {
 
         dict["volitional slang"] = Transform(
             name: "volitional slang",
-            description: "Contraction of volitional form + か\n1. Expresses speaker's will or intention.\n2. Expresses an invitation to the other party.\nUsage: Replace final う with っ of volitional form then add か.\nFor example: 行こうか -> 行こっか.",
-            i18nDescription: "～っか・よっか",
+            localization: loc["volitional slang"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "よっか", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
                 SuffixRule(inflectedSuffix: "おっか", deinflectedSuffix: "う", conditionsIn: [], conditionsOut: [.v5]),
@@ -953,8 +920,7 @@ extension JapaneseDeinflector {
 
         dict["-まい"] = Transform(
             name: "-まい",
-            description: "Negative volitional form of verbs.\n1. Expresses speaker's assumption that something is likely not true.\n2. Expresses speaker's will or intention not to do something.\nUsage: Attach まい to the dictionary form (終止形) of verbs.\nAttach まい to the irrealis form (未然形) of ichidan verbs.\nする becomes しまい, くる becomes こまい",
-            i18nDescription: "～まい",
+            localization: loc["-まい"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "まい", deinflectedSuffix: "", conditionsIn: [], conditionsOut: [.v]),
                 SuffixRule(inflectedSuffix: "まい", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v1]),
@@ -970,8 +936,7 @@ extension JapaneseDeinflector {
 
         dict["-おく"] = Transform(
             name: "-おく",
-            description: "To do certain things in advance in preparation (or in anticipation) of latter needs.\nUsage: Attach おく to the て-form of verbs.\nAttach でおく after ない negative form of verbs.\nContracts to とく・どく in speech.",
-            i18nDescription: "～おく",
+            localization: loc["-おく"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ておく", deinflectedSuffix: "て", conditionsIn: [.v5], conditionsOut: [.te]),
                 SuffixRule(inflectedSuffix: "でおく", deinflectedSuffix: "で", conditionsIn: [.v5], conditionsOut: [.te]),
@@ -984,8 +949,7 @@ extension JapaneseDeinflector {
 
         dict["-いる"] = Transform(
             name: "-いる",
-            description: "1. Indicates an action continues or progresses to a point in time.\n2. Indicates an action is completed and remains as is.\n3. Indicates a state or condition that can be taken to be the result of undergoing some change.\nUsage: Attach いる to the て-form of verbs. い can be dropped in speech.\nAttach でいる after ない negative form of verbs.\n(Slang) Attach おる to the て-form of verbs. Contracts to とる・でる in speech.",
-            i18nDescription: "～いる",
+            localization: loc["-いる"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ている", deinflectedSuffix: "て", conditionsIn: [.v1], conditionsOut: [.te]),
                 SuffixRule(inflectedSuffix: "ておる", deinflectedSuffix: "て", conditionsIn: [.v5], conditionsOut: [.te]),
@@ -1000,8 +964,7 @@ extension JapaneseDeinflector {
 
         dict["-き"] = Transform(
             name: "-き",
-            description: "Attributive form (連体形) of i-adjectives. An archaic form that remains in modern Japanese.",
-            i18nDescription: "～き",
+            localization: loc["-き"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "き", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
             ]
@@ -1009,8 +972,7 @@ extension JapaneseDeinflector {
 
         dict["-げ"] = Transform(
             name: "-げ",
-            description: "Describes a person's appearance. Shows feelings of the person.\nUsage: Attach げ or 気 to the stem of i-adjectives",
-            i18nDescription: "～げ",
+            localization: loc["-げ"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "げ", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "気", deinflectedSuffix: "い", conditionsIn: [], conditionsOut: [.adj_i]),
@@ -1019,8 +981,7 @@ extension JapaneseDeinflector {
 
         dict["-がる"] = Transform(
             name: "-がる",
-            description: "1. Shows subject’s feelings contrast with what is thought/known about them.\n2. Indicates subject's behavior (stands out).\nUsage: Attach がる to the stem of i-adjectives. It itself conjugates as a godan verb.",
-            i18nDescription: "～がる",
+            localization: loc["-がる"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "がる", deinflectedSuffix: "い", conditionsIn: [.v5], conditionsOut: [.adj_i]),
             ]
@@ -1028,8 +989,7 @@ extension JapaneseDeinflector {
 
         dict["-え"] = Transform(
             name: "-え",
-            description: "Slang. A sound change of i-adjectives.\nai：やばい → やべぇ\nui：さむい → さみぃ/さめぇ\noi：すごい → すげぇ",
-            i18nDescription: "～え",
+            localization: loc["-え"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "ねえ", deinflectedSuffix: "ない", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "めえ", deinflectedSuffix: "むい", conditionsIn: [], conditionsOut: [.adj_i]),
@@ -1078,8 +1038,7 @@ extension JapaneseDeinflector {
 
         dict["n-slang"] = Transform(
             name: "n-slang",
-            description: "Slang sound change of r-column syllables to n (when before an n-sound, usually の or な)",
-            i18nDescription: "～んな",
+            localization: loc["n-slang"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "んなさい", deinflectedSuffix: "りなさい", conditionsIn: [], conditionsOut: [.nasai]),
                 SuffixRule(inflectedSuffix: "らんない", deinflectedSuffix: "られない", conditionsIn: [.adj_i], conditionsOut: [.adj_i]),
@@ -1091,8 +1050,7 @@ extension JapaneseDeinflector {
 
         dict["imperative negative slang"] = Transform(
             name: "imperative negative slang",
-            description: "",
-            i18nDescription: "～んな",
+            localization: loc["imperative negative slang"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "んな", deinflectedSuffix: "る", conditionsIn: [], conditionsOut: [.v]),
             ]
@@ -1100,8 +1058,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben negative"] = Transform(
             name: "kansai-ben negative",
-            description: "Negative form of kansai-ben verbs",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben negative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "へん", deinflectedSuffix: "ない", conditionsIn: [], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "ひん", deinflectedSuffix: "ない", conditionsIn: [], conditionsOut: [.adj_i]),
@@ -1114,8 +1071,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben -て"] = Transform(
             name: "kansai-ben -て",
-            description: "-て form of kansai-ben verbs",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben -て"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うて", deinflectedSuffix: "って", conditionsIn: [.te], conditionsOut: [.te]),
                 SuffixRule(inflectedSuffix: "おうて", deinflectedSuffix: "あって", conditionsIn: [.te], conditionsOut: [.te]),
@@ -1137,8 +1093,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben -た"] = Transform(
             name: "kansai-ben -た",
-            description: "-た form of kansai-ben terms",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben -た"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うた", deinflectedSuffix: "った", conditionsIn: [.ta], conditionsOut: [.ta]),
                 SuffixRule(inflectedSuffix: "おうた", deinflectedSuffix: "あった", conditionsIn: [.ta], conditionsOut: [.ta]),
@@ -1160,8 +1115,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben -たら"] = Transform(
             name: "kansai-ben -たら",
-            description: "-たら form of kansai-ben terms",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben -たら"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うたら", deinflectedSuffix: "ったら", conditionsIn: [], conditionsOut: []),
                 SuffixRule(inflectedSuffix: "おうたら", deinflectedSuffix: "あったら", conditionsIn: [], conditionsOut: []),
@@ -1183,8 +1137,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben -たり"] = Transform(
             name: "kansai-ben -たり",
-            description: "-たり form of kansai-ben terms",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben -たり"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うたり", deinflectedSuffix: "ったり", conditionsIn: [], conditionsOut: []),
                 SuffixRule(inflectedSuffix: "おうたり", deinflectedSuffix: "あったり", conditionsIn: [], conditionsOut: []),
@@ -1206,8 +1159,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben -く"] = Transform(
             name: "kansai-ben -く",
-            description: "-く stem of kansai-ben adjectives",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben -く"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "う", deinflectedSuffix: "く", conditionsIn: [], conditionsOut: [.ku]),
                 SuffixRule(inflectedSuffix: "こう", deinflectedSuffix: "かく", conditionsIn: [], conditionsOut: [.ku]),
@@ -1225,8 +1177,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben adjective -て"] = Transform(
             name: "kansai-ben adjective -て",
-            description: "-て form of kansai-ben adjectives",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben adjective -て"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うて", deinflectedSuffix: "くて", conditionsIn: [.te], conditionsOut: [.te]),
                 SuffixRule(inflectedSuffix: "こうて", deinflectedSuffix: "かくて", conditionsIn: [.te], conditionsOut: [.te]),
@@ -1244,8 +1195,7 @@ extension JapaneseDeinflector {
 
         dict["kansai-ben adjective negative"] = Transform(
             name: "kansai-ben adjective negative",
-            description: "Negative form of kansai-ben adjectives",
-            i18nDescription: "関西弁",
+            localization: loc["kansai-ben adjective negative"] ?? LocalizedDeinflectionContent(entries: [:]),
             rules: [
                 SuffixRule(inflectedSuffix: "うない", deinflectedSuffix: "くない", conditionsIn: [.adj_i], conditionsOut: [.adj_i]),
                 SuffixRule(inflectedSuffix: "こうない", deinflectedSuffix: "かくない", conditionsIn: [.adj_i], conditionsOut: [.adj_i]),

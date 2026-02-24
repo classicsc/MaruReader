@@ -33,6 +33,7 @@ struct DictionaryDisplaySettingsView: View {
     @State private var fontSize: Double = DictionaryDisplayDefaults.defaultFontSize
     @State private var popupFontSize: Double = DictionaryDisplayDefaults.defaultPopupFontSize
     @State private var showDeinflection: Bool = DictionaryDisplayDefaults.defaultShowDeinflection
+    @State private var deinflectionDescriptionLanguage: DeinflectionLanguage = .init(rawValue: DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage) ?? .followSystem
     @State private var pitchDownstepNotationInHeaderEnabled: Bool = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
     @State private var pitchResultsAreaCollapsedDisplay: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
     @State private var pitchResultsAreaDownstepNotationEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
@@ -73,6 +74,13 @@ struct DictionaryDisplaySettingsView: View {
 
                 Section("Display Options") {
                     Toggle("Show Deinflection Info", isOn: $showDeinflection)
+                    if showDeinflection {
+                        Picker("Deinflection Language", selection: $deinflectionDescriptionLanguage) {
+                            ForEach(DeinflectionLanguage.allCases, id: \.self) { language in
+                                Text(language.displayLabel).tag(language)
+                            }
+                        }
+                    }
                 }
 
                 Section("Pitch Accent") {
@@ -98,6 +106,7 @@ struct DictionaryDisplaySettingsView: View {
             .onChange(of: fontSize) { _, _ in savePreferences() }
             .onChange(of: popupFontSize) { _, _ in savePreferences() }
             .onChange(of: showDeinflection) { _, _ in savePreferences() }
+            .onChange(of: deinflectionDescriptionLanguage) { _, _ in savePreferences() }
             .onChange(of: pitchDownstepNotationInHeaderEnabled) { _, _ in savePreferences() }
             .onChange(of: pitchResultsAreaCollapsedDisplay) { _, _ in savePreferences() }
             .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
@@ -120,6 +129,7 @@ struct DictionaryDisplaySettingsView: View {
             fontSize = pref.fontSize
             popupFontSize = pref.popupFontSize
             showDeinflection = pref.showDeinflection
+            deinflectionDescriptionLanguage = DeinflectionLanguage(rawValue: pref.deinflectionDescriptionLanguage ?? DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage) ?? .followSystem
             pitchDownstepNotationInHeaderEnabled = pref.pitchDownstepNotationInHeaderEnabled
             pitchResultsAreaCollapsedDisplay = pref.pitchResultsAreaCollapsedDisplay
             pitchResultsAreaDownstepNotationEnabled = pref.pitchResultsAreaDownstepNotationEnabled
@@ -153,6 +163,7 @@ struct DictionaryDisplaySettingsView: View {
         newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
         newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
         newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
+        newPref.deinflectionDescriptionLanguage = DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage
         newPref.pitchDownstepNotationInHeaderEnabled = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
         newPref.pitchResultsAreaCollapsedDisplay = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
         newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
@@ -174,6 +185,7 @@ struct DictionaryDisplaySettingsView: View {
         pref.fontSize = fontSize
         pref.popupFontSize = popupFontSize
         pref.showDeinflection = showDeinflection
+        pref.deinflectionDescriptionLanguage = deinflectionDescriptionLanguage.rawValue
         pref.pitchDownstepNotationInHeaderEnabled = pitchDownstepNotationInHeaderEnabled
         pref.pitchResultsAreaCollapsedDisplay = pitchResultsAreaCollapsedDisplay
         pref.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled

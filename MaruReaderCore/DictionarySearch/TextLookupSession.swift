@@ -214,7 +214,8 @@ public actor TextLookupSession {
             dictionaryMetadata: dictionaryMetadata,
             context: context
         )
-        let groupedResults = DictionarySearchService.groupResults(searchResults)
+        let deinflectionLanguage = DeinflectionLanguage(rawValue: styles.deinflectionDescriptionLanguage) ?? .followSystem
+        let groupedResults = DictionarySearchService.groupResults(searchResults, deinflectionLanguage: deinflectionLanguage)
 
         let newGroups = groupedResults.filter { group in
             seenTermKeys.insert(group.termKey).inserted

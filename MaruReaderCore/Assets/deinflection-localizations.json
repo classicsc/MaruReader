@@ -1,0 +1,956 @@
+{
+  "-ば": {
+    "en": {
+      "displayName": "-ば",
+      "description": "1. Conditional form; shows that the previous stated condition's establishment is the condition for the latter stated condition to occur.\n2. Shows a trigger for a latter stated perception or judgment.\nUsage: Attach ば to the hypothetical form (仮定形) of verbs and i-adjectives."
+    },
+    "ja": {
+      "displayName": "～ば",
+      "description": "1. 条件形。前件の成立が後件の成立の条件であることを示す。\n2. 後件に述べる知覚・判断のきっかけを示す。\n用法：動詞・い形容詞の仮定形に「ば」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～ば",
+      "description": "1. 條件形。表示前項條件成立時，後項隨之成立。\n2. 表示引發後項感知或判斷的契機。\n用法：接在動詞和い形容詞的假定形後面加「ば」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ば",
+      "description": "1. 条件形。表示前项条件成立时，后项随之成立。\n2. 表示引发后项感知或判断的契机。\n用法：接在动词和い形容词的假定形后面加「ば」。"
+    }
+  },
+  "-ゃ": {
+    "en": {
+      "displayName": "-ゃ",
+      "description": "Contraction of -ば."
+    },
+    "ja": {
+      "displayName": "～ゃ",
+      "description": "「ば」の縮約形。"
+    },
+    "zh-Hant": {
+      "displayName": "～ゃ",
+      "description": "「ば」的縮約形。"
+    },
+    "zh-Hans": {
+      "displayName": "～ゃ",
+      "description": "「ば」的缩约形。"
+    }
+  },
+  "-ちゃ": {
+    "en": {
+      "displayName": "-ちゃ",
+      "description": "Contraction of ～ては.\n1. Explains how something always happens under the condition that it marks.\n2. Expresses the repetition (of a series of) actions.\n3. Indicates a hypothetical situation in which the speaker gives a (negative) evaluation about the other party's intentions.\n4. Used in \"Must Not\" patterns like ～てはいけない.\nUsage: Attach は after the て-form of verbs, contract ては into ちゃ."
+    },
+    "ja": {
+      "displayName": "～ちゃ",
+      "description": "「～ては」の縮約形。\n1. その条件が成立すると必ずそうなることを説明する。\n2. 一連の動作の繰り返しを表す。\n3. 相手の意図について否定的評価を与える仮定状況を示す。\n4.「～てはいけない」のような禁止表現に使う。\n用法：動詞のて形の後に「は」を付け、「ては」を「ちゃ」に縮約する。"
+    },
+    "zh-Hant": {
+      "displayName": "～ちゃ",
+      "description": "「～ては」的縮約形。\n1. 說明在該條件下必然會發生某事。\n2. 表示一連串動作的反覆。\n3. 表示對對方意圖給予否定評價的假設情境。\n4. 用於「～てはいけない」等禁止表達。\n用法：在動詞て形後加「は」，將「ては」縮約為「ちゃ」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ちゃ",
+      "description": "「～ては」的缩约形。\n1. 说明在该条件下必然会发生某事。\n2. 表示一连串动作的反复。\n3. 表示对对方意图给予否定评价的假设情境。\n4. 用于「～てはいけない」等禁止表达。\n用法：在动词て形后加「は」，将「ては」缩约为「ちゃ」。"
+    }
+  },
+  "-ちゃう": {
+    "en": {
+      "displayName": "-ちゃう",
+      "description": "Contraction of -しまう.\n1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–\"accidentally\".\nUsage: Attach しまう after the て-form of verbs, contract てしまう into ちゃう."
+    },
+    "ja": {
+      "displayName": "～ちゃう",
+      "description": "「～しまう」の縮約形。\n1. 自らの意志で行ったが結果が悪かったという後悔・驚きを示す。\n2. 動作の完了を示す。\n3. 意図しない動作（「つい」「うっかり」）を示す。\n用法：動詞のて形の後に「しまう」を付け、「てしまう」を「ちゃう」に縮約する。"
+    },
+    "zh-Hant": {
+      "displayName": "～ちゃう",
+      "description": "「～しまう」的縮約形。\n1. 表示出於本意卻結果不佳的後悔或驚訝。\n2. 表示動作已完成。\n3. 表示非故意的動作——「不小心」。\n用法：在動詞て形後加「しまう」，將「てしまう」縮約為「ちゃう」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ちゃう",
+      "description": "「～しまう」的缩约形。\n1. 表示出于本意却结果不佳的后悔或惊讶。\n2. 表示动作已完成。\n3. 表示非故意的动作——「不小心」。\n用法：在动词て形后加「しまう」，将「てしまう」缩约为「ちゃう」。"
+    }
+  },
+  "-ちまう": {
+    "en": {
+      "displayName": "-ちまう",
+      "description": "Contraction of -しまう.\n1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–\"accidentally\".\nUsage: Attach しまう after the て-form of verbs, contract てしまう into ちまう."
+    },
+    "ja": {
+      "displayName": "～ちまう",
+      "description": "「～しまう」の縮約形。\n1. 自らの意志で行ったが結果が悪かったという後悔・驚きを示す。\n2. 動作の完了を示す。\n3. 意図しない動作（「つい」「うっかり」）を示す。\n用法：動詞のて形の後に「しまう」を付け、「てしまう」を「ちまう」に縮約する。"
+    },
+    "zh-Hant": {
+      "displayName": "～ちまう",
+      "description": "「～しまう」的縮約形。\n1. 表示出於本意卻結果不佳的後悔或驚訝。\n2. 表示動作已完成。\n3. 表示非故意的動作——「不小心」。\n用法：在動詞て形後加「しまう」，將「てしまう」縮約為「ちまう」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ちまう",
+      "description": "「～しまう」的缩约形。\n1. 表示出于本意却结果不佳的后悔或惊讶。\n2. 表示动作已完成。\n3. 表示非故意的动作——「不小心」。\n用法：在动词て形后加「しまう」，将「てしまう」缩约为「ちまう」。"
+    }
+  },
+  "-しまう": {
+    "en": {
+      "displayName": "-しまう",
+      "description": "1. Shows a sense of regret/surprise when you did have volition in doing something, but it turned out to be bad to do.\n2. Shows perfective/punctual achievement. This shows that an action has been completed.\n3. Shows unintentional action–\"accidentally\".\nUsage: Attach しまう after the て-form of verbs."
+    },
+    "ja": {
+      "displayName": "～しまう",
+      "description": "1. 自らの意志で行ったが結果が悪かったという後悔・驚きを示す。\n2. 動作の完了を示す。\n3. 意図しない動作（「つい」「うっかり」）を示す。\n用法：動詞のて形の後に「しまう」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～しまう",
+      "description": "1. 表示出於本意卻結果不佳的後悔或驚訝。\n2. 表示動作已完成。\n3. 表示非故意的動作——「不小心」。\n用法：在動詞て形後加「しまう」。"
+    },
+    "zh-Hans": {
+      "displayName": "～しまう",
+      "description": "1. 表示出于本意却结果不佳的后悔或惊讶。\n2. 表示动作已完成。\n3. 表示非故意的动作——「不小心」。\n用法：在动词て形后加「しまう」。"
+    }
+  },
+  "-なさい": {
+    "en": {
+      "displayName": "-なさい",
+      "description": "Polite imperative suffix.\nUsage: Attach なさい after the continuative form (連用形) of verbs."
+    },
+    "ja": {
+      "displayName": "～なさい",
+      "description": "丁寧な命令を表す接尾語。\n用法：動詞の連用形に「なさい」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～なさい",
+      "description": "禮貌的命令接尾語。\n用法：接在動詞連用形後加「なさい」。"
+    },
+    "zh-Hans": {
+      "displayName": "～なさい",
+      "description": "礼貌的命令接尾语。\n用法：接在动词连用形后加「なさい」。"
+    }
+  },
+  "-そう": {
+    "en": {
+      "displayName": "-そう",
+      "description": "Appearing that; looking like.\nUsage: Attach そう to the continuative form (連用形) of verbs, or to the stem of adjectives."
+    },
+    "ja": {
+      "displayName": "～そう",
+      "description": "「～のように見える」「～の様子だ」を表す。\n用法：動詞の連用形、形容詞の語幹に「そう」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～そう",
+      "description": "表示「看起來像是…」。\n用法：接在動詞連用形或形容詞詞幹後加「そう」。"
+    },
+    "zh-Hans": {
+      "displayName": "～そう",
+      "description": "表示「看起来像是…」。\n用法：接在动词连用形或形容词词干后加「そう」。"
+    }
+  },
+  "-すぎる": {
+    "en": {
+      "displayName": "-すぎる",
+      "description": "Shows something \"is too...\" or someone is doing something \"too much\".\nUsage: Attach すぎる to the continuative form (連用形) of verbs, or to the stem of adjectives."
+    },
+    "ja": {
+      "displayName": "～すぎる",
+      "description": "「過度に～だ」「～しすぎる」を表す。\n用法：動詞の連用形、形容詞の語幹に「すぎる」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～すぎる",
+      "description": "表示「太過…」或「做得過多」。\n用法：接在動詞連用形或形容詞詞幹後加「すぎる」。"
+    },
+    "zh-Hans": {
+      "displayName": "～すぎる",
+      "description": "表示「太过…」或「做得过多」。\n用法：接在动词连用形或形容词词干后加「すぎる」。"
+    }
+  },
+  "-過ぎる": {
+    "en": {
+      "displayName": "-過ぎる",
+      "description": "Shows something \"is too...\" or someone is doing something \"too much\".\nUsage: Attach 過ぎる to the continuative form (連用形) of verbs, or to the stem of adjectives."
+    },
+    "ja": {
+      "displayName": "～過ぎる",
+      "description": "「過度に～だ」「～しすぎる」を表す。\n用法：動詞の連用形、形容詞の語幹に「過ぎる」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～過ぎる",
+      "description": "表示「太過…」或「做得過多」。\n用法：接在動詞連用形或形容詞詞幹後加「過ぎる」。"
+    },
+    "zh-Hans": {
+      "displayName": "～過ぎる",
+      "description": "表示「太过…」或「做得过多」。\n用法：接在动词连用形或形容词词干后加「過ぎる」。"
+    }
+  },
+  "-たい": {
+    "en": {
+      "displayName": "-たい",
+      "description": "1. Expresses the feeling of desire or hope.\n2. Used in ...たいと思います, an indirect way of saying what the speaker intends to do.\nUsage: Attach たい to the continuative form (連用形) of verbs. たい itself conjugates as i-adjective."
+    },
+    "ja": {
+      "displayName": "～たい",
+      "description": "1. 願望・希望の気持ちを表す。\n2.「…たいと思います」で話者の意向を間接的に表す。\n用法：動詞の連用形に「たい」を付ける。「たい」自体はい形容詞として活用する。"
+    },
+    "zh-Hant": {
+      "displayName": "～たい",
+      "description": "1. 表示願望或希望的心情。\n2. 用於「…たいと思います」，間接表達說話者的意向。\n用法：接在動詞連用形後加「たい」。「たい」本身按い形容詞活用。"
+    },
+    "zh-Hans": {
+      "displayName": "～たい",
+      "description": "1. 表示愿望或希望的心情。\n2. 用于「…たいと思います」，间接表达说话者的意向。\n用法：接在动词连用形后加「たい」。「たい」本身按い形容词活用。"
+    }
+  },
+  "-たら": {
+    "en": {
+      "displayName": "-たら",
+      "description": "1. Denotes the latter stated event is a continuation of the previous stated event.\n2. Assumes that a matter has been completed or concluded.\nUsage: Attach たら to the continuative form (連用形) of verbs after euphonic change form, かったら to the stem of i-adjectives."
+    },
+    "ja": {
+      "displayName": "～たら",
+      "description": "1. 前件の事態が完了・成立したことを受けて後件が続くことを示す。\n2. ある事態が完了・結末を迎えたことを前提とする。\n用法：動詞の音便形連用形に「たら」を付ける。い形容詞の語幹に「かったら」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～たら",
+      "description": "1. 表示前項事態完成後，後項隨之發生。\n2. 以某事態已完成或結束為前提。\n用法：接在動詞音便形連用形後加「たら」，い形容詞詞幹加「かったら」。"
+    },
+    "zh-Hans": {
+      "displayName": "～たら",
+      "description": "1. 表示前项事态完成后，后项随之发生。\n2. 以某事态已完成或结束为前提。\n用法：接在动词音便形连用形后加「たら」，い形容词词干加「かったら」。"
+    }
+  },
+  "-たり": {
+    "en": {
+      "displayName": "-たり",
+      "description": "1. Shows two actions occurring back and forth (when used with two verbs).\n2. Shows examples of actions and states (when used with multiple verbs and adjectives).\nUsage: Attach たり to the continuative form (連用形) of verbs after euphonic change form, かったり to the stem of i-adjectives"
+    },
+    "ja": {
+      "displayName": "～たり",
+      "description": "1.（二つの動詞で）二つの動作が交互に行われることを示す。\n2.（複数の動詞・形容詞で）動作や状態の例を示す。\n用法：動詞の音便形連用形に「たり」を付ける。い形容詞の語幹に「かったり」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～たり",
+      "description": "1.（搭配兩個動詞）表示兩個動作交替進行。\n2.（搭配多個動詞或形容詞）列舉動作或狀態的例子。\n用法：接在動詞音便形連用形後加「たり」，い形容詞詞幹加「かったり」。"
+    },
+    "zh-Hans": {
+      "displayName": "～たり",
+      "description": "1.（搭配两个动词）表示两个动作交替进行。\n2.（搭配多个动词或形容词）列举动作或状态的例子。\n用法：接在动词音便形连用形后加「たり」，い形容词词干加「かったり」。"
+    }
+  },
+  "-て": {
+    "en": {
+      "displayName": "-て",
+      "description": "て-form.\nIt has a myriad of meanings. Primarily, it is a conjunctive particle that connects two clauses together.\nUsage: Attach て to the continuative form (連用形) of verbs after euphonic change form, くて to the stem of i-adjectives."
+    },
+    "ja": {
+      "displayName": "～て",
+      "description": "て形。\n多くの意味を持つ。主に二つの節を接続する接続助詞として使われる。\n用法：動詞の音便形連用形に「て」を付ける。い形容詞の語幹に「くて」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～て",
+      "description": "て形。\n有多種含義。主要作為連接兩個子句的接續助詞。\n用法：接在動詞音便形連用形後加「て」，い形容詞詞幹加「くて」。"
+    },
+    "zh-Hans": {
+      "displayName": "～て",
+      "description": "て形。\n有多种含义。主要作为连接两个子句的接续助词。\n用法：接在动词音便形连用形后加「て」，い形容词词干加「くて」。"
+    }
+  },
+  "-ず": {
+    "en": {
+      "displayName": "-ず",
+      "description": "1. Negative form of verbs.\n2. Continuative form (連用形) of the particle ぬ (nu).\nUsage: Attach ず to the irrealis form (未然形) of verbs."
+    },
+    "ja": {
+      "displayName": "～ず",
+      "description": "1. 動詞の否定形。\n2. 助動詞「ぬ」の連用形。\n用法：動詞の未然形に「ず」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～ず",
+      "description": "1. 動詞的否定形。\n2. 助動詞「ぬ」的連用形。\n用法：接在動詞未然形後加「ず」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ず",
+      "description": "1. 动词的否定形。\n2. 助动词「ぬ」的连用形。\n用法：接在动词未然形后加「ず」。"
+    }
+  },
+  "-ぬ": {
+    "en": {
+      "displayName": "-ぬ",
+      "description": "Negative form of verbs.\nUsage: Attach ぬ to the irrealis form (未然形) of verbs.\nする becomes せぬ"
+    },
+    "ja": {
+      "displayName": "～ぬ",
+      "description": "動詞の否定形。\n用法：動詞の未然形に「ぬ」を付ける。\n「する」は「せぬ」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～ぬ",
+      "description": "動詞的否定形。\n用法：接在動詞未然形後加「ぬ」。\n「する」變為「せぬ」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ぬ",
+      "description": "动词的否定形。\n用法：接在动词未然形后加「ぬ」。\n「する」变为「せぬ」。"
+    }
+  },
+  "-ん": {
+    "en": {
+      "displayName": "-ん",
+      "description": "Negative form of verbs; a sound change of ぬ.\nUsage: Attach ん to the irrealis form (未然形) of verbs.\nする becomes せん"
+    },
+    "ja": {
+      "displayName": "～ん",
+      "description": "動詞の否定形。「ぬ」の音変化。\n用法：動詞の未然形に「ん」を付ける。\n「する」は「せん」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～ん",
+      "description": "動詞的否定形。「ぬ」的音變。\n用法：接在動詞未然形後加「ん」。\n「する」變為「せん」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ん",
+      "description": "动词的否定形。「ぬ」的音变。\n用法：接在动词未然形后加「ん」。\n「する」变为「せん」。"
+    }
+  },
+  "-んばかり": {
+    "en": {
+      "displayName": "-んばかり",
+      "description": "Shows an action or condition is on the verge of occurring, or an excessive/extreme degree.\nUsage: Attach んばかり to the irrealis form (未然形) of verbs.\nする becomes せんばかり"
+    },
+    "ja": {
+      "displayName": "～んばかり",
+      "description": "動作や状態が今にも起ころうとしている、または過度・極端な程度を示す。\n用法：動詞の未然形に「んばかり」を付ける。\n「する」は「せんばかり」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～んばかり",
+      "description": "表示動作或狀態即將發生，或表示過度、極端的程度。\n用法：接在動詞未然形後加「んばかり」。\n「する」變為「せんばかり」。"
+    },
+    "zh-Hans": {
+      "displayName": "～んばかり",
+      "description": "表示动作或状态即将发生，或表示过度、极端的程度。\n用法：接在动词未然形后加「んばかり」。\n「する」变为「せんばかり」。"
+    }
+  },
+  "-んとする": {
+    "en": {
+      "displayName": "-んとする",
+      "description": "1. Shows the speaker's will or intention.\n2. Shows an action or condition is on the verge of occurring.\nUsage: Attach んとする to the irrealis form (未然形) of verbs.\nする becomes せんとする"
+    },
+    "ja": {
+      "displayName": "～んとする",
+      "description": "1. 話者の意志・意図を示す。\n2. 動作や状態が今にも起ころうとしていることを示す。\n用法：動詞の未然形に「んとする」を付ける。\n「する」は「せんとする」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～んとする",
+      "description": "1. 表示說話者的意志或意圖。\n2. 表示動作或狀態即將發生。\n用法：接在動詞未然形後加「んとする」。\n「する」變為「せんとする」。"
+    },
+    "zh-Hans": {
+      "displayName": "～んとする",
+      "description": "1. 表示说话者的意志或意图。\n2. 表示动作或状态即将发生。\n用法：接在动词未然形后加「んとする」。\n「する」变为「せんとする」。"
+    }
+  },
+  "-む": {
+    "en": {
+      "displayName": "-む",
+      "description": "Archaic.\n1. Shows an inference of a certain matter.\n2. Shows speaker's intention.\nUsage: Attach む to the irrealis form (未然形) of verbs.\nする becomes せむ"
+    },
+    "ja": {
+      "displayName": "～む",
+      "description": "古語。\n1. ある事柄の推量を示す。\n2. 話者の意志を示す。\n用法：動詞の未然形に「む」を付ける。\n「する」は「せむ」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～む",
+      "description": "古語。\n1. 表示對某事的推測。\n2. 表示說話者的意志。\n用法：接在動詞未然形後加「む」。\n「する」變為「せむ」。"
+    },
+    "zh-Hans": {
+      "displayName": "～む",
+      "description": "古语。\n1. 表示对某事的推测。\n2. 表示说话者的意志。\n用法：接在动词未然形后加「む」。\n「する」变为「せむ」。"
+    }
+  },
+  "-ざる": {
+    "en": {
+      "displayName": "-ざる",
+      "description": "Negative form of verbs.\nUsage: Attach ざる to the irrealis form (未然形) of verbs.\nする becomes せざる"
+    },
+    "ja": {
+      "displayName": "～ざる",
+      "description": "動詞の否定形。\n用法：動詞の未然形に「ざる」を付ける。\n「する」は「せざる」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～ざる",
+      "description": "動詞的否定形。\n用法：接在動詞未然形後加「ざる」。\n「する」變為「せざる」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ざる",
+      "description": "动词的否定形。\n用法：接在动词未然形后加「ざる」。\n「する」变为「せざる」。"
+    }
+  },
+  "-ねば": {
+    "en": {
+      "displayName": "-ねば",
+      "description": "1. Shows a hypothetical negation; if not ...\n2. Shows a must. Used with or without ならぬ.\nUsage: Attach ねば to the irrealis form (未然形) of verbs.\nする becomes せねば"
+    },
+    "ja": {
+      "displayName": "～ねば",
+      "description": "1. 仮定的否定を示す。「もし～でなければ…」\n2. 義務を示す。「ならぬ」を伴う場合と伴わない場合がある。\n用法：動詞の未然形に「ねば」を付ける。\n「する」は「せねば」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～ねば",
+      "description": "1. 表示假定的否定；如果不…\n2. 表示義務。可搭配或不搭配「ならぬ」。\n用法：接在動詞未然形後加「ねば」。\n「する」變為「せねば」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ねば",
+      "description": "1. 表示假定的否定；如果不…\n2. 表示义务。可搭配或不搭配「ならぬ」。\n用法：接在动词未然形后加「ねば」。\n「する」变为「せねば」。"
+    }
+  },
+  "-く": {
+    "en": {
+      "displayName": "-く",
+      "description": "Adverbial form of i-adjectives."
+    },
+    "ja": {
+      "displayName": "～く",
+      "description": "い形容詞の副詞形。"
+    },
+    "zh-Hant": {
+      "displayName": "～く",
+      "description": "い形容詞的副詞形。"
+    },
+    "zh-Hans": {
+      "displayName": "～く",
+      "description": "い形容词的副词形。"
+    }
+  },
+  "causative": {
+    "en": {
+      "displayName": "causative",
+      "description": "Describes the intention to make someone do something.\nUsage: Attach させる to the irrealis form (未然形) of ichidan verbs and くる.\nAttach せる to the irrealis form (未然形) of godan verbs and する.\nIt itself conjugates as an ichidan verb."
+    },
+    "ja": {
+      "displayName": "～せる・させる",
+      "description": "誰かに何かをさせるという意図を表す。\n用法：一段動詞と「くる」の未然形に「させる」を付ける。\n五段動詞と「する」の未然形に「せる」を付ける。\n使役形自体は一段動詞として活用する。"
+    },
+    "zh-Hant": {
+      "displayName": "使役形",
+      "description": "表示讓某人做某事的意圖。\n用法：一段動詞和「くる」的未然形加「させる」。\n五段動詞和「する」的未然形加「せる」。\n使役形本身按一段動詞活用。"
+    },
+    "zh-Hans": {
+      "displayName": "使役形",
+      "description": "表示让某人做某事的意图。\n用法：一段动词和「くる」的未然形加「させる」。\n五段动词和「する」的未然形加「せる」。\n使役形本身按一段动词活用。"
+    }
+  },
+  "short causative": {
+    "en": {
+      "displayName": "short causative",
+      "description": "Contraction of the causative form.\nDescribes the intention to make someone do something.\nUsage: Attach す to the irrealis form (未然形) of godan verbs.\nAttach さす to the dictionary form (終止形) of ichidan verbs.\nする becomes さす, くる becomes こさす.\nIt itself conjugates as an godan verb."
+    },
+    "ja": {
+      "displayName": "～す・さす",
+      "description": "使役形の縮約形。\n誰かに何かをさせるという意図を表す。\n用法：五段動詞の未然形に「す」を付ける。\n一段動詞の終止形に「さす」を付ける。\n「する」は「さす」、「くる」は「こさす」になる。\n五段動詞として活用する。"
+    },
+    "zh-Hant": {
+      "displayName": "使役縮約形",
+      "description": "使役形的縮約形。\n表示讓某人做某事的意圖。\n用法：五段動詞未然形加「す」。\n一段動詞終止形加「さす」。\n「する」變為「さす」，「くる」變為「こさす」。\n按五段動詞活用。"
+    },
+    "zh-Hans": {
+      "displayName": "使役缩约形",
+      "description": "使役形的缩约形。\n表示让某人做某事的意图。\n用法：五段动词未然形加「す」。\n一段动词终止形加「さす」。\n「する」变为「さす」，「くる」变为「こさす」。\n按五段动词活用。"
+    }
+  },
+  "imperative": {
+    "en": {
+      "displayName": "imperative",
+      "description": "1. To give orders.\n2. (As あれ) Represents the fact that it will never change no matter the circumstances.\n3. Express a feeling of hope."
+    },
+    "ja": {
+      "displayName": "命令形",
+      "description": "1. 命令を表す。\n2.（「あれ」の形で）どんな状況でも変わらないという事実を表す。\n3. 希望の気持ちを表す。"
+    },
+    "zh-Hant": {
+      "displayName": "命令形",
+      "description": "1. 表示命令。\n2.（以「あれ」的形式）表示無論在什麼情況下都不會改變的事實。\n3. 表示希望的心情。"
+    },
+    "zh-Hans": {
+      "displayName": "命令形",
+      "description": "1. 表示命令。\n2.（以「あれ」的形式）表示无论在什么情况下都不会改变的事实。\n3. 表示希望的心情。"
+    }
+  },
+  "continuative": {
+    "en": {
+      "displayName": "continuative",
+      "description": "Used to indicate actions that are (being) carried out.\nRefers to 連用形, the part of the verb after conjugating with -ます and dropping ます."
+    },
+    "ja": {
+      "displayName": "連用形",
+      "description": "実行中の動作を示す。\n動詞に「ます」を接続した後、「ます」を取った部分の形を指す。"
+    },
+    "zh-Hant": {
+      "displayName": "連用形",
+      "description": "用於表示正在進行的動作。\n指動詞接「ます」後去掉「ます」的部分。"
+    },
+    "zh-Hans": {
+      "displayName": "连用形",
+      "description": "用于表示正在进行的动作。\n指动词接「ます」后去掉「ます」的部分。"
+    }
+  },
+  "negative": {
+    "en": {
+      "displayName": "negative",
+      "description": "1. Negative form of verbs.\n2. Expresses a feeling of solicitation to the other party.\nUsage: Attach ない to the irrealis form (未然形) of verbs, くない to the stem of i-adjectives. ない itself conjugates as i-adjective. ます becomes ません."
+    },
+    "ja": {
+      "displayName": "～ない",
+      "description": "1. 動詞の否定形。\n2. 相手への勧誘の気持ちを表す。\n用法：動詞の未然形に「ない」、い形容詞の語幹に「くない」を付ける。「ない」自体はい形容詞として活用する。「ます」は「ません」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "否定形",
+      "description": "1. 動詞的否定形。\n2. 表示對對方的邀請之意。\n用法：動詞未然形加「ない」，い形容詞詞幹加「くない」。「ない」本身按い形容詞活用。「ます」變為「ません」。"
+    },
+    "zh-Hans": {
+      "displayName": "否定形",
+      "description": "1. 动词的否定形。\n2. 表示对对方的邀请之意。\n用法：动词未然形加「ない」，い形容词词干加「くない」。「ない」本身按い形容词活用。「ます」变为「ません」。"
+    }
+  },
+  "-さ": {
+    "en": {
+      "displayName": "-さ",
+      "description": "Nominalizing suffix of i-adjectives indicating nature, state, mind or degree.\nUsage: Attach さ to the stem of i-adjectives."
+    },
+    "ja": {
+      "displayName": "～さ",
+      "description": "い形容詞の名詞化接尾語。性質・状態・心情・程度を示す。\n用法：い形容詞の語幹に「さ」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～さ",
+      "description": "い形容詞的名詞化接尾語。表示性質、狀態、心情或程度。\n用法：接在い形容詞詞幹後加「さ」。"
+    },
+    "zh-Hans": {
+      "displayName": "～さ",
+      "description": "い形容词的名词化接尾语。表示性质、状态、心情或程度。\n用法：接在い形容词词干后加「さ」。"
+    }
+  },
+  "passive": {
+    "en": {
+      "displayName": "passive",
+      "description": "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\nUsage: Attach れる to the irrealis form (未然形) of godan verbs."
+    },
+    "ja": {
+      "displayName": "～れる",
+      "description": "1. 動作者から受ける動作を示す。\n2. 動作の主語に対する尊敬を表す。\n用法：五段動詞の未然形に「れる」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "被動形",
+      "description": "1. 表示從動作者那裡接受的動作。\n2. 表示對動作主語的尊敬。\n用法：接在五段動詞未然形後加「れる」。"
+    },
+    "zh-Hans": {
+      "displayName": "被动形",
+      "description": "1. 表示从动作者那里接受的动作。\n2. 表示对动作主语的尊敬。\n用法：接在五段动词未然形后加「れる」。"
+    }
+  },
+  "-た": {
+    "en": {
+      "displayName": "-た",
+      "description": "1. Indicates a reality that has happened in the past.\n2. Indicates the completion of an action.\n3. Indicates the confirmation of a matter.\n4. Indicates the speaker's confidence that the action will definitely be fulfilled.\n5. Indicates the events that occur before the main clause are represented as relative past.\n6. Indicates a mild imperative/command.\nUsage: Attach た to the continuative form (連用形) of verbs after euphonic change form, かった to the stem of i-adjectives."
+    },
+    "ja": {
+      "displayName": "～た",
+      "description": "1. 過去に起こった事実を示す。\n2. 動作の完了を示す。\n3. 事柄の確認を示す。\n4. その動作が必ず実現されるという話者の確信を示す。\n5. 主節の前に起こった出来事を相対的な過去として表す。\n6. 穏やかな命令を示す。\n用法：動詞の音便形連用形に「た」、い形容詞の語幹に「かった」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～た",
+      "description": "1. 表示過去發生的事實。\n2. 表示動作的完成。\n3. 表示對事情的確認。\n4. 表示說話者確信該動作必定會實現。\n5. 表示主句之前發生的事件（相對過去）。\n6. 表示溫和的命令。\n用法：動詞音便形連用形加「た」，い形容詞詞幹加「かった」。"
+    },
+    "zh-Hans": {
+      "displayName": "～た",
+      "description": "1. 表示过去发生的事实。\n2. 表示动作的完成。\n3. 表示对事情的确认。\n4. 表示说话者确信该动作必定会实现。\n5. 表示主句之前发生的事件（相对过去）。\n6. 表示温和的命令。\n用法：动词音便形连用形加「た」，い形容词词干加「かった」。"
+    }
+  },
+  "-ます": {
+    "en": {
+      "displayName": "-ます",
+      "description": "Polite conjugation of verbs and adjectives.\nUsage: Attach ます to the continuative form (連用形) of verbs."
+    },
+    "ja": {
+      "displayName": "～ます",
+      "description": "動詞・形容詞の丁寧な活用形。\n用法：動詞の連用形に「ます」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～ます",
+      "description": "動詞和形容詞的禮貌活用形。\n用法：接在動詞連用形後加「ます」。"
+    },
+    "zh-Hans": {
+      "displayName": "～ます",
+      "description": "动词和形容词的礼貌活用形。\n用法：接在动词连用形后加「ます」。"
+    }
+  },
+  "potential": {
+    "en": {
+      "displayName": "potential",
+      "description": "Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach (ら)れる to the irrealis form (未然形) of ichidan verbs.\nAttach る to the imperative form (命令形) of godan verbs.\nする becomes できる, くる becomes こ(ら)れる"
+    },
+    "ja": {
+      "displayName": "～(ら)れる",
+      "description": "（自然に）動作が可能である状態を示す。\n用法：一段動詞の未然形に「(ら)れる」を付ける。\n五段動詞の命令形に「る」を付ける。\n「する」は「できる」、「くる」は「こ(ら)れる」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "可能形",
+      "description": "表示（自然地）能夠進行某動作的狀態。\n用法：一段動詞未然形加「(ら)れる」。\n五段動詞命令形加「る」。\n「する」變為「できる」，「くる」變為「こ(ら)れる」。"
+    },
+    "zh-Hans": {
+      "displayName": "可能形",
+      "description": "表示（自然地）能够进行某动作的状态。\n用法：一段动词未然形加「(ら)れる」。\n五段动词命令形加「る」。\n「する」变为「できる」，「くる」变为「こ(ら)れる」。"
+    }
+  },
+  "potential or passive": {
+    "en": {
+      "displayName": "potential or passive",
+      "description": "1. Indicates an action received from an action performer.\n2. Expresses respect for the subject of action performer.\n3. Indicates a state of being (naturally) capable of doing an action.\nUsage: Attach られる to the irrealis form (未然形) of ichidan verbs.\nする becomes せられる, くる becomes こられる"
+    },
+    "ja": {
+      "displayName": "～られる",
+      "description": "1. 動作者から受ける動作を示す。\n2. 動作の主語に対する尊敬を表す。\n3.（自然に）動作が可能である状態を示す。\n用法：一段動詞の未然形に「られる」を付ける。\n「する」は「せられる」、「くる」は「こられる」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "可能或被動形",
+      "description": "1. 表示從動作者那裡接受的動作。\n2. 表示對動作主語的尊敬。\n3. 表示（自然地）能夠進行某動作的狀態。\n用法：一段動詞未然形加「られる」。\n「する」變為「せられる」，「くる」變為「こられる」。"
+    },
+    "zh-Hans": {
+      "displayName": "可能或被动形",
+      "description": "1. 表示从动作者那里接受的动作。\n2. 表示对动作主语的尊敬。\n3. 表示（自然地）能够进行某动作的状态。\n用法：一段动词未然形加「られる」。\n「する」变为「せられる」，「くる」变为「こられる」。"
+    }
+  },
+  "volitional": {
+    "en": {
+      "displayName": "volitional",
+      "description": "1. Expresses speaker's will or intention.\n2. Expresses an invitation to the other party.\n3. (Used in …ようとする) Indicates being on the verge of initiating an action or transforming a state.\n4. Indicates an inference of a matter.\nUsage: Attach よう to the irrealis form (未然形) of ichidan verbs.\nAttach う to the irrealis form (未然形) of godan verbs after -o euphonic change form.\nAttach かろう to the stem of i-adjectives (4th meaning only)."
+    },
+    "ja": {
+      "displayName": "～う・よう",
+      "description": "1. 話者の意志・意図を表す。\n2. 相手への勧誘を表す。\n3.（…ようとする）動作の開始や状態の変化が迫っていることを示す。\n4. 事柄の推量を表す。\n用法：一段動詞の未然形に「よう」を付ける。\n五段動詞の未然形（オ段音便後）に「う」を付ける。\nい形容詞の語幹に「かろう」を付ける（第4義のみ）。"
+    },
+    "zh-Hant": {
+      "displayName": "意志形",
+      "description": "1. 表示說話者的意志或意圖。\n2. 表示對對方的邀請。\n3.（用於「…ようとする」）表示即將開始動作或改變狀態。\n4. 表示對事物的推測。\n用法：一段動詞未然形加「よう」。\n五段動詞未然形（オ段音便後）加「う」。\nい形容詞詞幹加「かろう」（僅第4義）。"
+    },
+    "zh-Hans": {
+      "displayName": "意志形",
+      "description": "1. 表示说话者的意志或意图。\n2. 表示对对方的邀请。\n3.（用于「…ようとする」）表示即将开始动作或改变状态。\n4. 表示对事物的推测。\n用法：一段动词未然形加「よう」。\n五段动词未然形（オ段音便后）加「う」。\nい形容词词干加「かろう」（仅第4义）。"
+    }
+  },
+  "volitional slang": {
+    "en": {
+      "displayName": "volitional slang",
+      "description": "Contraction of volitional form + か\n1. Expresses speaker's will or intention.\n2. Expresses an invitation to the other party.\nUsage: Replace final う with っ of volitional form then add か.\nFor example: 行こうか -> 行こっか."
+    },
+    "ja": {
+      "displayName": "～っか・よっか",
+      "description": "意志形＋「か」の縮約形。\n1. 話者の意志・意図を表す。\n2. 相手への勧誘を表す。\n用法：意志形の末尾の「う」を「っ」に変えて「か」を付ける。\n例：行こうか → 行こっか。"
+    },
+    "zh-Hant": {
+      "displayName": "意志形口語",
+      "description": "意志形＋「か」的縮約形。\n1. 表示說話者的意志或意圖。\n2. 表示對對方的邀請。\n用法：將意志形末尾的「う」改為「っ」，再加「か」。\n例：行こうか → 行こっか。"
+    },
+    "zh-Hans": {
+      "displayName": "意志形口语",
+      "description": "意志形＋「か」的缩约形。\n1. 表示说话者的意志或意图。\n2. 表示对对方的邀请。\n用法：将意志形末尾的「う」改为「っ」，再加「か」。\n例：行こうか → 行こっか。"
+    }
+  },
+  "-まい": {
+    "en": {
+      "displayName": "-まい",
+      "description": "Negative volitional form of verbs.\n1. Expresses speaker's assumption that something is likely not true.\n2. Expresses speaker's will or intention not to do something.\nUsage: Attach まい to the dictionary form (終止形) of verbs.\nAttach まい to the irrealis form (未然形) of ichidan verbs.\nする becomes しまい, くる becomes こまい"
+    },
+    "ja": {
+      "displayName": "～まい",
+      "description": "動詞の否定意志形。\n1.「おそらくそうではないだろう」という話者の推測を表す。\n2.「～するつもりはない」という話者の意志を表す。\n用法：動詞の終止形に「まい」を付ける。\n一段動詞の未然形に「まい」を付ける。\n「する」は「しまい」、「くる」は「こまい」になる。"
+    },
+    "zh-Hant": {
+      "displayName": "～まい",
+      "description": "動詞的否定意志形。\n1. 表示說話者推測某事大概不是那樣。\n2. 表示說話者不打算做某事的意志。\n用法：動詞終止形加「まい」。\n一段動詞未然形加「まい」。\n「する」變為「しまい」，「くる」變為「こまい」。"
+    },
+    "zh-Hans": {
+      "displayName": "～まい",
+      "description": "动词的否定意志形。\n1. 表示说话者推测某事大概不是那样。\n2. 表示说话者不打算做某事的意志。\n用法：动词终止形加「まい」。\n一段动词未然形加「まい」。\n「する」变为「しまい」，「くる」变为「こまい」。"
+    }
+  },
+  "-おく": {
+    "en": {
+      "displayName": "-おく",
+      "description": "To do certain things in advance in preparation (or in anticipation) of latter needs.\nUsage: Attach おく to the て-form of verbs.\nAttach でおく after ない negative form of verbs.\nContracts to とく・どく in speech."
+    },
+    "ja": {
+      "displayName": "～おく",
+      "description": "後の必要に備えて（または予想して）あらかじめ何かをしておく。\n用法：動詞のて形の後に「おく」を付ける。\n否定形「ない」の後に「でおく」を付ける。\n口語では「とく」「どく」に縮約する。"
+    },
+    "zh-Hant": {
+      "displayName": "～おく",
+      "description": "為了以後的需要（或預想），預先做好某事。\n用法：在動詞て形後加「おく」。\n否定形「ない」後加「でおく」。\n口語中縮約為「とく」「どく」。"
+    },
+    "zh-Hans": {
+      "displayName": "～おく",
+      "description": "为了以后的需要（或预想），预先做好某事。\n用法：在动词て形后加「おく」。\n否定形「ない」后加「でおく」。\n口语中缩约为「とく」「どく」。"
+    }
+  },
+  "-いる": {
+    "en": {
+      "displayName": "-いる",
+      "description": "1. Indicates an action continues or progresses to a point in time.\n2. Indicates an action is completed and remains as is.\n3. Indicates a state or condition that can be taken to be the result of undergoing some change.\nUsage: Attach いる to the て-form of verbs. い can be dropped in speech.\nAttach でいる after ない negative form of verbs.\n(Slang) Attach おる to the て-form of verbs. Contracts to とる・でる in speech."
+    },
+    "ja": {
+      "displayName": "～いる",
+      "description": "1. ある時点まで動作が継続または進行していることを示す。\n2. 動作が完了してそのままの状態であることを示す。\n3. 何らかの変化を経た結果としての状態を示す。\n用法：動詞のて形の後に「いる」を付ける。口語では「い」を省略できる。\n否定形「ない」の後に「でいる」を付ける。\n（俗語）動詞のて形の後に「おる」を付ける。口語では「とる」「でる」に縮約する。"
+    },
+    "zh-Hant": {
+      "displayName": "～いる",
+      "description": "1. 表示動作持續或進行到某個時間點。\n2. 表示動作已完成並維持現狀。\n3. 表示經歷某種變化後的結果狀態。\n用法：在動詞て形後加「いる」。口語中可省略「い」。\n否定形「ない」後加「でいる」。\n（俗語）動詞て形後加「おる」。口語中縮約為「とる」「でる」。"
+    },
+    "zh-Hans": {
+      "displayName": "～いる",
+      "description": "1. 表示动作持续或进行到某个时间点。\n2. 表示动作已完成并维持现状。\n3. 表示经历某种变化后的结果状态。\n用法：在动词て形后加「いる」。口语中可省略「い」。\n否定形「ない」后加「でいる」。\n（俗语）动词て形后加「おる」。口语中缩约为「とる」「でる」。"
+    }
+  },
+  "-き": {
+    "en": {
+      "displayName": "-き",
+      "description": "Attributive form (連体形) of i-adjectives. An archaic form that remains in modern Japanese."
+    },
+    "ja": {
+      "displayName": "～き",
+      "description": "い形容詞の連体形。現代日本語に残る古語形。"
+    },
+    "zh-Hant": {
+      "displayName": "～き",
+      "description": "い形容詞的連體形。保留在現代日語中的古語形式。"
+    },
+    "zh-Hans": {
+      "displayName": "～き",
+      "description": "い形容词的连体形。保留在现代日语中的古语形式。"
+    }
+  },
+  "-げ": {
+    "en": {
+      "displayName": "-げ",
+      "description": "Describes a person's appearance. Shows feelings of the person.\nUsage: Attach げ or 気 to the stem of i-adjectives"
+    },
+    "ja": {
+      "displayName": "～げ",
+      "description": "人の様子を描写する。その人の感情を示す。\n用法：い形容詞の語幹に「げ」または「気」を付ける。"
+    },
+    "zh-Hant": {
+      "displayName": "～げ",
+      "description": "描述一個人的樣子。表示該人的感情。\n用法：接在い形容詞詞幹後加「げ」或「気」。"
+    },
+    "zh-Hans": {
+      "displayName": "～げ",
+      "description": "描述一个人的样子。表示该人的感情。\n用法：接在い形容词词干后加「げ」或「気」。"
+    }
+  },
+  "-がる": {
+    "en": {
+      "displayName": "-がる",
+      "description": "1. Shows subject's feelings contrast with what is thought/known about them.\n2. Indicates subject's behavior (stands out).\nUsage: Attach がる to the stem of i-adjectives. It itself conjugates as a godan verb."
+    },
+    "ja": {
+      "displayName": "～がる",
+      "description": "1. 主語の感情が、思われている・知られていることと対照的であることを示す。\n2. 主語の行動が（目立って）表れていることを示す。\n用法：い形容詞の語幹に「がる」を付ける。五段動詞として活用する。"
+    },
+    "zh-Hant": {
+      "displayName": "～がる",
+      "description": "1. 表示主語的感情與人們認為的或已知的形成對比。\n2. 表示主語的行為（明顯地）表現出來。\n用法：接在い形容詞詞幹後加「がる」。按五段動詞活用。"
+    },
+    "zh-Hans": {
+      "displayName": "～がる",
+      "description": "1. 表示主语的感情与人们认为的或已知的形成对比。\n2. 表示主语的行为（明显地）表现出来。\n用法：接在い形容词词干后加「がる」。按五段动词活用。"
+    }
+  },
+  "-え": {
+    "en": {
+      "displayName": "-え",
+      "description": "Slang. A sound change of i-adjectives.\nai：やばい → やべぇ\nui：さむい → さみぃ/さめぇ\noi：すごい → すげぇ"
+    },
+    "ja": {
+      "displayName": "～え",
+      "description": "俗語。い形容詞の音変化。\nai：やばい → やべぇ\nui：さむい → さみぃ／さめぇ\noi：すごい → すげぇ"
+    },
+    "zh-Hant": {
+      "displayName": "～え",
+      "description": "俗語。い形容詞的音變。\nai：やばい → やべぇ\nui：さむい → さみぃ／さめぇ\noi：すごい → すげぇ"
+    },
+    "zh-Hans": {
+      "displayName": "～え",
+      "description": "俗语。い形容词的音变。\nai：やばい → やべぇ\nui：さむい → さみぃ／さめぇ\noi：すごい → すげぇ"
+    }
+  },
+  "n-slang": {
+    "en": {
+      "displayName": "n-slang",
+      "description": "Slang sound change of r-column syllables to n (when before an n-sound, usually の or な)"
+    },
+    "ja": {
+      "displayName": "～んな",
+      "description": "俗語。ら行音が「ん」（ン音の前、通常は「の」や「な」の前）に変わる音変化。"
+    },
+    "zh-Hant": {
+      "displayName": "～んな",
+      "description": "俗語。ら行音節在ん音前（通常是「の」或「な」之前）變為「ん」的音變。"
+    },
+    "zh-Hans": {
+      "displayName": "～んな",
+      "description": "俗语。ら行音节在ん音前（通常是「の」或「な」之前）变为「ん」的音变。"
+    }
+  },
+  "imperative negative slang": {
+    "en": {
+      "displayName": "imperative negative slang",
+      "description": "Slang contraction of the negative imperative form."
+    },
+    "ja": {
+      "displayName": "～んな",
+      "description": "俗語。否定命令形の縮約。"
+    },
+    "zh-Hant": {
+      "displayName": "～んな",
+      "description": "俗語。否定命令形的縮約。"
+    },
+    "zh-Hans": {
+      "displayName": "～んな",
+      "description": "俗语。否定命令形的缩约。"
+    }
+  },
+  "kansai-ben negative": {
+    "en": {
+      "displayName": "kansai-ben negative",
+      "description": "Negative form of kansai-ben verbs"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁の動詞否定形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的動詞否定形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的动词否定形。"
+    }
+  },
+  "kansai-ben -て": {
+    "en": {
+      "displayName": "kansai-ben -て",
+      "description": "-て form of kansai-ben verbs"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁の動詞て形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的動詞て形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的动词て形。"
+    }
+  },
+  "kansai-ben -た": {
+    "en": {
+      "displayName": "kansai-ben -た",
+      "description": "-た form of kansai-ben terms"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁のた形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的た形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的た形。"
+    }
+  },
+  "kansai-ben -たら": {
+    "en": {
+      "displayName": "kansai-ben -たら",
+      "description": "-たら form of kansai-ben terms"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁のたら形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的たら形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的たら形。"
+    }
+  },
+  "kansai-ben -たり": {
+    "en": {
+      "displayName": "kansai-ben -たり",
+      "description": "-たり form of kansai-ben terms"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁のたり形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的たり形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的たり形。"
+    }
+  },
+  "kansai-ben -く": {
+    "en": {
+      "displayName": "kansai-ben -く",
+      "description": "-く stem of kansai-ben adjectives"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁の形容詞く語幹。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的形容詞く詞幹。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的形容词く词干。"
+    }
+  },
+  "kansai-ben adjective -て": {
+    "en": {
+      "displayName": "kansai-ben adjective -て",
+      "description": "-て form of kansai-ben adjectives"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁の形容詞て形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的形容詞て形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的形容词て形。"
+    }
+  },
+  "kansai-ben adjective negative": {
+    "en": {
+      "displayName": "kansai-ben adjective negative",
+      "description": "Negative form of kansai-ben adjectives"
+    },
+    "ja": {
+      "displayName": "関西弁",
+      "description": "関西弁の形容詞否定形。"
+    },
+    "zh-Hant": {
+      "displayName": "關西腔",
+      "description": "關西方言的形容詞否定形。"
+    },
+    "zh-Hans": {
+      "displayName": "关西腔",
+      "description": "关西方言的形容词否定形。"
+    }
+  }
+}
