@@ -39,11 +39,11 @@ window.MaruReader.frequencyDisplay = {
             if (isExpanded) {
                 expanded.classList.remove('visible');
                 button.setAttribute('aria-expanded', 'false');
-                button.setAttribute('aria-label', 'Show frequency details');
+                button.setAttribute('aria-label', window.MaruReader.localizedStrings.showFrequencyDetails);
             } else {
                 expanded.classList.add('visible');
                 button.setAttribute('aria-expanded', 'true');
-                button.setAttribute('aria-label', 'Hide frequency details');
+                button.setAttribute('aria-label', window.MaruReader.localizedStrings.hideFrequencyDetails);
             }
         }, true);
     }

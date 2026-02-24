@@ -39,6 +39,11 @@ window.MaruReader.dictionaryResults = {
         this.errorEl = document.getElementById('dictionary-results-error');
         this.sentinel = document.getElementById('dictionary-results-sentinel');
 
+        var strings = window.MaruReader.localizedStrings;
+        this.loadingEl.textContent = strings.loadingResults;
+        this.emptyEl.textContent = strings.noResultsFound;
+        this.errorEl.textContent = strings.unableToLoadResults;
+
         this.parseConfig();
         this.applyModeClass();
         this.initializeModules();

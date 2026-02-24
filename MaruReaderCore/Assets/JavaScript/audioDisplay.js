@@ -338,7 +338,7 @@ window.MaruReader.audioDisplay = {
                 button.setAttribute('data-audio-sources', JSON.stringify([source]));
                 button.setAttribute('data-state', 'ready');
                 button.setAttribute('aria-disabled', 'false');
-                button.setAttribute('aria-label', 'Play audio');
+                button.setAttribute('aria-label', window.MaruReader.localizedStrings.playAudio);
                 item.appendChild(button);
 
                 list.appendChild(item);

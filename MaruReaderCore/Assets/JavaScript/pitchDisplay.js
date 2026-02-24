@@ -40,7 +40,7 @@ window.MaruReader.pitchDisplay = {
                     });
                     toggle.textContent = '+';
                     toggle.setAttribute('data-expanded', 'false');
-                    toggle.setAttribute('aria-label', 'Show more pitch results');
+                    toggle.setAttribute('aria-label', window.MaruReader.localizedStrings.showMorePitchResults);
                 } else {
                     // Expand: show all items
                     collapsedItems.forEach(function(item) {
@@ -48,7 +48,7 @@ window.MaruReader.pitchDisplay = {
                     });
                     toggle.textContent = '−';
                     toggle.setAttribute('data-expanded', 'true');
-                    toggle.setAttribute('aria-label', 'Show fewer pitch results');
+                    toggle.setAttribute('aria-label', window.MaruReader.localizedStrings.showFewerPitchResults);
                 }
             }
         }, true);

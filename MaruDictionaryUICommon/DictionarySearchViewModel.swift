@@ -262,6 +262,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         userContentController.add(self, name: "internalLink")
         userContentController.add(self, name: "externalLink")
         userContentController.add(self, name: "tooltip")
+        userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
@@ -277,6 +278,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         let userContentController = WKUserContentController()
         userContentController.add(self, name: "navigateToTerm")
+        userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
         popupPage = WebPage(configuration: config)
         popupPage.isInspectable = true

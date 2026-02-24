@@ -311,7 +311,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
 
         return """
         <div class=\"frequency-display\">
-            <button type=\"button\" class=\"freq-button\" title=\"\(buttonTitle)\" aria-expanded=\"false\" aria-label=\"Toggle frequency details\">\(displayValue)</button>
+            <button type=\"button\" class=\"freq-button\" title=\"\(buttonTitle)\" aria-expanded=\"false\" aria-label=\"\(String(localized: "dictionary.frequencyDetails.show", bundle: .framework))\">\(displayValue)</button>
             <div class=\"freq-expanded\">
                 \(freqItemsHTML)
             </div>
@@ -462,7 +462,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
             "data-audio-reading=\"\(readingEscaped)\"",
             "data-state=\"disabled\"",
             "aria-disabled=\"true\"",
-            "aria-label=\"Play audio\"",
+            "aria-label=\"\(String(localized: "dictionary.audio.play", bundle: .framework))\"",
         ]
 
         if let pitchPosition {
@@ -487,7 +487,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         let reading = (termGroup.reading ?? "").escapeHTML()
 
         return """
-        <button type=\"button\" class=\"anki-button\" data-term-key=\"\(termKey)\" data-expression=\"\(expression)\" data-reading=\"\(reading)\" data-state=\"disabled\" aria-disabled=\"true\" aria-label=\"Add to Anki\" hidden></button>
+        <button type=\"button\" class=\"anki-button\" data-term-key=\"\(termKey)\" data-expression=\"\(expression)\" data-reading=\"\(reading)\" data-state=\"disabled\" aria-disabled=\"true\" aria-label=\"\(String(localized: "dictionary.anki.add", bundle: .framework))\" hidden></button>
         """
     }
 
@@ -602,10 +602,10 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
 
         if !compactOnly {
             html += "<div class=\"pitch-results-header\">"
-            html += "<span class=\"pitch-results-label\">Pitch</span>"
+            html += "<span class=\"pitch-results-label\">\(String(localized: "dictionary.pitch.label", bundle: .framework))</span>"
             if showToggle {
                 html += """
-                <button type=\"button\" class=\"pitch-toggle\" data-expanded=\"false\" aria-label=\"Show more pitch results\">+</button>
+                <button type=\"button\" class=\"pitch-toggle\" data-expanded=\"false\" aria-label=\"\(String(localized: "dictionary.pitchResults.showMore", bundle: .framework))\">+</button>
                 """
             }
             html += "</div>"
