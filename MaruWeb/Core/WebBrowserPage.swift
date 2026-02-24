@@ -465,7 +465,7 @@ final class DictionaryLookupWebView: WKWebView {
         super.buildMenu(with: builder)
 
         let lookupAction = UIAction(
-            title: "Dictionary",
+            title: String(localized: "Dictionary", comment: "A button in the text selection menu that opens the dictionary lookup for the selected word."),
             image: UIImage(systemName: "character.book.closed.ja")
         ) { [weak self] _ in
             guard let self else { return }
@@ -553,7 +553,7 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
 
         let configuration = UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { [weak self] _ in
             let openAction = UIAction(
-                title: "Open",
+                title: String(localized: "Open", comment: "A button in the link context menu that opens the link in the current tab."),
                 image: UIImage(systemName: "arrow.right.circle")
             ) { _ in
                 guard let onOpenLinkInCurrentTab = self?.onOpenLinkInCurrentTab else { return }
@@ -562,7 +562,7 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
                 }
             }
             let openInNewTabAction = UIAction(
-                title: "Open in New Tab",
+                title: String(localized: "Open in New Tab", comment: "A button in the link context menu that opens the link in a new tab."),
                 image: UIImage(systemName: "plus.square.on.square")
             ) { _ in
                 guard let onOpenLinkInNewTab = self?.onOpenLinkInNewTab else { return }
@@ -571,7 +571,7 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
                 }
             }
             let copyAction = UIAction(
-                title: "Copy Link",
+                title: String(localized: "Copy Link", comment: "A button in the link context menu that copies the link URL to the clipboard."),
                 image: UIImage(systemName: "doc.on.doc")
             ) { _ in
                 guard let onCopyLink = self?.onCopyLink else { return }
