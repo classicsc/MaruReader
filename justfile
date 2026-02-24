@@ -20,9 +20,9 @@ test destination="":
 test-plan plan destination="":
   ./scripts/run-test-plan.sh "{{plan}}" "{{destination}}"
 
-# runs a specific test, optionally specify a destination
-test-one only_testing destination="" plan="":
-  ./scripts/run-test-only.sh "{{only_testing}}" "{{destination}}" "{{plan}}"
+# runs a specific test, optionally specify a test plan and destination
+test-one only_testing plan="" destination="":
+  ./scripts/run-test-only.sh "{{only_testing}}" "{{plan}}" "{{destination}}"
 
 # builds the initial database with Jitendex and Kanji Alive
 starterdict:

@@ -2,13 +2,13 @@
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 3 ]]; then
-  echo "Usage: $0 <only-testing-id> [simulator_name_udid_or_destination] [test-plan]" >&2
+  echo "Usage: $0 <only-testing-id> [test-plan] [simulator_name_udid_or_destination]" >&2
   exit 1
 fi
 
 only_testing="$1"
-destination_input="${2:-}"
-plan="${3:-}"
+plan="${2:-}"
+destination_input="${3:-}"
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 destination="$("$ROOT_DIR/scripts/resolve-xcode-destination.sh" test "$destination_input")"

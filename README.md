@@ -128,7 +128,13 @@ For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and raw
 
 `just test`. Specify a simulator target like `just test 'iPhone 17 Pro'` (default) or `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`.
 
-You can also run a specific test plan with `just test-plan MaruReaderCoreTests` or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' 'iPhone 17 Pro' MaruReaderCoreTests`
+You can also run a specific test plan with `just test-plan MaruReaderCoreTests` or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
+
+Accepted device specifier formats:
+
+- Simulator name: `'iPhone 17 Pro'`
+- Simulator UDID: `76252478-5498-412D-9417-76009568896C`
+- Raw xcodebuild destination: `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
 
 #### Bundled license sync
 
