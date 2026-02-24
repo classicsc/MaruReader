@@ -22,7 +22,6 @@ import Testing
 /// Verify that import error types produce human-readable descriptions
 /// when type-erased to `any Error`, not generic NSError text.
 struct ImportErrorDescriptionTests {
-
     @Test func dictionaryImportError_localizedDescription_isReadable() {
         let error: any Error = DictionaryImportError.invalidData
         #expect(!error.localizedDescription.contains("DictionaryImportError"))

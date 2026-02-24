@@ -143,7 +143,7 @@ enum TermFetcher {
 
                         // Skip entry entirely if no chains matched
                         if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
-                            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap { $0 }
+                            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap(\.self)
                             if !allOutputRules.isEmpty {
                                 logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
                                 continue
