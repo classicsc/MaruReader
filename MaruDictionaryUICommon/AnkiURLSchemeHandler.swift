@@ -223,11 +223,9 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
                 pendingSync: result.pendingSync
             )
             return try Self.createJSONResponse(AnkiAddResponse(state: "success"))
+        } catch AnkiConnectionManagerError.duplicateNote {
+            return try Self.createJSONResponse(AnkiAddResponse(state: "exists"))
         } catch {
-            let errorDescription = error.localizedDescription.lowercased()
-            if errorDescription.contains("duplicate") || errorDescription.contains("exists") {
-                return try Self.createJSONResponse(AnkiAddResponse(state: "exists"))
-            }
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }
     }

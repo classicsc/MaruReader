@@ -24,6 +24,7 @@ public enum AnkiConnectionManagerError: Error {
     case ankiDisabled
     case providerUnavailable
     case missingRequiredSettings
+    case duplicateNote
 }
 
 /// Result of creating a note via the connection manager.
@@ -143,13 +144,18 @@ public actor AnkiConnectionManager {
         }
 
         let resolvedFields = AnkiFieldValueFormatter.buildFieldValues(from: fields)
-        let result = try await provider.addNote(
-            fields: fields,
-            profileName: profileName ?? "",
-            deckName: deckName,
-            modelName: modelName,
-            duplicateOptions: duplicateOptions
-        )
+        let result: AddNoteResult
+        do {
+            result = try await provider.addNote(
+                fields: fields,
+                profileName: profileName ?? "",
+                deckName: deckName,
+                modelName: modelName,
+                duplicateOptions: duplicateOptions
+            )
+        } catch let error as AnkiConnectError where error == .duplicateNote {
+            throw AnkiConnectionManagerError.duplicateNote
+        }
 
         return NoteCreationResult(
             ankiNoteID: result.ankiNoteID,
@@ -196,13 +202,18 @@ public actor AnkiConnectionManager {
         }
 
         let resolvedValues = resolvedFields.mapValues { [TemplateResolvedValue.text($0)] }
-        let result = try await provider.addNote(
-            fields: resolvedValues,
-            profileName: targetProfile,
-            deckName: targetDeck,
-            modelName: targetModel,
-            duplicateOptions: duplicateOptions
-        )
+        let result: AddNoteResult
+        do {
+            result = try await provider.addNote(
+                fields: resolvedValues,
+                profileName: targetProfile,
+                deckName: targetDeck,
+                modelName: targetModel,
+                duplicateOptions: duplicateOptions
+            )
+        } catch let error as AnkiConnectError where error == .duplicateNote {
+            throw AnkiConnectionManagerError.duplicateNote
+        }
 
         return NoteCreationResult(
             ankiNoteID: result.ankiNoteID,

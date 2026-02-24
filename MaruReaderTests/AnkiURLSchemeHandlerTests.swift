@@ -87,7 +87,7 @@ struct AnkiURLSchemeHandlerTests {
 
     @Test func addNoteReturnsExistsOnDuplicateError() async throws {
         let response = makeResponse(termKey: "neko|ねこ")
-        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .failure(DuplicateNoteError()))
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .failure(AnkiConnectionManagerError.duplicateNote))
         let noteService = MockAnkiNoteService(existingTermKeys: [])
         let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
         let provider = MockLookupProvider(response: response)
@@ -156,12 +156,6 @@ private struct AnkiAddRequest: Encodable {
 
 private struct AnkiAddResponse: Decodable {
     let state: String
-}
-
-private struct DuplicateNoteError: LocalizedError {
-    var errorDescription: String? {
-        "Duplicate note"
-    }
 }
 
 private actor MockLookupProvider: TextLookupSnapshotProviding {
