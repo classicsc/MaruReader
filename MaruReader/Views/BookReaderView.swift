@@ -132,7 +132,6 @@ struct BookReaderView: View {
                             }
                         )
                         .background(tableOfContentsTheme.backgroundColor)
-                        .preferredColorScheme(tableOfContentsTheme.preferredColorScheme)
                         .tint(tableOfContentsTheme.foregroundColor)
                         .presentationBackground(tableOfContentsTheme.backgroundColor)
                         .toolbarBackground(tableOfContentsTheme.backgroundColor, for: .navigationBar)
@@ -204,7 +203,6 @@ struct BookReaderView: View {
                 ) {
                     WebView(viewModel.popupPage)
                         .background(dictionarySheetBackgroundColor)
-                        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
                         .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                         .presentationCompactAdaptation(.popover)
                 }
@@ -423,7 +421,6 @@ struct BookReaderView: View {
             Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
         }
         .accessibilityLabel("Bookmarks")
-        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
         .tint(readerDictionaryPresentationTheme.foregroundColor)
     }
 
