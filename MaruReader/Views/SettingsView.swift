@@ -23,7 +23,6 @@
 import MaruAnki
 import MaruDictionaryUICommon
 import MaruManga
-import MaruWeb
 import SwiftUI
 
 struct SettingsView: View {
@@ -31,13 +30,6 @@ struct SettingsView: View {
     @State private var showingResetToursConfirmation = false
     @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
     private var smartMetadataExtractionEnabled = MangaMetadataExtractionSettings.smartExtractionEnabledDefault
-    @AppStorage(WebContentBlockingSettings.contentBlockingEnabledKey)
-    private var webContentBlockingEnabled = WebContentBlockingSettings.contentBlockingEnabledDefault
-    @AppStorage(WebSearchEngineSettings.searchSuggestionsEnabledKey)
-    private var searchSuggestionsEnabled = WebSearchEngineSettings.searchSuggestionsEnabledDefault
-    @State private var selectedEngineKind: SearchEngineKind = WebSearchEngineSettings.searchEngine.kind
-    @State private var customSearchURL: String = ""
-    @State private var customSuggestionsURL: String = ""
     private let noteService = AnkiNoteService()
     private var isMetadataExtractorAvailable: Bool {
         MangaImportManager.isMetadataExtractorAvailable
@@ -67,39 +59,9 @@ struct SettingsView: View {
                         Toggle("Smart Metadata Extraction", isOn: $smartMetadataExtractionEnabled)
                     }
                 }
-                Section(
-                    header: Text("Web"),
-                    footer: Text("Blocks distracting ads and trackers in the web reader.")
-                ) {
-                    Picker("Search Engine", selection: $selectedEngineKind) {
-                        ForEach(SearchEngineKind.allCases) { kind in
-                            Text(kind.rawValue).tag(kind)
-                        }
-                    }
-                    .onChange(of: selectedEngineKind) { _, newValue in
-                        applySearchEngineKind(newValue)
-                    }
-
-                    if selectedEngineKind == .custom {
-                        TextField("Search URL (use %s for query)", text: $customSearchURL)
-                            .keyboardType(.URL)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .onSubmit { saveCustomEngine() }
-                            .onChange(of: customSearchURL) { _, _ in saveCustomEngine() }
-
-                        TextField("Suggestions URL (optional, use %s)", text: $customSuggestionsURL)
-                            .keyboardType(.URL)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .onSubmit { saveCustomEngine() }
-                            .onChange(of: customSuggestionsURL) { _, _ in saveCustomEngine() }
-                    }
-
-                    Toggle("Search Suggestions", isOn: $searchSuggestionsEnabled)
-                    Toggle("Content Blocking", isOn: $webContentBlockingEnabled)
-                    NavigationLink(destination: WebDataManagementView()) {
-                        Label("Website Data", systemImage: "tray.and.arrow.down")
+                Section("Web") {
+                    NavigationLink(destination: WebSettingsView()) {
+                        Label("Web", systemImage: "globe")
                     }
                 }
                 Section("Integrations") {
@@ -143,7 +105,6 @@ struct SettingsView: View {
                 Task {
                     await loadPendingCount()
                 }
-                loadCustomEngineFields()
             }
         }
     }
@@ -158,37 +119,6 @@ struct SettingsView: View {
 
     private func loadPendingCount() async {
         pendingCount = await noteService.pendingNoteCount()
-    }
-
-    private func loadCustomEngineFields() {
-        let engine = WebSearchEngineSettings.searchEngine
-        selectedEngineKind = engine.kind
-        if case let .custom(searchURL, suggestionsURL) = engine {
-            customSearchURL = searchURL
-            customSuggestionsURL = suggestionsURL ?? ""
-        }
-    }
-
-    private func applySearchEngineKind(_ kind: SearchEngineKind) {
-        switch kind {
-        case .google:
-            WebSearchEngineSettings.searchEngine = .google
-        case .bing:
-            WebSearchEngineSettings.searchEngine = .bing
-        case .custom:
-            saveCustomEngine()
-        @unknown default:
-            WebSearchEngineSettings.searchEngine = .google
-        }
-    }
-
-    private func saveCustomEngine() {
-        guard selectedEngineKind == .custom else { return }
-        let suggestionsURL = customSuggestionsURL.trimmingCharacters(in: .whitespacesAndNewlines)
-        WebSearchEngineSettings.searchEngine = .custom(
-            searchURL: customSearchURL.trimmingCharacters(in: .whitespacesAndNewlines),
-            suggestionsURL: suggestionsURL.isEmpty ? nil : suggestionsURL
-        )
     }
 }
 
