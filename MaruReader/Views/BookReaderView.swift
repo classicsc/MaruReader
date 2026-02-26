@@ -33,6 +33,8 @@ struct BookReaderView: View {
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @State private var progressDisplayMode: ProgressDisplayMode = .book
     @State private var tourManager = TourManager()
+    // This is treated as the current system scheme for Follow System mode.
+    // Avoid using `.preferredColorScheme` in descendant overlays, which can contaminate this value.
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) private var dismiss
 
@@ -82,7 +84,7 @@ struct BookReaderView: View {
                         }
                     }
                     .background(dictionarySheetBackgroundColor)
-                    .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
+                    .applyLocalColorScheme(readerOverlayForcedColorScheme)
                     .tint(readerDictionaryPresentationTheme.foregroundColor)
                     .toolbarBackground(dictionarySheetBackgroundColor, for: .navigationBar)
                     .toolbarBackground(.visible, for: .navigationBar)
@@ -361,7 +363,7 @@ struct BookReaderView: View {
                 .accessibilityLabel("Appearance and text")
         }
         .accessibilityLabel("Appearance and text")
-        .preferredColorScheme(readerDictionaryPresentationTheme.preferredColorScheme)
+        .applyLocalColorScheme(readerOverlayForcedColorScheme)
         .tint(readerDictionaryPresentationTheme.foregroundColor)
     }
 
@@ -457,12 +459,23 @@ struct BookReaderView: View {
     private var readerTableOfContentsTheme: TableOfContentsTheme {
         let theme = readerDictionaryPresentationTheme
         return TableOfContentsTheme(
-            preferredColorScheme: theme.preferredColorScheme,
+            preferredColorScheme: readerOverlayForcedColorScheme,
             backgroundColor: theme.backgroundColor,
             foregroundColor: theme.foregroundColor,
             secondaryForegroundColor: theme.secondaryForegroundColor,
             separatorColor: theme.separatorColor
         )
+    }
+
+    private var readerOverlayForcedColorScheme: ColorScheme? {
+        switch viewModel.readerPreferences.selectedAppearanceMode {
+        case .dark:
+            .dark
+        case .light, .sepia:
+            .light
+        case .followSystem:
+            nil
+        }
     }
 
     private var readerDictionaryPresentationTheme: DictionaryPresentationTheme {
@@ -628,6 +641,17 @@ struct BookReaderView: View {
         guard let first = availableModes.first else { return }
         if !availableModes.contains(progressDisplayMode) {
             progressDisplayMode = first
+        }
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func applyLocalColorScheme(_ colorScheme: ColorScheme?) -> some View {
+        if let colorScheme {
+            environment(\.colorScheme, colorScheme)
+        } else {
+            self
         }
     }
 }

@@ -123,7 +123,7 @@ public struct DictionarySearchView: View {
                             ) {
                                 WebView(viewModel.popupPage)
                                     .background(themedBackgroundColor)
-                                    .preferredColorScheme(presentationTheme?.preferredColorScheme)
+                                    .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
                                     .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                                     .presentationCompactAdaptation(.popover)
                             }
@@ -143,7 +143,7 @@ public struct DictionarySearchView: View {
                                     }
                                 )
                                 .environment(\.dictionaryPresentationTheme, presentationTheme)
-                                .preferredColorScheme(presentationTheme?.preferredColorScheme)
+                                .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
                                 .presentationCompactAdaptation(.popover)
                             }
                             // Tooltip popover for title attributes
@@ -159,7 +159,7 @@ public struct DictionarySearchView: View {
                                         .padding(.vertical, 8)
                                 }
                                 .background(themedBackgroundColor)
-                                .preferredColorScheme(presentationTheme?.preferredColorScheme)
+                                .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
                                 .frame(minWidth: 200, maxWidth: 320, maxHeight: 240)
                                 .presentationCompactAdaptation(.popover)
                             }
@@ -186,7 +186,7 @@ public struct DictionarySearchView: View {
         }
         .foregroundStyle(themedForegroundColor)
         .background(themedBackgroundColor)
-        .preferredColorScheme(presentationTheme?.preferredColorScheme)
+        .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
         .onAppear {
             viewModel.loadContextDisplaySettings()
             viewModel.setDictionaryWebTheme(presentationTheme?.dictionaryWebTheme)
@@ -298,4 +298,15 @@ private struct ExternalLinkConfirmationView: View {
 
 #Preview {
     DictionarySearchView()
+}
+
+private extension View {
+    @ViewBuilder
+    func applyLocalColorScheme(_ colorScheme: ColorScheme?) -> some View {
+        if let colorScheme {
+            environment(\.colorScheme, colorScheme)
+        } else {
+            self
+        }
+    }
 }

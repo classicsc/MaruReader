@@ -108,7 +108,7 @@ struct TableOfContentsView: View {
             }
         }
         .background(theme.backgroundColor)
-        .preferredColorScheme(theme.preferredColorScheme)
+        .applyLocalColorScheme(theme.preferredColorScheme)
         .tint(theme.foregroundColor)
         .task {
             await loadTableOfContents()
@@ -287,6 +287,17 @@ struct TableOfContentsView: View {
         let trimmedInput = positionInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let position = Int(trimmedInput) else { return }
         onNavigateToPosition(clampPosition(position))
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func applyLocalColorScheme(_ colorScheme: ColorScheme?) -> some View {
+        if let colorScheme {
+            environment(\.colorScheme, colorScheme)
+        } else {
+            self
+        }
     }
 }
 
