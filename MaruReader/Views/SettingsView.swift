@@ -98,6 +98,9 @@ struct SettingsView: View {
 
                     Toggle("Search Suggestions", isOn: $searchSuggestionsEnabled)
                     Toggle("Content Blocking", isOn: $webContentBlockingEnabled)
+                    NavigationLink(destination: WebDataManagementView()) {
+                        Label("Website Data", systemImage: "tray.and.arrow.down")
+                    }
                 }
                 Section("Integrations") {
                     if pendingCount > 0 {
