@@ -323,16 +323,15 @@ struct BookReaderView: View {
     private var appearanceMenuButton: some View {
         Menu {
             Section("Text Size") {
-                Button {
-                    viewModel.readerPreferences.decreaseFontSize()
-                } label: {
-                    Label("Smaller", systemImage: "textformat.size.smaller")
-                }
-
-                Button {
-                    viewModel.readerPreferences.increaseFontSize()
-                } label: {
-                    Label("Larger", systemImage: "textformat.size.larger")
+                Stepper(
+                    value: Binding(
+                        get: { viewModel.readerPreferences.effectiveFontSize },
+                        set: { viewModel.readerPreferences.fontSize = $0 }
+                    ),
+                    in: 50.0 ... 200.0,
+                    step: 10.0
+                ) {
+                    Label("Font Scale: \(Int(viewModel.readerPreferences.effectiveFontSize))%", systemImage: "textformat.size")
                 }
             }
 
