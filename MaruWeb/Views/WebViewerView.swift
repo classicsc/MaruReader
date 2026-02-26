@@ -298,16 +298,20 @@ public struct WebViewerView: View {
 
     private var bottomControlsRow: some View {
         HStack(alignment: .bottom, spacing: 12) {
-            if canGoBack || canGoForward {
+            if !isEditingAddress, canGoBack || canGoForward {
                 navigationCluster
             }
 
             addressBarCapsule
                 .frame(maxWidth: .infinity)
 
-            tabsButton
-            readingModeButton
-            overflowMenuButton
+            if isEditingAddress {
+                cancelAddressEditingButton
+            } else {
+                tabsButton
+                readingModeButton
+                overflowMenuButton
+            }
         }
     }
 
@@ -353,6 +357,18 @@ public struct WebViewerView: View {
             onSubmit: submitAddress
         )
         .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
+    }
+
+    private var cancelAddressEditingButton: some View {
+        Button(action: cancelAddressEditing) {
+            Image(systemName: "xmark")
+                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+        }
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        .contentShape(.circle)
+        .buttonStyle(.plain)
+        .glassEffect(in: Circle())
+        .accessibilityLabel("Cancel")
     }
 
     private var collapsedAddressCapsule: some View {
@@ -612,6 +628,12 @@ public struct WebViewerView: View {
         isAddressFocused = true
     }
 
+    private func cancelAddressEditing() {
+        viewModel.addressBarText = addressSnapshot
+        suggestionViewModel.cancel()
+        isAddressFocused = false
+    }
+
     private func submitAddress() {
         suggestionViewModel.cancel()
         viewModel.navigate(to: viewModel.addressBarText)
@@ -696,6 +718,18 @@ private struct AddressBarCapsuleView: View {
                     }
             }
             .padding(.vertical, 10)
+
+            if isEditingAddress, !addressText.isEmpty {
+                Button {
+                    addressText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: iconSize, weight: .regular))
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear text")
+            }
         }
         .padding(.horizontal, 14)
         .glassEffect(in: Capsule())
