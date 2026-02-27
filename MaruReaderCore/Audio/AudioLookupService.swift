@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 internal import LRUCache
 
 /// Central service for audio lookups across all configured sources
@@ -47,7 +47,7 @@ actor AudioLookupService {
     private var observationTask: Task<Void, Never>?
     private var reloadDebounceTask: Task<Void, Error>?
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioLookupService")
+    private let logger = Logger.maru(category: "AudioLookupService")
 
     // MARK: - Initialization
 

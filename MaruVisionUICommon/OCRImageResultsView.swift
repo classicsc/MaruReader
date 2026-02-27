@@ -18,7 +18,7 @@
 import MaruDictionaryUICommon
 import MaruReaderCore
 import MaruVision
-import os.log
+import os
 import SwiftUI
 import Vision
 
@@ -46,7 +46,7 @@ public struct OCRImageResultsView: View {
     private let minScale: CGFloat = 1.0
     private let maxScale: CGFloat = 5.0
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCRImageResultsView")
+    private let logger = Logger.maru(category: "OCRImageResultsView")
 
     /// Initialize the OCR results view with clusters
     /// - Parameters:

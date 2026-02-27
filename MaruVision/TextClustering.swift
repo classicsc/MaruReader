@@ -17,7 +17,7 @@
 
 import CoreGraphics
 import Foundation
-import os.log
+import os
 import Vision
 
 // MARK: - Debug Formatting Helpers

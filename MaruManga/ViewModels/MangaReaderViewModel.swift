@@ -20,7 +20,7 @@ import Foundation
 import MaruReaderCore
 import MaruVision
 import Observation
-import os.log
+import os
 import SwiftUI
 
 @MainActor
@@ -143,7 +143,7 @@ final class MangaReaderViewModel {
     private var saveTask: Task<Void, Never>?
     /// Tracks the page index that was last successfully saved
     private var lastSavedPageIndex: Int?
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaReaderViewModel")
+    private let logger = Logger.maru(category: "MangaReaderViewModel")
 
     // MARK: - Initialization
 

@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import os.log
 import WebKit
 
 public enum HighlightError: Error {

@@ -17,7 +17,8 @@
 
 import Foundation
 import FoundationModels
-import os.log
+import MaruReaderCore
+import os
 
 @Generable(description: "Manga metadata extracted from a filename.")
 struct ExtractedMangaMetadata {
@@ -28,7 +29,7 @@ struct ExtractedMangaMetadata {
 }
 
 struct MangaFilenameMetadataExtractor {
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaMetadata")
+    private let logger = Logger.maru(category: "MangaMetadata")
     private let model: SystemLanguageModel
     private let session: LanguageModelSession
     private let promptPrefix = """

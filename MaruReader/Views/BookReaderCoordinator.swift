@@ -18,7 +18,7 @@
 import CoreData
 import Foundation
 import MaruReaderCore
-import os.log
+import os
 import ReadiumNavigator
 import ReadiumShared
 import SwiftUI
@@ -30,7 +30,7 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
     let viewModel: BookReaderViewModel
     let viewContext: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderCoordinator")
+    private let logger = Logger.maru(category: "BookReaderCoordinator")
 
     init(viewModel: BookReaderViewModel) {
         self.viewModel = viewModel

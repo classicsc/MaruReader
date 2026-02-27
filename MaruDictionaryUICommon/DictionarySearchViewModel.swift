@@ -19,7 +19,7 @@ import CoreData
 import Foundation
 import MaruReaderCore
 import Observation
-import os.log
+import os
 import SwiftUI
 import WebKit
 
@@ -135,7 +135,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         "background-color": "inherit",
     ]
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchViewModel")
+    private let logger = Logger.maru(category: "DictionarySearchViewModel")
 
     public init(resultState: ResultDisplayState = .startPage, dictionaryWebTheme: DictionaryWebTheme? = nil) {
         self.resultState = resultState

@@ -17,7 +17,8 @@
 
 import CoreData
 import Foundation
-import os.log
+import MaruReaderCore
+import os
 
 actor BookImportManager {
     static let shared = BookImportManager(container: BookDataPersistenceController.shared.container)
@@ -26,7 +27,7 @@ actor BookImportManager {
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
-    private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
+    private let logger = Logger.maru(category: "BookImport")
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?

@@ -16,11 +16,11 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
-import os.log
+import os
 import WebKit
 
 public final actor DictionaryResultsURLSchemeHandler: URLSchemeHandler {
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryResultsURLSchemeHandler")
+    private static let logger = Logger.maru(category: "DictionaryResultsURLSchemeHandler")
 
     private var currentSession: TextLookupSession?
     private var currentRequestID: String?

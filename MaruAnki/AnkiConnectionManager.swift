@@ -17,7 +17,8 @@
 
 import CoreData
 import Foundation
-import os.log
+import MaruReaderCore
+import os
 
 public enum AnkiConnectionManagerError: Error {
     case notReady
@@ -62,7 +63,7 @@ public actor AnkiConnectionManager {
     private var observationTask: Task<Void, Never>?
     private var reloadDebounceTask: Task<Void, Error>?
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AnkiConnectionManager")
+    private let logger = Logger.maru(category: "AnkiConnectionManager")
 
     public init(persistence: AnkiPersistenceController = .shared) async {
         self.persistence = persistence

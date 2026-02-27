@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 internal import ReadiumZIPFoundation
 
 struct DictionaryBankPaths: Sendable {
@@ -37,7 +37,7 @@ struct DictionaryIndexResult: Sendable {
 struct IndexProcessingTask {
     let jobID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
+    private let logger = Logger.maru(category: "DictionaryImport")
 
     init(jobID: NSManagedObjectID, container: NSPersistentContainer = DictionaryPersistenceController.shared.container) {
         self.jobID = jobID

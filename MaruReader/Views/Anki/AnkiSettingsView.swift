@@ -17,9 +17,12 @@
 
 import CoreData
 import MaruAnki
+import MaruReaderCore
+import os
 import SwiftUI
 
 struct AnkiSettingsView: View {
+    private static let logger = Logger.maru(category: "AnkiSettingsView")
     private let persistence = AnkiPersistenceController.shared
     private let noteService = AnkiNoteService()
 
@@ -227,7 +230,7 @@ struct AnkiSettingsView: View {
             await loadSettings()
         } catch {
             await loadSettings()
-            print("Failed to save duplicate settings: \(error)")
+            Self.logger.error("Failed to save duplicate settings: \(String(describing: error), privacy: .public)")
         }
     }
 

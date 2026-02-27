@@ -20,7 +20,7 @@ import Foundation
 import MaruReaderCore
 import MaruVision
 import Observation
-import os.log
+import os
 import UIKit
 import WebKit
 
@@ -108,7 +108,7 @@ final class WebViewerViewModel {
     private let bookmarkManager: WebBookmarkManager
     private let sessionStore: WebSessionStore
     private var isPreparingSession = false
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruWeb", category: "WebViewerViewModel")
+    private let logger = Logger.maru(category: "WebViewerViewModel")
 
     var addressBarText: String = ""
     var readingModeEnabled = false

@@ -16,15 +16,16 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruVision
+import MaruReaderCore
 import Observation
-import os.log
+import os
 import UIKit
 
 @MainActor
 @Observable
 final class WebOCRViewModel {
     private let ocr = OCR()
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruWeb", category: "WebOCRViewModel")
+    private let logger = Logger.maru(category: "WebOCRViewModel")
 
     var image: UIImage?
     var clusters: [TextCluster] = []

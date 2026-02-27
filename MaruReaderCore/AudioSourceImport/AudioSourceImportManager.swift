@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 /// Manages the import of audio source archives.
 ///
@@ -40,7 +40,7 @@ public actor AudioSourceImportManager {
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
-    private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceImport")
+    private let logger = Logger.maru(category: "AudioSourceImport")
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?

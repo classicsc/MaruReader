@@ -17,7 +17,8 @@
 
 import CoreData
 import Foundation
-import os.log
+import MaruReaderCore
+import os
 import ReadiumAdapterGCDWebServer
 import ReadiumNavigator
 import ReadiumShared
@@ -29,7 +30,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     @State var viewModel: BookReaderViewModel
     let colorScheme: ColorScheme
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "EPUBNavigatorWrapper")
+    private let logger = Logger.maru(category: "EPUBNavigatorWrapper")
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {

@@ -16,6 +16,8 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruReaderCore
+import os
 import WebKit
 
 private class BundleFinder {}
@@ -33,6 +35,7 @@ private extension Bundle {
 /// extension is loaded once and reused across all tabs.
 @MainActor
 final class WebExtensionManager {
+    private static let logger = Logger.maru(category: "WebExtensionManager")
     private var controller: WKWebExtensionController?
     private var loadTask: Task<WKWebExtensionController?, Never>?
 
@@ -53,7 +56,7 @@ final class WebExtensionManager {
             do {
                 try controller.load(context)
             } catch {
-                print("Failed to load content blocker: \(error)")
+                Self.logger.error("Failed to load content blocker: \(String(describing: error), privacy: .public)")
                 return nil
             }
             return controller
@@ -70,7 +73,7 @@ final class WebExtensionManager {
             forResource: "uBOLite.safari",
             withExtension: nil
         ) else {
-            print("uBlock extension bundle not found")
+            Self.logger.warning("uBlock extension bundle not found")
             return nil
         }
 
@@ -89,7 +92,7 @@ final class WebExtensionManager {
 
             return context
         } catch {
-            print("Failed to create web extension: \(error)")
+            Self.logger.error("Failed to create web extension: \(String(describing: error), privacy: .public)")
             return nil
         }
     }

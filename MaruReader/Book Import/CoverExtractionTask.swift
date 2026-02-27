@@ -18,7 +18,7 @@
 import CoreData
 import Foundation
 import MaruReaderCore
-import os.log
+import os
 import ReadiumShared
 import ReadiumStreamer
 import UIKit
@@ -26,7 +26,7 @@ import UIKit
 struct CoverExtractionTask {
     let bookID: NSManagedObjectID
     let persistentContainer: NSPersistentContainer
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookImport")
+    private let logger = Logger.maru(category: "BookImport")
 
     init(bookID: NSManagedObjectID, container: NSPersistentContainer = BookDataPersistenceController.shared.container) {
         self.bookID = bookID

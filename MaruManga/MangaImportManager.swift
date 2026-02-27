@@ -17,7 +17,8 @@
 
 import CoreData
 import Foundation
-import os.log
+import MaruReaderCore
+import os
 internal import ReadiumZIPFoundation
 import UIKit
 
@@ -32,7 +33,7 @@ public actor MangaImportManager {
     private var currentJobID: NSManagedObjectID?
     private let container: NSPersistentContainer
     private let metadataExtractor = MangaFilenameMetadataExtractor()
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruManga", category: "MangaImport")
+    private let logger = Logger.maru(category: "MangaImport")
 
     /// Supported image extensions
     private static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "webp"]

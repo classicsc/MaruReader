@@ -17,7 +17,7 @@
 
 import Foundation
 internal import JsonStream
-import os.log
+import os
 
 // A streaming iterator for audio source index JSON files.
 //
@@ -66,7 +66,7 @@ struct StreamingAudioSourceHeadwordIterator: AsyncSequence {
         private var objectDepth = 0
         private var decoder = JSONDecoder()
 
-        private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "StreamingAudioSourceHeadwordIterator")
+        private let logger = Logger.maru(category: "StreamingAudioSourceHeadwordIterator")
 
         init(fileURL: URL) {
             self.fileURL = fileURL
@@ -167,7 +167,7 @@ struct StreamingAudioSourceFileIterator: AsyncSequence {
         private var isCollectingEntry = false
         private var currentFilename: String = ""
 
-        private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "StreamingAudioSourceFileIterator")
+        private let logger = Logger.maru(category: "StreamingAudioSourceFileIterator")
 
         init(fileURL: URL) {
             self.fileURL = fileURL

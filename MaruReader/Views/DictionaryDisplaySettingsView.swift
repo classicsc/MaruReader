@@ -17,9 +17,11 @@
 
 import CoreData
 import MaruReaderCore
+import os
 import SwiftUI
 
 struct DictionaryDisplaySettingsView: View {
+    private static let logger = Logger.maru(category: "DictionaryDisplaySettingsView")
     @Environment(\.managedObjectContext) private var viewContext
 
     @FetchRequest(
@@ -152,7 +154,7 @@ struct DictionaryDisplaySettingsView: View {
                 pref.enabled = false
             }
         } catch {
-            print("Error disabling existing preferences: \(error)")
+            Self.logger.error("Error disabling existing preferences: \(String(describing: error), privacy: .public)")
         }
 
         // Create new default
@@ -175,7 +177,7 @@ struct DictionaryDisplaySettingsView: View {
         do {
             try viewContext.save()
         } catch {
-            print("Error saving default preferences: \(error)")
+            Self.logger.error("Error saving default preferences: \(String(describing: error), privacy: .public)")
         }
     }
 
@@ -196,7 +198,7 @@ struct DictionaryDisplaySettingsView: View {
         do {
             try viewContext.save()
         } catch {
-            print("Error saving preferences: \(error)")
+            Self.logger.error("Error saving preferences: \(String(describing: error), privacy: .public)")
         }
     }
 }

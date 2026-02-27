@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 internal import ReadiumZIPFoundation
 
 /// A task to copy media files from the archive to the permanent media directory.
@@ -26,7 +26,7 @@ struct MediaCopyProcessingTask {
     let archiveURL: URL
     let persistentContainer: NSPersistentContainer
     let baseDirectory: URL?
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaCopyProcessingTask")
+    private static let logger = Logger.maru(category: "MediaCopyProcessingTask")
 
     init(jobID: NSManagedObjectID, archiveURL: URL, container: NSPersistentContainer, baseDirectory: URL? = nil) {
         self.jobID = jobID

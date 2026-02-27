@@ -17,10 +17,13 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
+import os
 
 public enum SystemProfileManager {
     /// The UUID for the "Basic" system profile.
     public static let basicProfileUUID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    private static let logger = Logger.maru(category: "SystemProfileManager")
 
     /// Ensures all system profiles exist in the given context.
     /// This is idempotent - calling multiple times is safe.
@@ -40,7 +43,7 @@ public enum SystemProfileManager {
                     try context.save()
                 }
             } catch {
-                print("Failed to ensure system profiles: \(error)")
+                Self.logger.error("Failed to ensure system profiles: \(String(describing: error), privacy: .public)")
             }
         }
     }
@@ -61,7 +64,7 @@ public enum SystemProfileManager {
             let data = try encoder.encode(fieldMap)
             profile.fieldMap = String(data: data, encoding: .utf8)
         } catch {
-            print("Failed to encode field map for Basic profile: \(error)")
+            Self.logger.error("Failed to encode field map for Basic profile: \(String(describing: error), privacy: .public)")
         }
     }
 

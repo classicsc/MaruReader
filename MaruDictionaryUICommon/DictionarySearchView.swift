@@ -22,7 +22,7 @@
 //
 
 import MaruReaderCore
-import os.log
+import os
 import SwiftUI
 import WebKit
 
@@ -67,7 +67,7 @@ public struct DictionarySearchView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.dictionaryPresentationTheme) private var presentationTheme
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchView")
+    private let logger = Logger.maru(category: "DictionarySearchView")
 
     public init() {}
 

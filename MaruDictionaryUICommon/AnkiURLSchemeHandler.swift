@@ -18,7 +18,7 @@
 import Foundation
 import MaruAnki
 import MaruReaderCore
-import os.log
+import os
 import WebKit
 
 protocol AnkiConnectionManaging: Sendable {
@@ -63,7 +63,7 @@ extension TextLookupSession: TextLookupSnapshotProviding {
 }
 
 public final actor AnkiURLSchemeHandler: URLSchemeHandler {
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AnkiURLSchemeHandler")
+    private static let logger = Logger.maru(category: "AnkiURLSchemeHandler")
 
     private let noteService: any AnkiNoteServicing
     private let managerFactory: @Sendable () async -> any AnkiConnectionManaging

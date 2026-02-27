@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 internal import ReadiumZIPFoundation
 
 /// A task to copy audio files from the archive to the app group container.
@@ -30,7 +30,7 @@ struct AudioSourceMediaCopyTask {
     let indexEntryPath: String
     let persistentContainer: NSPersistentContainer
     let baseDirectory: URL?
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceMediaCopyTask")
+    private static let logger = Logger.maru(category: "AudioSourceMediaCopyTask")
 
     init(
         jobID: NSManagedObjectID,

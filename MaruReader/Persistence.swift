@@ -16,12 +16,15 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import CoreData
+import MaruReaderCore
+import os
 
 // MARK: - PersistenceController
 
 /// Manages the Core Data stack with support for app groups and extensions
 final class BookDataPersistenceController: Sendable {
     static let shared = BookDataPersistenceController()
+    private static let logger = Logger.maru(category: "BookDataPersistenceController")
 
     // MARK: - App Group Configuration
 
@@ -70,7 +73,7 @@ final class BookDataPersistenceController: Sendable {
                 container.persistentStoreDescriptions.first?.url = storeURL
             } else {
                 // Fallback to default location if app group not configured
-                print("Warning: App group '\(Self.appGroupIdentifier)' not found. Using default location.")
+                Self.logger.warning("App group '\(Self.appGroupIdentifier, privacy: .public)' not found. Using default location.")
             }
         }
 

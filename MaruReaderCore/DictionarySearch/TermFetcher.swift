@@ -17,10 +17,12 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 /// Fetches terms from Core Data using batch queries and converts them to SearchResult structs
 enum TermFetcher {
+    private static let logger = Logger.maru(category: "TermFetcher")
+
     // MARK: - Public Methods
 
     /// Perform the actual Core Data fetch within the background context
@@ -35,7 +37,7 @@ enum TermFetcher {
         context: NSManagedObjectContext,
         decodeDefinitions: @escaping @Sendable (Data?) -> [Definition]? = GlossaryCompressionCodec.decodeDefinitions
     ) async throws -> [SearchResult] {
-        let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermFetcher")
+        let logger = Self.logger
 
         // Extract unique candidate texts for batch lookup
         let candidateTexts = Array(Set(candidates.map(\.text)))

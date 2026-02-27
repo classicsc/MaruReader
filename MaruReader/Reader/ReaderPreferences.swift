@@ -19,7 +19,7 @@ import CoreData
 import Foundation
 import MaruReaderCore
 import Observation
-import os.log
+import os
 import ReadiumNavigator
 import SwiftUI
 
@@ -66,7 +66,7 @@ final class ReaderPreferences {
 
     private(set) var book: Book
     private let context: NSManagedObjectContext
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ReaderPreferences")
+    private let logger = Logger.maru(category: "ReaderPreferences")
     private var saveContextDebounceTask: Task<Void, Never>?
 
     weak var navigator: EPUBNavigatorViewController?

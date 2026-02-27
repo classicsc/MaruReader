@@ -16,14 +16,14 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
-import os.log
+import os
 import UniformTypeIdentifiers
 import WebKit
 
 public struct ResourceURLSchemeHandler: URLSchemeHandler {
     public init() {}
 
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "ResourceURLSchemeHandler")
+    private static let logger = Logger.maru(category: "ResourceURLSchemeHandler")
 
     /// Allowlist of resources that can be served
     private static let allowedResources: Set<String> = [

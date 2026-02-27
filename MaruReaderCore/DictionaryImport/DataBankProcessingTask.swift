@@ -18,7 +18,7 @@
 internal import AsyncAlgorithms
 import CoreData
 import Foundation
-import os.log
+import os
 internal import ReadiumZIPFoundation
 
 struct DataBankProcessingTask {
@@ -29,7 +29,7 @@ struct DataBankProcessingTask {
     let archiveURL: URL
     let bankPaths: DictionaryBankPaths
     let persistentContainer: NSPersistentContainer
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "TermBankProcessingTask")
+    private let logger = Logger.maru(category: "TermBankProcessingTask")
 
     /// Thread-safe counter for tracking total entries processed across concurrent channels.
     private actor ProgressCounter {

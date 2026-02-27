@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 /// A task to process headword and file entries from the audio source index.
 /// Uses streaming iteration to handle large files without loading everything into memory.
@@ -28,7 +28,7 @@ struct AudioSourceEntryProcessingTask {
     let sourceID: UUID
     let indexURL: URL
     let persistentContainer: NSPersistentContainer
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AudioSourceEntryProcessingTask")
+    private let logger = Logger.maru(category: "AudioSourceEntryProcessingTask")
 
     init(jobID: NSManagedObjectID, sourceID: UUID, indexURL: URL, container: NSPersistentContainer) {
         self.jobID = jobID

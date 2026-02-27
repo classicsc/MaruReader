@@ -16,12 +16,14 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import CoreData
+import os
 
 // MARK: - PersistenceController
 
 /// Manages the Core Data stack with support for app groups and extensions
 public final class DictionaryPersistenceController: Sendable {
     public static let shared = DictionaryPersistenceController()
+    private static let logger = Logger.maru(category: "DictionaryPersistenceController")
 
     // MARK: - App Group Configuration
 
@@ -92,7 +94,7 @@ public final class DictionaryPersistenceController: Sendable {
                 container.persistentStoreDescriptions.first?.url = storeURL
             } else {
                 // Fallback to default location if app group not configured
-                print("Warning: App group '\(Self.appGroupIdentifier)' not found. Using default location.")
+                Self.logger.warning("App group '\(Self.appGroupIdentifier, privacy: .public)' not found. Using default location.")
             }
         }
 
@@ -217,7 +219,7 @@ public final class DictionaryPersistenceController: Sendable {
                 }
             } catch {
                 // Seeding is best-effort; log but don't crash
-                print("Warning: Failed to seed bundled dictionary: \(error.localizedDescription)")
+                Self.logger.warning("Failed to seed bundled dictionary: \(error.localizedDescription, privacy: .public)")
                 // Clean up partial copy
                 try? fileManager.removeItem(at: destinationDB)
             }

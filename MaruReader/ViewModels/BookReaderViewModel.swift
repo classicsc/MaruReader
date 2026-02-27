@@ -20,7 +20,7 @@ import Foundation
 import MaruDictionaryUICommon
 import MaruReaderCore
 import Observation
-import os.log
+import os
 import ReadiumNavigator
 import ReadiumShared
 import ReadiumStreamer
@@ -116,7 +116,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         "background-color": "inherit",
     ]
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "BookReaderViewModel")
+    private let logger = Logger.maru(category: "BookReaderViewModel")
 
     /// URL to the book's cover image file, if available.
     private var bookCoverURL: URL? {

@@ -17,12 +17,13 @@
 
 import CoreData
 import Foundation
-import os.log
+import MaruReaderCore
+import os
 
 /// Service for managing persisted Anki notes and checking note existence.
 public actor AnkiNoteService {
     private let persistence: AnkiPersistenceController
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "AnkiNoteService")
+    private let logger = Logger.maru(category: "AnkiNoteService")
 
     public init(persistence: AnkiPersistenceController = .shared) {
         self.persistence = persistence

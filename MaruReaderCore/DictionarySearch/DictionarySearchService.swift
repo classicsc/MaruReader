@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 /// Metadata for a dictionary used during search
 struct DictionaryMetadata: Sendable {
@@ -36,7 +36,7 @@ public struct DictionarySearchService: Sendable {
     /// The maximum forward lookup length for the TextLookupRequest API
     static let maxForwardLookupLength = 10
 
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionarySearchService")
+    private let logger = Logger.maru(category: "DictionarySearchService")
 
     private let persistenceController: DictionaryPersistenceController
     private let candidateGenerator: DictionaryCandidateGenerator

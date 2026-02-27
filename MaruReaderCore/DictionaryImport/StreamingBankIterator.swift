@@ -17,7 +17,7 @@
 
 import Foundation
 internal import JsonStream
-import os.log
+import os
 
 /// A generic streaming iterator for dictionary bank JSON files.
 /// Uses JsonStream to parse JSON without loading entire files into memory.
@@ -46,7 +46,7 @@ struct StreamingBankIterator<Entry: DictionaryDataBankEntry>: AsyncSequence {
         private var tokenBuffer: [JsonToken] = []
         private var isCollectingElement = false
 
-        private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "StreamingBankAsyncIterator")
+        private let logger = Logger.maru(category: "StreamingBankAsyncIterator")
 
         init(bankURLs: [URL]) {
             self.bankURLs = bankURLs

@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 public protocol DictionaryUpdateAnkiPreferencesUpdating: Sendable {
     func replaceDictionaryIDs(oldID: UUID, newID: UUID) async
@@ -37,7 +37,7 @@ public actor DictionaryUpdateManager {
     private let importManager: DictionaryImportManager
     private let networkProvider: NetworkProviding
     private var ankiUpdater: (any DictionaryUpdateAnkiPreferencesUpdating)?
-    private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryUpdate")
+    private let logger = Logger.maru(category: "DictionaryUpdate")
 
     init(container: NSPersistentContainer, importManager: DictionaryImportManager, networkProvider: NetworkProviding) {
         self.container = container

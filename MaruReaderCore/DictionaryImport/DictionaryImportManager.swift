@@ -17,7 +17,7 @@
 
 import CoreData
 import Foundation
-import os.log
+import os
 
 public actor DictionaryImportManager {
     public static let shared = DictionaryImportManager(
@@ -34,7 +34,7 @@ public actor DictionaryImportManager {
     private var currentJobID: NSManagedObjectID?
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
-    private var logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "DictionaryImport")
+    private let logger = Logger.maru(category: "DictionaryImport")
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?

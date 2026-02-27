@@ -16,14 +16,14 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
-import os.log
+import os
 import UniformTypeIdentifiers
 import WebKit
 
 public struct MediaURLSchemeHandler: URLSchemeHandler {
     public init() {}
 
-    private static let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "MediaURLSchemeHandler")
+    private static let logger = Logger.maru(category: "MediaURLSchemeHandler")
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
         AsyncThrowingStream<URLSchemeTaskResult, Error> { continuation in
