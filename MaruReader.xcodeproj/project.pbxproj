@@ -1397,8 +1397,6 @@
 				en,
 				Base,
 				ja,
-				"zh-Hans",
-				"zh-Hant",
 			);
 			mainGroup = DB2B69832E660F8B00EDA656;
 			minimizedProjectReferenceProxies = 1;
