@@ -47,10 +47,10 @@ struct DictionaryDisplaySettingsView: View {
     @State private var contextFuriganaEnabled: Bool = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
 
     private let fontOptions: [(displayName: String, family: String)] = [
-        ("System", "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
-        ("Serif", "Hiragino Mincho ProN, TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
-        ("Sans Serif", "Hiragino Sans, HelveticaNeue, Helvetica, Arial, sans-serif"),
-        ("Monospace", "'Osaka Mono', Menlo, Monaco, 'Courier New', monospace"),
+        (String(localized: "System"), "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
+        (String(localized: "Serif"), "Hiragino Mincho ProN, TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
+        (String(localized: "Sans Serif"), "Hiragino Sans, HelveticaNeue, Helvetica, Arial, sans-serif"),
+        (String(localized: "Monospace"), "'Osaka Mono', Menlo, Monaco, 'Courier New', monospace"),
     ]
 
     private var fontFamily: String {

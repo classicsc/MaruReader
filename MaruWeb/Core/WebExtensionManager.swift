@@ -73,7 +73,7 @@ final class WebExtensionManager {
             forResource: "uBOLite.safari",
             withExtension: nil
         ) else {
-            Self.logger.warning("uBlock extension bundle not found")
+            logger.warning("uBlock extension bundle not found")
             return nil
         }
 

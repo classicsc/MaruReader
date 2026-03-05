@@ -21,6 +21,15 @@ import SwiftUI
 private enum ContentTab: String, CaseIterable {
     case contents = "Contents"
     case bookmarks = "Bookmarks"
+
+    var localizedName: String {
+        switch self {
+        case .contents:
+            String(localized: "Contents")
+        case .bookmarks:
+            String(localized: "Bookmarks")
+        }
+    }
 }
 
 struct TableOfContentsTheme {
@@ -66,7 +75,7 @@ struct TableOfContentsView: View {
 
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(ContentTab.allCases, id: \.self) { tab in
-                        Text(tab.rawValue).tag(tab)
+                        Text(tab.localizedName).tag(tab)
                     }
                 }
                 .pickerStyle(.segmented)
@@ -99,7 +108,7 @@ struct TableOfContentsView: View {
             } message: {
                 Text(positionPromptMessage)
             }
-            .navigationTitle(selectedTab.rawValue)
+            .navigationTitle(selectedTab.localizedName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -150,7 +159,7 @@ struct TableOfContentsView: View {
             }
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(bookTitle ?? "Unknown Title")
+                Text(bookTitle ?? String(localized: "Unknown Title"))
                     .font(.headline)
                     .foregroundStyle(theme.foregroundColor)
                     .lineLimit(2)
@@ -161,8 +170,8 @@ struct TableOfContentsView: View {
                     .lineLimit(1)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(bookProgressText ?? "Book --")
-                    Text(chapterProgressText ?? "Chapter --")
+                    Text(bookProgressText ?? String(localized: "Book --"))
+                    Text(chapterProgressText ?? String(localized: "Chapter --"))
                     HStack(spacing: 8) {
                         Text(positionText)
                         Button("Go to...") {
@@ -243,22 +252,22 @@ struct TableOfContentsView: View {
 
     private var displayAuthor: String {
         let trimmedAuthor = bookAuthor?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return trimmedAuthor.isEmpty ? "Unknown Author" : trimmedAuthor
+        return trimmedAuthor.isEmpty ? String(localized: "Unknown Author") : trimmedAuthor
     }
 
     private var bookProgressText: String? {
         guard let totalProgression = currentLocator?.locations.totalProgression else { return nil }
-        return "Book \(formatProgress(totalProgression))"
+        return String(localized: "Book \(formatProgress(totalProgression))")
     }
 
     private var chapterProgressText: String? {
         guard let progression = currentLocator?.locations.progression else { return nil }
-        return "Chapter \(formatProgress(progression))"
+        return String(localized: "Chapter \(formatProgress(progression))")
     }
 
     private var positionText: String {
-        guard let position = currentLocator?.locations.position else { return "Position --" }
-        return "Position \(position.formatted())"
+        guard let position = currentLocator?.locations.position else { return String(localized: "Position --") }
+        return String(localized: "Position \(position.formatted())")
     }
 
     private var positionPromptMessage: String {
@@ -390,7 +399,7 @@ private struct BookmarkRowView: View {
     }
 
     private var displayTitle: String {
-        bookmark.title ?? "Bookmark"
+        bookmark.title ?? String(localized: "Bookmark")
     }
 
     private var chapterTitle: String? {
@@ -402,10 +411,10 @@ private struct BookmarkRowView: View {
         guard let locator else { return nil }
         if let totalProgression = locator.locations.totalProgression {
             let percent = Int(totalProgression * 100)
-            return "Book \(percent)%"
+            return String(localized: "Book \(percent)%")
         }
         if let position = locator.locations.position {
-            return "Position \(position)"
+            return String(localized: "Position \(position)")
         }
         return nil
     }

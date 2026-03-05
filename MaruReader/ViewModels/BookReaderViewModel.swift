@@ -450,16 +450,16 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
         // Fall back to position
         if let position = locator.locations.position {
-            return "Position \(position)"
+            return String(localized: "Position \(position)")
         }
 
         // Fall back to total progression
         if let totalProgression = locator.locations.totalProgression {
             let percent = Int(totalProgression * 100)
-            return "Book \(percent)%"
+            return String(localized: "Book \(percent)%")
         }
 
-        return "Bookmark"
+        return String(localized: "Bookmark")
     }
 
     private func findChapterTitle(for locator: Locator, in publication: Publication) -> String? {

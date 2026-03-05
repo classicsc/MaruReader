@@ -22,6 +22,15 @@ import SwiftUI
 enum LibraryType: String, CaseIterable {
     case books = "Books"
     case manga = "Manga"
+
+    var localizedName: String {
+        switch self {
+        case .books:
+            String(localized: "Books")
+        case .manga:
+            String(localized: "Manga")
+        }
+    }
 }
 
 struct ReadLibraryView: View {

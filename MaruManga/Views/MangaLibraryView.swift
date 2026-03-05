@@ -27,12 +27,32 @@ import UniformTypeIdentifiers
 enum MangaLibraryType: String, CaseIterable {
     case books = "Books"
     case manga = "Manga"
+
+    var localizedName: String {
+        switch self {
+        case .books:
+            String(localized: "Books")
+        case .manga:
+            String(localized: "Manga")
+        }
+    }
 }
 
 enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     case title = "Title"
     case author = "Author"
     case dateAdded = "Date Added"
+
+    var localizedName: String {
+        switch self {
+        case .title:
+            String(localized: "Title")
+        case .author:
+            String(localized: "Author")
+        case .dateAdded:
+            String(localized: "Date Added")
+        }
+    }
 
     var id: String {
         rawValue
@@ -124,7 +144,7 @@ public struct MangaArchiveLibraryView: View {
                     ToolbarItem(placement: .principal) {
                         Picker("Library", selection: libraryTypeBinding) {
                             ForEach(MangaLibraryType.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
+                                Text(type.localizedName).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -141,7 +161,7 @@ public struct MangaArchiveLibraryView: View {
                         Menu {
                             Picker("Sort By", selection: $sortOption) {
                                 ForEach(MangaArchiveSortOption.allCases) { option in
-                                    Text(option.rawValue).tag(option)
+                                    Text(option.localizedName).tag(option)
                                 }
                             }
                         } label: {
@@ -322,7 +342,7 @@ struct MangaArchiveGridItem: View {
         if let title = book.title, !title.isEmpty {
             return title
         }
-        return "Untitled"
+        return String(localized: "Untitled")
     }
 
     private var displayAuthor: String? {
@@ -334,7 +354,7 @@ struct MangaArchiveGridItem: View {
 
     private var displayProgress: String? {
         if book.lastReadPage > 1 {
-            return "\(book.lastReadPage) / \(book.totalPages) Read"
+            return String(localized: "\(book.lastReadPage) / \(book.totalPages) Read")
         }
         return nil
     }
@@ -357,9 +377,9 @@ struct MangaArchiveGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            "Cancel"
+            String(localized: "Cancel")
         case .failed, .cancelled:
-            "Remove"
+            String(localized: "Remove")
         }
     }
 
@@ -509,7 +529,7 @@ struct MangaMetadataEditorView: View {
                 }
 
                 Section("Original Filename") {
-                    Text(manga.originalFileName ?? "Unknown Filename")
+                    Text(manga.originalFileName ?? String(localized: "Unknown Filename"))
                         .foregroundStyle(.secondary)
                         .font(.footnote)
                         .textSelection(.enabled)

@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import MaruVision
 import MaruReaderCore
+import MaruVision
 import Observation
 import os
 import UIKit

@@ -606,13 +606,13 @@ struct BookReaderView: View {
         switch displayMode {
         case .book:
             guard let totalProgression = locator.locations.totalProgression else { return nil }
-            return "Book \(formatProgress(totalProgression))"
+            return String(localized: "Book \(formatProgress(totalProgression))")
         case .chapter:
             guard let progression = locator.locations.progression else { return nil }
-            return "Chapter \(formatProgress(progression))"
+            return String(localized: "Chapter \(formatProgress(progression))")
         case .position:
             guard let position = locator.locations.position else { return nil }
-            return "Position \(position)"
+            return String(localized: "Position \(position)")
         }
     }
 

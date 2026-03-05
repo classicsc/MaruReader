@@ -30,9 +30,9 @@ enum ReaderFontFamilyOption: String, CaseIterable {
     var displayName: String {
         switch self {
         case .mincho:
-            "Mincho"
+            String(localized: "Mincho")
         case .gothic:
-            "Gothic"
+            String(localized: "Gothic")
         }
     }
 }
@@ -46,13 +46,13 @@ enum ReaderAppearanceMode: String, CaseIterable {
     var displayName: String {
         switch self {
         case .followSystem:
-            "Follow System"
+            String(localized: "Follow System")
         case .light:
-            "Light"
+            String(localized: "Light")
         case .dark:
-            "Dark"
+            String(localized: "Dark")
         case .sepia:
-            "Sepia"
+            String(localized: "Sepia")
         }
     }
 }

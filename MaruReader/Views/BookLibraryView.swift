@@ -33,6 +33,17 @@ enum BookSortOption: String, CaseIterable, Identifiable {
         rawValue
     }
 
+    var localizedName: String {
+        switch self {
+        case .title:
+            String(localized: "Title")
+        case .author:
+            String(localized: "Author")
+        case .dateAdded:
+            String(localized: "Date Added")
+        }
+    }
+
     var nsSortDescriptors: [NSSortDescriptor] {
         switch self {
         case .title:
@@ -118,7 +129,7 @@ struct BookLibraryView: View {
                     ToolbarItem(placement: .principal) {
                         Picker("Library", selection: libraryTypeBinding) {
                             ForEach(LibraryType.allCases, id: \.self) { type in
-                                Text(type.rawValue).tag(type)
+                                Text(type.localizedName).tag(type)
                             }
                         }
                         .pickerStyle(.segmented)
@@ -135,7 +146,7 @@ struct BookLibraryView: View {
                         Menu {
                             Picker("Sort By", selection: $sortOption) {
                                 ForEach(BookSortOption.allCases) { option in
-                                    Text(option.rawValue).tag(option)
+                                    Text(option.localizedName).tag(option)
                                 }
                             }
                         } label: {
@@ -313,7 +324,7 @@ struct BookGridItem: View {
         if let originalName = book.originalFileName, !originalName.isEmpty {
             return originalName
         }
-        return "Untitled Book"
+        return String(localized: "Untitled Book")
     }
 
     private var displayAuthor: String? {
