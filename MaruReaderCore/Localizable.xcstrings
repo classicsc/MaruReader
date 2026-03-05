@@ -2,16 +2,44 @@
   "sourceLanguage" : "en",
   "strings" : {
     "A database error occurred while importing the dictionary." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書のインポート中にデータベースエラーが発生しました。"
+          }
+        }
+      }
     },
     "A database error occurred." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "データベースエラーが発生しました。"
+          }
+        }
+      }
     },
     "A required file is missing." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "必要なファイルが見つかりません。"
+          }
+        }
+      }
     },
     "Copied %lld audio files." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld件の音声ファイルをコピーしました。"
+          }
+        }
+      }
     },
     "Copying media files… (%@ of %@)" : {
       "localizations" : {
@@ -20,11 +48,24 @@
             "state" : "new",
             "value" : "Copying media files… (%1$@ of %2$@)"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "メディアファイルをコピー中… (%1$@ / %2$@)"
+          }
         }
       }
     },
     "Could not access the dictionary file." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書ファイルにアクセスできませんでした。"
+          }
+        }
+      }
     },
     "dictionary.anki.add" : {
       "localizations" : {
@@ -32,6 +73,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add to Anki"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ankiに追加"
           }
         }
       }
@@ -43,6 +90,12 @@
             "state" : "translated",
             "value" : "Play audio"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声を再生"
+          }
         }
       }
     },
@@ -52,6 +105,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Hide frequency details"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度の詳細を非表示"
           }
         }
       }
@@ -63,6 +122,12 @@
             "state" : "translated",
             "value" : "Show frequency details"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度の詳細を表示"
+          }
         }
       }
     },
@@ -72,6 +137,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Pitch"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセント"
           }
         }
       }
@@ -83,6 +154,12 @@
             "state" : "translated",
             "value" : "Show fewer pitch results"
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセント結果を折りたたむ"
+          }
         }
       }
     },
@@ -92,6 +169,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Show more pitch results"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクセント結果をさらに表示"
           }
         }
       }
@@ -103,6 +186,12 @@
             "state" : "translated",
             "value" : "No results found."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果が見つかりません。"
+          }
         }
       }
     },
@@ -112,6 +201,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Unable to load results."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果を読み込めません。"
           }
         }
       }
@@ -123,62 +218,190 @@
             "state" : "translated",
             "value" : "Loading results..."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "結果を読み込み中..."
+          }
         }
       }
     },
     "Downloaded update." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新をダウンロードしました。"
+          }
+        }
+      }
     },
     "Downloading update..." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新をダウンロード中..."
+          }
+        }
+      }
     },
     "Failed to create media directory for the dictionary." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書のメディアディレクトリを作成できませんでした。"
+          }
+        }
+      }
     },
     "Failed to create the audio media directory." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声メディアディレクトリを作成できませんでした。"
+          }
+        }
+      }
     },
     "Failed to create the audio source." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ソースを作成できませんでした。"
+          }
+        }
+      }
     },
     "Failed to delete the audio source." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ソースを削除できませんでした。"
+          }
+        }
+      }
     },
     "Failed to delete the dictionary." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書を削除できませんでした。"
+          }
+        }
+      }
     },
     "Failed to read archive: %@" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アーカイブを読み込めませんでした: %1$@"
+          }
+        }
+      }
     },
     "Failed to read the dictionary archive: %@" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書アーカイブを読み込めませんでした: %1$@"
+          }
+        }
+      }
     },
     "Follow System Language" : {
       "comment" : "Label for a settings picker that lets the user choose their preferred language for deinflection display names and descriptions.",
-      "isCommentAutoGenerated" : true
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "システムの言語に従う"
+          }
+        }
+      }
     },
     "Import cancelled." : {
       "comment" : "Progress message displayed during an audio source import when it is cancelled.",
-      "isCommentAutoGenerated" : true
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートがキャンセルされました。"
+          }
+        }
+      }
     },
     "Import complete." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートが完了しました。"
+          }
+        }
+      }
     },
     "Import failed." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートに失敗しました。"
+          }
+        }
+      }
     },
     "Import interrupted." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートが中断されました。"
+          }
+        }
+      }
     },
     "Importing update..." : {
       "comment" : "Progress message displayed during the import of an audio dictionary update.",
-      "isCommentAutoGenerated" : true
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新をインポート中..."
+          }
+        }
+      }
     },
     "No media files to copy." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピーするメディアファイルがありません。"
+          }
+        }
+      }
     },
     "Preparing update..." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新を準備中..."
+          }
+        }
+      }
     },
     "Processed %lld headwords and %lld audio files." : {
       "localizations" : {
@@ -187,59 +410,184 @@
             "state" : "new",
             "value" : "Processed %1$lld headwords and %2$lld audio files."
           }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld件の見出し語と%2$lld件の音声ファイルを処理しました。"
+          }
         }
       }
     },
     "Processing dictionary data… (%@ entries)" : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書データを処理中… (%@ 件)"
+          }
+        }
+      }
     },
     "Queued for import." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポート待ちです。"
+          }
+        }
+      }
     },
     "Queued for update." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新待ちです。"
+          }
+        }
+      }
     },
     "Retrying update import." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新のインポートを再試行中です。"
+          }
+        }
+      }
     },
     "Starting import..." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートを開始中..."
+          }
+        }
+      }
     },
     "The archive does not contain a valid audio source index." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アーカイブに有効な音声ソースインデックスが含まれていません。"
+          }
+        }
+      }
     },
     "The audio source data is invalid." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ソースデータが無効です。"
+          }
+        }
+      }
     },
     "The audio source index has an invalid format." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "音声ソースインデックスの形式が無効です。"
+          }
+        }
+      }
     },
     "The dictionary contains invalid data." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書に無効なデータが含まれています。"
+          }
+        }
+      }
     },
     "The dictionary file is missing." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書ファイルが見つかりません。"
+          }
+        }
+      }
     },
     "The dictionary format is unsupported." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "辞書形式はサポートされていません。"
+          }
+        }
+      }
     },
     "The import job was not found." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インポートジョブが見つかりませんでした。"
+          }
+        }
+      }
     },
     "The import operation the component requested was not found." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンポーネントが要求したインポート操作が見つかりませんでした。"
+          }
+        }
+      }
     },
     "The selected file is not a valid dictionary." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択したファイルは有効な辞書ではありません。"
+          }
+        }
+      }
     },
     "Unable to access the source file." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ソースファイルにアクセスできませんでした。"
+          }
+        }
+      }
     },
     "Update complete." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新が完了しました。"
+          }
+        }
+      }
     },
     "Update failed." : {
-
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新に失敗しました。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"
