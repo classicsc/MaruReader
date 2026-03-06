@@ -48,7 +48,7 @@ final class WebOCRViewModel {
         }
 
         guard let image = UIImage(data: imageData) else {
-            errorMessage = "OCR capture failed to decode the image."
+            errorMessage = WebStrings.ocrDecodeFailure()
             clusters = []
             self.image = nil
             return []

@@ -320,7 +320,7 @@ public struct WebViewerView: View {
             if canGoBack {
                 navigationButton(
                     systemName: "chevron.backward",
-                    accessibilityLabel: "Back",
+                    accessibilityLabel: Text("Back"),
                     action: viewModel.goBack
                 )
             }
@@ -333,7 +333,7 @@ public struct WebViewerView: View {
             if canGoForward {
                 navigationButton(
                     systemName: "chevron.forward",
-                    accessibilityLabel: "Forward",
+                    accessibilityLabel: Text("Forward"),
                     action: viewModel.goForward
                 )
             }
@@ -412,10 +412,11 @@ public struct WebViewerView: View {
                 viewModel.reload()
             }
         } label: {
-            Label(
-                viewModel.page?.isLoading == true ? "Stop Loading" : "Reload",
-                systemImage: viewModel.page?.isLoading == true ? "xmark" : "arrow.clockwise"
-            )
+            if viewModel.page?.isLoading == true {
+                Label("Stop Loading", systemImage: "xmark")
+            } else {
+                Label("Reload", systemImage: "arrow.clockwise")
+            }
         }
     }
 
@@ -533,7 +534,11 @@ public struct WebViewerView: View {
         .contentShape(.circle)
         .buttonStyle(.plain)
         .glassEffect(in: Circle())
-        .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
+        .accessibilityLabel(
+            viewModel.showBoundingBoxes
+                ? Text("Hide text regions")
+                : Text("Show text regions")
+        )
     }
 
     private var tabsButton: some View {
@@ -581,7 +586,7 @@ public struct WebViewerView: View {
         if !trimmed.isEmpty {
             return trimmed
         }
-        return "Web Viewer"
+        return WebStrings.webViewer()
     }
 
     private var canGoBack: Bool {
@@ -606,7 +611,7 @@ public struct WebViewerView: View {
 
     private func navigationButton(
         systemName: String,
-        accessibilityLabel: String,
+        accessibilityLabel: Text,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {

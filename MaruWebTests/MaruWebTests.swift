@@ -113,6 +113,14 @@ struct MaruWebTests {
         #expect(SearchEngine.custom(searchURL: "", suggestionsURL: nil).kind == .custom)
     }
 
+    @Test func searchEngineKindLocalizedDisplayNamesUseMaruWebCatalog() {
+        let locale = Locale(identifier: "ja")
+
+        #expect(SearchEngineKind.google.localizedDisplayName(locale: locale) == "Google")
+        #expect(SearchEngineKind.bing.localizedDisplayName(locale: locale) == "Bing")
+        #expect(SearchEngineKind.custom.localizedDisplayName(locale: locale) == "カスタム")
+    }
+
     // MARK: - Search engine settings persistence
 
     @Test func searchEngineSettingsDefaultsToGoogle() {
@@ -522,6 +530,65 @@ struct MaruWebTests {
         #expect(ocrVM.image == nil)
         #expect(ocrVM.errorMessage == nil)
         #expect(ocrVM.isProcessing == false)
+    }
+
+    @Test func webStringsReturnLocalizedFallbacks() {
+        let locale = Locale(identifier: "ja")
+
+        #expect(WebStrings.untitledBookmark(locale: locale) == "無題のブックマーク")
+        #expect(WebStrings.newTab(locale: locale) == "新しいタブ")
+        #expect(WebStrings.webViewer(locale: locale) == "Webビューア")
+        #expect(WebStrings.webPage(locale: locale) == "Webページ")
+        #expect(WebStrings.unknownURL(locale: locale) == "不明なURL")
+    }
+
+    @Test func webContextInfoUsesLocalizedFallbackFormat() {
+        let locale = Locale(identifier: "ja")
+        let contextInfo = WebStrings.contextInfo(
+            title: WebStrings.webPage(locale: locale),
+            urlString: WebStrings.unknownURL(locale: locale),
+            locale: locale
+        )
+
+        #expect(contextInfo == "Webページ - 不明なURL")
+    }
+
+    @Test func webDataTimeRangesUseLocalizedLabels() {
+        let locale = Locale(identifier: "ja")
+
+        #expect(TimeRange.pastHour.localizedLabel(locale: locale) == "過去1時間")
+        #expect(TimeRange.pastDay.localizedLabel(locale: locale) == "過去1日")
+        #expect(TimeRange.allTime.localizedLabel(locale: locale) == "すべての期間")
+    }
+
+    @Test func webDataConfirmationMessagesUseLocalizedTemplates() {
+        let locale = Locale(identifier: "ja")
+        let allTimeTypes = ["Cookieとサイトデータ", "キャッシュ"].formatted(.list(type: .and).locale(locale))
+
+        #expect(
+            WebDataManagementCopy.confirmationMessage(
+                clearCookiesAndSiteData: true,
+                clearCache: false,
+                timeRange: .pastHour,
+                locale: locale
+            ) == "Cookieとサイトデータを過去1時間分消去します。この操作は元に戻せません。"
+        )
+        #expect(
+            WebDataManagementCopy.confirmationMessage(
+                clearCookiesAndSiteData: false,
+                clearCache: true,
+                timeRange: .pastDay,
+                locale: locale
+            ) == "キャッシュを過去1日分消去します。この操作は元に戻せません。"
+        )
+        #expect(
+            WebDataManagementCopy.confirmationMessage(
+                clearCookiesAndSiteData: true,
+                clearCache: true,
+                timeRange: .allTime,
+                locale: locale
+            ) == "\(allTimeTypes)をすべての期間分消去します。この操作は元に戻せません。"
+        )
     }
 
     @Test func viewportInfoParsesNSNumberValues() {

@@ -75,12 +75,12 @@ public struct WebDataManagementView: View {
         .navigationTitle("Website Data")
     }
 
-    private var confirmationMessage: String {
-        var types: [String] = []
-        if clearCookiesAndSiteData { types.append("cookies & site data") }
-        if clearCache { types.append("cache") }
-        let joined = types.formatted(.list(type: .and))
-        return "This will clear \(joined) \(selectedTimeRange.descriptionSuffix). This action cannot be undone."
+    var confirmationMessage: String {
+        WebDataManagementCopy.confirmationMessage(
+            clearCookiesAndSiteData: clearCookiesAndSiteData,
+            clearCache: clearCache,
+            timeRange: selectedTimeRange
+        )
     }
 
     private func clearData() async {
@@ -112,7 +112,7 @@ public struct WebDataManagementView: View {
     }
 }
 
-private enum TimeRange: String, CaseIterable, Identifiable {
+enum TimeRange: String, CaseIterable, Identifiable {
     case pastHour
     case pastDay
     case allTime
@@ -122,18 +122,17 @@ private enum TimeRange: String, CaseIterable, Identifiable {
     }
 
     var label: String {
-        switch self {
-        case .pastHour: "Past Hour"
-        case .pastDay: "Past Day"
-        case .allTime: "All Time"
-        }
+        localizedLabel()
     }
 
-    var descriptionSuffix: String {
+    func localizedLabel(locale: Locale = .current) -> String {
         switch self {
-        case .pastHour: "from the past hour"
-        case .pastDay: "from the past day"
-        case .allTime: "for all time"
+        case .pastHour:
+            WebLocalization.string("Past Hour", locale: locale, comment: "Option label for clearing website data from the past hour.")
+        case .pastDay:
+            WebLocalization.string("Past Day", locale: locale, comment: "Option label for clearing website data from the past day.")
+        case .allTime:
+            WebLocalization.string("All Time", locale: locale, comment: "Option label for clearing website data from all time.")
         }
     }
 
@@ -143,6 +142,64 @@ private enum TimeRange: String, CaseIterable, Identifiable {
         case .pastDay: Date.now.addingTimeInterval(-86400)
         case .allTime: Date.distantPast
         }
+    }
+}
+
+enum WebDataManagementCopy {
+    private static let dataTypesToken = "__DATA_TYPES__"
+
+    static func confirmationMessage(
+        clearCookiesAndSiteData: Bool,
+        clearCache: Bool,
+        timeRange: TimeRange,
+        locale: Locale = .current
+    ) -> String {
+        var types: [String] = []
+        if clearCookiesAndSiteData {
+            types.append(
+                WebLocalization.string(
+                    "cookies & site data",
+                    locale: locale,
+                    comment: "Lowercase noun phrase used inside the website-data clearing confirmation message."
+                )
+            )
+        }
+        if clearCache {
+            types.append(
+                WebLocalization.string(
+                    "cache",
+                    locale: locale,
+                    comment: "Lowercase noun used inside the website-data clearing confirmation message."
+                )
+            )
+        }
+
+        let joined = types.formatted(.list(type: .and).locale(locale))
+        let template = switch timeRange {
+        case .pastHour:
+            WebLocalization.string(
+                "web.data.clear.confirmation.pastHour",
+                defaultValue: "This will clear \(dataTypesToken) from the past hour. This action cannot be undone.",
+                locale: locale,
+                comment: "Confirmation shown before clearing website data from the past hour. The argument lists the selected data types."
+            )
+        case .pastDay:
+            WebLocalization.string(
+                "web.data.clear.confirmation.pastDay",
+                defaultValue: "This will clear \(dataTypesToken) from the past day. This action cannot be undone.",
+                locale: locale,
+                comment: "Confirmation shown before clearing website data from the past day. The argument lists the selected data types."
+            )
+        case .allTime:
+            WebLocalization.string(
+                "web.data.clear.confirmation.allTime",
+                defaultValue: "This will clear \(dataTypesToken) for all time. This action cannot be undone.",
+                locale: locale,
+                comment: "Confirmation shown before clearing website data for all time. The argument lists the selected data types."
+            )
+        }
+
+        return template.replacingOccurrences(of: dataTypesToken, with: joined)
     }
 }
 

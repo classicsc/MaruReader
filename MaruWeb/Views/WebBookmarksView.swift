@@ -155,6 +155,6 @@ private struct WebBookmarkRow: View {
         {
             return host
         }
-        return "Untitled Bookmark"
+        return WebStrings.untitledBookmark()
     }
 }

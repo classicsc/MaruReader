@@ -94,7 +94,7 @@ final class WebViewerViewModel {
         tabs.map { tab in
             let page = tab.page
             let title = tabTitle(for: page)
-            let host = page.url?.host ?? "New Tab"
+            let host = page.url?.host ?? WebStrings.newTab()
             return WebTabSummary(
                 id: tab.id,
                 title: title,
@@ -534,7 +534,7 @@ final class WebViewerViewModel {
         if let host = page.url?.host, !host.isEmpty {
             return host
         }
-        return "New Tab"
+        return WebStrings.newTab()
     }
 
     nonisolated static func viewportInfo(from result: Any?) -> ViewportInfo? {
@@ -582,10 +582,10 @@ final class WebViewerViewModel {
 
     private func webContextValues(screenshotURL: URL?) -> LookupContextValues {
         let title = page?.title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        let displayTitle = title.isEmpty ? "Web page" : title
-        let urlString = page?.url?.absoluteString ?? "Unknown URL"
+        let displayTitle = title.isEmpty ? WebStrings.webPage() : title
+        let urlString = page?.url?.absoluteString ?? WebStrings.unknownURL()
         return LookupContextValues(
-            contextInfo: "\(displayTitle) - \(urlString)",
+            contextInfo: WebStrings.contextInfo(title: displayTitle, urlString: urlString),
             documentCoverImageURL: nil,
             screenshotURL: screenshotURL,
             sourceType: .web

@@ -35,26 +35,26 @@ public enum WebViewerToolbarTour: TourDefinition {
     public static let steps: [TourStep] = [
         TourStep(
             id: WebViewerToolbarTourAnchor.dismissButton,
-            title: "Exit Web Viewer",
-            description: "Open the more actions menu, then tap Exit Web Viewer to close and return to the app.",
+            title: WebLocalization.string("Exit Web Viewer", comment: "Title of the web viewer tour step that explains how to exit the web viewer."),
+            description: WebStrings.dismissTourDescription(),
             popoverEdge: .top
         ),
         TourStep(
             id: WebViewerToolbarTourAnchor.addressBar,
-            title: "Address Bar",
-            description: "Tap to edit the URL or see the current site. The reload button refreshes the page.",
+            title: WebStrings.addressBarTourTitle(),
+            description: WebStrings.addressBarTourDescription(),
             popoverEdge: .top
         ),
         TourStep(
             id: WebViewerToolbarTourAnchor.bookmarkButton,
-            title: "Bookmarks",
-            description: "Open the more actions menu to add or remove bookmarks and jump to saved pages.",
+            title: WebLocalization.string("Bookmarks", comment: "Title of the web viewer tour step that explains bookmarks."),
+            description: WebStrings.bookmarksTourDescription(),
             popoverEdge: .top
         ),
         TourStep(
             id: WebViewerToolbarTourAnchor.readingModeButton,
-            title: "OCR Mode",
-            description: "Enable tap-to-look-up mode for dictionary lookups on visible text.",
+            title: WebStrings.ocrModeTourTitle(),
+            description: WebStrings.ocrModeTourDescription(),
             popoverEdge: .top
         ),
     ]

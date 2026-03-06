@@ -79,6 +79,14 @@ public enum SearchEngineKind: String, CaseIterable, Identifiable, Sendable {
     public var id: String {
         rawValue
     }
+
+    public var localizedDisplayName: String {
+        WebStrings.searchEngineDisplayName(self)
+    }
+
+    func localizedDisplayName(locale: Locale) -> String {
+        WebStrings.searchEngineDisplayName(self, locale: locale)
+    }
 }
 
 public enum WebSearchEngineSettings {

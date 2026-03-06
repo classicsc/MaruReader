@@ -32,7 +32,7 @@ struct WebSettingsView: View {
             Section("Search") {
                 Picker("Search Engine", selection: $selectedEngineKind) {
                     ForEach(SearchEngineKind.allCases) { kind in
-                        Text(kind.rawValue).tag(kind)
+                        Text(kind.localizedDisplayName).tag(kind)
                     }
                 }
                 .onChange(of: selectedEngineKind) { _, newValue in
