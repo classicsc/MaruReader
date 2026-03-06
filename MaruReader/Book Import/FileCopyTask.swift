@@ -50,7 +50,7 @@ struct FileCopyTask {
             }
 
             // Update progress message
-            book.displayProgressMessage = "Copying book file..."
+            book.displayProgressMessage = String(localized: "Copying book file...")
             try context.save()
             return (fileURL, bookUUID)
         }
@@ -117,7 +117,7 @@ struct FileCopyTask {
 
             book.fileName = destinationFileName
             book.fileCopied = true
-            book.displayProgressMessage = "Book file copied."
+            book.displayProgressMessage = String(localized: "Book file copied.")
 
             try context.save()
         }

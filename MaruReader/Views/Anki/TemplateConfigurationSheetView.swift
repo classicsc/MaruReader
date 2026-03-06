@@ -39,7 +39,10 @@ struct TemplateConfigurationSheetView: View {
             dictionarySection
             cardTypeSection
         }
-        .navigationTitle("Configure \(template.displayName)")
+        .navigationTitle(String.localizedStringWithFormat(
+            String(localized: "Configure %@"),
+            template.displayName
+        ))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -58,7 +61,7 @@ struct TemplateConfigurationSheetView: View {
         }
         .overlay {
             if isSaving {
-                LoadingOverlay(message: "Saving...")
+                LoadingOverlay(message: String(localized: "Saving..."))
             }
         }
         .task {

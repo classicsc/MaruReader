@@ -158,16 +158,16 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         let displayTitle = if let title, !title.isEmpty {
             title
         } else {
-            "Book"
+            String(localized: "Book")
         }
 
         if let locator = currentLocator {
             if let position = locator.locations.position {
-                return "\(displayTitle) - Position \(position)"
+                return AppLocalization.bookContextPosition(title: displayTitle, position: position)
             }
             if let totalProgression = locator.locations.totalProgression {
                 let percent = Int(totalProgression * 100)
-                return "\(displayTitle) - \(percent)%"
+                return AppLocalization.bookContextPercent(title: displayTitle, percent: percent)
             }
         }
 

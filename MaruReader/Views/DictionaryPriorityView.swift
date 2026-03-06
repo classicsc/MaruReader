@@ -170,7 +170,7 @@ struct DictionaryPriorityView: View {
                     // Picker for frequency ranking dictionary
                     Picker("Ranking Dictionary", selection: termFrequencyRankingBinding) {
                         ForEach(termFrequencyDictionaries, id: \.objectID) { dictionary in
-                            Text(dictionary.title ?? "Unknown")
+                            Text(dictionary.title ?? AppLocalization.unknownDictionary)
                                 .tag(dictionary.objectID as NSManagedObjectID?)
                         }
                     }
@@ -194,7 +194,7 @@ struct DictionaryPriorityView: View {
                     // Picker for frequency ranking dictionary
                     Picker("Ranking Dictionary", selection: kanjiFrequencyRankingBinding) {
                         ForEach(kanjiFrequencyDictionaries, id: \.objectID) { dictionary in
-                            Text(dictionary.title ?? "Unknown")
+                            Text(dictionary.title ?? AppLocalization.unknownDictionary)
                                 .tag(dictionary.objectID as NSManagedObjectID?)
                         }
                     }
@@ -277,7 +277,7 @@ struct DictionaryPriorityView: View {
         do {
             try viewContext.save()
         } catch {
-            errorMessage = "Failed to reorder dictionaries: \(error.localizedDescription)"
+            errorMessage = AppLocalization.failedToReorderDictionaries(error.localizedDescription)
             showingError = true
         }
     }
@@ -298,7 +298,7 @@ struct DictionaryPriorityView: View {
         do {
             try viewContext.save()
         } catch {
-            errorMessage = "Failed to update frequency ranking: \(error.localizedDescription)"
+            errorMessage = AppLocalization.failedToUpdateFrequencyRanking(error.localizedDescription)
             showingError = true
         }
     }
@@ -312,13 +312,13 @@ struct DictionaryPriorityRow: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
-                Text(dictionary.title ?? "Unknown Dictionary")
+                Text(dictionary.title ?? AppLocalization.unknownDictionary)
                     .font(.headline)
 
                 if let sourceLanguage = dictionary.sourceLanguage,
                    let targetLanguage = dictionary.targetLanguage
                 {
-                    Text("\(sourceLanguage) → \(targetLanguage)")
+                    Text(AppLocalization.languagePair(source: sourceLanguage, target: targetLanguage))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

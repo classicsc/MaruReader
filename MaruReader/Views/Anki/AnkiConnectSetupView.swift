@@ -56,7 +56,7 @@ struct AnkiConnectSetupView: View {
         }
         .overlay {
             if viewModel.isLoading {
-                LoadingOverlay(message: "Testing connection...")
+                LoadingOverlay(message: String(localized: "Testing connection..."))
             }
         }
     }

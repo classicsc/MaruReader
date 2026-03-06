@@ -172,7 +172,9 @@ struct DictionaryManagementView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { dictionary in
-            Text("Are you sure you want to delete \"\(dictionary.title ?? "Unknown Dictionary")\"? This action cannot be undone.")
+            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
+                name: dictionary.title ?? AppLocalization.unknownDictionary
+            ))
         }
     }
 
@@ -269,7 +271,7 @@ struct InProgressDictionaryRow: View {
         if let title = dictionary.title, !title.isEmpty {
             return title
         }
-        return dictionary.file?.deletingPathExtension().lastPathComponent ?? "Unknown Dictionary"
+        return dictionary.file?.deletingPathExtension().lastPathComponent ?? AppLocalization.unknownDictionary
     }
 
     private var statusIcon: String {
@@ -339,7 +341,7 @@ struct FailedDictionaryRow: View {
         if let title = dictionary.title, !title.isEmpty {
             return title
         }
-        return dictionary.file?.deletingPathExtension().lastPathComponent ?? "Unknown Dictionary"
+        return dictionary.file?.deletingPathExtension().lastPathComponent ?? AppLocalization.unknownDictionary
     }
 
     private var statusIcon: String {
@@ -407,13 +409,13 @@ struct DictionaryRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(dictionary.title ?? "Unknown Dictionary")
+                    Text(dictionary.title ?? AppLocalization.unknownDictionary)
                         .font(.headline)
 
                     if let sourceLanguage = dictionary.sourceLanguage,
                        let targetLanguage = dictionary.targetLanguage
                     {
-                        Text("\(sourceLanguage) → \(targetLanguage)")
+                        Text(AppLocalization.languagePair(source: sourceLanguage, target: targetLanguage))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -425,12 +427,12 @@ struct DictionaryRow: View {
                                 .foregroundStyle(.red)
                         } else {
                             let types: [(label: String, systemImage: String, isPresent: Bool)] = [
-                                ("Terms: \(dictionary.termCount)", "textformat", dictionary.termCount > 0),
-                                ("Kanji: \(dictionary.kanjiCount)", "character.zh", dictionary.kanjiCount > 0),
-                                ("Frequency: \(dictionary.termFrequencyCount)", "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
-                                ("Kanji Frequency: \(dictionary.kanjiFrequencyCount)", "chart.bar", dictionary.kanjiFrequencyCount > 0),
-                                ("Pitch: \(dictionary.pitchesCount)", "waveform", dictionary.pitchesCount > 0),
-                                ("IPA: \(dictionary.ipaCount)", "speaker.wave.2", dictionary.ipaCount > 0),
+                                (AppLocalization.dictionaryTermsCount(dictionary.termCount), "textformat", dictionary.termCount > 0),
+                                (AppLocalization.dictionaryKanjiCount(dictionary.kanjiCount), "character.zh", dictionary.kanjiCount > 0),
+                                (AppLocalization.dictionaryFrequencyCount(dictionary.termFrequencyCount), "chart.line.uptrend.xyaxis", dictionary.termFrequencyCount > 0),
+                                (AppLocalization.dictionaryKanjiFrequencyCount(dictionary.kanjiFrequencyCount), "chart.bar", dictionary.kanjiFrequencyCount > 0),
+                                (AppLocalization.dictionaryPitchCount(dictionary.pitchesCount), "waveform", dictionary.pitchesCount > 0),
+                                (AppLocalization.dictionaryIPACount(dictionary.ipaCount), "speaker.wave.2", dictionary.ipaCount > 0),
                             ]
                             ForEach(types.filter(\.isPresent), id: \.label) { type in
                                 Label(type.label, systemImage: type.systemImage)
@@ -523,7 +525,7 @@ struct DictionaryUpdateTaskRow: View {
         formatter.countStyle = .file
         let received = formatter.string(fromByteCount: task.bytesReceived)
         let total = formatter.string(fromByteCount: task.totalBytes)
-        return "\(received) of \(total)"
+        return AppLocalization.progress(received: received, total: total)
     }
 
     private var statusMessage: String {
@@ -535,7 +537,7 @@ struct DictionaryUpdateTaskRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(task.dictionaryTitle ?? "Dictionary Update")
+            Text(task.dictionaryTitle ?? String(localized: "Dictionary Update"))
                 .font(.headline)
                 .lineLimit(1)
 

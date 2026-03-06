@@ -33,7 +33,7 @@ struct ThirdPartyLicensesView: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(component.name)
                                 if let version = component.version {
-                                    Text("Version \(version)")
+                                    Text(AppLocalization.version(version))
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }

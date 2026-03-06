@@ -150,7 +150,7 @@ struct FieldMappingManagementView: View {
                 }
             }
         } message: { profile in
-            Text("Are you sure you want to delete \"\(profile.displayName)\"? This cannot be undone.")
+            Text(AppLocalization.deleteConfirmationCannotBeUndone(name: profile.displayName))
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -176,7 +176,7 @@ struct FieldMappingManagementView: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else if let fieldMap = profile.fieldMap {
-                        Text("\(fieldMap.map.count) fields")
+                        Text(AppLocalization.fieldsCount(fieldMap.map.count))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }

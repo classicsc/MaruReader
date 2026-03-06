@@ -47,7 +47,7 @@ struct FieldMappingSelectionView: View {
         }
         .overlay {
             if viewModel.isLoading {
-                LoadingOverlay(message: "Saving configuration...")
+                LoadingOverlay(message: String(localized: "Saving configuration..."))
             }
         }
         .sheet(isPresented: $showingEditor, onDismiss: {

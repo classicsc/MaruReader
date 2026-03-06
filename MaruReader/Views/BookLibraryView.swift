@@ -181,7 +181,9 @@ struct BookLibraryView: View {
                     }
                     Button("Cancel", role: .cancel) {}
                 } message: { book in
-                    Text("Are you sure you want to delete \"\(book.title ?? "Unknown Book")\"? This action cannot be undone.")
+                    Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
+                        name: book.title ?? AppLocalization.unknownBook
+                    ))
                 }
                 .fullScreenCover(isPresented: isShowingReader) {
                     if let book = selectedBook {
@@ -402,7 +404,7 @@ struct BookGridItem: View {
                 }
 
                 if let progressPercent = displayProgress {
-                    Text("\(progressPercent) Read")
+                    Text(AppLocalization.percentRead(progressPercent))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

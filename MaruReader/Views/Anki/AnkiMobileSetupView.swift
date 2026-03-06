@@ -27,11 +27,11 @@ private enum AnkiMobileInfoForAddingError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingReturnURL:
-            "Unable to build the return URL for AnkiMobile."
+            String(localized: "Unable to build the return URL for AnkiMobile.")
         case .openFailed:
-            "Unable to open AnkiMobile."
+            String(localized: "Unable to open AnkiMobile.")
         case .missingClipboardData:
-            "AnkiMobile did not place infoForAdding data on the clipboard."
+            String(localized: "AnkiMobile did not place infoForAdding data on the clipboard.")
         }
     }
 }
@@ -55,9 +55,13 @@ struct AnkiMobileSetupView: View {
                 .disabled(isBusy)
 
                 if viewModel.isAnkiMobileInfoLoaded {
-                    Text("Loaded \(viewModel.profiles.count) profiles, \(viewModel.decks.count) decks, \(viewModel.models.count) note types.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(AppLocalization.loadedProfilesDecksModels(
+                        profiles: viewModel.profiles.count,
+                        decks: viewModel.decks.count,
+                        models: viewModel.models.count
+                    ))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 } else {
                     Text("Opens AnkiMobile and imports the available names when you return.")
                         .font(.caption)
@@ -87,7 +91,7 @@ struct AnkiMobileSetupView: View {
         }
         .overlay {
             if isAwaitingInfoForAdding {
-                LoadingOverlay(message: "Waiting for AnkiMobile...")
+                LoadingOverlay(message: String(localized: "Waiting for AnkiMobile..."))
             }
         }
         .onOpenURL { url in

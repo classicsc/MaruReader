@@ -27,15 +27,15 @@ enum ThirdPartyComponentCategory: String, Codable, CaseIterable, Sendable {
     var displayName: String {
         switch self {
         case .spm:
-            "Swift Packages"
+            String(localized: "Swift Packages")
         case .contentBlocker:
-            "Content Blocking"
+            String(localized: "Content Blocking")
         case .filterList:
-            "Filter Lists"
+            String(localized: "Filter Lists")
         case .dictionaryData:
-            "Dictionary Data"
+            String(localized: "Dictionary Data")
         case .ublockEmbedded:
-            "uBlock Embedded Components"
+            String(localized: "uBlock Embedded Components")
         }
     }
 
@@ -88,11 +88,17 @@ enum ThirdPartyLicenseCatalogError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .catalogNotFound:
-            "Could not find the third-party license catalog in the app bundle."
+            String(localized: "Could not find the third-party license catalog in the app bundle.")
         case let .documentNotFound(path):
-            "Could not find the license document at \(path)."
+            String.localizedStringWithFormat(
+                String(localized: "Could not find the license document at %@."),
+                path
+            )
         case let .unreadableDocument(path):
-            "Could not read the license document at \(path)."
+            String.localizedStringWithFormat(
+                String(localized: "Could not read the license document at %@."),
+                path
+            )
         }
     }
 }

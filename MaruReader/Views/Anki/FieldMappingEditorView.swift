@@ -182,7 +182,7 @@ struct FieldMappingEditorView: View {
         }
         .overlay {
             if isSaving {
-                LoadingOverlay(message: "Saving...")
+                LoadingOverlay(message: String(localized: "Saving..."))
             }
         }
     }
@@ -332,19 +332,19 @@ struct FieldMappingEditorView: View {
         switch value {
         case let .singleDictionaryGlossary(dictionaryID):
             if let dictionary = availableTermDictionaries.first(where: { $0.id == dictionaryID }) {
-                return "Glossary: \(dictionary.title)"
+                return AppLocalization.glossaryDictionary(dictionary.title)
             }
         case let .singleFrequencyDictionary(dictionaryID):
             if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return "Frequency: \(dictionary.title)"
+                return AppLocalization.frequencyDictionary(dictionary.title)
             }
         case let .frequencyRankSortField(dictionaryID):
             if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return "Freq Sort (Rank): \(dictionary.title)"
+                return AppLocalization.frequencyRankDictionary(dictionary.title)
             }
         case let .frequencyOccurrenceSortField(dictionaryID):
             if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return "Freq Sort (Occ): \(dictionary.title)"
+                return AppLocalization.frequencyOccurrenceDictionary(dictionary.title)
             }
         default:
             break
@@ -428,7 +428,7 @@ struct FieldMappingEditorView: View {
 
 // MARK: - Template Value Helpers
 
-private enum TemplateValueCategory: CaseIterable {
+enum TemplateValueCategory: CaseIterable {
     case text
     case reading
     case glossary
@@ -438,12 +438,12 @@ private enum TemplateValueCategory: CaseIterable {
 
     var displayName: String {
         switch self {
-        case .text: "Text"
-        case .reading: "Reading"
-        case .glossary: "Glossary"
-        case .context: "Context"
-        case .frequency: "Frequency"
-        case .pitch: "Pitch Accent"
+        case .text: String(localized: "Text")
+        case .reading: String(localized: "Reading")
+        case .glossary: String(localized: "Glossary")
+        case .context: String(localized: "Context")
+        case .frequency: String(localized: "Frequency")
+        case .pitch: String(localized: "Pitch Accent")
         }
     }
 
@@ -480,45 +480,44 @@ extension TemplateValue {
     var displayName: String {
         switch self {
         case let .singleDictionaryGlossary(dictionaryID):
-            // Show shortened UUID for identification
             let shortID = String(dictionaryID.uuidString.prefix(8))
-            return "Glossary (\(shortID)…)"
-        case .singleGlossary: return "Single Glossary (First Dictionary)"
-        case .multiDictionaryGlossary: return "Multi-Dictionary Glossary"
-        case .pronunciationAudio: return "Pronunciation Audio"
-        case .expression: return "Expression"
+            return AppLocalization.glossaryIdentifier(shortID)
+        case .singleGlossary: return String(localized: "Single Glossary (First Dictionary)")
+        case .multiDictionaryGlossary: return String(localized: "Multi-Dictionary Glossary")
+        case .pronunciationAudio: return String(localized: "Pronunciation Audio")
+        case .expression: return String(localized: "Expression")
         case let .customHTMLValue(value):
             let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
-            return "HTML: \(truncated)"
-        case .furigana: return "Furigana"
-        case .glossaryNoDictionary: return "Glossary (No Dictionary)"
-        case .reading: return "Reading"
-        case .sentence: return "Sentence"
-        case .clozePrefix: return "Cloze Prefix"
-        case .clozeBody: return "Cloze Body"
-        case .clozeSuffix: return "Cloze Suffix"
-        case .clozeFuriganaPrefix: return "Cloze Furigana Prefix"
-        case .clozeFuriganaBody: return "Cloze Furigana Body"
-        case .clozeFuriganaSuffix: return "Cloze Furigana Suffix"
-        case .tags: return "Tags"
-        case .contextImage: return "Context Image"
-        case .contextInfo: return "Context Info"
-        case .singlePitchAccent: return "Single Pitch Accent"
-        case .singlePitchAccentDictionary: return "Pitch Accent (Dictionary)"
-        case .pitchAccentList: return "Pitch Accent List"
-        case .pitchAccentDisambiguation: return "Pitch Disambiguation"
-        case .pitchAccentCategories: return "Pitch Accent Categories"
-        case .conjugation: return "Conjugation"
-        case .frequencyList: return "Frequency List"
-        case .singleFrequency: return "Single Frequency"
-        case .singleFrequencyDictionary: return "Frequency (Dictionary)"
-        case .frequencyRankSortField: return "Frequency Sort (Rank)"
-        case .frequencyOccurrenceSortField: return "Frequency Sort (Occurrence)"
-        case .frequencyRankHarmonicMeanSortField: return "Frequency Sort (Rank HM)"
-        case .frequencyOccurrenceHarmonicMeanSortField: return "Frequency Sort (Occ HM)"
-        case .partOfSpeech: return "Part of Speech"
-        case .sentenceFurigana: return "Sentence (Furigana)"
-        @unknown default: return "Unknown"
+            return AppLocalization.htmlPreview(truncated)
+        case .furigana: return String(localized: "Furigana")
+        case .glossaryNoDictionary: return String(localized: "Glossary (No Dictionary)")
+        case .reading: return String(localized: "Reading")
+        case .sentence: return String(localized: "Sentence")
+        case .clozePrefix: return String(localized: "Cloze Prefix")
+        case .clozeBody: return String(localized: "Cloze Body")
+        case .clozeSuffix: return String(localized: "Cloze Suffix")
+        case .clozeFuriganaPrefix: return String(localized: "Cloze Furigana Prefix")
+        case .clozeFuriganaBody: return String(localized: "Cloze Furigana Body")
+        case .clozeFuriganaSuffix: return String(localized: "Cloze Furigana Suffix")
+        case .tags: return String(localized: "Tags")
+        case .contextImage: return String(localized: "Context Image")
+        case .contextInfo: return String(localized: "Context Info")
+        case .singlePitchAccent: return String(localized: "Single Pitch Accent")
+        case .singlePitchAccentDictionary: return String(localized: "Pitch Accent (Dictionary)")
+        case .pitchAccentList: return String(localized: "Pitch Accent List")
+        case .pitchAccentDisambiguation: return String(localized: "Pitch Disambiguation")
+        case .pitchAccentCategories: return String(localized: "Pitch Accent Categories")
+        case .conjugation: return String(localized: "Conjugation")
+        case .frequencyList: return String(localized: "Frequency List")
+        case .singleFrequency: return String(localized: "Single Frequency")
+        case .singleFrequencyDictionary: return String(localized: "Frequency (Dictionary)")
+        case .frequencyRankSortField: return String(localized: "Frequency Sort (Rank)")
+        case .frequencyOccurrenceSortField: return String(localized: "Frequency Sort (Occurrence)")
+        case .frequencyRankHarmonicMeanSortField: return String(localized: "Frequency Sort (Rank HM)")
+        case .frequencyOccurrenceHarmonicMeanSortField: return String(localized: "Frequency Sort (Occ HM)")
+        case .partOfSpeech: return String(localized: "Part of Speech")
+        case .sentenceFurigana: return String(localized: "Sentence (Furigana)")
+        @unknown default: return String(localized: "Unknown")
         }
     }
 }
@@ -552,7 +551,7 @@ private struct DictionaryPickerSheet: View {
                                     VStack(alignment: .leading) {
                                         Text(dictionary.title)
                                             .foregroundStyle(.primary)
-                                        Text("Priority: \(dictionary.priority)")
+                                        Text(AppLocalization.priority(dictionary.priority))
                                             .font(.caption)
                                             .foregroundStyle(.secondary)
                                     }

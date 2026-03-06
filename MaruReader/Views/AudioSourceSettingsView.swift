@@ -138,8 +138,8 @@ struct AudioSourceSettingsView: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: { source in
-            let name = source.name ?? "Unknown Source"
-            Text(verbatim: "Are you sure you want to delete \"\(name)\"? This action cannot be undone.")
+            let name = source.name ?? AppLocalization.unknownSource
+            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(name: name))
         }
     }
 
@@ -237,7 +237,7 @@ private struct InProgressAudioSourceRow: View {
         if let name = source.name, !name.isEmpty {
             return name
         }
-        return source.file?.deletingPathExtension().lastPathComponent ?? "Unknown Source"
+        return source.file?.deletingPathExtension().lastPathComponent ?? AppLocalization.unknownSource
     }
 
     private var statusIcon: String {
@@ -314,7 +314,7 @@ private struct FailedAudioSourceRow: View {
         if let name = source.name, !name.isEmpty {
             return name
         }
-        return source.file?.deletingPathExtension().lastPathComponent ?? "Unknown Source"
+        return source.file?.deletingPathExtension().lastPathComponent ?? AppLocalization.unknownSource
     }
 
     private var statusIcon: String {
@@ -383,7 +383,7 @@ private struct CompletedAudioSourceRow: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: source.name ?? "Unknown Source")
+                    Text(verbatim: source.name ?? AppLocalization.unknownSource)
                         .font(.headline)
 
                     Text(typeDescription)
@@ -470,14 +470,14 @@ private struct CompletedAudioSourceRow: View {
     private var typeDescription: String {
         if source.indexedByHeadword {
             if source.isLocal {
-                return "Indexed (Local ZIP)"
+                return String(localized: "Indexed (Local ZIP)")
             }
-            return "Indexed (Online)"
+            return String(localized: "Indexed (Online)")
         }
         if source.urlPatternReturnsJSON {
-            return "URL Pattern (JSON)"
+            return String(localized: "URL Pattern (JSON)")
         }
-        return "URL Pattern"
+        return String(localized: "URL Pattern")
     }
 }
 
@@ -541,13 +541,13 @@ private struct AddURLPatternAudioSourceView: View {
         let trimmedPattern = urlPattern.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedName.isEmpty else {
-            errorMessage = "Name is required."
+            errorMessage = String(localized: "Name is required.")
             showingError = true
             return
         }
 
         guard !trimmedPattern.isEmpty else {
-            errorMessage = "URL pattern is required."
+            errorMessage = String(localized: "URL pattern is required.")
             showingError = true
             return
         }

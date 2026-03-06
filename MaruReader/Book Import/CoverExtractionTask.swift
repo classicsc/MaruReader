@@ -53,7 +53,7 @@ struct CoverExtractionTask {
             }
 
             // Update progress message
-            book.displayProgressMessage = "Extracting book cover..."
+            book.displayProgressMessage = String(localized: "Extracting book cover...")
             try context.save()
             return (fileURL, bookUUID)
         }
@@ -85,7 +85,11 @@ struct CoverExtractionTask {
 
         // Convert URL to FileURL
         guard let readiumFileURL = FileURL(url: fileURL) else {
-            throw BookImportError.coverExtractionFailed(underlyingError: NSError(domain: "BookImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid file URL"]))
+            throw BookImportError.coverExtractionFailed(underlyingError: NSError(
+                domain: "BookImport",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "Invalid file URL")]
+            ))
         }
 
         // Retrieve asset from file URL
@@ -132,7 +136,7 @@ struct CoverExtractionTask {
                 }
 
                 book.coverExtracted = true
-                book.displayProgressMessage = "No cover image found."
+                book.displayProgressMessage = String(localized: "No cover image found.")
 
                 try context.save()
             }
@@ -167,7 +171,11 @@ struct CoverExtractionTask {
         do {
             // Convert image to PNG data
             guard let pngData = coverImage.pngData() else {
-                throw BookImportError.coverExtractionFailed(underlyingError: NSError(domain: "BookImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed to convert cover to PNG"]))
+                throw BookImportError.coverExtractionFailed(underlyingError: NSError(
+                    domain: "BookImport",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey: String(localized: "Failed to convert cover to PNG")]
+                ))
             }
 
             // Remove destination if it exists
@@ -191,7 +199,7 @@ struct CoverExtractionTask {
 
             book.coverFileName = coverFileName
             book.coverExtracted = true
-            book.displayProgressMessage = "Cover extracted."
+            book.displayProgressMessage = String(localized: "Cover extracted.")
 
             try context.save()
         }

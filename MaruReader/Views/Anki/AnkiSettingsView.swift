@@ -236,20 +236,20 @@ struct AnkiSettingsView: View {
 
     private var duplicateScopeDisplayName: String {
         guard let options = duplicateOptions else {
-            return "Not Configured"
+            return String(localized: "Not Configured")
         }
         switch options.scope {
         case .none:
-            return "Allow Duplicates"
+            return String(localized: "Allow Duplicates")
         case .deck:
             if let deckName = options.deckName {
-                return "Check in \(deckName)"
+                return AppLocalization.checkInDeck(deckName)
             }
-            return "Check in Target Deck"
+            return String(localized: "Check in Target Deck")
         case .collection:
-            return "Check Entire Collection"
+            return String(localized: "Check Entire Collection")
         @unknown default:
-            return "Unknown"
+            return String(localized: "Unknown")
         }
     }
 

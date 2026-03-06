@@ -49,7 +49,7 @@ struct MetadataProcessingTask {
             }
 
             // Update progress message
-            book.displayProgressMessage = "Reading book metadata..."
+            book.displayProgressMessage = String(localized: "Reading book metadata...")
             try context.save()
             return fileURL
         }
@@ -81,7 +81,11 @@ struct MetadataProcessingTask {
 
         // Convert URL to FileURL
         guard let readiumFileURL = FileURL(url: fileURL) else {
-            throw BookImportError.metadataExtractionFailed(underlyingError: NSError(domain: "BookImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid file URL"]))
+            throw BookImportError.metadataExtractionFailed(underlyingError: NSError(
+                domain: "BookImport",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: String(localized: "Invalid file URL")]
+            ))
         }
 
         // Retrieve asset from file URL
@@ -130,7 +134,7 @@ struct MetadataProcessingTask {
             book.language = language
             book.originalFileName = fileURL.lastPathComponent
             book.metadataSaved = true
-            book.displayProgressMessage = "Metadata extracted."
+            book.displayProgressMessage = String(localized: "Metadata extracted.")
 
             try context.save()
         }

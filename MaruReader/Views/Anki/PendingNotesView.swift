@@ -120,7 +120,7 @@ struct PendingNotesView: View {
                 modelName: note.modelName
             )
             if result.pendingSync {
-                errorMessage = "Unable to add the note. It remains pending."
+                errorMessage = String(localized: "Unable to add the note. It remains pending.")
                 return
             }
 
@@ -149,7 +149,7 @@ struct PendingNotesView: View {
 
     private func noteSubtitle(_ note: AnkiNoteService.PendingAnkiNote) -> String {
         let profile = note.profileName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let profileLabel = profile.isEmpty ? "Default Profile" : profile
+        let profileLabel = profile.isEmpty ? AppLocalization.defaultProfileLabel : profile
         return "\(note.deckName) · \(note.modelName) · \(profileLabel)"
     }
 }

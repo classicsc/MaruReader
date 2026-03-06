@@ -331,7 +331,10 @@ struct BookReaderView: View {
                     in: 50.0 ... 200.0,
                     step: 10.0
                 ) {
-                    Label("Font Scale: \(Int(viewModel.readerPreferences.effectiveFontSize))%", systemImage: "textformat.size")
+                    Label(
+                        AppLocalization.fontScale(Int(viewModel.readerPreferences.effectiveFontSize)),
+                        systemImage: "textformat.size"
+                    )
                 }
             }
 

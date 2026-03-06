@@ -217,7 +217,7 @@ struct OCRScanView: View {
         switch sourceAction {
         case .camera:
             guard isCameraAvailable else {
-                errorMessage = "Camera is unavailable on this device"
+                errorMessage = String(localized: "Camera is unavailable on this device")
                 return
             }
             showCamera = true
@@ -256,18 +256,18 @@ struct OCRScanView: View {
 
         do {
             guard let data = try await item.loadTransferable(type: Data.self) else {
-                errorMessage = "Failed to load image data"
+                errorMessage = String(localized: "Failed to load image data")
                 return
             }
 
             guard let image = UIImage(data: data) else {
-                errorMessage = "Failed to create image from data"
+                errorMessage = String(localized: "Failed to create image from data")
                 return
             }
 
             startSession(image: image, data: data)
         } catch {
-            errorMessage = "OCR failed: \(error.localizedDescription)"
+            errorMessage = AppLocalization.ocrFailed(error.localizedDescription)
         }
     }
 
@@ -285,7 +285,7 @@ struct OCRScanView: View {
                 return
             } catch {
                 if presentationState.applyOCRError(for: sessionID) {
-                    errorMessage = "OCR failed: \(error.localizedDescription)"
+                    errorMessage = AppLocalization.ocrFailed(error.localizedDescription)
                 }
             }
 

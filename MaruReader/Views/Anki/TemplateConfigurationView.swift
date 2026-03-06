@@ -47,7 +47,7 @@ struct TemplateConfigurationView: View {
         }
         .overlay {
             if viewModel.isLoading {
-                LoadingOverlay(message: "Saving configuration...")
+                LoadingOverlay(message: String(localized: "Saving configuration..."))
             }
         }
         .task {

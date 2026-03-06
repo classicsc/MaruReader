@@ -26,13 +26,13 @@ enum BookReaderError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .bookFileNotFound:
-            "Book file not found"
+            String(localized: "Book file not found")
         case .cannotAccessAppSupport:
-            "Cannot access application support directory"
+            String(localized: "Cannot access application support directory")
         case .invalidBookPath:
-            "Invalid book file path"
+            String(localized: "Invalid book file path")
         case .unknownError:
-            "An unknown error occurred"
+            String(localized: "An unknown error occurred")
         }
     }
 }

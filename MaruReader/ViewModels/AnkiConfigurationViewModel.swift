@@ -491,7 +491,7 @@ final class AnkiConfigurationViewModel {
                 }
                 return FieldMappingProfileInfo(
                     id: id,
-                    displayName: profile.displayName ?? "Unnamed",
+                    displayName: profile.displayName ?? AppLocalization.unnamed,
                     isSystemProfile: profile.isSystemProfile,
                     isHidden: profile.isHidden,
                     sourceTemplateID: profile.sourceTemplateID,
@@ -736,7 +736,7 @@ final class AnkiConfigurationViewModel {
                 }
                 return FieldMappingProfileInfo(
                     id: id,
-                    displayName: profile.displayName ?? "Unnamed",
+                    displayName: profile.displayName ?? AppLocalization.unnamed,
                     isSystemProfile: profile.isSystemProfile,
                     isHidden: profile.isHidden,
                     sourceTemplateID: profile.sourceTemplateID,
@@ -842,11 +842,11 @@ enum FieldMappingError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .profileNotFound:
-            "Field mapping profile not found."
+            String(localized: "Field mapping profile not found.")
         case .cannotModifySystemProfile:
-            "System profiles cannot be modified."
+            String(localized: "System profiles cannot be modified.")
         case .cannotDeleteSystemProfile:
-            "System profiles cannot be deleted."
+            String(localized: "System profiles cannot be deleted.")
         }
     }
 }
@@ -857,7 +857,7 @@ enum AnkiConfigurationError: LocalizedError, Sendable {
     var errorDescription: String? {
         switch self {
         case .invalidConfiguration:
-            "Missing required configuration values."
+            String(localized: "Missing required configuration values.")
         }
     }
 }

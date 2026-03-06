@@ -53,7 +53,7 @@ struct ProfileSelectionView: View {
         }
         .overlay {
             if viewModel.isLoading {
-                LoadingOverlay(message: "Loading decks and models...")
+                LoadingOverlay(message: String(localized: "Loading decks and models..."))
             }
         }
     }
