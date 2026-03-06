@@ -323,16 +323,8 @@ final class MangaReaderViewModel {
     private func lookupContextValues(for pageIndex: Int) async -> LookupContextValues {
         let screenshotURL = await makeScreenshotURL(for: pageIndex)
         let coverImageURL = await makeCoverContextImageURL()
-        let title = manga.title?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let displayTitle = if let title, !title.isEmpty {
-            title
-        } else {
-            "Manga"
-        }
-        let pageNumber = pageIndex + 1
-        let contextInfo = "\(displayTitle) - Page \(pageNumber)"
         return LookupContextValues(
-            contextInfo: contextInfo,
+            contextInfo: MangaLocalization.readerContextInfo(title: manga.title, pageNumber: pageIndex + 1),
             documentCoverImageURL: coverImageURL,
             screenshotURL: screenshotURL,
             sourceType: .manga

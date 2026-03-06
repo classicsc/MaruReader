@@ -30,21 +30,21 @@ enum MangaImportError: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .noImagesFound:
-            String(localized: "The archive contains no supported image files.")
+            MangaLocalization.string("The archive contains no supported image files.")
         case .invalidArchive:
-            String(localized: "The selected file is not a valid ZIP or CBZ archive.")
+            MangaLocalization.string("The selected file is not a valid ZIP or CBZ archive.")
         case .archiveNotFound:
-            String(localized: "The import operation was not found.")
+            MangaLocalization.string("The import operation was not found.")
         case .databaseError:
-            String(localized: "A database error occurred while importing the manga.")
+            MangaLocalization.string("A database error occurred while importing the manga.")
         case .fileAccessDenied:
-            String(localized: "Could not access the archive file.")
+            MangaLocalization.string("Could not access the archive file.")
         case .missingFile:
-            String(localized: "The archive file is missing.")
+            MangaLocalization.string("The archive file is missing.")
         case let .fileCopyFailed(underlyingError):
-            String(localized: "Failed to copy the archive file: \(underlyingError.localizedDescription)")
+            MangaLocalization.string("Failed to copy the archive file: \(underlyingError.localizedDescription)")
         case let .coverExtractionFailed(underlyingError):
-            String(localized: "Failed to extract cover image: \(underlyingError.localizedDescription)")
+            MangaLocalization.string("Failed to extract cover image: \(underlyingError.localizedDescription)")
         }
     }
 

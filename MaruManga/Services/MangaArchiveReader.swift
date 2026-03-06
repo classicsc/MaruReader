@@ -49,13 +49,13 @@ public enum MangaArchiveReaderError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case let .archiveNotReadable(url):
-            "Unable to read archive at \(url.lastPathComponent)"
+            MangaLocalization.string("Unable to read archive at \(url.lastPathComponent)")
         case .noImagesFound:
-            "No images found in archive"
+            MangaLocalization.string("No images found in archive")
         case let .pageIndexOutOfBounds(index, count):
-            "Page index \(index) is out of bounds (0..<\(count))"
+            MangaLocalization.string("Page index \(index) is out of bounds (0..<\(count))")
         case let .extractionFailed(path, error):
-            "Failed to extract \(path): \(error.localizedDescription)"
+            MangaLocalization.string("Failed to extract \(path): \(error.localizedDescription)")
         }
     }
 }

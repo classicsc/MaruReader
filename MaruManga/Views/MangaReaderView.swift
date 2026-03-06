@@ -74,11 +74,11 @@ public struct MangaReaderView: View {
                 if let sheetViewModel = searchSheetViewModel {
                     DictionarySearchView()
                         .environment(sheetViewModel)
-                        .navigationTitle("Dictionary")
+                        .navigationTitle(MangaLocalization.string("Dictionary"))
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
+                                Button(MangaLocalization.string("Done")) {
                                     viewModel.showingDictionarySheet = false
                                 }
                             }
@@ -207,7 +207,7 @@ public struct MangaReaderView: View {
         }
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .accessibilityLabel("Back")
+        .accessibilityLabel(MangaLocalization.string("Back"))
         .tourAnchor(MangaReaderTourAnchor.backButton)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -229,7 +229,11 @@ public struct MangaReaderView: View {
                     .frame(width: 44, height: 44)
                     .contentShape(.rect)
             }
-            .accessibilityLabel(viewModel.showBoundingBoxes ? "Hide text regions" : "Show text regions")
+            .accessibilityLabel(
+                viewModel.showBoundingBoxes
+                    ? MangaLocalization.string("Hide text regions")
+                    : MangaLocalization.string("Show text regions")
+            )
             .tourAnchor(MangaReaderTourAnchor.textRegions)
 
             // Spread mode toggle (only in landscape + horizontal mode)
@@ -246,7 +250,11 @@ public struct MangaReaderView: View {
                         .frame(width: 44, height: 44)
                         .contentShape(.rect)
                 }
-                .accessibilityLabel(viewModel.forceSinglePage ? "Switch to spreads" : "Switch to single page")
+                .accessibilityLabel(
+                    viewModel.forceSinglePage
+                        ? MangaLocalization.string("Switch to spreads")
+                        : MangaLocalization.string("Switch to single page")
+                )
                 .tourAnchor(MangaReaderTourAnchor.spreadToggle)
             }
 
@@ -254,20 +262,20 @@ public struct MangaReaderView: View {
                 .frame(height: 20)
 
             // Reading direction picker
-            Picker("Direction", selection: $viewModel.readingDirection) {
+            Picker(MangaLocalization.string("Direction"), selection: $viewModel.readingDirection) {
                 Image(systemName: "arrow.left")
-                    .accessibilityLabel("Right to left")
+                    .accessibilityLabel(MangaLocalization.string("Right to left"))
                     .tag(MangaReadingDirection.rightToLeft)
                 Image(systemName: "arrow.right")
-                    .accessibilityLabel("Left to right")
+                    .accessibilityLabel(MangaLocalization.string("Left to right"))
                     .tag(MangaReadingDirection.leftToRight)
                 Image(systemName: "arrow.down")
-                    .accessibilityLabel("Vertical")
+                    .accessibilityLabel(MangaLocalization.string("Vertical"))
                     .tag(MangaReadingDirection.vertical)
             }
             .pickerStyle(.segmented)
             .frame(width: 120)
-            .accessibilityLabel("Reading direction")
+            .accessibilityLabel(MangaLocalization.string("Reading direction"))
             .tourAnchor(MangaReaderTourAnchor.readingDirection)
 
             Divider()
@@ -304,20 +312,20 @@ public struct MangaReaderView: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(.rect)
         }
-        .accessibilityLabel("Page \(displayText)")
-        .accessibilityHint("Jump to a page")
-        .alert("Go to Page", isPresented: $isShowingPageJumpDialog) {
-            TextField("Page number", text: $pageJumpInput)
+        .accessibilityLabel(MangaLocalization.string("Page \(displayText)"))
+        .accessibilityHint(MangaLocalization.string("Jump to a page"))
+        .alert(MangaLocalization.string("Go to Page"), isPresented: $isShowingPageJumpDialog) {
+            TextField(MangaLocalization.string("Page number"), text: $pageJumpInput)
                 .keyboardType(.numberPad)
                 .onChange(of: pageJumpInput) { _, newValue in
                     pageJumpInput = newValue.filter(\.isNumber)
                 }
-            Button("Go") {
+            Button(MangaLocalization.string("Go")) {
                 performPageJump()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(MangaLocalization.string("Cancel"), role: .cancel) {}
         } message: {
-            Text("Enter a page number between 1 and \(viewModel.pageCount).")
+            Text(MangaLocalization.string("Enter a page number between 1 and \(viewModel.pageCount)."))
         }
     }
 

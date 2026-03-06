@@ -45,7 +45,7 @@ struct MangaPageContentView: View {
                         imageRect: imageRect
                     )
                 } else {
-                    errorView(message: "Failed to decode image")
+                    errorView(message: MangaLocalization.string("Failed to decode image"))
                 }
 
             case let .error(message):

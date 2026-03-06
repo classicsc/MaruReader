@@ -97,7 +97,7 @@ public actor MangaImportManager {
             context.shouldDeleteInaccessibleFaults = true
             await context.perform {
                 if let manga = try? context.existingObject(with: jobID) as? MangaArchive {
-                    manga.importErrorMessage = String(localized: "Import cancelled.")
+                    manga.importErrorMessage = MangaLocalization.string("Import cancelled.")
                     manga.importFile = nil
                     try? context.save()
                 }
@@ -135,7 +135,7 @@ public actor MangaImportManager {
 
             var infos: [(URL?, URL?)] = []
             for manga in archives {
-                manga.importErrorMessage = String(localized: "Import interrupted.")
+                manga.importErrorMessage = MangaLocalization.string("Import interrupted.")
                 manga.importFile = nil
 
                 let localPath = manga.localPath
@@ -397,7 +397,7 @@ public actor MangaImportManager {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
-            manga.importErrorMessage = String(localized: "Import cancelled.")
+            manga.importErrorMessage = MangaLocalization.string("Import cancelled.")
             manga.importFile = nil
 
             let localPath = manga.localPath
@@ -469,11 +469,19 @@ public actor MangaImportManager {
 
         let imageData = try Data(contentsOf: tempURL)
         guard let image = UIImage(data: imageData) else {
-            throw NSError(domain: "MangaImport", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid image data"])
+            throw NSError(
+                domain: "MangaImport",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: MangaLocalization.string("Invalid image data")]
+            )
         }
 
         guard let pngData = image.pngData() else {
-            throw NSError(domain: "MangaImport", code: -2, userInfo: [NSLocalizedDescriptionKey: "Failed to convert to PNG"])
+            throw NSError(
+                domain: "MangaImport",
+                code: -2,
+                userInfo: [NSLocalizedDescriptionKey: MangaLocalization.string("Failed to convert to PNG")]
+            )
         }
 
         try pngData.write(to: coverURL)

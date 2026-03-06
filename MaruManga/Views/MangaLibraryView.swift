@@ -31,9 +31,9 @@ enum MangaLibraryType: String, CaseIterable {
     var localizedName: String {
         switch self {
         case .books:
-            String(localized: "Books")
+            MangaLocalization.string("Books")
         case .manga:
-            String(localized: "Manga")
+            MangaLocalization.string("Manga")
         }
     }
 }
@@ -46,11 +46,11 @@ enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     var localizedName: String {
         switch self {
         case .title:
-            String(localized: "Title")
+            MangaLocalization.string("Title")
         case .author:
-            String(localized: "Author")
+            MangaLocalization.string("Author")
         case .dateAdded:
-            String(localized: "Date Added")
+            MangaLocalization.string("Date Added")
         }
     }
 
@@ -142,7 +142,7 @@ public struct MangaArchiveLibraryView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .principal) {
-                        Picker("Library", selection: libraryTypeBinding) {
+                        Picker(MangaLocalization.string("Library"), selection: libraryTypeBinding) {
                             ForEach(MangaLibraryType.allCases, id: \.self) { type in
                                 Text(type.localizedName).tag(type)
                             }
@@ -159,13 +159,13 @@ public struct MangaArchiveLibraryView: View {
 
                     ToolbarItem(placement: .secondaryAction) {
                         Menu {
-                            Picker("Sort By", selection: $sortOption) {
+                            Picker(MangaLocalization.string("Sort By"), selection: $sortOption) {
                                 ForEach(MangaArchiveSortOption.allCases) { option in
                                     Text(option.localizedName).tag(option)
                                 }
                             }
                         } label: {
-                            Label("Sort", systemImage: "arrow.up.arrow.down")
+                            Label(MangaLocalization.string("Sort"), systemImage: "arrow.up.arrow.down")
                         }
                     }
                 }
@@ -184,8 +184,8 @@ public struct MangaArchiveLibraryView: View {
                         }
                     }
                 }
-                .alert("Import Error", isPresented: $showingError) {
-                    Button("OK") {
+                .alert(MangaLocalization.string("Import Error"), isPresented: $showingError) {
+                    Button(MangaLocalization.string("OK")) {
                         showingError = false
                         importError = nil
                     }
@@ -195,16 +195,16 @@ public struct MangaArchiveLibraryView: View {
                     }
                 }
                 .confirmationDialog(
-                    "Delete Manga",
+                    MangaLocalization.string("Delete Manga"),
                     isPresented: $showingDeleteConfirmation,
                     presenting: bookToDelete
                 ) { book in
-                    Button("Delete", role: .destructive) {
+                    Button(MangaLocalization.string("Delete"), role: .destructive) {
                         deleteMangaArchive(book)
                     }
-                    Button("Cancel", role: .cancel) {}
+                    Button(MangaLocalization.string("Cancel"), role: .cancel) {}
                 } message: { book in
-                    Text("Are you sure you want to delete \"\(book.title ?? "Unknown Manga")\"? This action cannot be undone.")
+                    Text(MangaLocalization.deleteConfirmationMessage(title: book.title))
                 }
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
                     MangaMetadataEditorView(manga: book)
@@ -234,9 +234,9 @@ public struct MangaArchiveLibraryView: View {
 
     private var emptyStateView: some View {
         ContentUnavailableView(
-            "No Manga",
+            MangaLocalization.string("No Manga"),
             systemImage: "books.vertical",
-            description: Text("Import ZIP/CBZ files to see them here")
+            description: Text(MangaLocalization.string("Import ZIP/CBZ files to see them here"))
         )
         .frame(maxHeight: .infinity)
     }
@@ -262,14 +262,14 @@ public struct MangaArchiveLibraryView: View {
                             Button {
                                 metadataEditorBook = book
                             } label: {
-                                Label("Edit Metadata", systemImage: "pencil")
+                                Label(MangaLocalization.string("Edit Metadata"), systemImage: "pencil")
                             }
 
                             Button(role: .destructive) {
                                 bookToDelete = book
                                 showingDeleteConfirmation = true
                             } label: {
-                                Label("Delete", systemImage: "trash")
+                                Label(MangaLocalization.string("Delete"), systemImage: "trash")
                             }
                         }
                     } else {
@@ -342,7 +342,7 @@ struct MangaArchiveGridItem: View {
         if let title = book.title, !title.isEmpty {
             return title
         }
-        return String(localized: "Untitled")
+        return MangaLocalization.string("Untitled")
     }
 
     private var displayAuthor: String? {
@@ -354,7 +354,7 @@ struct MangaArchiveGridItem: View {
 
     private var displayProgress: String? {
         if book.lastReadPage > 1 {
-            return String(localized: "\(book.lastReadPage) / \(book.totalPages) Read")
+            return MangaLocalization.string("\(book.lastReadPage) / \(book.totalPages) Read")
         }
         return nil
     }
@@ -364,11 +364,11 @@ struct MangaArchiveGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            String(localized: "Importing...")
+            MangaLocalization.string("Importing...")
         case .failed:
-            book.importErrorMessage ?? String(localized: "Import failed.")
+            book.importErrorMessage ?? MangaLocalization.string("Import failed.")
         case .cancelled:
-            String(localized: "Import cancelled.")
+            MangaLocalization.string("Import cancelled.")
         }
     }
 
@@ -377,9 +377,9 @@ struct MangaArchiveGridItem: View {
         case .complete:
             nil
         case .inProgress:
-            String(localized: "Cancel")
+            MangaLocalization.string("Cancel")
         case .failed, .cancelled:
-            String(localized: "Remove")
+            MangaLocalization.string("Remove")
         }
     }
 
@@ -510,42 +510,42 @@ struct MangaMetadataEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Metadata") {
-                    LabeledContent("Title") {
+                Section(MangaLocalization.string("Metadata")) {
+                    LabeledContent(MangaLocalization.string("Title")) {
                         HStack(spacing: 8) {
-                            TextField("Title", text: $title)
+                            TextField(MangaLocalization.string("Title"), text: $title)
                                 .multilineTextAlignment(.trailing)
                             metadataBadge(isVisible: titleWasExtracted)
                         }
                     }
 
-                    LabeledContent("Author") {
+                    LabeledContent(MangaLocalization.string("Author")) {
                         HStack(spacing: 8) {
-                            TextField("Author", text: $author)
+                            TextField(MangaLocalization.string("Author"), text: $author)
                                 .multilineTextAlignment(.trailing)
                             metadataBadge(isVisible: authorWasExtracted)
                         }
                     }
                 }
 
-                Section("Original Filename") {
-                    Text(manga.originalFileName ?? String(localized: "Unknown Filename"))
+                Section(MangaLocalization.string("Original Filename")) {
+                    Text(manga.originalFileName ?? MangaLocalization.string("Unknown Filename"))
                         .foregroundStyle(.secondary)
                         .font(.footnote)
                         .textSelection(.enabled)
                 }
             }
-            .navigationTitle("Edit Metadata")
+            .navigationTitle(MangaLocalization.string("Edit Metadata"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") {
+                    Button(MangaLocalization.string("Cancel")) {
                         dismiss()
                     }
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(MangaLocalization.string("Save")) {
                         saveChanges()
                     }
                 }
@@ -560,8 +560,8 @@ struct MangaMetadataEditorView: View {
                     authorWasExtracted = false
                 }
             }
-            .alert("Unable to Save", isPresented: $showingSaveError) {
-                Button("OK") {
+            .alert(MangaLocalization.string("Unable to Save"), isPresented: $showingSaveError) {
+                Button(MangaLocalization.string("OK")) {
                     showingSaveError = false
                     saveError = nil
                 }
