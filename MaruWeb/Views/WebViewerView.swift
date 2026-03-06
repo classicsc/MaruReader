@@ -415,7 +415,11 @@ public struct WebViewerView: View {
             if viewModel.page?.isLoading == true {
                 Label("Stop Loading", systemImage: "xmark")
             } else {
-                Label("Reload", systemImage: "arrow.clockwise")
+                Label {
+                    Text(WebLocalization.string("Reload", comment: "A button label that reloads the current webpage."))
+                } icon: {
+                    Image(systemName: "arrow.clockwise")
+                }
             }
         }
     }
@@ -437,7 +441,7 @@ public struct WebViewerView: View {
             }
 
             if !viewModel.bookmarks.isEmpty {
-                Section("Saved Bookmarks") {
+                Section {
                     ForEach(viewModel.bookmarks, id: \.id) { bookmark in
                         Button {
                             viewModel.navigate(to: bookmark.url)
@@ -448,6 +452,8 @@ public struct WebViewerView: View {
                             }
                         }
                     }
+                } header: {
+                    Text(WebLocalization.string("Saved Bookmarks", comment: "A section header in the more actions overflow menu that lists saved bookmarks."))
                 }
             }
         } label: {
@@ -459,7 +465,11 @@ public struct WebViewerView: View {
         Button {
             dismiss()
         } label: {
-            Label("Exit Web Viewer", systemImage: "xmark")
+            Label {
+                Text(WebLocalization.string("Exit Web Viewer", comment: "A button that exits the web viewer."))
+            } icon: {
+                Image(systemName: "xmark")
+            }
         }
     }
 
@@ -703,7 +713,12 @@ private struct AddressBarCapsuleView: View {
                         .onTapGesture(perform: onBeginEditing)
                 }
 
-                TextField("Search or enter URL", text: $addressText, selection: $addressSelection)
+                TextField(
+                    "",
+                    text: $addressText,
+                    selection: $addressSelection,
+                    prompt: Text(WebLocalization.string("Search or enter URL", comment: "A placeholder text for a text field in a web address bar."))
+                )
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.go)
@@ -793,10 +808,12 @@ private struct TabSwitcherSheet: View {
                 }
                 .onMove(perform: onMove)
             }
-            .navigationTitle("Tabs")
+            .navigationTitle(WebLocalization.string("Tabs", comment: "The title of the sheet that lists browser tabs."))
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("New Tab", action: onAddTab)
+                    Button(action: onAddTab) {
+                        Text(WebLocalization.string("New Tab", comment: "A button that creates a new tab."))
+                    }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     EditButton()

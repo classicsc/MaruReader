@@ -33,7 +33,12 @@ struct WebAddressBar: View {
             Image(systemName: "globe")
                 .foregroundStyle(.secondary)
 
-            TextField("Search or enter URL", text: $text, selection: $selection)
+            TextField(
+                "",
+                text: $text,
+                selection: $selection,
+                prompt: Text(WebLocalization.string("Search or enter URL", comment: "A placeholder text for a text field in a web address bar."))
+            )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .submitLabel(.go)

@@ -29,8 +29,11 @@ public struct WebDataManagementView: View {
 
     public var body: some View {
         Form {
-            Section("Time Range") {
-                Picker("Time Range", selection: $selectedTimeRange) {
+            Section(WebLocalization.string("Time Range", comment: "A section that lets the user select the time range for which data will be cleared.")) {
+                Picker(
+                    WebLocalization.string("Time Range", comment: "A section that lets the user select the time range for which data will be cleared."),
+                    selection: $selectedTimeRange
+                ) {
                     ForEach(TimeRange.allCases) { range in
                         Text(range.label).tag(range)
                     }
@@ -39,18 +42,35 @@ public struct WebDataManagementView: View {
                 .labelsHidden()
             }
             Section(
-                header: Text("Data to Clear"),
-                footer: Text("Cookies and site data includes cookies, local storage, and databases.")
+                header: Text(WebLocalization.string("Data to Clear", comment: "A section header that lists the data that can be cleared.")),
+                footer: Text(
+                    WebLocalization.string(
+                        "Cookies and site data includes cookies, local storage, and databases.",
+                        comment: "A footer text under the section header of Data to Clear in the Website Data view, explaining that cookies, local storage, and databases are included in Cookies & Site Data."
+                    )
+                )
             ) {
-                Toggle("Cookies & Site Data", isOn: $clearCookiesAndSiteData)
-                Toggle("Cache", isOn: $clearCache)
+                Toggle(
+                    WebLocalization.string(
+                        "Cookies & Site Data",
+                        comment: "A toggle that allows the user to choose whether to clear cookies and site data."
+                    ),
+                    isOn: $clearCookiesAndSiteData
+                )
+                Toggle(
+                    WebLocalization.string(
+                        "Cache",
+                        comment: "A toggle that enables or disables the cache."
+                    ),
+                    isOn: $clearCache
+                )
             }
             Section {
                 Button(role: .destructive) {
                     showingConfirmation = true
                 } label: {
                     HStack {
-                        Text("Clear Web Data")
+                        Text(WebLocalization.string("Clear Web Data", comment: "A button label that clears web data."))
                         if isClearing {
                             Spacer()
                             ProgressView()
@@ -59,7 +79,7 @@ public struct WebDataManagementView: View {
                 }
                 .disabled(!clearCookiesAndSiteData && !clearCache || isClearing)
                 .confirmationDialog(
-                    "Clear Web Data",
+                    WebLocalization.string("Clear Web Data", comment: "A button label that clears web data."),
                     isPresented: $showingConfirmation,
                     titleVisibility: .visible
                 ) {
