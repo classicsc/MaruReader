@@ -26,6 +26,8 @@ just contentblocker # Build the content blocker extension
 just starterdict # Build the starter dict, only needed when preparing a release for distribution
 ```
 
+Avoid running these commands in parallel, it may cause build folder locking failures.
+
 `just build`/`just test` accept an optional device specifier as the last argument. Usually the default (iPhone 17 Pro simulator) is all you need. Accepted formats:
 
 - Simulator name: `'iPhone 17 Pro'`
