@@ -141,13 +141,13 @@ Accepted device specifier formats:
 When preparing a new release version, you should update the third-party license list:
 
 ```bash
-swift scripts/sync-third-party-licenses.swift
+just licenses
 ```
 
 To refresh snapshot files from their configured upstream sources before generating:
 
 ```bash
-swift scripts/sync-third-party-licenses.swift --refresh-snapshots
+just licenses-refresh
 ```
 
 #### Starter Dictionaries

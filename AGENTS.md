@@ -23,6 +23,8 @@ just test # Run all tests
 just test-plan MaruReaderCoreTests # Run a specific test plan
 just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests # Run a specific test
 just contentblocker # Build the content blocker extension
+just licenses # Sync the bundled third-party license list
+just licenses-refresh # Refresh upstream license snapshots, then sync the bundled third-party license list
 just starterdict # Build the starter dict, only needed when preparing a release for distribution
 ```
 
@@ -47,4 +49,3 @@ MaruReader targets iOS 26+, so newer APIs are available and do not require avail
 Liquid Glass is the iOS 26 systemwide theme and design language, which emphasizes the use of transparency and UI elements that morph, split, and merge like drops of water.
 
 Documentation search tools, if available in your environment, can help learning about these patterns, as well as anything else you want to reference from Apple's developer docs. In environments without dedicated Apple documentation functions, you can fetch documents in Markdown format by replacing the `developer.apple.com` in a URL with `sosumi.ai`.
-

@@ -31,3 +31,11 @@ starterdict:
 # builds the uBOL content blocker extension
 contentblocker:
   ./scripts/run-contentblocker.sh
+
+# syncs bundled third-party license documents and catalog
+licenses:
+  swift scripts/sync-third-party-licenses.swift
+
+# refreshes upstream license snapshots before syncing bundled third-party licenses
+licenses-refresh:
+  swift scripts/sync-third-party-licenses.swift --refresh-snapshots
