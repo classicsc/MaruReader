@@ -260,7 +260,7 @@ extension StructuredElement {
                 \(imageHTML)
                 <span class="gloss-image-container-overlay"></span>
             </span>
-            <span class="gloss-image-link-text">Image</span>
+            <span class="gloss-image-link-text">\(FrameworkLocalization.string("dictionary.image.link", defaultValue: "Image"))</span>
         </\(wrapperTag)>
         """
     }
@@ -528,7 +528,7 @@ extension StructuredElement {
         <img \(imageAttrString)>\
         <span class="gloss-image-container-overlay"></span>\
         </span>\
-        <span class="gloss-image-link-text">Image</span>\
+        <span class="gloss-image-link-text">\(FrameworkLocalization.string("dictionary.image.link", defaultValue: "Image"))</span>\
         </a>
         """
     }

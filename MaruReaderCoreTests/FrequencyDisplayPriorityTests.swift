@@ -186,4 +186,92 @@ struct FrequencyDisplayPriorityTests {
 
         #expect(highIndex < lowIndex)
     }
+
+    @Test func frequencyDisplayHTML_usesLocalizedFallbackModeWhenMetadataIsMissing() {
+        let candidate = LookupCandidate(from: "猫")
+
+        let frequency = FrequencyInfo(
+            dictionaryID: UUID(),
+            dictionaryTitle: "Fallback Dict",
+            value: 42,
+            displayValue: nil,
+            mode: nil,
+            priority: 0
+        )
+
+        let ranking = RankingCriteria(
+            sourceTermLength: 1,
+            textProcessingChainLength: 0,
+            inflectionChainLength: 0,
+            deinflectionChainCount: 0,
+            frequencyValue: nil,
+            frequencyMode: nil,
+            dictionaryPriority: 0,
+            termScore: 0,
+            dictionaryTitle: "Definitions",
+            definitionCount: 1,
+            term: "猫"
+        )
+
+        let result = SearchResult(
+            candidate: candidate,
+            term: "猫",
+            reading: "ねこ",
+            definitions: [.text("cat")],
+            frequency: nil,
+            frequencies: [frequency],
+            pitchAccents: [],
+            dictionaryTitle: "Definitions",
+            dictionaryUUID: UUID(),
+            displayPriority: 0,
+            rankingCriteria: ranking,
+            termTags: [],
+            definitionTags: [],
+            deinflectionRules: [],
+            sequence: 0,
+            score: 0
+        )
+
+        let dictionaryResults = DictionaryResults(
+            dictionaryTitle: "Definitions",
+            dictionaryUUID: result.dictionaryUUID,
+            sequence: 0,
+            score: 0,
+            results: [result]
+        )
+
+        let group = GroupedSearchResults(
+            termKey: "猫|ねこ",
+            expression: "猫",
+            reading: "ねこ",
+            dictionariesResults: [dictionaryResults],
+            pitchAccentResults: [],
+            termTags: [],
+            deinflectionInfo: nil
+        )
+
+        let renderer = DictionaryResultsHTMLRenderer(
+            styles: DisplayStyles(
+                fontFamily: "Test",
+                contentFontSize: 1,
+                popupFontSize: 1,
+                showDeinflection: false,
+                deinflectionDescriptionLanguage: "system",
+                pitchDownstepNotationInHeaderEnabled: false,
+                pitchResultsAreaCollapsedDisplay: false,
+                pitchResultsAreaDownstepNotationEnabled: false,
+                pitchResultsAreaDownstepPositionEnabled: false,
+                pitchResultsAreaEnabled: false
+            )
+        )
+
+        let html = renderer.termGroupHTML(group)
+        let fallbackMode = FrameworkLocalization.string(
+            "dictionary.frequency.mode.rankAuto",
+            defaultValue: "rank-based (auto)"
+        )
+
+        #expect(html.contains("title=\"Fallback Dict: \(fallbackMode)\""))
+        #expect(html.contains("Fallback Dict: 42"))
+    }
 }

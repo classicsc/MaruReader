@@ -129,7 +129,11 @@ extension Definition {
         case let .deinflection(uninflected, rules):
             let escapedUninflected = escapeHTML(uninflected)
             let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
-            return "<p class=\"gloss-deinflection\" data-uninflected=\"\(escapedUninflected)\" data-rules=\"\(escapedRules)\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
+            let summary = FrameworkLocalization.string(
+                "dictionary.deinflection.summary",
+                defaultValue: "Uninflected: \(escapedUninflected) (Rules: \(escapedRules))"
+            )
+            return "<p class=\"gloss-deinflection\" data-uninflected=\"\(escapedUninflected)\" data-rules=\"\(escapedRules)\">\(summary)</p>"
         }
     }
 
@@ -157,7 +161,11 @@ extension Definition {
         case let .deinflection(uninflected, rules):
             let escapedUninflected = escapeHTML(uninflected)
             let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
-            return "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">Uninflected: \(escapedUninflected) (Rules: \(escapedRules))</p>"
+            let summary = FrameworkLocalization.string(
+                "dictionary.deinflection.summary",
+                defaultValue: "Uninflected: \(escapedUninflected) (Rules: \(escapedRules))"
+            )
+            return "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">\(summary)</p>"
         }
     }
 

@@ -153,7 +153,7 @@ struct ImportProgressTests {
         let context = persistenceController.container.viewContext
         let dictionary = try? context.existingObject(with: importID) as? Dictionary
         #expect(dictionary?.isComplete == true)
-        #expect(dictionary?.displayProgressMessage == "Import complete.")
+        #expect(dictionary?.displayProgressMessage == FrameworkLocalization.string("Import complete."))
 
         let messages = collector.collectedMessages
         let bankProgressMessages = messages.filter { $0.contains("entries)") }

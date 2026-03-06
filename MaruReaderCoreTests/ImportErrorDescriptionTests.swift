@@ -25,7 +25,7 @@ struct ImportErrorDescriptionTests {
     @Test func dictionaryImportError_localizedDescription_isReadable() {
         let error: any Error = DictionaryImportError.invalidData
         #expect(!error.localizedDescription.contains("DictionaryImportError"))
-        #expect(error.localizedDescription == "The dictionary contains invalid data.")
+        #expect(error.localizedDescription == FrameworkLocalization.string("The dictionary contains invalid data."))
     }
 
     @Test func dictionaryImportError_allCases_haveReadableDescriptions() {
@@ -53,6 +53,6 @@ struct ImportErrorDescriptionTests {
     @Test func audioSourceImportError_localizedDescription_isReadable() {
         let error: any Error = AudioSourceImportError.invalidData
         #expect(!error.localizedDescription.contains("AudioSourceImportError"))
-        #expect(error.localizedDescription == "The audio source data is invalid.")
+        #expect(error.localizedDescription == FrameworkLocalization.string("The audio source data is invalid."))
     }
 }

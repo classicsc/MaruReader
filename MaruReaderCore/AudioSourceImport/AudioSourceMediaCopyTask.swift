@@ -64,7 +64,7 @@ struct AudioSourceMediaCopyTask {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
-            job.displayProgressMessage = "Copying audio files..."
+            job.displayProgressMessage = FrameworkLocalization.string("Copying audio files...")
             try context.save()
         }
 
@@ -151,7 +151,9 @@ struct AudioSourceMediaCopyTask {
         try Task.checkCancellation()
 
         let totalFilesCopied = filesCopied
-        let progressMessage = totalFilesCopied == 0 ? String(localized: "No media files to copy.") : String(localized: "Copied \(totalFilesCopied) audio files.")
+        let progressMessage = totalFilesCopied == 0
+            ? FrameworkLocalization.string("No media files to copy.")
+            : FrameworkLocalization.string("Copied \(totalFilesCopied) audio files.")
         try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound

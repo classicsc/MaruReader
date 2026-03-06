@@ -420,7 +420,7 @@ struct DictionaryPersistenceTests {
         #expect(importRecord != nil)
         #expect(importRecord?.isCancelled == false)
         #expect(importRecord?.isFailed == false)
-        #expect(importRecord?.displayProgressMessage == "Import complete.")
+        #expect(importRecord?.displayProgressMessage == FrameworkLocalization.string("Import complete."))
 
         // Assert: Data persisted
         let dictResults = fetchDictionaries(from: context)
@@ -695,7 +695,7 @@ struct DictionaryPersistenceTests {
         #expect(importRecord != nil)
         #expect(importRecord?.isCancelled == false)
         #expect(importRecord?.isFailed == false)
-        #expect(importRecord?.displayProgressMessage == "Import complete.")
+        #expect(importRecord?.displayProgressMessage == FrameworkLocalization.string("Import complete."))
 
         let dictionaryResults = fetchDictionaries(from: context)
         #expect(dictionaryResults.count == 1)

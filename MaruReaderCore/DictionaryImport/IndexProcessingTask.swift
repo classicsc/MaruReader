@@ -81,7 +81,7 @@ struct IndexProcessingTask {
             guard let jobURL = dictionary.file else {
                 throw DictionaryImportError.missingFile
             }
-            dictionary.displayProgressMessage = "Processing dictionary index..."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processing dictionary index...")
             try context.save()
             return jobURL
         }
@@ -200,7 +200,7 @@ struct IndexProcessingTask {
             }
 
             dictionary.indexProcessed = true
-            dictionary.displayProgressMessage = "Processed dictionary index."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processed dictionary index.")
 
             try context.save()
             return dictionaryID

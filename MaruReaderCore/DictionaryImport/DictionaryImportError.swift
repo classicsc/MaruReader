@@ -33,27 +33,27 @@ enum DictionaryImportError: Error, Equatable, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notADictionary:
-            String(localized: "The selected file is not a valid dictionary.")
+            FrameworkLocalization.string("The selected file is not a valid dictionary.")
         case .unsupportedFormat:
-            String(localized: "The dictionary format is unsupported.")
+            FrameworkLocalization.string("The dictionary format is unsupported.")
         case .importNotFound:
-            String(localized: "The import operation the component requested was not found.")
+            FrameworkLocalization.string("The import operation the component requested was not found.")
         case .dictionaryCreationFailed:
-            String(localized: "A database error occurred.")
+            FrameworkLocalization.string("A database error occurred.")
         case .invalidData:
-            String(localized: "The dictionary contains invalid data.")
+            FrameworkLocalization.string("The dictionary contains invalid data.")
         case .databaseError:
-            String(localized: "A database error occurred while importing the dictionary.")
+            FrameworkLocalization.string("A database error occurred while importing the dictionary.")
         case .fileAccessDenied:
-            String(localized: "Could not access the dictionary file.")
+            FrameworkLocalization.string("Could not access the dictionary file.")
         case .missingFile:
-            String(localized: "The dictionary file is missing.")
+            FrameworkLocalization.string("The dictionary file is missing.")
         case let .unzipFailed(underlyingError):
-            String(localized: "Failed to read the dictionary archive: \(underlyingError.localizedDescription)")
+            FrameworkLocalization.string("Failed to read the dictionary archive: \(underlyingError.localizedDescription)")
         case .deletionFailed:
-            String(localized: "Failed to delete the dictionary.")
+            FrameworkLocalization.string("Failed to delete the dictionary.")
         case .mediaDirectoryCreationFailed:
-            String(localized: "Failed to create media directory for the dictionary.")
+            FrameworkLocalization.string("Failed to create media directory for the dictionary.")
         }
     }
 

@@ -158,7 +158,7 @@ public actor DictionaryUpdateManager {
             task.dictionaryID = dictionaryUUID
             task.dictionaryTitle = dictionary.title ?? "Dictionary"
             task.downloadURL = downloadURL
-            task.displayProgressMessage = String(localized: "Queued for update.")
+            task.displayProgressMessage = FrameworkLocalization.string("Queued for update.")
             task.isComplete = false
             task.isFailed = false
             task.isCancelled = false
@@ -263,7 +263,7 @@ public actor DictionaryUpdateManager {
                 task.isFailed = false
                 task.isCancelled = false
                 task.timeStarted = Date()
-                task.displayProgressMessage = String(localized: "Preparing update...")
+                task.displayProgressMessage = FrameworkLocalization.string("Preparing update...")
                 let existingFile = task.downloadedFile
                 try context.save()
 
@@ -291,7 +291,7 @@ public actor DictionaryUpdateManager {
                 }
                 await context.perform {
                     if let task = try? context.existingObject(with: taskID) as? DictionaryUpdateTask {
-                        task.displayProgressMessage = String(localized: "Downloading update...")
+                        task.displayProgressMessage = FrameworkLocalization.string("Downloading update...")
                         task.bytesReceived = 0
                         task.totalBytes = 0
                         try? context.save()
@@ -309,7 +309,7 @@ public actor DictionaryUpdateManager {
                         task.bytesReceived = Int64(data.count)
                         task.totalBytes = expectedBytes
                         task.downloadedFile = destination
-                        task.displayProgressMessage = String(localized: "Downloaded update.")
+                        task.displayProgressMessage = FrameworkLocalization.string("Downloaded update.")
                         try? context.save()
                     }
                 }
@@ -321,7 +321,7 @@ public actor DictionaryUpdateManager {
 
         await context.perform {
             if let task = try? context.existingObject(with: taskID) as? DictionaryUpdateTask {
-                task.displayProgressMessage = String(localized: "Importing update...")
+                task.displayProgressMessage = FrameworkLocalization.string("Importing update...")
                 try? context.save()
             }
         }
@@ -352,7 +352,7 @@ public actor DictionaryUpdateManager {
                 if let task = try? context.existingObject(with: taskID) as? DictionaryUpdateTask {
                     task.isComplete = true
                     task.timeCompleted = Date()
-                    task.displayProgressMessage = String(localized: "Update complete.")
+                    task.displayProgressMessage = FrameworkLocalization.string("Update complete.")
                     try? context.save()
                 }
             }
@@ -375,7 +375,7 @@ public actor DictionaryUpdateManager {
                 task.isCancelled = false
                 task.timeFailed = Date()
                 task.errorMessage = error.localizedDescription
-                task.displayProgressMessage = String(localized: "Update failed.")
+                task.displayProgressMessage = FrameworkLocalization.string("Update failed.")
             }
             let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
             request.predicate = NSPredicate(format: "id == %@", dictionaryID as CVarArg)

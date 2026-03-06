@@ -901,7 +901,8 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<img class=\"gloss-image\""))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
-        #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
+        let imageLabel = FrameworkLocalization.string("dictionary.image.link", defaultValue: "Image")
+        #expect(html.contains("<span class=\"gloss-image-link-text\">\(imageLabel)</span>"))
         // Note: StructuredElement doesn't handle descriptions - that's Definition's responsibility
 
         #expect(html.contains("</span>")) // Container close
@@ -1217,7 +1218,8 @@ struct DictionaryContentMarkupTests {
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<img class=\"gloss-image\""))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
-        #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
+        let imageLabel = FrameworkLocalization.string("dictionary.image.link", defaultValue: "Image")
+        #expect(html.contains("<span class=\"gloss-image-link-text\">\(imageLabel)</span>"))
         #expect(html.contains("</a>"))
 
         // Data attributes for CSS styling

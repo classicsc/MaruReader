@@ -304,14 +304,17 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         // Full: expandable with all frequency details
         let freqItemsHTML = sortedFrequencies.map { freq in
             let itemTitle = freq.dictionaryTitle.escapeHTML()
-            let itemMode = freq.mode ?? "rank-based (auto)"
+            let itemMode = freq.mode ?? FrameworkLocalization.string(
+                "dictionary.frequency.mode.rankAuto",
+                defaultValue: "rank-based (auto)"
+            )
             let itemTitleWithMode = itemTitle + ": \(itemMode.escapeHTML())"
             return "<span class=\"freq-item\" title=\"\(itemTitleWithMode)\">\(itemTitle): \(freq.displayString.escapeHTML())</span>"
         }.joined(separator: "<span class=\"freq-separator\">·</span>")
 
         return """
         <div class=\"frequency-display\">
-            <button type=\"button\" class=\"freq-button\" title=\"\(buttonTitle)\" aria-expanded=\"false\" aria-label=\"\(String(localized: "dictionary.frequencyDetails.show", bundle: .framework))\">\(displayValue)</button>
+            <button type=\"button\" class=\"freq-button\" title=\"\(buttonTitle)\" aria-expanded=\"false\" aria-label=\"\(FrameworkLocalization.string("dictionary.frequencyDetails.show"))\">\(displayValue)</button>
             <div class=\"freq-expanded\">
                 \(freqItemsHTML)
             </div>
@@ -462,7 +465,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
             "data-audio-reading=\"\(readingEscaped)\"",
             "data-state=\"disabled\"",
             "aria-disabled=\"true\"",
-            "aria-label=\"\(String(localized: "dictionary.audio.play", bundle: .framework))\"",
+            "aria-label=\"\(FrameworkLocalization.string("dictionary.audio.play"))\"",
         ]
 
         if let pitchPosition {
@@ -487,7 +490,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         let reading = (termGroup.reading ?? "").escapeHTML()
 
         return """
-        <button type=\"button\" class=\"anki-button\" data-term-key=\"\(termKey)\" data-expression=\"\(expression)\" data-reading=\"\(reading)\" data-state=\"disabled\" aria-disabled=\"true\" aria-label=\"\(String(localized: "dictionary.anki.add", bundle: .framework))\" hidden></button>
+        <button type=\"button\" class=\"anki-button\" data-term-key=\"\(termKey)\" data-expression=\"\(expression)\" data-reading=\"\(reading)\" data-state=\"disabled\" aria-disabled=\"true\" aria-label=\"\(FrameworkLocalization.string("dictionary.anki.add"))\" hidden></button>
         """
     }
 
@@ -602,10 +605,10 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
 
         if !compactOnly {
             html += "<div class=\"pitch-results-header\">"
-            html += "<span class=\"pitch-results-label\">\(String(localized: "dictionary.pitch.label", bundle: .framework))</span>"
+            html += "<span class=\"pitch-results-label\">\(FrameworkLocalization.string("dictionary.pitch.label"))</span>"
             if showToggle {
                 html += """
-                <button type=\"button\" class=\"pitch-toggle\" data-expanded=\"false\" aria-label=\"\(String(localized: "dictionary.pitchResults.showMore", bundle: .framework))\">+</button>
+                <button type=\"button\" class=\"pitch-toggle\" data-expanded=\"false\" aria-label=\"\(FrameworkLocalization.string("dictionary.pitchResults.showMore"))\">+</button>
                 """
             }
             html += "</div>"

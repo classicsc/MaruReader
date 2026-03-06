@@ -74,7 +74,7 @@ struct DataBankProcessingTask {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            dictionary.displayProgressMessage = "Processing dictionary data..."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processing dictionary data...")
             try context.save()
         }
 
@@ -85,7 +85,7 @@ struct DataBankProcessingTask {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            dictionary.displayProgressMessage = "Processed data."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processed data.")
             dictionary.banksProcessed = true
             try context.save()
         }
@@ -360,7 +360,7 @@ struct DataBankProcessingTask {
         let jobID = self.jobID
         await context.perform {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else { return }
-            dictionary.displayProgressMessage = String(localized: "Processing dictionary data… (\(count.formatted()) entries)")
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processing dictionary data… (\(count.formatted()) entries)")
             try? context.save()
         }
     }

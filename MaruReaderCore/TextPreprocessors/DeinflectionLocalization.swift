@@ -54,7 +54,7 @@ public enum DeinflectionLanguage: String, CaseIterable, Sendable, Codable {
     /// User-facing display name for the settings picker.
     public var displayLabel: String {
         switch self {
-        case .followSystem: String(localized: "Follow System Language", bundle: .framework)
+        case .followSystem: FrameworkLocalization.string("Follow System Language")
         case .en: "English"
         case .ja: "日本語"
         case .zhHant: "繁體中文"

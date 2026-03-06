@@ -23,16 +23,16 @@ import WebKit
 @MainActor
 public func makeDictionaryLocalizedStringsScript() -> WKUserScript {
     let strings: [String: String] = [
-        "loadingResults": String(localized: "dictionary.status.loading", bundle: .framework),
-        "noResultsFound": String(localized: "dictionary.status.empty", bundle: .framework),
-        "unableToLoadResults": String(localized: "dictionary.status.error", bundle: .framework),
-        "showFrequencyDetails": String(localized: "dictionary.frequencyDetails.show", bundle: .framework),
-        "hideFrequencyDetails": String(localized: "dictionary.frequencyDetails.hide", bundle: .framework),
-        "showMorePitchResults": String(localized: "dictionary.pitchResults.showMore", bundle: .framework),
-        "showFewerPitchResults": String(localized: "dictionary.pitchResults.showFewer", bundle: .framework),
-        "playAudio": String(localized: "dictionary.audio.play", bundle: .framework),
-        "addToAnki": String(localized: "dictionary.anki.add", bundle: .framework),
-        "pitchLabel": String(localized: "dictionary.pitch.label", bundle: .framework),
+        "loadingResults": FrameworkLocalization.string("dictionary.status.loading"),
+        "noResultsFound": FrameworkLocalization.string("dictionary.status.empty"),
+        "unableToLoadResults": FrameworkLocalization.string("dictionary.status.error"),
+        "showFrequencyDetails": FrameworkLocalization.string("dictionary.frequencyDetails.show"),
+        "hideFrequencyDetails": FrameworkLocalization.string("dictionary.frequencyDetails.hide"),
+        "showMorePitchResults": FrameworkLocalization.string("dictionary.pitchResults.showMore"),
+        "showFewerPitchResults": FrameworkLocalization.string("dictionary.pitchResults.showFewer"),
+        "playAudio": FrameworkLocalization.string("dictionary.audio.play"),
+        "addToAnki": FrameworkLocalization.string("dictionary.anki.add"),
+        "pitchLabel": FrameworkLocalization.string("dictionary.pitch.label"),
     ]
     // swiftlint:disable:next force_try
     let json = String(data: try! JSONSerialization.data(withJSONObject: strings), encoding: .utf8)!

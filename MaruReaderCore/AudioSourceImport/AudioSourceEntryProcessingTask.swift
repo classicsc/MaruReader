@@ -49,7 +49,7 @@ struct AudioSourceEntryProcessingTask {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
-            job.displayProgressMessage = "Processing audio entries..."
+            job.displayProgressMessage = FrameworkLocalization.string("Processing audio entries...")
             try context.save()
         }
 
@@ -72,7 +72,7 @@ struct AudioSourceEntryProcessingTask {
                 throw AudioSourceImportError.importNotFound
             }
             job.entriesProcessed = true
-            job.displayProgressMessage = String(localized: "Processed \(headwordCount) headwords and \(fileCount) audio files.")
+            job.displayProgressMessage = FrameworkLocalization.string("Processed \(headwordCount) headwords and \(fileCount) audio files.")
             try context.save()
         }
     }

@@ -106,7 +106,8 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<span class=\"gloss-image-background\"></span>"))
         #expect(html.contains("<span class=\"gloss-image-container-overlay\"></span>"))
         #expect(html.contains("<img class=\"gloss-image\" src=\"file:///dictionary/images/example.png\" style=\"width: 100%; height: 100%\" width=\"120\" height=\"80\" alt=\"An example image\" />"))
-        #expect(html.contains("<span class=\"gloss-image-link-text\">Image</span>"))
+        let imageLabel = FrameworkLocalization.string("dictionary.image.link", defaultValue: "Image")
+        #expect(html.contains("<span class=\"gloss-image-link-text\">\(imageLabel)</span>"))
         #expect(html.contains("</div>"))
         #expect(!html.contains("style=\"border:"))
         #expect(html.contains("style=\"width: 120em\""))
@@ -152,7 +153,23 @@ struct DefinitionHTMLGenerationTests {
 
         let html = definition.toHTML()
 
-        #expect(html == "<p class=\"gloss-deinflection\" data-uninflected=\"食べる\" data-rules=\"past, polite\">Uninflected: 食べる (Rules: past, polite)</p>")
+        let summary = FrameworkLocalization.string(
+            "dictionary.deinflection.summary",
+            defaultValue: "Uninflected: \("食べる") (Rules: \("past, polite"))"
+        )
+        #expect(html == "<p class=\"gloss-deinflection\" data-uninflected=\"食べる\" data-rules=\"past, polite\">\(summary)</p>")
+    }
+
+    @Test func deinflectionDefinition_toAnkiHTML_usesLocalizedSummary() {
+        let definition = Definition.deinflection(uninflected: "食べる", rules: ["past", "polite"])
+
+        let html = definition.toAnkiHTML()
+        let summary = FrameworkLocalization.string(
+            "dictionary.deinflection.summary",
+            defaultValue: "Uninflected: \("食べる") (Rules: \("past, polite"))"
+        )
+
+        #expect(html == "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">\(summary)</p>")
     }
 
     @Test func arrayOfDefinitions_toHTML_wrapsInGlossaryList() {

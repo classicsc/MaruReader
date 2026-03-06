@@ -255,7 +255,7 @@ struct AudioSourceImportManagerTests {
         #expect(job?.isCancelled == false)
         #expect(job?.isFailed == false)
         #expect(job?.isComplete == true)
-        #expect(job?.displayProgressMessage == "Import complete.")
+        #expect(job?.displayProgressMessage == FrameworkLocalization.string("Import complete."))
 
         // Verify AudioSource entity
         let sources = fetchAudioSources(from: context)

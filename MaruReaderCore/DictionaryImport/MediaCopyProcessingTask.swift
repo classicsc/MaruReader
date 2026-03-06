@@ -55,7 +55,7 @@ struct MediaCopyProcessingTask {
             }
 
             // Update progress message
-            dictionary.displayProgressMessage = "Copying media files..."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Copying media files...")
             try context.save()
 
             return dictionaryID
@@ -126,7 +126,7 @@ struct MediaCopyProcessingTask {
                     guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                         throw DictionaryImportError.databaseError
                     }
-                    dictionary.displayProgressMessage = String(localized: "Copying media files… (\(currentCount.formatted()) of \(totalMediaFiles.formatted()))")
+                    dictionary.displayProgressMessage = FrameworkLocalization.string("Copying media files… (\(currentCount.formatted()) of \(totalMediaFiles.formatted()))")
                     try context.save()
                 }
             }
@@ -140,7 +140,7 @@ struct MediaCopyProcessingTask {
                 throw DictionaryImportError.databaseError
             }
             dictionary.mediaImported = true
-            dictionary.displayProgressMessage = "Copied media files."
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Copied media files.")
             try context.save()
         }
     }

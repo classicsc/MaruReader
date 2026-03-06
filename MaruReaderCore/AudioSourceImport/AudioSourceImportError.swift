@@ -45,27 +45,27 @@ public enum AudioSourceImportError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .notAnAudioSource:
-            String(localized: "The archive does not contain a valid audio source index.")
+            FrameworkLocalization.string("The archive does not contain a valid audio source index.")
         case .invalidFormat:
-            String(localized: "The audio source index has an invalid format.")
+            FrameworkLocalization.string("The audio source index has an invalid format.")
         case .importNotFound:
-            String(localized: "The import job was not found.")
+            FrameworkLocalization.string("The import job was not found.")
         case .sourceCreationFailed:
-            String(localized: "Failed to create the audio source.")
+            FrameworkLocalization.string("Failed to create the audio source.")
         case .invalidData:
-            String(localized: "The audio source data is invalid.")
+            FrameworkLocalization.string("The audio source data is invalid.")
         case .databaseError:
-            String(localized: "A database error occurred.")
+            FrameworkLocalization.string("A database error occurred.")
         case .fileAccessDenied:
-            String(localized: "Unable to access the source file.")
+            FrameworkLocalization.string("Unable to access the source file.")
         case .missingFile:
-            String(localized: "A required file is missing.")
+            FrameworkLocalization.string("A required file is missing.")
         case let .unzipFailed(error):
-            String(localized: "Failed to read archive: \(error.localizedDescription)")
+            FrameworkLocalization.string("Failed to read archive: \(error.localizedDescription)")
         case .deletionFailed:
-            String(localized: "Failed to delete the audio source.")
+            FrameworkLocalization.string("Failed to delete the audio source.")
         case .mediaDirectoryCreationFailed:
-            String(localized: "Failed to create the audio media directory.")
+            FrameworkLocalization.string("Failed to create the audio media directory.")
         }
     }
 }

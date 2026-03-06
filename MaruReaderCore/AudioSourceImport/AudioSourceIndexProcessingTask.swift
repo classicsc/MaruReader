@@ -57,7 +57,7 @@ struct AudioSourceIndexProcessingTask {
                 throw AudioSourceImportError.missingFile
             }
 
-            job.displayProgressMessage = "Processing audio source index..."
+            job.displayProgressMessage = FrameworkLocalization.string("Processing audio source index...")
             try context.save()
             return jobURL
         }
@@ -134,7 +134,7 @@ struct AudioSourceIndexProcessingTask {
             job.enabled = true
             job.audioFileExtensions = fileExtensions.joined(separator: ",")
             job.indexProcessed = true
-            job.displayProgressMessage = "Processed audio source index."
+            job.displayProgressMessage = FrameworkLocalization.string("Processed audio source index.")
 
             try context.save()
             guard let id = job.id else {
