@@ -19,10 +19,12 @@ import SwiftUI
 
 /// Welcome screen shown on first launch while the dictionary is being set up.
 struct WelcomeView: View {
-    let isSeedingComplete: Bool
+    let phaseDescription: String
+    let errorMessage: String?
+    let canContinue: Bool
+    let isPreparing: Bool
+    let onRetry: () -> Void
     let onContinue: () -> Void
-
-    @State private var isPreparingDictionary = false
 
     var body: some View {
         VStack(spacing: 32) {
@@ -73,38 +75,49 @@ struct WelcomeView: View {
 
             Spacer()
 
-            Button(action: handleContinue) {
+            VStack(spacing: 16) {
                 Group {
-                    if isPreparingDictionary {
-                        HStack(spacing: 12) {
-                            ProgressView()
-                            Text("Preparing dictionary...")
+                    if let errorMessage {
+                        VStack(spacing: 12) {
+                            Text(errorMessage)
+                                .font(.subheadline)
+                                .foregroundStyle(.red)
+                                .multilineTextAlignment(.center)
+
+                            Button("Retry", action: onRetry)
+                                .font(.headline)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .buttonStyle(.bordered)
                         }
                     } else {
-                        Text("Continue")
+                        HStack(spacing: 12) {
+                            if isPreparing {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            }
+                            Text(phaseDescription)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
-                .font(.headline)
-                .frame(maxWidth: .infinity)
-                .padding()
-                .contentTransition(.opacity)
+
+                Button(action: onContinue) {
+                    Group {
+                        Text("Continue")
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(!canContinue)
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(isPreparingDictionary)
             .padding(.horizontal, 32)
         }
-    }
-
-    private func handleContinue() {
-        if isSeedingComplete {
-            onContinue()
-            return
-        }
-
-        withAnimation(.easeInOut) {
-            isPreparingDictionary = true
-        }
-        onContinue()
     }
 }
 

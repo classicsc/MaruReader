@@ -18,6 +18,7 @@
         <attribute name="readingDirection" optional="YES" attributeType="String"/>
         <attribute name="readingMode" optional="YES" attributeType="String"/>
         <attribute name="readingOrientation" optional="YES" attributeType="String"/>
+        <attribute name="sampleContentID" optional="YES" attributeType="String"/>
         <attribute name="title" attributeType="String" defaultValueString="Unknown"/>
         <attribute name="titleWasExtracted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="totalPages" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>

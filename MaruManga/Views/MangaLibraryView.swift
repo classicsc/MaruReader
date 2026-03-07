@@ -353,10 +353,10 @@ struct MangaArchiveGridItem: View {
     }
 
     private var displayProgress: String? {
-        if book.lastReadPage > 1 {
-            return MangaLocalization.string("\(book.lastReadPage) / \(book.totalPages) Read")
-        }
-        return nil
+        MangaLibraryProgressFormatter.displayProgress(
+            lastReadPage: book.lastReadPage,
+            totalPages: book.totalPages
+        )
     }
 
     private var statusMessage: String? {

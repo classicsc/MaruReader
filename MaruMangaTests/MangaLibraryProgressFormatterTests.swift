@@ -1,4 +1,4 @@
-// AudioSourceType.swift
+// MangaLibraryProgressFormatterTests.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -15,13 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
+@testable import MaruManga
+import Testing
 
-enum AudioSourceType {
-    /// URL pattern that returns audio file directly
-    case urlPattern(String)
-    /// URL pattern that returns a JSON audio source list
-    case jsonListPattern(String)
-    /// Indexed source with local or remote audio files
-    case indexed(UUID)
+struct MangaLibraryProgressFormatterTests {
+    @Test func displayProgress_UsesHumanReadablePageNumbers() {
+        #expect(MangaLibraryProgressFormatter.displayProgress(lastReadPage: 0, totalPages: 5) == nil)
+        #expect(MangaLibraryProgressFormatter.displayProgress(lastReadPage: 1, totalPages: 5) == "2 / 5 Read")
+        #expect(MangaLibraryProgressFormatter.displayProgress(lastReadPage: 4, totalPages: 5) == "5 / 5 Read")
+    }
 }

@@ -21,6 +21,7 @@
         <attribute name="originalFileName" optional="YES" attributeType="String"/>
         <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="progressPercent" optional="YES" attributeType="String"/>
+        <attribute name="sampleContentID" optional="YES" attributeType="String"/>
         <attribute name="scroll" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="spread" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <attribute name="textDirection" optional="YES" attributeType="Transformable" valueTransformerName="ReadingProgressionTransformer"/>

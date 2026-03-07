@@ -23,12 +23,11 @@ import SwiftUI
 
 @main
 struct MaruReaderApp: App {
-    @StateObject private var dictionarySeedingState: DictionarySeedingState
+    @State private var startupPreparationCoordinator: StartupPreparationCoordinator
     @State private var didContinueFromWelcome = false
 
     init() {
-        let dictionarySeedingState = DictionarySeedingState()
-        _dictionarySeedingState = StateObject(wrappedValue: dictionarySeedingState)
+        _startupPreparationCoordinator = State(initialValue: StartupPreparationCoordinator())
 
         Task { @MainActor in
             let returnURL = URL(string: "marureader://anki/x-success")
@@ -36,24 +35,6 @@ struct MaruReaderApp: App {
                 opener: UIApplicationURLOpener(),
                 returnURL: returnURL
             )
-        }
-
-        Task {
-            await dictionarySeedingState.waitUntilSeedingComplete()
-            await DictionaryUpdateManager.shared.setAnkiPreferencesUpdater(DictionaryUpdateAnkiPreferencesUpdater())
-        }
-
-        Task {
-            await dictionarySeedingState.waitUntilSeedingComplete()
-            await BookImportManager.shared.cleanupInterruptedImports()
-            await DictionaryImportManager.shared.cleanupInterruptedImports()
-            await AudioSourceImportManager.shared.cleanupInterruptedImports()
-            await MangaImportManager.shared.cleanupInterruptedImports()
-            await BookImportManager.shared.cleanupPendingDeletions()
-            await DictionaryImportManager.shared.cleanupPendingDeletions()
-            await AudioSourceImportManager.shared.cleanupPendingDeletions()
-            await MangaImportManager.shared.cleanupPendingDeletions()
-            await DictionaryUpdateManager.shared.resumePendingUpdates()
         }
     }
 
@@ -63,7 +44,11 @@ struct MaruReaderApp: App {
                 ContentView()
             } else {
                 WelcomeView(
-                    isSeedingComplete: dictionarySeedingState.isSeedingComplete,
+                    phaseDescription: startupPreparationCoordinator.phaseDescription,
+                    errorMessage: startupPreparationCoordinator.errorMessage,
+                    canContinue: startupPreparationCoordinator.canContinue,
+                    isPreparing: !startupPreparationCoordinator.isPreparationComplete && startupPreparationCoordinator.errorMessage == nil,
+                    onRetry: { startupPreparationCoordinator.retry() },
                     onContinue: { didContinueFromWelcome = true }
                 )
             }
@@ -71,47 +56,9 @@ struct MaruReaderApp: App {
     }
 
     private var shouldShowContentView: Bool {
-        if !dictionarySeedingState.needsSeeding {
+        if !startupPreparationCoordinator.requiresWelcomeScreen {
             return true
         }
-        return didContinueFromWelcome && dictionarySeedingState.isSeedingComplete
-    }
-}
-
-@MainActor
-private final class DictionarySeedingState: ObservableObject {
-    @Published private(set) var needsSeeding: Bool
-    @Published private(set) var isSeedingComplete: Bool
-
-    private let baseDirectory: URL?
-    private let seedingTask: Task<Void, Never>?
-
-    init() {
-        baseDirectory = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-        )
-
-        let needsSeeding = DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory)
-        self.needsSeeding = needsSeeding
-        isSeedingComplete = !needsSeeding
-
-        if needsSeeding {
-            seedingTask = Task { [baseDirectory] in
-                await DictionaryPersistenceController.seedBundledDatabaseIfNeeded(to: baseDirectory)
-            }
-        } else {
-            seedingTask = nil
-        }
-
-        if let seedingTask {
-            Task { @MainActor in
-                await seedingTask.value
-                isSeedingComplete = true
-            }
-        }
-    }
-
-    func waitUntilSeedingComplete() async {
-        await seedingTask?.value
+        return didContinueFromWelcome && startupPreparationCoordinator.isPreparationComplete
     }
 }

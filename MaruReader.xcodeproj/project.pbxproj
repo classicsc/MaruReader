@@ -908,6 +908,7 @@
 				DB2B69882E660F8B00EDA656 /* Sources */,
 				DB2B69892E660F8B00EDA656 /* Frameworks */,
 				DB2B698A2E660F8B00EDA656 /* Resources */,
+				DBA1B0012F5A0A0100A1B001 /* Copy Debug Sample Content */,
 				DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */,
 				DB6FDFC82EAB54C6005DF219 /* Embed Foundation Extensions */,
 			);
@@ -1560,6 +1561,30 @@
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		DBA1B0012F5A0A0100A1B001 /* Copy Debug Sample Content */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/copy-debug-sample-content.sh",
+				"$(SRCROOT)/MaruReader/SampleContent",
+			);
+			name = "Copy Debug Sample Content";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/SampleContent",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-debug-sample-content.sh\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		228BCC322F29D2A9003C173D /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -2043,7 +2068,7 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -2112,7 +2137,7 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;

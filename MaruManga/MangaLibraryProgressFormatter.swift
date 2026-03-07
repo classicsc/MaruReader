@@ -1,4 +1,4 @@
-// AudioSourceType.swift
+// MangaLibraryProgressFormatter.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -17,11 +17,13 @@
 
 import Foundation
 
-enum AudioSourceType {
-    /// URL pattern that returns audio file directly
-    case urlPattern(String)
-    /// URL pattern that returns a JSON audio source list
-    case jsonListPattern(String)
-    /// Indexed source with local or remote audio files
-    case indexed(UUID)
+enum MangaLibraryProgressFormatter {
+    static func displayProgress(lastReadPage: Int64, totalPages: Int64) -> String? {
+        guard lastReadPage > 0, totalPages > 0 else {
+            return nil
+        }
+
+        let displayPage = lastReadPage + 1
+        return MangaLocalization.string("\(displayPage) / \(totalPages) Read")
+    }
 }
