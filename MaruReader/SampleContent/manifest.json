@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "books": [
+    {
+      "id": "aruyono-hoshitachino-hanashi",
+      "file": "Books/aruyono_hoshitachino_hanashi.epub",
+      "progress": {}
+    },
+    {
+      "id": "chumonno-oi-ryoriten",
+      "file": "Books/chumonno_oi_ryoriten.epub",
+      "progress": {}
+    },
+    {
+      "id": "gingatetsudono-yoru",
+      "file": "Books/gingatetsudono_yoru.epub",
+      "progress": {}
+    },
+    {
+      "id": "kokoro",
+      "file": "Books/kokoro.epub",
+      "progress": {}
+    }
+  ],
+  "manga": [
+    {
+      "id": "black-jack-ni-yoroshiku-01",
+      "file": "Manga/ブラックジャックによろしく 01 - 佐藤秀峰.zip",
+      "progress": {
+        "page": 8
+      }
+    },
+    {
+      "id": "black-jack-ni-yoroshiku-02",
+      "file": "Manga/ブラックジャックによろしく 02 - 佐藤秀峰.zip",
+      "progress": {}
+    },
+    {
+      "id": "black-jack-ni-yoroshiku-03",
+      "file": "Manga/ブラックジャックによろしく 03 - 佐藤秀峰.zip",
+      "progress": {}
+    },
+    {
+      "id": "black-jack-ni-yoroshiku-04",
+      "file": "Manga/ブラックジャックによろしく 04 - 佐藤秀峰.zip",
+      "progress": {}
+    },
+    {
+      "id": "black-jack-ni-yoroshiku-05",
+      "file": "Manga/ブラックジャックによろしく 05 - 佐藤秀峰.zip",
+      "progress": {}
+    }
+  ]
+}

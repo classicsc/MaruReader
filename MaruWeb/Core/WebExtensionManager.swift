@@ -48,6 +48,8 @@ final class WebExtensionManager {
         if let loadTask {
             return await loadTask.value
         }
+
+        // swiftformat:disable:next redundantParens
         let task = Task { @MainActor () -> WKWebExtensionController? in
             let controller = WKWebExtensionController()
             guard let context = await Self.loadContentBlockerExtension() else {

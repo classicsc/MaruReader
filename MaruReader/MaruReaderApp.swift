@@ -17,16 +17,27 @@
 
 import Foundation
 import MaruAnki
+import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
 import SwiftUI
 
 @main
 struct MaruReaderApp: App {
+    static let isScreenshotMode = ProcessInfo.processInfo.arguments.contains("--screenshotMode")
+
     @State private var startupPreparationCoordinator: StartupPreparationCoordinator
     @State private var didContinueFromWelcome = false
 
     init() {
+        if Self.isScreenshotMode {
+            TourManager.resetAllTours()
+            // Pre-mark all tours as completed so they don't appear.
+            for tourID in ["bookReader", "mangaReader", "webViewerToolbar"] {
+                UserDefaults.standard.set(Date(), forKey: "tour.\(tourID).completed")
+            }
+        }
+
         _startupPreparationCoordinator = State(initialValue: StartupPreparationCoordinator())
 
         Task { @MainActor in
@@ -51,6 +62,11 @@ struct MaruReaderApp: App {
                     onRetry: { startupPreparationCoordinator.retry() },
                     onContinue: { didContinueFromWelcome = true }
                 )
+                .onChange(of: startupPreparationCoordinator.isPreparationComplete) { _, isComplete in
+                    if Self.isScreenshotMode, isComplete {
+                        didContinueFromWelcome = true
+                    }
+                }
             }
         }
     }

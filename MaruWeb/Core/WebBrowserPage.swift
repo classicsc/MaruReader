@@ -91,6 +91,10 @@ final class WebBrowserPage {
         webView.load(request)
     }
 
+    func loadHTML(_ html: String, baseURL: URL? = nil) {
+        webView.loadHTMLString(html, baseURL: baseURL)
+    }
+
     func goBack() {
         webView.goBack()
     }

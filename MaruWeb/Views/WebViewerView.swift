@@ -68,6 +68,9 @@ public struct WebViewerView: View {
         .animation(.easeInOut(duration: 0.25), value: isEditingAddress)
         .task {
             await viewModel.prepareSessionIfNeeded()
+            guard WebViewerViewModel.isScreenshotMode else { return }
+            try? await Task.sleep(for: .seconds(5))
+            viewModel.triggerScreenshotDictionaryLookup()
         }
         .onChange(of: viewModel.page?.url) { _, newValue in
             if !isEditingAddress {
@@ -135,6 +138,7 @@ public struct WebViewerView: View {
                 )
             }
             .presentationDetents([.medium, .large])
+            .accessibilityIdentifier("web.dictionarySheet")
         }
         .sheet(
             item: Binding(
@@ -163,6 +167,7 @@ public struct WebViewerView: View {
                 )
             }
             .presentationDetents([.medium, .large])
+            .accessibilityIdentifier("web.editMenuDictionarySheet")
         }
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)

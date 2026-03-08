@@ -29,6 +29,7 @@ final class MangaReaderViewModel {
     // MARK: - Configuration
 
     private static let saveDebounceInterval: UInt64 = 500_000_000 // 0.5 seconds
+    nonisolated static let screenshotLookupPreferredPrefix = "教授の実験"
 
     // MARK: - Navigation State
 
@@ -318,6 +319,27 @@ final class MangaReaderViewModel {
     func clearPendingSearch() {
         pendingSearchText = nil
         pendingContextValues = nil
+    }
+
+    /// Triggers a dictionary lookup for the preferred OCR cluster on the current page.
+    /// Used in screenshot mode to programmatically stage dictionary results.
+    func triggerScreenshotClusterLookup() {
+        guard let pageData = pageDataCache[currentPageIndex],
+              let clusterIndex = Self.screenshotLookupClusterIndex(
+                  in: pageData.textClusters.map(\.transcript)
+              )
+        else { return }
+        handleClusterTap(pageData.textClusters[clusterIndex], pageIndex: currentPageIndex)
+    }
+
+    nonisolated static func screenshotLookupClusterIndex(
+        in transcripts: [String],
+        preferredPrefix: String = screenshotLookupPreferredPrefix
+    ) -> Int? {
+        if let preferredIndex = transcripts.firstIndex(where: { $0.hasPrefix(preferredPrefix) }) {
+            return preferredIndex
+        }
+        return transcripts.isEmpty ? nil : 0
     }
 
     private func lookupContextValues(for pageIndex: Int) async -> LookupContextValues {

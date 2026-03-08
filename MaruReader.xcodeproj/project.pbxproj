@@ -434,6 +434,7 @@
 		DBDCE1422F0CC62A00B42F93 /* MaruMangaTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruMangaTests.xctestplan; sourceTree = "<group>"; };
 		DBDCEC022F0F65AF00B42F93 /* MaruWeb.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruWeb.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBDCEC0A2F0F65AF00B42F93 /* MaruWebTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruWebTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		DBE950652F5CFF2400E703F7 /* MaruReaderUITests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderUITests.xctestplan; sourceTree = "<group>"; };
 		DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruVision.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBEBB2C32EB58E88005C3BFC /* MaruVisionTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruVisionTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruAnki.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -737,6 +738,7 @@
 		DB2B69832E660F8B00EDA656 = {
 			isa = PBXGroup;
 			children = (
+				DBE950652F5CFF2400E703F7 /* MaruReaderUITests.xctestplan */,
 				DB6F30332F2329E000B2B1FA /* uBOLite.safari */,
 				DBD776812F148FA2000AFED1 /* MaruWebTests.xctestplan */,
 				DBDCE1422F0CC62A00B42F93 /* MaruMangaTests.xctestplan */,

@@ -602,5 +602,88 @@ window.MaruReader.textScanning = {
         }
 
         return null;
+    },
+
+    /**
+     * Finds the text node and node-local offset for a given full-text offset
+     * within a container. Reverse of findOffsetInFullText.
+     * @param {Element} container - Container element
+     * @param {number} targetOffset - Offset in the container's full text
+     * @returns {Object|null} {node, offset} or null if not found
+     */
+    findNodeAtFullTextOffset: function(container, targetOffset) {
+        var walker = window.MaruReader.domUtilities.createRubyFilteredTreeWalker(container);
+        var accumulated = 0;
+        var textNode;
+
+        while (textNode = walker.nextNode()) {
+            var len = textNode.textContent.length;
+            if (accumulated + len > targetOffset) {
+                return { node: textNode, offset: targetOffset - accumulated };
+            }
+            accumulated += len;
+        }
+
+        return null;
+    },
+
+    /**
+     * Finds text by string content and triggers a dictionary lookup at the
+     * specified character within the match. Geometry-independent alternative
+     * to extractTextAtPoint, used for screenshot automation.
+     * @param {string} searchString - Text to find in the document
+     * @param {number} charOffsetInMatch - Character offset within the match to look up
+     * @param {number} contextLevel - Context level (0=sentence, 1=sentence+neighbors)
+     * @param {number} maxContextChars - Maximum total context characters
+     * @returns {Object|null} Text extraction result, or null if not found
+     */
+    extractTextBySearch: function(searchString, charOffsetInMatch, contextLevel, maxContextChars) {
+        var containers = document.querySelectorAll('p, div, article, section');
+        if (containers.length === 0) {
+            containers = [document.body];
+        }
+
+        for (var i = 0; i < containers.length; i++) {
+            var container = containers[i];
+            var fullText = this.extractFullText(container);
+            var matchIndex = fullText.indexOf(searchString);
+            if (matchIndex === -1) {
+                continue;
+            }
+
+            var targetOffset = matchIndex + charOffsetInMatch;
+            var nodeResult = this.findNodeAtFullTextOffset(container, targetOffset);
+            if (!nodeResult) {
+                continue;
+            }
+
+            var rubyContext = null;
+            var rubyParent = window.MaruReader.domUtilities.findRubyParent(nodeResult.node);
+            if (rubyParent) {
+                rubyContext = window.MaruReader.domUtilities.findRubyContainer(rubyParent);
+            }
+
+            var contextResult = this.extractContext(
+                nodeResult.node, nodeResult.offset, contextLevel, maxContextChars, rubyContext
+            );
+
+            var cssPath = window.MaruReader.domUtilities.generateContainerCSSPath(container);
+
+            var result = {
+                offset: contextResult.offset,
+                context: contextResult.context,
+                contextStartOffset: contextResult.contextStartOffset,
+                rubyContext: contextResult.rubyContext,
+                cssSelector: cssPath
+            };
+
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.textScanning) {
+                window.webkit.messageHandlers.textScanning.postMessage(result);
+            }
+
+            return result;
+        }
+
+        return null;
     }
 };

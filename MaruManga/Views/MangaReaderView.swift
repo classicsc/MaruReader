@@ -96,10 +96,18 @@ public struct MangaReaderView: View {
             .onDisappear {
                 searchSheetViewModel = nil
             }
+            .accessibilityIdentifier("mangaReader.dictionarySheet")
             .presentationDetents([.medium, .large])
         }
         .task {
             await viewModel.loadArchive()
+            if ProcessInfo.processInfo.arguments.contains("--screenshotMode") {
+                // Wait for OCR to complete on the current page, then auto-trigger
+                // lookup for the preferred screenshot example text.
+                await viewModel.loadPage(at: viewModel.currentPageIndex)
+                try? await Task.sleep(for: .seconds(1))
+                viewModel.triggerScreenshotClusterLookup()
+            }
         }
         .onDisappear {
             viewModel.saveOnDisappear()
@@ -208,6 +216,7 @@ public struct MangaReaderView: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel(MangaLocalization.string("Back"))
+        .accessibilityIdentifier("mangaReader.back")
         .tourAnchor(MangaReaderTourAnchor.backButton)
         .padding(.horizontal, 20)
         .padding(.vertical, 12)

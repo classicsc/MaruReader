@@ -20,14 +20,28 @@ import Foundation
 public enum MangaMetadataExtractionSettings {
     public static let smartExtractionEnabledKey = "mangaSmartMetadataExtractionEnabled"
     public static let smartExtractionEnabledDefault = true
+    static let screenshotModeArgument = "--screenshotMode"
 
     public static var smartExtractionEnabled: Bool {
         get {
             let storedValue = UserDefaults.standard.object(forKey: smartExtractionEnabledKey) as? Bool
-            return storedValue ?? smartExtractionEnabledDefault
+            return resolvedSmartExtractionEnabled(
+                storedValue: storedValue,
+                processArguments: ProcessInfo.processInfo.arguments
+            )
         }
         set {
             UserDefaults.standard.set(newValue, forKey: smartExtractionEnabledKey)
         }
+    }
+
+    static func resolvedSmartExtractionEnabled(
+        storedValue: Bool?,
+        processArguments: [String]
+    ) -> Bool {
+        guard !processArguments.contains(screenshotModeArgument) else {
+            return false
+        }
+        return storedValue ?? smartExtractionEnabledDefault
     }
 }

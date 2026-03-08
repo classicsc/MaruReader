@@ -123,6 +123,36 @@ final class MangaMetadataExtractionTests: XCTestCase {
         XCTAssertEqual(MangaMetadataExtractionSettings.smartExtractionEnabled, true)
     }
 
+    func testSmartMetadataExtractionSettingDisabledInScreenshotMode() {
+        XCTAssertFalse(
+            MangaMetadataExtractionSettings.resolvedSmartExtractionEnabled(
+                storedValue: true,
+                processArguments: [MangaMetadataExtractionSettings.screenshotModeArgument]
+            )
+        )
+        XCTAssertFalse(
+            MangaMetadataExtractionSettings.resolvedSmartExtractionEnabled(
+                storedValue: nil,
+                processArguments: ["app", MangaMetadataExtractionSettings.screenshotModeArgument]
+            )
+        )
+    }
+
+    func testSmartMetadataExtractionSettingKeepsStoredPreferenceOutsideScreenshotMode() {
+        XCTAssertTrue(
+            MangaMetadataExtractionSettings.resolvedSmartExtractionEnabled(
+                storedValue: true,
+                processArguments: []
+            )
+        )
+        XCTAssertFalse(
+            MangaMetadataExtractionSettings.resolvedSmartExtractionEnabled(
+                storedValue: false,
+                processArguments: []
+            )
+        )
+    }
+
     func testMetadataExtractorAvailabilityHelperMatchesExtractor() {
         XCTAssertEqual(
             MangaImportManager.isMetadataExtractorAvailable,

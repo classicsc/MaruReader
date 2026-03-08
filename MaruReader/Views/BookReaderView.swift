@@ -101,6 +101,7 @@ struct BookReaderView: View {
                             )
                         }
                     }
+                    .accessibilityIdentifier("bookReader.dictionarySheet")
                     .presentationDetents([.medium, .large])
                 }
                 .sheet(isPresented: showingTableOfContents) {
@@ -157,9 +158,16 @@ struct BookReaderView: View {
                 .onAppear {
                     viewModel.readerPreferences.systemColorScheme = colorScheme
                     applyReaderDictionaryTheme()
-                    if tourManager.startIfNeeded(BookReaderTour.self) {
+                    if MaruReaderApp.isScreenshotMode {
+                        viewModel.isDictionaryActive = true
+                    } else if tourManager.startIfNeeded(BookReaderTour.self) {
                         viewModel.overlayState = .showingToolbars
                     }
+                }
+                .task {
+                    guard MaruReaderApp.isScreenshotMode else { return }
+                    try? await Task.sleep(for: .seconds(3))
+                    viewModel.triggerScreenshotTextLookup()
                 }
         }
     }
@@ -207,6 +215,7 @@ struct BookReaderView: View {
                         .background(dictionarySheetBackgroundColor)
                         .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                         .presentationCompactAdaptation(.popover)
+                        .accessibilityIdentifier("bookReader.dictionaryPopover")
                 }
             }
             .safeAreaInset(edge: .bottom) {
@@ -266,6 +275,7 @@ struct BookReaderView: View {
                 Image(systemName: "list.bullet")
             }
             .accessibilityLabel("Table of contents")
+            .accessibilityIdentifier("bookReader.tableOfContents")
             .tourAnchor(BookReaderTourAnchor.tableOfContents)
 
             Button {
@@ -274,6 +284,7 @@ struct BookReaderView: View {
                 Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
             }
             .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
+            .accessibilityIdentifier("bookReader.dictionaryMode")
             .tourAnchor(BookReaderTourAnchor.dictionaryMode)
 
             bookmarkButton
@@ -380,6 +391,7 @@ struct BookReaderView: View {
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
+        .accessibilityIdentifier("bookReader.back")
     }
 
     @ViewBuilder

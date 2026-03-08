@@ -79,6 +79,9 @@ public struct WebBookmarksView: View {
                 WebSessionStore.shared.prewarm(
                     enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
                 )
+                if ProcessInfo.processInfo.arguments.contains("--screenshotMode") {
+                    navigationTarget = URL(string: "about:blank")
+                }
             }
         }
     }

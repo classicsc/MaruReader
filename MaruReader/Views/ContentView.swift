@@ -33,12 +33,14 @@ struct ContentView: View {
         TabView {
             Tab("Read", systemImage: "books.vertical") {
                 ReadLibraryView()
+                    .accessibilityIdentifier("readLibrary")
             }
             Tab("Scan", systemImage: "doc.text.viewfinder") {
                 OCRScanView()
             }
             Tab("Web", systemImage: "globe") {
                 MaruWebRootView()
+                    .accessibilityIdentifier("webBrowser")
             }
             Tab("Settings", systemImage: "gear") {
                 SettingsView()

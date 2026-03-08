@@ -720,6 +720,34 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    // MARK: - Screenshot Text Lookup
+
+    static let screenshotLookupSearchText = "呼んでいた"
+
+    /// Triggers a dictionary lookup by searching for text content in the page.
+    /// Used in screenshot mode to programmatically stage dictionary results.
+    func triggerScreenshotTextLookup() {
+        guard let navigator,
+              let webView = currentNavigatorWebView()
+        else {
+            logger.warning("Navigator web view not ready for screenshot text lookup")
+            return
+        }
+
+        activeNavigatorWebView = webView
+        let searchText = Self.screenshotLookupSearchText
+        let script = "window.MaruReader.textScanning.extractTextBySearch('\(searchText)', 0, 0, 50);"
+        Task {
+            let result = await navigator.evaluateJavaScript(script)
+            switch result {
+            case .success:
+                break
+            case let .failure(error):
+                logger.error("Screenshot text lookup failed: \(error.localizedDescription)")
+            }
+        }
+    }
+
     func isVerticalWriting() -> Bool {
         guard let navigator else { return false }
         return navigator.settings.verticalText

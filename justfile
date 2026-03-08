@@ -39,3 +39,7 @@ licenses:
 # refreshes upstream license snapshots before syncing bundled third-party licenses
 licenses-refresh:
   swift scripts/sync-third-party-licenses.swift --refresh-snapshots
+
+# captures screenshots via fastlane snapshot to fastlane/screenshots/
+screenshots:
+  fastlane snapshot
