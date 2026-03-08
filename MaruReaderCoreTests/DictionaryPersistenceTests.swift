@@ -15,11 +15,11 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 @testable import MaruReaderCore
 import Testing
-internal import ReadiumZIPFoundation
 
 struct DictionaryPersistenceTests {
     /// Custom errors for diagnostics

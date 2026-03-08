@@ -17,7 +17,7 @@
 
 import Foundation
 
-enum CSSValue: Codable, Sendable, Equatable {
+enum CSSValue: Codable, Equatable {
     case numeric(Double)
     case string(String)
 
@@ -56,7 +56,7 @@ enum CSSValue: Codable, Sendable, Equatable {
     }
 }
 
-struct ContentStyle: Codable, Sendable {
+struct ContentStyle: Codable {
     let fontStyle: String?
     let fontWeight: String?
     let fontSize: String?

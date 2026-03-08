@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import os
-internal import ReadiumZIPFoundation
 
 /// A task to copy audio files from the archive to the app group container.
 /// This task only runs for local audio sources (isLocal = true).

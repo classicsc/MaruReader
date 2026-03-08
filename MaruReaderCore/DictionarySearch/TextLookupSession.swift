@@ -17,7 +17,7 @@
 
 import Foundation
 
-struct CandidateGroup: Sendable {
+struct CandidateGroup {
     let key: CandidateRankingKey
     let candidates: [LookupCandidate]
 }

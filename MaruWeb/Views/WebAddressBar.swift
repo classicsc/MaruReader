@@ -39,17 +39,17 @@ struct WebAddressBar: View {
                 selection: $selection,
                 prompt: Text(WebLocalization.string("Search or enter URL", comment: "A placeholder text for a text field in a web address bar."))
             )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.go)
-                .focused($isFocused)
-                .onSubmit(onSubmit)
-                .onChange(of: isFocused) { _, newValue in
-                    onEditingChanged?(newValue)
-                    if newValue, !text.isEmpty {
-                        selection = TextSelection(range: text.startIndex ..< text.endIndex)
-                    }
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .submitLabel(.go)
+            .focused($isFocused)
+            .onSubmit(onSubmit)
+            .onChange(of: isFocused) { _, newValue in
+                onEditingChanged?(newValue)
+                if newValue, !text.isEmpty {
+                    selection = TextSelection(range: text.startIndex ..< text.endIndex)
                 }
+            }
 
             if showsGoButton {
                 Button(action: onSubmit) {

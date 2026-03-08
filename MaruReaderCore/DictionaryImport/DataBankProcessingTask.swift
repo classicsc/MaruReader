@@ -16,10 +16,10 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 internal import AsyncAlgorithms
+internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import os
-internal import ReadiumZIPFoundation
 
 struct DataBankProcessingTask {
     static let batchSize = 5000

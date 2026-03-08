@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
 internal import JsonStream
+import Foundation
 import os
 
 /// A generic streaming iterator for dictionary bank JSON files.

@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import os
-internal import ReadiumZIPFoundation
 
-struct AudioSourceIndexResult: Sendable {
+struct AudioSourceIndexResult {
     let sourceID: UUID
     let indexURL: URL
     let indexEntryPath: String

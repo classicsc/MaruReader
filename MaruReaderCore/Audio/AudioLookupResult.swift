@@ -17,7 +17,7 @@
 
 import Foundation
 
-struct AudioLookupResult: Sendable {
+struct AudioLookupResult {
     let request: AudioLookupRequest
     let sources: [AudioSourceResult]
 
@@ -30,7 +30,7 @@ struct AudioLookupResult: Sendable {
     }
 }
 
-struct AudioSourceResult: Sendable {
+struct AudioSourceResult {
     let url: URL
     /// The name of the audio source item (from JSON response), or provider name if no specific item name
     let sourceName: String

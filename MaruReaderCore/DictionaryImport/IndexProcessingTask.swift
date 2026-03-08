@@ -15,12 +15,12 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import os
-internal import ReadiumZIPFoundation
 
-struct DictionaryBankPaths: Sendable {
+struct DictionaryBankPaths {
     let termBanks: [String]
     let kanjiBanks: [String]
     let termMetaBanks: [String]
@@ -28,7 +28,7 @@ struct DictionaryBankPaths: Sendable {
     let tagBanks: [String]
 }
 
-struct DictionaryIndexResult: Sendable {
+struct DictionaryIndexResult {
     let dictionaryID: UUID
     let archiveURL: URL
     let bankPaths: DictionaryBankPaths

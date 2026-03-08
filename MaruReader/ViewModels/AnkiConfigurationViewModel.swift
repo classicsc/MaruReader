@@ -20,7 +20,7 @@ import Foundation
 import MaruAnki
 import Observation
 
-struct FieldMappingProfileInfo: Identifiable, Sendable {
+struct FieldMappingProfileInfo: Identifiable {
     let id: UUID
     let displayName: String
     let isSystemProfile: Bool
@@ -52,7 +52,7 @@ private struct AnkiMobileInfoForAdding: Decodable {
 @MainActor
 @Observable
 final class AnkiConfigurationViewModel {
-    enum ConfigurationStep: Int, CaseIterable, Sendable {
+    enum ConfigurationStep: Int, CaseIterable {
         case connectionType = 0
         case connectionDetails = 1
         case mobileDetails = 2
@@ -64,7 +64,7 @@ final class AnkiConfigurationViewModel {
         case templateConfiguration = 8
     }
 
-    enum ConnectionType: String, CaseIterable, Identifiable, Sendable {
+    enum ConnectionType: String, CaseIterable, Identifiable {
         case ankiMobile = "AnkiMobile"
         case ankiConnect = "Anki-Connect"
 
@@ -834,7 +834,7 @@ final class AnkiConfigurationViewModel {
     }
 }
 
-enum FieldMappingError: LocalizedError, Sendable {
+enum FieldMappingError: LocalizedError {
     case profileNotFound
     case cannotModifySystemProfile
     case cannotDeleteSystemProfile
@@ -851,7 +851,7 @@ enum FieldMappingError: LocalizedError, Sendable {
     }
 }
 
-enum AnkiConfigurationError: LocalizedError, Sendable {
+enum AnkiConfigurationError: LocalizedError {
     case invalidConfiguration
 
     var errorDescription: String? {

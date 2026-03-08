@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import LRUCache
 import CoreData
 import Foundation
 import os
-internal import LRUCache
 
 /// Central service for audio lookups across all configured sources
 actor AudioLookupService {

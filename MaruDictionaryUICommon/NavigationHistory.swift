@@ -24,7 +24,7 @@ import Foundation
 import MaruReaderCore
 
 /// A single entry in the navigation history
-struct HistoryEntry: Sendable {
+struct HistoryEntry {
     let request: TextLookupRequest
     let session: TextLookupSession
 }

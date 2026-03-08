@@ -17,7 +17,7 @@
 
 import Foundation
 
-enum ThirdPartyComponentCategory: String, Codable, CaseIterable, Sendable {
+enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
     case spm
     case contentBlocker
     case filterList
@@ -55,13 +55,13 @@ enum ThirdPartyComponentCategory: String, Codable, CaseIterable, Sendable {
     }
 }
 
-struct ThirdPartyLicenseCatalog: Codable, Sendable {
+struct ThirdPartyLicenseCatalog: Codable {
     let schemaVersion: Int
     let generatedAt: String
     let components: [ThirdPartyComponent]
 }
 
-struct ThirdPartyComponent: Codable, Identifiable, Hashable, Sendable {
+struct ThirdPartyComponent: Codable, Identifiable, Hashable {
     let id: String
     let name: String
     let category: ThirdPartyComponentCategory
@@ -74,7 +74,7 @@ struct ThirdPartyComponent: Codable, Identifiable, Hashable, Sendable {
     let licenses: [ThirdPartyLicenseDocument]
 }
 
-struct ThirdPartyLicenseDocument: Codable, Hashable, Sendable {
+struct ThirdPartyLicenseDocument: Codable, Hashable {
     let title: String
     let path: String
     let referenceURL: URL?

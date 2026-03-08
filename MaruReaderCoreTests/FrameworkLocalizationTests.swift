@@ -48,10 +48,10 @@ struct FrameworkLocalizationTests {
             ) == "順位ベース（自動）"
         )
         let summaryTemplate = FrameworkLocalization.string(
-                "dictionary.deinflection.summary",
-                defaultValue: "Uninflected: %1$@ (Rules: %2$@)",
-                localization: localization
-            )
+            "dictionary.deinflection.summary",
+            defaultValue: "Uninflected: %1$@ (Rules: %2$@)",
+            localization: localization
+        )
         let summary = summaryTemplate
             .replacingOccurrences(of: "%1$@", with: "食べる")
             .replacingOccurrences(of: "%2$@", with: "past, polite")

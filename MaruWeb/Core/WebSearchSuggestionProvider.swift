@@ -17,7 +17,7 @@
 
 import Foundation
 
-struct WebSearchSuggestionProvider: Sendable {
+struct WebSearchSuggestionProvider {
     var session: URLSession
 
     init(session: URLSession = .shared) {

@@ -18,7 +18,7 @@
 import Foundation
 
 /// Ranking key derived from LookupCandidate properties (RankingCriteria 1-4).
-struct CandidateRankingKey: Hashable, Comparable, Sendable {
+struct CandidateRankingKey: Hashable, Comparable {
     let sourceTermLength: Int
     let textProcessingChainLength: Int
     let inflectionChainLength: Int

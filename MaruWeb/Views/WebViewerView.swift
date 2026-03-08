@@ -719,23 +719,23 @@ private struct AddressBarCapsuleView: View {
                     selection: $addressSelection,
                     prompt: Text(WebLocalization.string("Search or enter URL", comment: "A placeholder text for a text field in a web address bar."))
                 )
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.go)
-                    .focused($isFocused)
-                    .opacity(isEditingAddress ? 1 : 0)
-                    .disabled(!isEditingAddress)
-                    .onSubmit(onSubmit)
-                    .onChange(of: isFocused) { _, newValue in
-                        if shouldFocus != newValue {
-                            shouldFocus = newValue
-                        }
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.go)
+                .focused($isFocused)
+                .opacity(isEditingAddress ? 1 : 0)
+                .disabled(!isEditingAddress)
+                .onSubmit(onSubmit)
+                .onChange(of: isFocused) { _, newValue in
+                    if shouldFocus != newValue {
+                        shouldFocus = newValue
                     }
-                    .onChange(of: shouldFocus) { _, newValue in
-                        if isFocused != newValue {
-                            isFocused = newValue
-                        }
+                }
+                .onChange(of: shouldFocus) { _, newValue in
+                    if isFocused != newValue {
+                        isFocused = newValue
                     }
+                }
             }
             .padding(.vertical, 10)
 

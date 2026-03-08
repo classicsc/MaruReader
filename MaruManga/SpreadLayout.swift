@@ -18,9 +18,9 @@
 import Foundation
 
 /// Represents how manga pages are grouped for display (single or side-by-side spreads).
-struct SpreadLayout: Equatable, Sendable {
+struct SpreadLayout: Equatable {
     /// A single display unit containing one or two pages.
-    enum SpreadItem: Equatable, Sendable {
+    enum SpreadItem: Equatable {
         case single(pageIndex: Int)
         case double(leftPageIndex: Int, rightPageIndex: Int)
 

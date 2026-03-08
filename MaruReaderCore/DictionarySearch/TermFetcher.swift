@@ -241,7 +241,7 @@ enum TermFetcher {
 
     // MARK: Intermediate result types
 
-    struct TermEntryData: Sendable {
+    struct TermEntryData {
         let expression: String
         let reading: String
         let dictionaryID: UUID
@@ -253,7 +253,7 @@ enum TermFetcher {
         let score: Double
     }
 
-    struct TagMetaData: Sendable {
+    struct TagMetaData {
         let name: String
         let notes: String
         let order: Double

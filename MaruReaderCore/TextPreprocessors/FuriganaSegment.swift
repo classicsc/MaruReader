@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
 internal import IPADic
 internal import Mecab_Swift
 internal import StringTools
+import Foundation
 
 /// A segment of text with optional furigana reading for UI display.
 public struct FuriganaSegment: Sendable {

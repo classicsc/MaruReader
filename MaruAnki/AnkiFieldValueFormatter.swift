@@ -143,8 +143,8 @@ enum AnkiFieldValueFormatter {
         }
 
         // Fallback for extensions not recognized by UTType
-        let audioExtensions: Set<String> = ["mp3", "m4a", "aac", "wav", "ogg", "flac", "caf"]
-        let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "bmp", "tif", "tiff"]
+        let audioExtensions: Set = ["mp3", "m4a", "aac", "wav", "ogg", "flac", "caf"]
+        let imageExtensions: Set = ["png", "jpg", "jpeg", "gif", "webp", "heic", "heif", "bmp", "tif", "tiff"]
 
         if audioExtensions.contains(ext) {
             return .audio

@@ -15,7 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-struct AudioLookupRequest: Sendable {
+struct AudioLookupRequest {
     let term: String
     let reading: String?
     let downstepPosition: String? // e.g. "0" for no downstep, "3" for downstep after 3rd mora, "1-1-1" for compound patterns

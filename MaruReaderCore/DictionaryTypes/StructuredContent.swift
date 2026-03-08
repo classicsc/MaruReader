@@ -18,7 +18,7 @@
 import Foundation
 
 /// Recursive structured content type
-enum StructuredContent: Codable, Sendable {
+enum StructuredContent: Codable {
     case text(String)
     case array([StructuredContent])
     case element(StructuredElement)

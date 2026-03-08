@@ -18,7 +18,7 @@
 import CoreData
 import Foundation
 
-struct WebBookmarkSnapshot: Identifiable, Sendable {
+struct WebBookmarkSnapshot: Identifiable {
     let id: UUID
     let url: URL
     let title: String

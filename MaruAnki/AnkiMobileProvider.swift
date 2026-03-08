@@ -49,7 +49,7 @@ public actor AnkiMobileURLOpenerStore {
     }
 }
 
-enum AnkiMobileError: Error, LocalizedError, Sendable {
+enum AnkiMobileError: Error, LocalizedError {
     case invalidConfiguration
     case invalidURL
     case openFailed

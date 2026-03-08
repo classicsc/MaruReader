@@ -18,7 +18,7 @@
 import Foundation
 
 /// Supported dictionary index formats.
-enum DictionaryFormat: Int, Codable, Sendable, CustomStringConvertible {
+enum DictionaryFormat: Int, Codable, CustomStringConvertible {
     case v1 = 1
     case v3 = 3
 

@@ -397,7 +397,7 @@ public actor DictionaryUpdateManager {
         }
     }
 
-    private struct UpdateOutcome: Sendable {
+    private struct UpdateOutcome {
         let newDictionaryID: UUID
         let oldDictionaryID: UUID
         let oldDictionaryObjectID: NSManagedObjectID

@@ -20,12 +20,12 @@ import Foundation
 private final class WebBundleFinder {}
 
 enum WebLocalization {
-    static let bundle: Bundle = Bundle(for: WebBundleFinder.self)
+    static let bundle: Bundle = .init(for: WebBundleFinder.self)
 
     static func string(
         _ keyAndValue: String,
         locale: Locale = .current,
-        comment: StaticString? = nil
+        comment _: StaticString? = nil
     ) -> String {
         bundle.localizedString(forKey: keyAndValue, value: keyAndValue, table: nil, localizations: [locale.language])
     }
@@ -34,7 +34,7 @@ enum WebLocalization {
         _ key: String,
         defaultValue: String,
         locale: Locale = .current,
-        comment: StaticString? = nil
+        comment _: StaticString? = nil
     ) -> String {
         bundle.localizedString(forKey: key, value: defaultValue, table: nil, localizations: [locale.language])
     }

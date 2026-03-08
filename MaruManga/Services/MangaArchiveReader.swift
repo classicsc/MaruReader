@@ -15,10 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
 internal import LRUCache
-import MaruVision
 internal import ReadiumZIPFoundation
+import Foundation
+import MaruVision
 
 /// A manga page containing image data and OCR text clusters.
 public struct MangaPageData: Sendable {

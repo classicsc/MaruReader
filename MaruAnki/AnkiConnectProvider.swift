@@ -18,7 +18,7 @@
 import Foundation
 
 /// Errors that can occur when communicating with Anki-Connect.
-enum AnkiConnectError: Error, Sendable, Equatable, LocalizedError {
+enum AnkiConnectError: Error, Equatable, LocalizedError {
     /// The Anki-Connect API returned an error.
     case apiError(String)
     /// Failed to connect to Anki-Connect.
@@ -81,7 +81,7 @@ enum AnkiConnectError: Error, Sendable, Equatable, LocalizedError {
 }
 
 /// An implementation of `AnkiProvider` that communicates with Anki via Anki-Connect.
-struct AnkiConnectProvider: AnkiProvider, Sendable {
+struct AnkiConnectProvider: AnkiProvider {
     private let host: String
     private let port: Int
     private let apiKey: String?
@@ -462,7 +462,7 @@ private struct PermissionResult: Decodable {
 }
 
 /// The result of a permission request to Anki-Connect.
-struct PermissionResponse: Sendable {
+struct PermissionResponse {
     /// Whether the API requires an API key for authentication.
     let requiresApiKey: Bool
     /// The API version supported by Anki-Connect.

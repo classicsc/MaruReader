@@ -20,7 +20,7 @@ import Foundation
 import os
 
 /// Metadata for a dictionary used during search
-struct DictionaryMetadata: Sendable {
+struct DictionaryMetadata {
     let id: UUID
     let title: String
     let termDisplayPriority: Int

@@ -43,14 +43,14 @@ import Foundation
 ///   }
 /// }
 /// ```
-struct AudioSourceIndex: Codable, Sendable {
+struct AudioSourceIndex: Codable {
     let meta: AudioSourceMeta
     let headwords: [String: [String]]
     let files: [String: AudioFileInfo]
 }
 
 /// Metadata for an audio source.
-struct AudioSourceMeta: Codable, Sendable {
+struct AudioSourceMeta: Codable {
     let name: String
     let year: Int?
     let version: Int?
@@ -69,7 +69,7 @@ struct AudioSourceMeta: Codable, Sendable {
 }
 
 /// Information about a single audio file.
-struct AudioFileInfo: Codable, Sendable {
+struct AudioFileInfo: Codable {
     /// The kana reading for this audio file.
     let kanaReading: String
     /// Optional pitch pattern visualization (e.g., "わたし━").

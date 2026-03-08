@@ -399,7 +399,7 @@ final class WebBrowserPage {
     }
 }
 
-private struct FaviconCandidate: Sendable {
+private struct FaviconCandidate {
     let url: URL
     let rel: String
     let sizes: String?
