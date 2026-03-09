@@ -449,10 +449,18 @@
 			);
 			target = DB6FDFB82EAB54C6005DF219 /* MaruShareExtension */;
 		};
+		DBD549B42F5E721A002D339A /* Exceptions for "MaruReader" folder in "MaruReaderUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				SampleContent,
+			);
+			target = DB2B69A72E660F8D00EDA656 /* MaruReaderUITests */;
+		};
 		DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				SampleContent,
 			);
 			target = DB2B698B2E660F8B00EDA656 /* MaruReader */;
 		};
@@ -473,8 +481,10 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */,
+				DBD549B42F5E721A002D339A /* Exceptions for "MaruReader" folder in "MaruReaderUITests" target */,
 			);
 			explicitFolders = (
+				SampleContent,
 				StarterDictionary,
 			);
 			path = MaruReader;
