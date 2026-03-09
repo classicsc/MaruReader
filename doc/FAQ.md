@@ -10,11 +10,11 @@ MaruReader intentionally does not come with any starter reading materials, becau
 
 ## Can MaruReader open eBooks in non-epub formats like Aozora?
 
-No, but most non-DRM ebook formats can be converted to epub with [Calibre](https://calibre-ebook.com). For aozora specifically, [AozoraEpub3](https://aozoraepub3-jdk21.github.io/AozoraEpub3-JDK21/en/usage.html) works well.
+No, but most non-DRM ebook formats can be converted to epub with [Calibre](https://calibre-ebook.com). For aozora specifically, [AozoraEpub3](https://aozoraepub3-jdk21.github.io/AozoraEpub3-JDK21/en/usage.html) can generate EPUBs from the .txt files available from book card pages.
 
 ## Can MaruReader open manga in PDF or EPUB formats?
 
-No, but you can use Calibre to convert to CBZ.
+No, but it usually works to convert to ZIP with Calibre and import to MaruReader as manga.
 
 ## The text recognition got a character wrong in my manga, is it broken?
 
@@ -34,7 +34,7 @@ Yes.
 
 ## I have a dictionary that looks very different (worse) compared to Yomitan
 
-- Some dictionaries use characters like the Unicode error `→` for purposes like indicating links, and on iOS some of these symbols are displayed as color emoji instead of the shape and color the dictionary's creator intended. This can be fixed in some cases by modifying the dictionary's stylesheet, but the better solution is for the dictionary to use images instead of Unicode characters for symbols that need to look the same on all platforms.
+- Some dictionaries use characters like the Unicode arrow `→` for purposes like indicating links, and on iOS some of these symbols are displayed as color emoji instead of the shape and color the dictionary's creator had in mind. This can be fixed in some cases by modifying the dictionary's stylesheet, but the better solution is for the dictionary to use images instead of Unicode characters for symbols that need to look the same on all platforms.
 - MaruReader supports the `styles.css` at the dictionary root, but there's no equivalent to Yomitan's custom popup CSS settings. If you use custom styles on desktop, that could be the difference. A workaround is to add your custom styles to the dictionary's `styles.css` and re-import the dictionary.
 - Otherwise, it may be a bug in MaruReader. Please open an issue, specifying the dictionary and an entry with the problem, so it can be investigated.
 
@@ -54,7 +54,7 @@ Yes, MaruReader relies on certain iOS 26 APIs for displaying dictionary content 
 
 ## Why is it called MaruReader?
 
-Maru is the name of the correct answer mark in Japanese, and you'll see more of those if you add immersion to your studies. It's the name of the round owl in the icon.
+Maru is the name of the correct answer mark in Japanese, and you'll see more of those if you add immersion to your studies. It's also the name of the round owl in the icon.
 
 ## I have a question or issue that isn't answered here, or a suggestion
 
