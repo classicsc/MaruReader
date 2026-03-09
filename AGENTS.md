@@ -23,9 +23,6 @@ just test # Run all tests
 just test-plan MaruReaderCoreTests # Run a specific test plan
 just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests # Run a specific test
 just contentblocker # Build the content blocker extension
-just licenses # Sync the bundled third-party license list
-just licenses-refresh # Refresh upstream license snapshots, then sync the bundled third-party license list
-just starterdict # Build the starter dict, only needed when preparing a release for distribution
 ```
 
 Avoid running these commands in parallel, it may cause build folder locking failures.
