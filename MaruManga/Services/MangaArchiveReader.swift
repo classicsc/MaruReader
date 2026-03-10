@@ -20,6 +20,11 @@ internal import ReadiumZIPFoundation
 import Foundation
 import MaruVision
 
+protocol MangaPageProviding: Sendable {
+    var pageCount: Int { get async }
+    func pageData(at index: Int) async throws -> MangaPageData
+}
+
 /// A manga page containing image data and OCR text clusters.
 public struct MangaPageData: Sendable {
     /// The raw image data for the page.
@@ -94,7 +99,6 @@ public actor MangaArchiveReader {
     private let sortedPages: [Entry]
     private let cache: LRUCache<Int, MangaPageData>
     private var prefetchTask: Task<Void, Never>?
-    private let ocr = OCR()
 
     // MARK: - Initialization
 
@@ -135,46 +139,37 @@ public actor MangaArchiveReader {
     /// It also triggers prefetching of surrounding pages in the background.
     ///
     /// - Parameter index: The zero-based page index.
-    /// - Returns: The manga page data containing image data and text clusters.
+    /// - Returns: The manga page data containing image data (text clusters are empty;
+    ///   OCR is handled separately by the view model).
     /// - Throws: `MangaArchiveReaderError.pageIndexOutOfBounds` if the index is invalid,
     ///           or `MangaArchiveReaderError.extractionFailed` if extraction fails.
     public func pageData(at index: Int) async throws -> MangaPageData {
         let data = try await loadPage(at: index)
-
-        // Trigger prefetch for surrounding pages
         triggerPrefetch(around: index)
-
         return data
     }
 
-    /// Internal method to load a page without triggering prefetch.
-    /// Used by both public pageData and internal prefetch logic.
+    /// Loads a page without triggering prefetch. Used by both the public API
+    /// and internal prefetch logic to avoid recursive prefetch cancellation.
     private func loadPage(at index: Int) async throws -> MangaPageData {
         guard index >= 0, index < sortedPages.count else {
             throw MangaArchiveReaderError.pageIndexOutOfBounds(index: index, count: sortedPages.count)
         }
 
-        // Check cache first
         if let cached = cache.value(forKey: index) {
             return cached
         }
 
-        // Extract from archive
         let entry = sortedPages[index]
         let imageData = try await extractPage(entry)
-        let clusters = try await ocr.performOCR(imageData: imageData)
         let fileExtension = (entry.path as NSString).pathExtension.lowercased()
 
-        // Create page data with empty text clusters
         let pageData = MangaPageData(
             imageData: imageData,
-            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension,
-            textClusters: clusters
+            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension
         )
 
-        // Store in cache with cost = byte count
         cache.setValue(pageData, forKey: index, cost: imageData.count)
-
         return pageData
     }
 
@@ -216,15 +211,14 @@ public actor MangaArchiveReader {
 
     /// Triggers prefetching of pages around the given index.
     ///
-    /// This cancels any previous prefetch task and starts a new one.
-    /// Prefetch happens in a detached task to avoid blocking the caller.
+    /// Cancels any previous prefetch task and starts a new one.
+    /// Only extracts and caches compressed image data.
     private func triggerPrefetch(around index: Int) {
         prefetchTask?.cancel()
 
         prefetchTask = Task { [weak self] in
             guard let self else { return }
 
-            // Build list of pages to prefetch: ahead first, then behind
             var indices: [Int] = []
             for offset in 1 ... Self.prefetchAhead {
                 indices.append(index + offset)
@@ -239,13 +233,9 @@ public actor MangaArchiveReader {
                 let count = await self.pageCount
                 guard i >= 0, i < count else { continue }
 
-                // Skip if already cached
                 let isCached = await self.isCached(pageIndex: i)
-                if isCached {
-                    continue
-                }
+                if isCached { continue }
 
-                // Load the page without triggering another prefetch
                 _ = try? await self.loadPage(at: i)
             }
         }
@@ -270,9 +260,7 @@ public actor MangaArchiveReader {
                 guard index >= 0, index < count else { continue }
 
                 let isCached = await self.isCached(pageIndex: index)
-                if isCached {
-                    continue
-                }
+                if isCached { continue }
 
                 _ = try? await self.loadPage(at: index)
             }
@@ -303,3 +291,5 @@ public actor MangaArchiveReader {
         await prefetchTask?.value
     }
 }
+
+extension MangaArchiveReader: MangaPageProviding {}

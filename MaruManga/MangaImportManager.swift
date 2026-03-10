@@ -460,6 +460,8 @@ public actor MangaImportManager {
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
     }
 
+    private static let coverMaxPixelSize: CGFloat = 512
+
     private func extractCover(from archive: Archive, entry: Entry, to coverURL: URL) async throws {
         // Extract to a temp location first to avoid concurrency issues with streaming closure
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
@@ -468,7 +470,10 @@ public actor MangaImportManager {
         _ = try await archive.extract(entry, to: tempURL)
 
         let imageData = try Data(contentsOf: tempURL)
-        guard let image = UIImage(data: imageData) else {
+        guard let image = ImageDownsampler.downsample(
+            data: imageData,
+            maxPixelSize: Self.coverMaxPixelSize
+        ) else {
             throw NSError(
                 domain: "MangaImport",
                 code: -1,

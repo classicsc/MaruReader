@@ -255,14 +255,13 @@ struct MangaSpreadView: View {
         }
 
         // Get page data and calculate image rect
-        guard let pageData = viewModel.pageDataCache[pageIndex],
-              let uiImage = UIImage(data: pageData.imageData)
+        guard let renderedPage = viewModel.renderedPageCache[pageIndex]
         else {
             viewModel.toggleToolbars()
             return
         }
 
-        let imageRect = MangaPageContentView.calculateImageRect(image: uiImage, in: pageContainerSize)
+        let imageRect = MangaPageContentView.calculateImageRect(image: renderedPage.image, in: pageContainerSize)
 
         // Check if tap is within the image rect
         guard imageRect.contains(pageLocalPoint) else {
@@ -278,7 +277,7 @@ struct MangaSpreadView: View {
         var bestMatch: TextCluster?
         var bestArea: CGFloat = .infinity
 
-        for cluster in pageData.textClusters {
+        for cluster in renderedPage.textClusters {
             let bbox = cluster.boundingBox
             if normalizedX >= bbox.minX, normalizedX <= bbox.maxX,
                normalizedY >= bbox.minY, normalizedY <= bbox.maxY

@@ -68,12 +68,11 @@ struct MangaPageView: View {
 
     /// Gets the current image rect based on loaded page data.
     private func currentImageRect(containerSize: CGSize) -> CGRect {
-        guard let pageData = viewModel.pageDataCache[pageIndex],
-              let uiImage = UIImage(data: pageData.imageData)
+        guard let renderedPage = viewModel.renderedPageCache[pageIndex]
         else {
             return .zero
         }
-        return MangaPageContentView.calculateImageRect(image: uiImage, in: containerSize)
+        return MangaPageContentView.calculateImageRect(image: renderedPage.image, in: containerSize)
     }
 
     // MARK: - Gesture Handling
@@ -216,7 +215,7 @@ struct MangaPageView: View {
         imageRect: CGRect
     ) {
         // Get clusters from page data
-        let clusters = viewModel.pageDataCache[pageIndex]?.textClusters ?? []
+        let clusters = viewModel.renderedPageCache[pageIndex]?.textClusters ?? []
 
         let hitTestOffset = Self.adjustedOffsetForHitTesting(
             viewModel.offset,
