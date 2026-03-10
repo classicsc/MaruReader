@@ -47,18 +47,23 @@ public actor OCR {
     }
 
     public func performOCR(imageData: Data) async throws -> [TextCluster] {
-        // Perform the request on the image data and return the results.
         let results = try await request.perform(on: imageData)
+        return clusterResults(results)
+    }
 
+    public func performOCR(cgImage: CGImage) async throws -> [TextCluster] {
+        let results = try await request.perform(on: cgImage)
+        return clusterResults(results)
+    }
+
+    private func clusterResults(_ results: [RecognizedTextObservation]) -> [TextCluster] {
         logger.debug("OCR found \(results.count) text observations.")
 
-        // Cluster the results
         let clusterer = TextClusterer(configuration: clusteringConfiguration)
         let clusteredResults = clusterer.cluster(results)
 
         logger.debug("Clustered into \(clusteredResults.count) clusters.")
 
-        // Update the published arrays on main actor.
         observations = results
         return clusteredResults
     }

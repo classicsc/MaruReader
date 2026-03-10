@@ -25,7 +25,7 @@ import SwiftUI
 
 struct MangaRenderedPage {
     let image: UIImage
-    let textClusters: [TextCluster]
+    var textClusters: [TextCluster]
 }
 
 private struct MangaPageRenderError: LocalizedError {
@@ -160,10 +160,12 @@ final class MangaReaderViewModel {
     private var pageProvider: (any MangaPageProviding)?
     private let persistenceController: MangaDataPersistenceController
     private let archiveReaderFactory: @Sendable (URL) async throws -> any MangaPageProviding
+    private let ocr = OCR()
 
     private var saveTask: Task<Void, Never>?
     private var renderedPageRefreshTask: Task<Void, Never>?
     private var pageLoadTasks: [Int: Task<Void, Never>] = [:]
+    private var ocrTasks: [Int: Task<Void, Never>] = [:]
     /// Tracks the page index that was last successfully saved
     private var lastSavedPageIndex: Int?
     private let logger = Logger.maru(category: "MangaReaderViewModel")
@@ -250,11 +252,14 @@ final class MangaReaderViewModel {
                         self.pageLoadingStates.removeValue(forKey: index)
                         return
                     }
+                    // Show page immediately with any clusters from the provider
+                    // (typically empty), then run OCR asynchronously.
                     self.renderedPageCache[index] = MangaRenderedPage(
                         image: image,
                         textClusters: pageData.textClusters
                     )
                     self.pageLoadingStates[index] = .loaded
+                    self.startOCR(for: index, image: image)
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -421,6 +426,11 @@ final class MangaReaderViewModel {
     }
 
     private func makeScreenshotURL(for pageIndex: Int) async -> URL? {
+        // Use the already-downsampled display image from the render cache
+        // to avoid re-decoding the full-resolution archive image.
+        if let image = renderedPageCache[pageIndex]?.image {
+            return await writeJPEGFromUIImage(image, prefix: "manga_page")
+        }
         guard let pageData = await rawPageData(at: pageIndex) else { return nil }
         return await writeJPEGContextImage(pageData.imageData, prefix: "manga_page")
     }
@@ -440,6 +450,13 @@ final class MangaReaderViewModel {
             guard let jpegData = ContextImageEncoder.jpegData(from: data, quality: 0.9) else {
                 return nil
             }
+            return Self.writeContextJPEGData(jpegData, prefix: prefix)
+        }.value
+    }
+
+    private func writeJPEGFromUIImage(_ image: UIImage, prefix: String) async -> URL? {
+        await Task.detached {
+            guard let jpegData = image.jpegData(compressionQuality: 0.9) else { return nil }
             return Self.writeContextJPEGData(jpegData, prefix: prefix)
         }.value
     }
@@ -559,6 +576,9 @@ final class MangaReaderViewModel {
         for task in Array(pageLoadTasks.values) {
             _ = await task.result
         }
+        for task in Array(ocrTasks.values) {
+            _ = await task.result
+        }
     }
 
     private func scheduleRenderedPageRefresh() {
@@ -606,10 +626,36 @@ final class MangaReaderViewModel {
     private func evictRenderedPages(except desiredIndices: Set<Int>) {
         for index in Array(renderedPageCache.keys) where !desiredIndices.contains(index) {
             renderedPageCache.removeValue(forKey: index)
+            ocrTasks[index]?.cancel()
+            ocrTasks.removeValue(forKey: index)
         }
 
         for (index, state) in Array(pageLoadingStates) where state == .loaded && !desiredIndices.contains(index) {
             pageLoadingStates.removeValue(forKey: index)
+        }
+    }
+
+    // MARK: - Asynchronous OCR
+
+    /// Runs OCR on the downsampled display image and updates the rendered page
+    /// with text clusters when complete. Does not block the display path.
+    private func startOCR(for index: Int, image: UIImage) {
+        ocrTasks[index]?.cancel()
+        guard let cgImage = image.cgImage else { return }
+        let ocr = self.ocr
+
+        ocrTasks[index] = Task { [weak self] in
+            do {
+                let clusters = try await ocr.performOCR(cgImage: cgImage)
+                guard !Task.isCancelled, let self else { return }
+                if self.renderedPageCache[index] != nil {
+                    self.renderedPageCache[index]?.textClusters = clusters
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                self?.logger.error("OCR failed for page \(index): \(error.localizedDescription)")
+            }
+            self?.ocrTasks.removeValue(forKey: index)
         }
     }
 }
