@@ -20,6 +20,11 @@ internal import ReadiumZIPFoundation
 import Foundation
 import MaruVision
 
+protocol MangaPageProviding: Sendable {
+    var pageCount: Int { get async }
+    func pageData(at index: Int) async throws -> MangaPageData
+}
+
 /// A manga page containing image data and OCR text clusters.
 public struct MangaPageData: Sendable {
     /// The raw image data for the page.
@@ -303,3 +308,5 @@ public actor MangaArchiveReader {
         await prefetchTask?.value
     }
 }
+
+extension MangaArchiveReader: MangaPageProviding {}

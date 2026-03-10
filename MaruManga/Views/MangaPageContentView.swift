@@ -26,7 +26,7 @@ struct MangaPageContentView: View {
     let containerSize: CGSize
 
     var body: some View {
-        let pageData = viewModel.pageDataCache[pageIndex]
+        let renderedPage = viewModel.renderedPageCache[pageIndex]
         let loadingState = viewModel.pageLoadingStates[pageIndex] ?? .loading
 
         ZStack {
@@ -36,12 +36,12 @@ struct MangaPageContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             case .loaded:
-                if let pageData, let uiImage = UIImage(data: pageData.imageData) {
-                    let imageRect = Self.calculateImageRect(image: uiImage, in: containerSize)
+                if let renderedPage {
+                    let imageRect = Self.calculateImageRect(image: renderedPage.image, in: containerSize)
 
                     pageContent(
-                        image: uiImage,
-                        clusters: pageData.textClusters,
+                        image: renderedPage.image,
+                        clusters: renderedPage.textClusters,
                         imageRect: imageRect
                     )
                 } else {

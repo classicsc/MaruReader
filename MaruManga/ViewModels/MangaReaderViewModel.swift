@@ -23,12 +23,25 @@ import Observation
 import os
 import SwiftUI
 
+struct MangaRenderedPage {
+    let image: UIImage
+    let textClusters: [TextCluster]
+}
+
+private struct MangaPageRenderError: LocalizedError {
+    var errorDescription: String? {
+        MangaLocalization.string("Failed to decode image")
+    }
+}
+
 @MainActor
 @Observable
 final class MangaReaderViewModel {
     // MARK: - Configuration
 
     private static let saveDebounceInterval: UInt64 = 500_000_000 // 0.5 seconds
+    private static let singlePageWorkingSetRadius = 1
+    private static let spreadWorkingSetRadius = 1
     nonisolated static let screenshotLookupPreferredPrefix = "教授の実験"
 
     // MARK: - Navigation State
@@ -39,6 +52,7 @@ final class MangaReaderViewModel {
             if currentPageIndex != oldValue {
                 resetZoom()
                 debounceSaveProgress()
+                scheduleRenderedPageRefresh()
             }
         }
     }
@@ -46,10 +60,10 @@ final class MangaReaderViewModel {
     /// Total page count from the archive reader
     private(set) var pageCount: Int = 0
 
-    // MARK: - Page Data
+    // MARK: - Render Cache
 
-    /// Cached page data for loaded pages
-    private(set) var pageDataCache: [Int: MangaPageData] = [:]
+    /// Decoded pages currently retained for UI rendering.
+    private(set) var renderedPageCache: [Int: MangaRenderedPage] = [:]
 
     /// Loading state for pages
     private(set) var pageLoadingStates: [Int: PageLoadingState] = [:]
@@ -138,10 +152,13 @@ final class MangaReaderViewModel {
     // MARK: - Private State
 
     let manga: MangaArchive
-    private(set) var archiveReader: MangaArchiveReader?
+    private var pageProvider: (any MangaPageProviding)?
     private let persistenceController: MangaDataPersistenceController
+    private let archiveReaderFactory: @Sendable (URL) async throws -> any MangaPageProviding
 
     private var saveTask: Task<Void, Never>?
+    private var renderedPageRefreshTask: Task<Void, Never>?
+    private var pageLoadTasks: [Int: Task<Void, Never>] = [:]
     /// Tracks the page index that was last successfully saved
     private var lastSavedPageIndex: Int?
     private let logger = Logger.maru(category: "MangaReaderViewModel")
@@ -150,10 +167,14 @@ final class MangaReaderViewModel {
 
     init(
         manga: MangaArchive,
-        persistenceController: MangaDataPersistenceController = .shared
+        persistenceController: MangaDataPersistenceController = .shared,
+        archiveReaderFactory: @escaping @Sendable (URL) async throws -> any MangaPageProviding = { url in
+            try await MangaArchiveReader(url: url)
+        }
     ) {
         self.manga = manga
         self.persistenceController = persistenceController
+        self.archiveReaderFactory = archiveReaderFactory
 
         // Load persisted state
         loadPersistedState()
@@ -163,7 +184,7 @@ final class MangaReaderViewModel {
 
     /// Loads the archive reader asynchronously. Call this when the view appears.
     func loadArchive() async {
-        guard archiveReader == nil else { return }
+        guard pageProvider == nil else { return }
 
         guard let localPath = manga.localPath else {
             logger.error("Manga has no local path")
@@ -171,16 +192,15 @@ final class MangaReaderViewModel {
         }
 
         do {
-            let reader = try await MangaArchiveReader(url: localPath)
-            archiveReader = reader
+            let reader = try await archiveReaderFactory(localPath)
+            pageProvider = reader
             pageCount = await reader.pageCount
             logger.info("Loaded archive with \(self.pageCount) pages")
 
             // Compute initial spread layout now that we know page count
             recomputeSpreadLayout()
 
-            // Start loading current page
-            await loadPage(at: currentPageIndex)
+            await refreshRenderedPageWorkingSet()
         } catch {
             logger.error("Failed to load archive: \(error.localizedDescription)")
         }
@@ -188,23 +208,61 @@ final class MangaReaderViewModel {
 
     /// Loads a specific page's data
     func loadPage(at index: Int) async {
-        guard let reader = archiveReader else { return }
+        guard pageProvider != nil else { return }
         guard index >= 0, index < pageCount else { return }
 
-        // Skip if already loaded or loading
-        if pageDataCache[index] != nil { return }
-        if pageLoadingStates[index] == .loading { return }
+        if renderedPageCache[index] != nil {
+            pageLoadingStates[index] = .loaded
+            return
+        }
+
+        if let task = pageLoadTasks[index] {
+            await task.value
+            return
+        }
 
         pageLoadingStates[index] = .loading
+        let task = Task { [weak self, pageProvider] in
+            guard let pageProvider else {
+                await MainActor.run {
+                    self?.pageLoadTasks[index] = nil
+                }
+                return
+            }
 
-        do {
-            let pageData = try await reader.pageData(at: index)
-            pageDataCache[index] = pageData
-            pageLoadingStates[index] = .loaded
-        } catch {
-            logger.error("Failed to load page \(index): \(error.localizedDescription)")
-            pageLoadingStates[index] = .error(error.localizedDescription)
+            do {
+                let pageData = try await pageProvider.pageData(at: index)
+                guard let image = UIImage(data: pageData.imageData) else {
+                    throw MangaPageRenderError()
+                }
+
+                await MainActor.run {
+                    guard let self else { return }
+                    guard self.desiredRenderedPageIndices().contains(index) else {
+                        self.pageLoadingStates.removeValue(forKey: index)
+                        return
+                    }
+                    self.renderedPageCache[index] = MangaRenderedPage(
+                        image: image,
+                        textClusters: pageData.textClusters
+                    )
+                    self.pageLoadingStates[index] = .loaded
+                }
+            } catch {
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard let self else { return }
+                    self.logger.error("Failed to load page \(index): \(error.localizedDescription)")
+                    self.pageLoadingStates[index] = .error(error.localizedDescription)
+                }
+            }
+
+            await MainActor.run {
+                self?.pageLoadTasks[index] = nil
+            }
         }
+        pageLoadTasks[index] = task
+        await task.value
     }
 
     // MARK: - Navigation
@@ -280,6 +338,7 @@ final class MangaReaderViewModel {
             spreadMode: isSpreadModeActive,
             readingDirection: readingDirection
         )
+        scheduleRenderedPageRefresh()
     }
 
     // MARK: - Toolbar
@@ -324,12 +383,12 @@ final class MangaReaderViewModel {
     /// Triggers a dictionary lookup for the preferred OCR cluster on the current page.
     /// Used in screenshot mode to programmatically stage dictionary results.
     func triggerScreenshotClusterLookup() {
-        guard let pageData = pageDataCache[currentPageIndex],
+        guard let renderedPage = renderedPageCache[currentPageIndex],
               let clusterIndex = Self.screenshotLookupClusterIndex(
-                  in: pageData.textClusters.map(\.transcript)
+                  in: renderedPage.textClusters.map(\.transcript)
               )
         else { return }
-        handleClusterTap(pageData.textClusters[clusterIndex], pageIndex: currentPageIndex)
+        handleClusterTap(renderedPage.textClusters[clusterIndex], pageIndex: currentPageIndex)
     }
 
     nonisolated static func screenshotLookupClusterIndex(
@@ -354,8 +413,13 @@ final class MangaReaderViewModel {
     }
 
     private func makeScreenshotURL(for pageIndex: Int) async -> URL? {
-        guard let pageData = pageDataCache[pageIndex] else { return nil }
+        guard let pageData = await rawPageData(at: pageIndex) else { return nil }
         return await writeJPEGContextImage(pageData.imageData, prefix: "manga_page")
+    }
+
+    func rawPageData(at index: Int) async -> MangaPageData? {
+        guard let pageProvider, index >= 0, index < pageCount else { return nil }
+        return try? await pageProvider.pageData(at: index)
     }
 
     private func makeCoverContextImageURL() async -> URL? {
@@ -479,6 +543,65 @@ final class MangaReaderViewModel {
         saveTask?.cancel()
         Task {
             await saveReadingProgress()
+        }
+    }
+
+    func waitForPendingPageLoads() async {
+        await renderedPageRefreshTask?.value
+        for task in Array(pageLoadTasks.values) {
+            _ = await task.result
+        }
+    }
+
+    private func scheduleRenderedPageRefresh() {
+        guard pageProvider != nil, pageCount > 0 else { return }
+
+        renderedPageRefreshTask?.cancel()
+        renderedPageRefreshTask = Task { [weak self] in
+            guard let self else { return }
+            await self.refreshRenderedPageWorkingSet()
+        }
+    }
+
+    private func refreshRenderedPageWorkingSet() async {
+        let desiredIndices = desiredRenderedPageIndices()
+        evictRenderedPages(except: desiredIndices)
+
+        for index in desiredIndices.sorted() {
+            guard !Task.isCancelled else { return }
+            await loadPage(at: index)
+        }
+
+        evictRenderedPages(except: desiredIndices)
+    }
+
+    private func desiredRenderedPageIndices() -> Set<Int> {
+        guard pageCount > 0 else { return [] }
+
+        if isSpreadModeActive, spreadLayout.count > 0 {
+            let currentIndex = max(0, min(currentSpreadIndex, spreadLayout.count - 1))
+            let lowerBound = max(0, currentIndex - Self.spreadWorkingSetRadius)
+            let upperBound = min(spreadLayout.count - 1, currentIndex + Self.spreadWorkingSetRadius)
+
+            var indices: Set<Int> = []
+            for spreadIndex in lowerBound ... upperBound {
+                indices.formUnion(spreadLayout.pages(atSpreadIndex: spreadIndex))
+            }
+            return indices
+        }
+
+        let lowerBound = max(0, currentPageIndex - Self.singlePageWorkingSetRadius)
+        let upperBound = min(pageCount - 1, currentPageIndex + Self.singlePageWorkingSetRadius)
+        return Set(lowerBound ... upperBound)
+    }
+
+    private func evictRenderedPages(except desiredIndices: Set<Int>) {
+        for index in Array(renderedPageCache.keys) where !desiredIndices.contains(index) {
+            renderedPageCache.removeValue(forKey: index)
+        }
+
+        for (index, state) in Array(pageLoadingStates) where state == .loaded && !desiredIndices.contains(index) {
+            pageLoadingStates.removeValue(forKey: index)
         }
     }
 }
