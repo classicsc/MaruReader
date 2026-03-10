@@ -44,6 +44,11 @@ final class MangaReaderViewModel {
     private static let spreadWorkingSetRadius = 1
     nonisolated static let screenshotLookupPreferredPrefix = "教授の実験"
 
+    /// Maximum pixel dimension for display rendering.
+    /// Images are downsampled to at most this size to avoid massive bitmap allocations.
+    /// Covers all current iOS/iPadOS screen sizes with margin.
+    private static let displayMaxPixelSize: CGFloat = 3072
+
     // MARK: - Navigation State
 
     /// The current page index (0-based)
@@ -232,7 +237,10 @@ final class MangaReaderViewModel {
 
             do {
                 let pageData = try await pageProvider.pageData(at: index)
-                guard let image = UIImage(data: pageData.imageData) else {
+                guard let image = ImageDownsampler.downsample(
+                    data: pageData.imageData,
+                    maxPixelSize: Self.displayMaxPixelSize
+                ) else {
                     throw MangaPageRenderError()
                 }
 

@@ -90,6 +90,11 @@ public actor MangaArchiveReader {
     /// Number of pages to prefetch behind the current page
     public static let prefetchBehind: Int = 1
 
+    /// Maximum pixel dimension for images passed to OCR.
+    /// Vision's text recognition works well at this resolution for manga text,
+    /// avoiding the ~450 MB VNImageBuffer allocation from full-resolution images.
+    static let ocrMaxPixelSize: CGFloat = 2048
+
     /// Supported image file extensions
     private static let imageExtensions: Set<String> = ["jpg", "jpeg", "png", "gif", "webp"]
 
@@ -100,6 +105,9 @@ public actor MangaArchiveReader {
     private let cache: LRUCache<Int, MangaPageData>
     private var prefetchTask: Task<Void, Never>?
     private let ocr = OCR()
+    /// Tracks pages that have had OCR performed, so we don't re-run OCR
+    /// on pages whose image data is still cached from a prefetch.
+    private var pagesWithOCR: Set<Int> = []
 
     // MARK: - Initialization
 
@@ -137,6 +145,7 @@ public actor MangaArchiveReader {
     /// Retrieves the page data for the page at the specified index.
     ///
     /// This method checks the cache first and extracts from the archive on a cache miss.
+    /// OCR is performed with a downsampled image to limit memory usage.
     /// It also triggers prefetching of surrounding pages in the background.
     ///
     /// - Parameter index: The zero-based page index.
@@ -144,43 +153,66 @@ public actor MangaArchiveReader {
     /// - Throws: `MangaArchiveReaderError.pageIndexOutOfBounds` if the index is invalid,
     ///           or `MangaArchiveReaderError.extractionFailed` if extraction fails.
     public func pageData(at index: Int) async throws -> MangaPageData {
-        let data = try await loadPage(at: index)
-
-        // Trigger prefetch for surrounding pages
-        triggerPrefetch(around: index)
-
-        return data
-    }
-
-    /// Internal method to load a page without triggering prefetch.
-    /// Used by both public pageData and internal prefetch logic.
-    private func loadPage(at index: Int) async throws -> MangaPageData {
         guard index >= 0, index < sortedPages.count else {
             throw MangaArchiveReaderError.pageIndexOutOfBounds(index: index, count: sortedPages.count)
         }
 
-        // Check cache first
-        if let cached = cache.value(forKey: index) {
+        // Return fully cached page with OCR results
+        if let cached = cache.value(forKey: index), pagesWithOCR.contains(index) {
+            triggerPrefetch(around: index)
             return cached
         }
 
-        // Extract from archive
-        let entry = sortedPages[index]
-        let imageData = try await extractPage(entry)
-        let clusters = try await ocr.performOCR(imageData: imageData)
-        let fileExtension = (entry.path as NSString).pathExtension.lowercased()
+        // Get image data from cache (may have been prefetched) or extract from archive
+        let imageData: Data
+        let fileExtension: String
+        if let cached = cache.value(forKey: index) {
+            imageData = cached.imageData
+            fileExtension = cached.imageFileExtension ?? ""
+        } else {
+            let entry = sortedPages[index]
+            imageData = try await extractPage(entry)
+            fileExtension = (entry.path as NSString).pathExtension.lowercased()
+        }
 
-        // Create page data with empty text clusters
+        // Run OCR on downsampled image data to limit VNImageBuffer allocation
+        let ocrImageData = ImageDownsampler.downsampledJPEGData(
+            data: imageData,
+            maxPixelSize: Self.ocrMaxPixelSize
+        ) ?? imageData
+        let clusters = try await ocr.performOCR(imageData: ocrImageData)
+
         let pageData = MangaPageData(
             imageData: imageData,
             imageFileExtension: fileExtension.isEmpty ? nil : fileExtension,
             textClusters: clusters
         )
 
-        // Store in cache with cost = byte count
         cache.setValue(pageData, forKey: index, cost: imageData.count)
+        pagesWithOCR.insert(index)
 
+        triggerPrefetch(around: index)
         return pageData
+    }
+
+    /// Extracts and caches image data for a page without running OCR.
+    ///
+    /// Used by prefetch to populate the cache cheaply—only the compressed
+    /// image bytes are held in memory, with no bitmap or VNImageBuffer allocation.
+    private func cacheImageData(at index: Int) async throws {
+        guard index >= 0, index < sortedPages.count else { return }
+        guard cache.value(forKey: index) == nil else { return }
+
+        let entry = sortedPages[index]
+        let imageData = try await extractPage(entry)
+        let fileExtension = (entry.path as NSString).pathExtension.lowercased()
+
+        let pageData = MangaPageData(
+            imageData: imageData,
+            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension
+        )
+
+        cache.setValue(pageData, forKey: index, cost: imageData.count)
     }
 
     // MARK: - Private Implementation
@@ -222,7 +254,8 @@ public actor MangaArchiveReader {
     /// Triggers prefetching of pages around the given index.
     ///
     /// This cancels any previous prefetch task and starts a new one.
-    /// Prefetch happens in a detached task to avoid blocking the caller.
+    /// Prefetch only extracts and caches image data—OCR is deferred until
+    /// the page is actually displayed via `pageData(at:)`.
     private func triggerPrefetch(around index: Int) {
         prefetchTask?.cancel()
 
@@ -250,8 +283,7 @@ public actor MangaArchiveReader {
                     continue
                 }
 
-                // Load the page without triggering another prefetch
-                _ = try? await self.loadPage(at: i)
+                try? await self.cacheImageData(at: i)
             }
         }
     }
@@ -259,7 +291,8 @@ public actor MangaArchiveReader {
     /// Prefetches specific pages by their indices.
     ///
     /// Used for spread-aware prefetching where the caller knows which pages
-    /// to load based on the current spread layout.
+    /// to load based on the current spread layout. Only extracts and caches
+    /// image data—OCR is deferred until the page is displayed.
     ///
     /// - Parameter indices: The page indices to prefetch.
     public func prefetchPages(_ indices: [Int]) {
@@ -279,7 +312,7 @@ public actor MangaArchiveReader {
                     continue
                 }
 
-                _ = try? await self.loadPage(at: index)
+                try? await self.cacheImageData(at: index)
             }
         }
     }
