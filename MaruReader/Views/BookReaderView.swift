@@ -26,7 +26,7 @@ import WebKit
 
 struct BookReaderView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 44
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 48
 
     @State private var viewModel: BookReaderViewModel
@@ -273,6 +273,8 @@ struct BookReaderView: View {
                 viewModel.overlayState = .showingTableOfContents
             } label: {
                 Image(systemName: "list.bullet")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
             .accessibilityLabel("Table of contents")
             .accessibilityIdentifier("bookReader.tableOfContents")
@@ -282,6 +284,8 @@ struct BookReaderView: View {
                 viewModel.isDictionaryActive.toggle()
             } label: {
                 Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
             .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
             .accessibilityIdentifier("bookReader.dictionaryMode")
@@ -373,6 +377,8 @@ struct BookReaderView: View {
             }
         } label: {
             Image(systemName: "textformat")
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
                 .accessibilityLabel("Appearance and text")
         }
         .accessibilityLabel("Appearance and text")
@@ -388,6 +394,7 @@ struct BookReaderView: View {
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
+        .contentShape(.circle)
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
         .accessibilityLabel("Back")
@@ -435,6 +442,8 @@ struct BookReaderView: View {
             }
         } label: {
             Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
+                .frame(minWidth: 44, minHeight: 44)
+                .contentShape(.rect)
         }
         .accessibilityLabel("Bookmarks")
         .tint(readerDictionaryPresentationTheme.foregroundColor)

@@ -55,12 +55,14 @@ struct WebAddressBar: View {
                 Button(action: onSubmit) {
                     Image(systemName: "arrow.right.circle.fill")
                         .font(.system(size: goButtonSize))
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Go")
             }
         }
-        .padding(.vertical, 8)
+        .frame(minHeight: 44)
         .padding(.horizontal, 12)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }

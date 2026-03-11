@@ -197,17 +197,21 @@ public struct DictionarySearchView: View {
     }
 
     private var bottomToolbar: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 8) {
             // Navigation buttons
             Button(action: { viewModel.navigateBack() }) {
                 Label("Back", systemImage: "chevron.backward")
                     .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
             .disabled(!viewModel.history.canGoBack)
 
             Button(action: { viewModel.navigateForward() }) {
                 Label("Forward", systemImage: "chevron.forward")
                     .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
             .disabled(!viewModel.history.canGoForward)
 
@@ -215,6 +219,8 @@ public struct DictionarySearchView: View {
             Button(action: { viewModel.toggleLinksActive() }) {
                 Label("Links", systemImage: viewModel.linksActiveEnabled ? "pointer.arrow" : "pointer.arrow.slash")
                     .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(.rect)
             }
 
             Spacer()
@@ -225,6 +231,8 @@ public struct DictionarySearchView: View {
                 Button(action: { viewModel.toggleFurigana() }) {
                     Label("Furigana", systemImage: viewModel.furiganaEnabled ? "textformat.characters.dottedunderline.ja" : "textformat.characters.ja")
                         .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(.rect)
                 }
 
                 // Edit/Done button
@@ -232,16 +240,22 @@ public struct DictionarySearchView: View {
                     Button(action: { viewModel.commitContextEdit() }) {
                         Label("Done", systemImage: "checkmark")
                             .labelStyle(.iconOnly)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
                     }
 
                     Button(action: { viewModel.cancelContextEdit() }) {
                         Label("Cancel", systemImage: "xmark")
                             .labelStyle(.iconOnly)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
                     }
                 } else {
                     Button(action: { viewModel.startEditingContext() }) {
                         Label("Edit", systemImage: "pencil")
                             .labelStyle(.iconOnly)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
                     }
                 }
 
@@ -249,10 +263,12 @@ public struct DictionarySearchView: View {
                 Button(action: { viewModel.copyContextToClipboard() }) {
                     Label("Copy", systemImage: "doc.on.doc")
                         .labelStyle(.iconOnly)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(.rect)
                 }
             }
         }
-        .padding(.horizontal)
+        .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .background(themedBackgroundColor)
         .overlay(alignment: .top) {

@@ -435,6 +435,7 @@ struct BookGridItem: View {
                 .controlSize(.small)
             }
         }
+        .contentShape(Rectangle())
     }
 }
 

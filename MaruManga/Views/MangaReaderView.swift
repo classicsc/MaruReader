@@ -21,7 +21,7 @@ import SwiftUI
 /// The main manga reader view with paging, toolbars, and dictionary integration.
 public struct MangaReaderView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 44
 
     @State private var viewModel: MangaReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?

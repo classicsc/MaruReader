@@ -84,5 +84,6 @@ private struct BookmarkCard: View {
         .padding(.horizontal, 10)
         .frame(maxWidth: .infinity)
         .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }

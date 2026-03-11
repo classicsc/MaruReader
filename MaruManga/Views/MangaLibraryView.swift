@@ -451,6 +451,7 @@ struct MangaArchiveGridItem: View {
                 .controlSize(.small)
             }
         }
+        .contentShape(Rectangle())
     }
 }
 

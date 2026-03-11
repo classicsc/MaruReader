@@ -146,6 +146,7 @@ private struct WebBookmarkRow: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
     }
 
     private var displayTitle: String {

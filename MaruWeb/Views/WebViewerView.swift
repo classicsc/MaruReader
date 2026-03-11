@@ -23,7 +23,7 @@ import WebKit
 
 public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
-    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 44
     @ScaledMetric(relativeTo: .body) private var collapsedAddressMaxWidth: CGFloat = 180
 
     @State private var viewModel: WebViewerViewModel
@@ -633,7 +633,7 @@ public struct WebViewerView: View {
             Image(systemName: systemName)
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
         }
-        .frame(width: floatingButtonFrameSize - 4, height: floatingButtonFrameSize)
+        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         .contentShape(.rect)
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel)
@@ -751,11 +751,14 @@ private struct AddressBarCapsuleView: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: iconSize, weight: .regular))
                         .foregroundStyle(.secondary)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Clear text")
             }
         }
+        .frame(minHeight: 44)
         .padding(.horizontal, 14)
         .glassEffect(in: Capsule())
         .glassEffectID("address", in: namespace)
@@ -782,7 +785,9 @@ private struct CollapsedAddressCapsuleView: View {
             .font(.subheadline)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
+            .frame(minHeight: 44)
             .frame(maxWidth: maxWidth)
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
         .glassEffect(in: Capsule())
@@ -862,6 +867,8 @@ private struct TabSwitcherRow: View {
             Button(role: .destructive, action: onClose) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundStyle(.secondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(.circle)
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close Tab")
