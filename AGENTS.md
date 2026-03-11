@@ -8,11 +8,15 @@ MaruReader is a Japanese language learning tool for iOS/iPadOS that combines a Y
 
 MaruReader is pre-release but nearly feature complete. Data models are not frozen. When replacing APIs, they should be removed instead of marking as deprecated.
 
-New and substantially changed functionality requires unit test coverage. Use red/green TDD when implementing such changes.
+New and substantially changed functionality requires unit test coverage. Red/green TDD is recommended.
+
+Changes that touch the UI need to be verified interactively. If available in your environment, the `xcodebuildmcp` command line tool is recommended for launching the app in a simulator.
 
 ## Build Commands
 
-Always verify your changes compile, even if a build is not specifically requested. When modifying tested logic or adding tests, verify the relevant test plan passes. Test plans pick up new tests from the associated target. Targets pick up new files via folder groups, so no need for project file editing for routine adding and removing of source code files.
+Always verify your changes compile, even if a build is not specifically requested. When modifying tested logic or adding tests, verify the relevant test plan passes.
+
+ Test plans pick up new tests from the associated target. Targets pick up new files via folder groups, so no need for project file editing for routine adding and removing of source code files.
 
 In command environments subject to sandboxing, these commands are approved to run unsandboxed.
 
@@ -22,7 +26,6 @@ just build # Build the project
 just test # Run all tests
 just test-plan MaruReaderCoreTests # Run a specific test plan
 just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests # Run a specific test
-just contentblocker # Build the content blocker extension
 ```
 
 Avoid running these commands in parallel, it may cause build folder locking failures.
@@ -45,4 +48,4 @@ MaruReader targets iOS 26+, so newer APIs are available and do not require avail
 
 Liquid Glass is the iOS 26 systemwide theme and design language, which emphasizes the use of transparency and UI elements that morph, split, and merge like drops of water.
 
-Documentation search tools, if available in your environment, can help learning about these patterns, as well as anything else you want to reference from Apple's developer docs. In environments without dedicated Apple documentation functions, you can fetch documents in Markdown format by replacing the `developer.apple.com` in a URL with `sosumi.ai`.
+Documentation search tools, if available in your environment, can help. In environments without dedicated Apple documentation functions, you can fetch documents in Markdown format by replacing the `developer.apple.com` in a URL with `sosumi.ai`.

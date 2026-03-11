@@ -55,12 +55,21 @@ just screenshots # Generate new screenshots for App Store listing (requires fast
 
 ### Agents
 
-The repo includes a basic AGENTS.md/CLAUDE.md file that attempts to get coding agents on the right track with build commands and API availibility. It intentionally doesn't include any kind of structural overview, because that burdens the context window and is better learned through targeted exploration.
+Much of MaruReader was made using coding agents! Specifically, the initial translation to Swift of deinflection and test code from Yomitan, dictionary HTML generation, the WebKit parts of MaruWeb, most of the MaruAnki framework, and most of the JP localization were made using agents, albeit with strict steering and review. I'm not against anyone sending AI-assisted pull requests if they're good, but manually ensuring that the patch is sensible, self-contained and not massive, passes tests, actually works in practice, etc, is just good manners. Development style is "AI-assisted", not "vibe coded".
 
-You're welcome to use coding agents to help with PRs, but you are still responsible for ensuring that the code is sensible, passes tests, etc. Recommended development style is "AI-assisted", not "vibe coded".
+If you want to work on MaruReader with a coding agent, I recommend getting the [sosumi docs search MCP](https://sosumi.ai) and the [xcodebuildmcp UI automation CLI](https://github.com/getsentry/XcodeBuildMCP) (confusingly, the best way to use it is with the CLI, not an actual MCP daemon). Also make sure that xcodebuild-based `just` commands and `xcodebuildmcp` (if you're using it) can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder.
 
-## GPLv3 Note
+## Licensing Note
 
-It is the author's opinion that app store distribution of GPLv3 software is in accordance with the spirit of the license, provided the rights granted by GPLv3 are not unfairly limited. For example, MaruReader publishes its source code, build instructions, and release artifacts on GitHub; these are not subject to Apple or third-party app store EULAs.
+I've seen a lot of developers of OSS apps for iOS complain about their apps getting ripped off, so I will say some things up front to hopefully discourage anyone from making a noncompliant version of MaruReader.
 
-By contributing, you acknowledge that MaruReader and any forks can be distributed on app stores, provided they comply with the license terms. If you have concerns about GPL compliance, please open an issue to discuss.
+- MaruReader is licensed under GPLv3. This is not a permisssive type license like MIT, it carries obligations you have to follow or lose it
+- If you distribute a derivative work, incorporate all or part of MaruReader into your app, or put something that is derived from or includes MaruReader on the Apple App Store or a third-party app store, you must comply with the GPLv3 terms
+  - It's not very long, reading the whole thing is a good idea
+- See sections 5 and 6 of the license for some specific obligations. MaruReader follows these by:
+  - Licensing under GPLv3 (5c)
+  - Carrying all the proper notices in the About section of the GUI (5a, 5b, 5d)
+  - Source code corresponding to each release can be accessed from a designated place (GitHub Releases), linked from the App Store page and the GUI (6d), and I'll ensure this stays available at least as long as the app is offered on the App Store or somewhere else
+  - MaruReader does not use any libraries or assets with incompatible licenses, aside from system libraries
+
+If you have concerns about GPL compliance, please open an issue to discuss.
