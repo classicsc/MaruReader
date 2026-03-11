@@ -16,7 +16,10 @@
 		DB1C343E2EB85BFB00315E79 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 		DB1C34442EB8685200315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DB3379E62F3D8FBD0062E31B /* marureader-v1.icon in Resources */ = {isa = PBXBuildFile; fileRef = DB3379E52F3D8FBD0062E31B /* marureader-v1.icon */; };
-		DB3C42EA2F343601007F2896 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB3C42E92F343601007F2896 /* LRUCache */; };
+		DB35EE842F6101FA00A6BBC6 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB35EE832F6101FA00A6BBC6 /* LRUCache */; };
+		DB35EE862F61021C00A6BBC6 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB35EE852F61021C00A6BBC6 /* LRUCache */; };
+		DB35EE882F61022900A6BBC6 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB35EE872F61022900A6BBC6 /* LRUCache */; };
+		DB35EE8A2F61024200A6BBC6 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB35EE892F61024200A6BBC6 /* LRUCache */; };
 		DB4A77332F01407400DBCAD9 /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DB58C7E22EAB03CA00CE59FD /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB5DFD072E76701F0085AC1F /* JsonStream */; };
 		DB58C7E32EAB03CA00CE59FD /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */; };
@@ -54,8 +57,6 @@
 		DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11C2F0C98CC00B42F93 /* MaruManga.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBDCE1282F0C9F2700B42F93 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE1272F0C9F2700B42F93 /* ReadiumZIPFoundation */; };
-		DBDCE12E2F0CAC3700B42F93 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE12D2F0CAC3700B42F93 /* LRUCache */; };
-		DBDCE1302F0CAC4700B42F93 /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE12F2F0CAC4700B42F93 /* LRUCache */; };
 		DBDCE1452F0CC72F00B42F93 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DBDCE1442F0CC72F00B42F93 /* Zip */; };
 		DBDCE3172F0EBF8B00B42F93 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DBDCE31C2F0EC13600B42F93 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
@@ -600,6 +601,7 @@
 				DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */,
 				DBDCEC152F0F65AF00B42F93 /* MaruWeb.framework in Frameworks */,
 				DB58C9172EAB173700CE59FD /* MaruDictionaryUICommon.framework in Frameworks */,
+				DB35EE842F6101FA00A6BBC6 /* LRUCache in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -653,7 +655,7 @@
 				DBD755692F120EF8000AFED1 /* IPADic in Frameworks */,
 				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
-				DB3C42EA2F343601007F2896 /* LRUCache in Frameworks */,
+				DB35EE8A2F61024200A6BBC6 /* LRUCache in Frameworks */,
 				DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */,
 				DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */,
 			);
@@ -675,10 +677,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				DBDCE3172F0EBF8B00B42F93 /* MaruVision.framework in Frameworks */,
+				DB35EE862F61021C00A6BBC6 /* LRUCache in Frameworks */,
 				DBDCE31C2F0EC13600B42F93 /* MaruReaderCore.framework in Frameworks */,
 				DBDCE1282F0C9F2700B42F93 /* ReadiumZIPFoundation in Frameworks */,
 				DBDCE3202F0EC13E00B42F93 /* MaruDictionaryUICommon.framework in Frameworks */,
-				DBDCE1302F0CAC4700B42F93 /* LRUCache in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -730,7 +732,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */,
-				DBDCE12E2F0CAC3700B42F93 /* LRUCache in Frameworks */,
+				DB35EE882F61022900A6BBC6 /* LRUCache in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -947,6 +949,7 @@
 				DB97CED52E8B332D00E9723D /* ReadiumShared */,
 				DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */,
 				DBD9069F2E9AF52D00A4F03E /* AsyncAlgorithms */,
+				DB35EE832F6101FA00A6BBC6 /* LRUCache */,
 			);
 			productName = MaruReader;
 			productReference = DB2B698C2E660F8B00EDA656 /* MaruReader.app */;
@@ -1095,7 +1098,7 @@
 				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
 				DBD755682F120EF8000AFED1 /* IPADic */,
 				DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */,
-				DB3C42E92F343601007F2896 /* LRUCache */,
+				DB35EE892F61024200A6BBC6 /* LRUCache */,
 			);
 			productName = MaruReaderCore;
 			productReference = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */;
@@ -1151,7 +1154,7 @@
 			name = MaruManga;
 			packageProductDependencies = (
 				DBDCE1272F0C9F2700B42F93 /* ReadiumZIPFoundation */,
-				DBDCE12F2F0CAC4700B42F93 /* LRUCache */,
+				DB35EE852F61021C00A6BBC6 /* LRUCache */,
 			);
 			productName = MaruManga;
 			productReference = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */;
@@ -1299,7 +1302,7 @@
 			);
 			name = MaruAnki;
 			packageProductDependencies = (
-				DBDCE12D2F0CAC3700B42F93 /* LRUCache */,
+				DB35EE872F61022900A6BBC6 /* LRUCache */,
 			);
 			productName = MaruAnki;
 			productReference = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */;
@@ -1420,7 +1423,7 @@
 				DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */,
 				DBDCE1262F0C9F2700B42F93 /* XCRemoteSwiftPackageReference "ZIPFoundation" */,
-				DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */,
+				DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = DB2B698D2E660F8B00EDA656 /* Products */;
@@ -3341,6 +3344,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nicklockwood/LRUCache.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.2.1;
+			};
+		};
 		DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/shinjukunian/Mecab-Swift";
@@ -3389,20 +3400,27 @@
 				minimumVersion = 3.0.1;
 			};
 		};
-		DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/nicklockwood/LRUCache.git";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DB3C42E92F343601007F2896 /* LRUCache */ = {
+		DB35EE832F6101FA00A6BBC6 /* LRUCache */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			package = DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
+		};
+		DB35EE852F61021C00A6BBC6 /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
+		};
+		DB35EE872F61022900A6BBC6 /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
+		};
+		DB35EE892F61024200A6BBC6 /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */;
 			productName = LRUCache;
 		};
 		DB58C8F92EAB137600CE59FD /* Zip */ = {
@@ -3483,16 +3501,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DBDCE1262F0C9F2700B42F93 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ReadiumZIPFoundation;
-		};
-		DBDCE12D2F0CAC3700B42F93 /* LRUCache */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */;
-			productName = LRUCache;
-		};
-		DBDCE12F2F0CAC4700B42F93 /* LRUCache */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DBDCE12C2F0CAC3700B42F93 /* XCRemoteSwiftPackageReference "LRUCache" */;
-			productName = LRUCache;
 		};
 		DBDCE1442F0CC72F00B42F93 /* Zip */ = {
 			isa = XCSwiftPackageProductDependency;
