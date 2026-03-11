@@ -19,7 +19,6 @@ import CoreData
 import Foundation
 import MaruReaderCore
 import os
-import ReadiumAdapterGCDWebServer
 import ReadiumNavigator
 import ReadiumShared
 import ReadiumStreamer
@@ -58,8 +57,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             let navigator = try EPUBNavigatorViewController(
                 publication: publication,
                 initialLocation: viewModel.initialLocation,
-                config: config,
-                httpServer: GCDHTTPServer(assetRetriever: AssetRetriever(httpClient: DefaultHTTPClient()))
+                config: config
             )
 
             navigator.delegate = context.coordinator
