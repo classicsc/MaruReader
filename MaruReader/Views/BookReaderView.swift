@@ -46,11 +46,34 @@ struct BookReaderView: View {
         Binding(
             get: { viewModel.overlayState == .showingTableOfContents },
             set: { newValue in
-                if newValue {
-                    viewModel.overlayState = .showingTableOfContents
-                } else if viewModel.overlayState == .showingTableOfContents {
-                    viewModel.overlayState = .showingToolbars
-                }
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    newValue,
+                    for: .showingTableOfContents
+                )
+            }
+        )
+    }
+
+    private var showingAppearancePopover: Binding<Bool> {
+        Binding(
+            get: { viewModel.overlayState == .showingQuickSettings },
+            set: { newValue in
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    newValue,
+                    for: .showingQuickSettings
+                )
+            }
+        )
+    }
+
+    private var showingBookmarksPopover: Binding<Bool> {
+        Binding(
+            get: { viewModel.overlayState == .showingBookmarks },
+            set: { newValue in
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    newValue,
+                    for: .showingBookmarks
+                )
             }
         )
     }
@@ -221,7 +244,7 @@ struct BookReaderView: View {
             .safeAreaInset(edge: .bottom) {
                 ZStack(alignment: .bottom) {
                     // Invisible spacer to reserve consistent height
-                    bottomToolbarOverlay.hidden()
+                    bottomToolbarSpacer.hidden()
 
                     if viewModel.overlayState.shouldShowToolbars {
                         bottomToolbarOverlay
@@ -234,8 +257,11 @@ struct BookReaderView: View {
                 .applyLocalColorScheme(readerOverlayForcedColorScheme)
             }
             .safeAreaInset(edge: .top) {
-                topToolbarOverlay
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                ZStack(alignment: .top) {
+                    topToolbarSpacer.hidden()
+                    topToolbarOverlay
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
             }
         }
         .background(readerBackgroundColor.ignoresSafeArea())
@@ -266,6 +292,23 @@ struct BookReaderView: View {
             Spacer().frame(width: floatingButtonFrameSize)
         }
         .padding(.horizontal)
+    }
+
+    private var topToolbarSpacer: some View {
+        HStack {
+            Color.clear
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+            Spacer()
+            Text(viewModel.book.title ?? "Book Reader")
+                .font(.headline)
+                .hidden()
+            Spacer()
+            Color.clear
+                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+        }
+        .padding(.horizontal)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     private var bottomToolbarOverlay: some View {
@@ -311,6 +354,14 @@ struct BookReaderView: View {
         .padding(.bottom, 20)
     }
 
+    private var bottomToolbarSpacer: some View {
+        Color.clear
+            .frame(height: 88)
+            .frame(maxWidth: .infinity)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+    }
+
     private var progressDisplayOverlay: some View {
         let availableModes = availableProgressDisplayModes
         return Group {
@@ -337,54 +388,46 @@ struct BookReaderView: View {
     }
 
     private var appearanceMenuButton: some View {
-        Menu {
-            Section("Text Size") {
-                Stepper(
-                    value: Binding(
-                        get: { viewModel.readerPreferences.effectiveFontSize },
-                        set: { viewModel.readerPreferences.fontSize = $0 }
-                    ),
-                    in: 50.0 ... 200.0,
-                    step: 10.0
-                ) {
-                    Label(
-                        AppLocalization.fontScale(Int(viewModel.readerPreferences.effectiveFontSize)),
-                        systemImage: "textformat.size"
-                    )
-                }
-            }
-
-            Section("Font") {
-                ForEach(ReaderFontFamilyOption.allCases, id: \.self) { option in
-                    appearanceMenuSelectionButton(
-                        title: option.displayName,
-                        isSelected: viewModel.readerPreferences.selectedFontFamilyOption == option
-                    ) {
-                        viewModel.readerPreferences.setFontFamilyOption(option)
-                    }
-                }
-            }
-
-            Section("Appearance") {
-                ForEach(ReaderAppearanceMode.allCases, id: \.self) { mode in
-                    appearanceMenuSelectionButton(
-                        title: mode.displayName,
-                        isSelected: viewModel.readerPreferences.selectedAppearanceMode == mode
-                    ) {
-                        viewModel.readerPreferences.setAppearanceMode(mode)
-                        applyReaderDictionaryTheme()
-                    }
-                }
+        Button {
+            if viewModel.overlayState == .showingQuickSettings {
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    false,
+                    for: .showingQuickSettings
+                )
+            } else {
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    true,
+                    for: .showingQuickSettings
+                )
             }
         } label: {
             Image(systemName: "textformat")
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(.rect)
-                .accessibilityLabel("Appearance and text")
         }
         .accessibilityLabel("Appearance and text")
-        .applyLocalColorScheme(readerOverlayForcedColorScheme)
-        .tint(readerDictionaryPresentationTheme.foregroundColor)
+        .accessibilityIdentifier("bookReader.appearanceButton")
+        .popover(
+            isPresented: showingAppearancePopover,
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .bottom
+        ) {
+            BookReaderAppearancePopover(
+                readerPreferences: viewModel.readerPreferences,
+                theme: readerDictionaryPresentationTheme,
+                onSelectAppearanceMode: { mode in
+                    viewModel.readerPreferences.setAppearanceMode(mode)
+                    applyReaderDictionaryTheme()
+                },
+                onDismiss: {
+                    viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                        false,
+                        for: .showingQuickSettings
+                    )
+                }
+            )
+            .accessibilityIdentifier("bookReader.appearancePopover")
+        }
     }
 
     private var floatingBackButton: some View {
@@ -405,41 +448,17 @@ struct BookReaderView: View {
     @ViewBuilder
     private var bookmarkButton: some View {
         let isCurrentLocationBookmarked = viewModel.currentLocationBookmark != nil
-        Menu {
-            if isCurrentLocationBookmarked {
-                Button(role: .destructive) {
-                    viewModel.removeBookmarkAtCurrentLocation()
-                } label: {
-                    Label("Remove Bookmark", systemImage: "bookmark.slash")
-                }
+        Button {
+            if viewModel.overlayState == .showingBookmarks {
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    false,
+                    for: .showingBookmarks
+                )
             } else {
-                Button {
-                    viewModel.bookmarkCurrentLocation()
-                } label: {
-                    Label("Add Bookmark", systemImage: "bookmark.fill")
-                }
-            }
-
-            if !viewModel.bookmarks.isEmpty {
-                Section("Bookmarks") {
-                    ForEach(viewModel.bookmarks, id: \.id) { bookmark in
-                        Button {
-                            viewModel.navigateToBookmark(bookmark)
-                        } label: {
-                            Text(bookmark.title ?? "Bookmark")
-                        }
-                    }
-                }
-            }
-
-            if viewModel.previousLocation != nil {
-                Section {
-                    Button {
-                        viewModel.returnToPreviousLocation()
-                    } label: {
-                        Label("Return to Previous Location", systemImage: "arrow.uturn.backward")
-                    }
-                }
+                viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                    true,
+                    for: .showingBookmarks
+                )
             }
         } label: {
             Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
@@ -447,7 +466,47 @@ struct BookReaderView: View {
                 .contentShape(.rect)
         }
         .accessibilityLabel("Bookmarks")
-        .tint(readerDictionaryPresentationTheme.foregroundColor)
+        .accessibilityIdentifier("bookReader.bookmarksButton")
+        .popover(
+            isPresented: showingBookmarksPopover,
+            attachmentAnchor: .rect(.bounds),
+            arrowEdge: .bottom
+        ) {
+            BookReaderBookmarksPopover(
+                bookmarks: viewModel.bookmarks,
+                currentBookmarkID: viewModel.currentLocationBookmark?.objectID,
+                isCurrentLocationBookmarked: isCurrentLocationBookmarked,
+                canReturnToPreviousLocation: viewModel.previousLocation != nil,
+                theme: readerDictionaryPresentationTheme,
+                onAddBookmark: {
+                    viewModel.bookmarkCurrentLocation()
+                    viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                        false,
+                        for: .showingBookmarks
+                    )
+                },
+                onRemoveBookmark: {
+                    viewModel.removeBookmarkAtCurrentLocation()
+                    viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                        false,
+                        for: .showingBookmarks
+                    )
+                },
+                onNavigateToBookmark: { bookmark in
+                    viewModel.navigateToBookmark(bookmark)
+                },
+                onReturnToPreviousLocation: {
+                    viewModel.returnToPreviousLocation()
+                },
+                onDismiss: {
+                    viewModel.overlayState = viewModel.overlayState.settingPresentation(
+                        false,
+                        for: .showingBookmarks
+                    )
+                }
+            )
+            .accessibilityIdentifier("bookReader.bookmarksPopover")
+        }
     }
 
     private func errorView(error: Error) -> some View {
@@ -586,22 +645,6 @@ struct BookReaderView: View {
 
     private var toolbarSecondaryColor: SwiftUI.Color {
         viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
-    }
-
-    private func appearanceMenuSelectionButton(
-        title: String,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack {
-                Text(title)
-                Spacer()
-                if isSelected {
-                    Image(systemName: "checkmark")
-                }
-            }
-        }
     }
 
     private enum ProgressDisplayMode: CaseIterable {

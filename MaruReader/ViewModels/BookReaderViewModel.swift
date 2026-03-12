@@ -53,11 +53,23 @@ enum BookReaderOverlayState {
 
     var shouldShowToolbars: Bool {
         switch self {
-        case .showingToolbars, .showingTableOfContents, .showingQuickSettings:
+        case .showingToolbars, .showingTableOfContents, .showingQuickSettings, .showingBookmarks:
             true
         default:
             false
         }
+    }
+
+    func settingPresentation(_ isPresented: Bool, for presentedState: Self) -> Self {
+        if isPresented {
+            return presentedState
+        }
+
+        if self == presentedState {
+            return .showingToolbars
+        }
+
+        return self
     }
 }
 
