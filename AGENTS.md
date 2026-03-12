@@ -4,48 +4,32 @@
 
 MaruReader is a Japanese language learning tool for iOS/iPadOS that combines a Yomitan-compatible dictionary with an ebook reader, manga reader, and web browser. It is licensed under GPLv3.
 
-### Status + Guidelines
+## Building
 
-MaruReader is pre-release but nearly feature complete. Data models are not frozen. When replacing APIs, they should be removed instead of marking as deprecated.
+Build commands are provided by `just`.
 
-New and substantially changed functionality requires unit test coverage. Red/green TDD is recommended.
+Do not run `just` recipes in parallel. Run unsandboxed if your environment has sandboxing.
 
-Changes that touch the UI need to be verified interactively. If available in your environment, the `xcodebuildmcp` command line tool is recommended for launching the app in a simulator.
+When running unit tests, runtime warnings like `Multiple NSEntityDescriptions claim the NSManagedObject subclass '...' so +entity is unable to disambiguate.` are expected since tests use an in-memory store which duplicates the entity descriptions from the sqlite store, no need to report these.
 
-## Build Commands
+## Idealized Workflow
 
-Always verify your changes compile, even if a build is not specifically requested. When modifying tested logic or adding tests, verify the relevant test plan passes.
+This demonstrates the red/green TDD pattern and best practices for code changes. It is not a prescription or a replacement for common sense. You don't have to explain why you didn't follow this process to the letter unless asked, but you should generally complete as much of this as the environment allows and the nature of the task demands.
 
- Test plans pick up new tests from the associated target. Targets pick up new files via folder groups, so no need for project file editing for routine adding and removing of source code files.
-
-In command environments subject to sandboxing, these commands are approved to run unsandboxed.
-
-```bash
-just format # Run code formatting
-just build # Build the project
-just test # Run all tests
-just test-plan MaruReaderCoreTests # Run a specific test plan
-just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests # Run a specific test
-```
-
-Avoid running these commands in parallel, it may cause build folder locking failures.
-
-`just build`/`just test` accept an optional device specifier as the last argument. Usually the default (iPhone 17 Pro simulator) is all you need. Accepted formats:
-
-- Simulator name: `'iPhone 17 Pro'`
-- Simulator UDID: `76252478-5498-412D-9417-76009568896C`
-- Raw xcodebuild destination: `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
-
-Xcodebuild-backed recipes also write raw and parsed logs to `build/logs/` (timestamped plus `latest-*.log` aliases). stdout receives the `xcbeautify`-parsed output.
-
-If available in your environment, xcode's build/test functions are also valid options.
-
-When running tests, runtime warnings like `Multiple NSEntityDescriptions claim the NSManagedObject subclass '...' so +entity is unable to disambiguate.` are expected and not harmful, since tests use an in-memory store which duplicates the entity descriptions from the sqlite store, so no need to report these.
-
-## API Availibility
-
-MaruReader targets iOS 26+, so newer APIs are available and do not require availability checks. `WebView`, `WebPage` and other WebKit things not prefixed with `WK` are from "WebKit for SwiftUI", introduced in iOS 26. `MaruVision` uses types like `RecognizedTextObservation`, part of the iOS 18 Vision API, which has a similar purpose but a different set of capabilities from the older `VN`-prefixed API.
-
-Liquid Glass is the iOS 26 systemwide theme and design language, which emphasizes the use of transparency and UI elements that morph, split, and merge like drops of water.
-
-Documentation search tools, if available in your environment, can help. In environments without dedicated Apple documentation functions, you can fetch documents in Markdown format by replacing the `developer.apple.com` in a URL with `sosumi.ai`.
+0. Keep track of what you're doing with your environment's todo system, and/or with notes in the `build/`  folder.
+1. Plan the scope and structure of your patch.
+2. Decide acceptance criteria and test strategy.
+    - Most non-minor changes, and even minor changes that could use a regression test, need unit test coverage. Expectations of existing tests might also require updates.
+    - Changes that touch the UI require interactive validation in simulator. If available in your environment, the CLI tool `axe` can be used to validate many types of UI changes, so it doesn't have to be left as a "next step".
+3. If existing expectations are being updated, run tests now to verify current state.
+4. Write tests and update expectations.
+5. Run tests and validation to verify failing ("red") state
+    - If your environment supports sub-agents, sub-agents make it easier to perform comprehensive testing.
+    - For example, a sub-agent can validate current UI state and prepare a tightly scoped report for you, perhaps with a script for repeatable validation with `axe`.
+6. Implement code changes.
+7. Run a build, fix any compile errors or new warnings.
+8. Stage changes, run formatting, verify build still works.
+9. Run tests and validation, fix any failures to get to "green" state.
+    - Again, using sub-agents if available can streamline the testing process.
+10. If your environment has a code review function or a suitable sub-agent, get a code review. If there are findings to address, run build, tests, and validation after patching.
+11. Commit changes.

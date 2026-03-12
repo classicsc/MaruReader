@@ -4,7 +4,7 @@ Thanks for your interest in helping to improve MaruReader!
 
 If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue for discussion.
 
-All PRs need to pass the unit tests, and within the bounds of common sense, need to include new unit tests proving that the changes work.
+Before sending a PR, make sure it passes the unit tests, and within the bounds of common sense, include new unit tests proving that the changes work.
 
 ## Development
 
@@ -59,14 +59,14 @@ just screenshots # Generate new screenshots for App Store listing (requires fast
 
 Much of MaruReader was made using coding agents! Specifically, the initial translation to Swift of deinflection and test code from Yomitan, dictionary HTML generation, the WebKit parts of MaruWeb, most of the MaruAnki framework, and most of the JP localization were made using agents, albeit with strict steering and review. I'm not against anyone sending AI-assisted pull requests if they're good, but manually ensuring that the patch is sensible, self-contained and not massive, passes tests, actually works in practice, etc, is just good manners. Development style is "AI-assisted", not "vibe coded".
 
-If you want to work on MaruReader with a coding agent, I recommend getting the [sosumi docs search MCP](https://sosumi.ai) and the [xcodebuildmcp UI automation CLI](https://github.com/getsentry/XcodeBuildMCP) (confusingly, the best way to use it is with the CLI, not an actual MCP daemon). Also make sure that xcodebuild-based `just` commands and `xcodebuildmcp` (if you're using it) can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder.
+If you want to work on MaruReader with a coding agent, I recommend getting the a tool for docs searches, either the xcode one or [sosumi](https://sosumi.ai), and the [AXe UI automation CLI](https://github.com/cameroncooke/AXe). Also make sure that xcodebuild-based `just` commands and `xcodebuildmcp` (if you're using it) can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder.
 
 ## Licensing Note
 
 I've seen a lot of developers of OSS apps for iOS complain about their apps getting ripped off, so I will say some things up front to hopefully discourage anyone from making a noncompliant version of MaruReader.
 
 - MaruReader is licensed under GPLv3. This is not a permisssive type license like MIT, it carries obligations you have to follow or lose it
-- If you distribute a derivative work, incorporate all or part of MaruReader into your app, or put something that is derived from or includes MaruReader on the Apple App Store or a third-party app store, you must comply with the GPLv3 terms
+- If you distribute a derivative work, incorporate all or part of MaruReader into your app, or put something that is derived from or includes MaruReader on the Apple App Store or a third-party app store, you must comply with the license terms
   - It's not very long, reading the whole thing is a good idea
 - See sections 5 and 6 of the license for some specific obligations. MaruReader follows these by:
   - Licensing under GPLv3 (5c)
