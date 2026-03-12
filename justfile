@@ -28,7 +28,7 @@ test-one only_testing plan="" destination="":
 starterdict:
   ./scripts/run-starterdict.sh
 
-# builds the uBOL content blocker extension
+# builds the optional uBOL content blocker extension bundle
 contentblocker:
   ./scripts/run-contentblocker.sh
 

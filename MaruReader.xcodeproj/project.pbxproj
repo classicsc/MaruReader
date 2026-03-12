@@ -31,7 +31,6 @@
 		DB58C9172EAB173700CE59FD /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
 		DB58C9182EAB173700CE59FD /* MaruDictionaryUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB58C9252EAB186800CE59FD /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
-		DB6F30342F2329E000B2B1FA /* uBOLite.safari in Resources */ = {isa = PBXBuildFile; fileRef = DB6F30332F2329E000B2B1FA /* uBOLite.safari */; };
 		DB6FDFAE2EAB4BB6005DF219 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DB6FDFAF2EAB4BB6005DF219 /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB6FDFB42EAB4BCD005DF219 /* Zip in Frameworks */ = {isa = PBXBuildFile; productRef = DB6FDFB32EAB4BCD005DF219 /* Zip */; };
@@ -422,7 +421,6 @@
 		DB58C8F42EAB123A00CE59FD /* MaruReaderCoreTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruReaderCoreTests.xctestplan; sourceTree = "<group>"; };
 		DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruDictionaryUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB58C90C2EAB173700CE59FD /* MaruDictionaryUICommonTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruDictionaryUICommonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		DB6F30332F2329E000B2B1FA /* uBOLite.safari */ = {isa = PBXFileReference; lastKnownFileType = folder; name = uBOLite.safari; path = External/uBlock/dist/build/uBOLite.safari; sourceTree = "<group>"; };
 		DB6FDFB92EAB54C6005DF219 /* MaruShareExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MaruShareExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = MaruAnkiTests.xctestplan; sourceTree = "<group>"; };
 		DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruReaderCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -749,7 +747,6 @@
 			isa = PBXGroup;
 			children = (
 				DBE950652F5CFF2400E703F7 /* MaruReaderUITests.xctestplan */,
-				DB6F30332F2329E000B2B1FA /* uBOLite.safari */,
 				DBD776812F148FA2000AFED1 /* MaruWebTests.xctestplan */,
 				DBDCE1422F0CC62A00B42F93 /* MaruMangaTests.xctestplan */,
 				DB7D634B2EF48144005A60B8 /* MaruAnkiTests.xctestplan */,
@@ -1190,6 +1187,7 @@
 				DBDCEBFE2F0F65AF00B42F93 /* Sources */,
 				DBDCEBFF2F0F65AF00B42F93 /* Frameworks */,
 				DBDCEC002F0F65AF00B42F93 /* Resources */,
+				DBC0A1012F5D111100A1B001 /* Copy Optional uBOLite */,
 			);
 			buildRules = (
 			);
@@ -1532,7 +1530,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DB6F30342F2329E000B2B1FA /* uBOLite.safari in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1574,6 +1571,27 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		DBC0A1012F5D111100A1B001 /* Copy Optional uBOLite */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/copy-optional-ubolite.sh",
+				"$(SRCROOT)/External/uBlock/dist/build/uBOLite.safari",
+			);
+			name = "Copy Optional uBOLite";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/uBOLite.safari",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-optional-ubolite.sh\"\n";
+		};
 		DBA1B0012F5A0A0100A1B001 /* Copy Debug Sample Content */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;

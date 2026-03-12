@@ -19,10 +19,6 @@ For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and raw
 
 ### Building
 
-#### Content Blocker Extension
-
-`just contentblocker`
-
 #### Main App
 
 `just build`
@@ -42,6 +38,12 @@ Accepted device specifier formats:
 - Simulator name: `'iPhone 17 Pro'`
 - Simulator UDID: `76252478-5498-412D-9417-76009568896C`
 - Raw xcodebuild destination: `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
+
+#### Content Blocker Extension
+
+`just contentblocker`
+
+This pulls the uBOL submodule and builds the extension with the latest filter lists. Extension persists for future builds unless you run `git submodule deinit`. Run again to build with updated source and filter lists.
 
 #### Release build checklist
 
