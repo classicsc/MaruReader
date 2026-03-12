@@ -231,6 +231,7 @@ struct BookReaderView: View {
                             .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
+                .applyLocalColorScheme(readerOverlayForcedColorScheme)
             }
             .safeAreaInset(edge: .top) {
                 topToolbarOverlay
