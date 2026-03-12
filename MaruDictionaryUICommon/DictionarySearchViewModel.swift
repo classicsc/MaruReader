@@ -79,9 +79,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Link activation state
     var toolbarLinksActiveOverride: Bool?
 
-    /// Effective links active state (toolbar override takes precedence, default off)
+    /// Effective links active state (toolbar override takes precedence, default on)
     var linksActiveEnabled: Bool {
-        toolbarLinksActiveOverride ?? false
+        toolbarLinksActiveOverride ?? true
     }
 
     // External link confirmation dialog state
@@ -807,13 +807,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     /// Toggle link activation on/off
     public func toggleLinksActive() {
-        if toolbarLinksActiveOverride == nil {
-            // First toggle: activate links
-            toolbarLinksActiveOverride = true
-        } else {
-            // Subsequent toggles: flip the override
-            toolbarLinksActiveOverride = !linksActiveEnabled
-        }
+        toolbarLinksActiveOverride = !linksActiveEnabled
         // Notify JavaScript of state change
         updateLinksActiveState()
     }
