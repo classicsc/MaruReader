@@ -20,13 +20,21 @@ import SwiftUI
 
 struct DuplicateSettingsView: View {
     @Bindable var viewModel: AnkiConfigurationViewModel
+    @State private var allowDuplicates: Bool = false
 
     var body: some View {
         Form {
             if viewModel.connectionType == .ankiMobile {
                 ankiMobileContent
             } else {
-                ankiConnectContent
+                DuplicateDetectionFormSections(
+                    duplicateScope: $viewModel.duplicateScope,
+                    duplicateDeckName: $viewModel.duplicateDeckName,
+                    duplicateIncludeChildDecks: $viewModel.duplicateIncludeChildDecks,
+                    duplicateCheckAllModels: $viewModel.duplicateCheckAllModels,
+                    decks: viewModel.decks,
+                    selectedDeckName: viewModel.selectedDeckName
+                )
             }
         }
         .navigationTitle("Duplicate Detection")
@@ -40,72 +48,23 @@ struct DuplicateSettingsView: View {
                 .disabled(!viewModel.canProceed)
             }
         }
+        .onAppear {
+            allowDuplicates = viewModel.duplicateScope == .none
+        }
+        .onChange(of: allowDuplicates) { _, newValue in
+            viewModel.duplicateScope = newValue ? .none : .deck
+        }
+        .onChange(of: viewModel.duplicateScope) { _, newValue in
+            allowDuplicates = newValue == .none
+        }
     }
 
     private var ankiMobileContent: some View {
         Section {
-            Toggle("Allow Duplicate Notes", isOn: allowDuplicatesBinding)
+            Toggle("Allow Duplicate Notes", isOn: $allowDuplicates)
         } footer: {
             Text("AnkiMobile only supports allowing or blocking all duplicates. More advanced options available with Anki-Connect.")
         }
-    }
-
-    @ViewBuilder
-    private var ankiConnectContent: some View {
-        Section {
-            Picker("Duplicate Check Scope", selection: $viewModel.duplicateScope) {
-                Text("Allow Duplicates").tag(DuplicateNoteScope.none)
-                Text("Check in Deck").tag(DuplicateNoteScope.deck)
-                Text("Check Entire Collection").tag(DuplicateNoteScope.collection)
-            }
-        } footer: {
-            switch viewModel.duplicateScope {
-            case .none:
-                Text("Duplicate notes will be created without warning.")
-            case .deck:
-                Text("Notes with matching content in the specified deck will be rejected.")
-            case .collection:
-                Text("Notes with matching content anywhere in your collection will be rejected.")
-            @unknown default:
-                EmptyView()
-            }
-        }
-
-        if viewModel.duplicateScope == .deck {
-            Section {
-                Picker("Deck", selection: $viewModel.duplicateDeckName) {
-                    Text("Target Deck (\(viewModel.selectedDeckName ?? ""))").tag(nil as String?)
-                    ForEach(viewModel.decks, id: \.name) { deck in
-                        Text(deck.name).tag(deck.name as String?)
-                    }
-                }
-
-                Toggle("Include Child Decks", isOn: $viewModel.duplicateIncludeChildDecks)
-            } header: {
-                Text("Deck to Check")
-            } footer: {
-                Text("When enabled, child decks of the selected deck will also be checked for duplicates.")
-            }
-        }
-
-        Section {
-            Toggle("Check All Note Types", isOn: $viewModel.duplicateCheckAllModels)
-        } footer: {
-            if viewModel.duplicateCheckAllModels {
-                Text("Duplicates will be detected across all note types in your collection.")
-            } else {
-                Text("Only notes of the same type will be checked for duplicates.")
-            }
-        }
-    }
-
-    private var allowDuplicatesBinding: Binding<Bool> {
-        Binding(
-            get: { viewModel.duplicateScope == .none },
-            set: { allowDuplicates in
-                viewModel.duplicateScope = allowDuplicates ? .none : .deck
-            }
-        )
     }
 }
 

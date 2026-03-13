@@ -49,7 +49,12 @@ struct AnkiSettingsView: View {
 
                 if let settings = currentSettings {
                     if isAnkiEnabled {
-                        configurationSection(settings: settings)
+                        AnkiConfigurationSectionView(
+                            settings: settings,
+                            duplicateScopeDisplayName: duplicateScopeDisplayName,
+                            allowDuplicates: $allowDuplicates,
+                            isSavingDuplicateOptions: isSavingDuplicateOptions
+                        )
 
                         Section {
                             Button("Edit Configuration") {
@@ -160,55 +165,6 @@ struct AnkiSettingsView: View {
         allowDuplicates = parsedDuplicateOptions?.scope == DuplicateNoteScope.none
         pendingCount = await noteService.pendingNoteCount()
         isLoading = false
-    }
-
-    @ViewBuilder
-    private func configurationSection(settings: MaruAnkiSettings) -> some View {
-        Section("Current Configuration") {
-            if settings.isAnkiConnect {
-                LabeledContent("Connection", value: "Anki-Connect")
-                if let config = settings.connectConfiguration,
-                   let host = config["hostname"] as? String,
-                   let port = config["port"] as? Int
-                {
-                    LabeledContent("Server", value: "\(host):\(port)")
-                }
-            } else {
-                LabeledContent("Connection", value: "AnkiMobile")
-            }
-
-            if let profile = settings.defaultProfileName, !profile.isEmpty {
-                LabeledContent("Profile", value: profile)
-            }
-
-            if let deck = settings.defaultDeckName, !deck.isEmpty {
-                LabeledContent("Deck", value: deck)
-            }
-
-            if let model = settings.defaultModelName, !model.isEmpty {
-                LabeledContent("Note Type", value: model)
-            }
-
-            if let fieldMapping = settings.modelConfiguration?.displayName, !fieldMapping.isEmpty {
-                LabeledContent("Field Mapping", value: fieldMapping)
-            }
-        }
-
-        Section("Duplicate Detection") {
-            if settings.isAnkiConnect {
-                NavigationLink {
-                    DuplicateSettingsEditorView(
-                        decks: [],
-                        selectedDeckName: settings.defaultDeckName
-                    )
-                } label: {
-                    LabeledContent("Scope", value: duplicateScopeDisplayName)
-                }
-            } else {
-                Toggle("Allow Duplicate Notes", isOn: $allowDuplicates)
-                    .disabled(isSavingDuplicateOptions)
-            }
-        }
     }
 
     private func saveDuplicateOptions(_ options: DuplicateDetectionOptions) async {

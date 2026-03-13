@@ -43,7 +43,14 @@ struct DuplicateSettingsEditorView: View {
                     ProgressView()
                 }
             } else {
-                ankiConnectContent
+                DuplicateDetectionFormSections(
+                    duplicateScope: $duplicateScope,
+                    duplicateDeckName: $duplicateDeckName,
+                    duplicateIncludeChildDecks: $duplicateIncludeChildDecks,
+                    duplicateCheckAllModels: $duplicateCheckAllModels,
+                    decks: decks,
+                    selectedDeckName: selectedDeckName
+                )
             }
         }
         .navigationTitle("Duplicate Detection")
@@ -60,55 +67,6 @@ struct DuplicateSettingsEditorView: View {
         }
         .task {
             await loadSettings()
-        }
-    }
-
-    @ViewBuilder
-    private var ankiConnectContent: some View {
-        Section {
-            Picker("Duplicate Check Scope", selection: $duplicateScope) {
-                Text("Allow Duplicates").tag(DuplicateNoteScope.none)
-                Text("Check in Deck").tag(DuplicateNoteScope.deck)
-                Text("Check Entire Collection").tag(DuplicateNoteScope.collection)
-            }
-        } footer: {
-            switch duplicateScope {
-            case .none:
-                Text("Duplicate notes will be created without warning.")
-            case .deck:
-                Text("Notes with matching content in the specified deck will be rejected.")
-            case .collection:
-                Text("Notes with matching content anywhere in your collection will be rejected.")
-            @unknown default:
-                EmptyView()
-            }
-        }
-
-        if duplicateScope == .deck {
-            Section {
-                Picker("Deck", selection: $duplicateDeckName) {
-                    Text("Target Deck (\(selectedDeckName ?? ""))").tag(nil as String?)
-                    ForEach(decks, id: \.name) { deck in
-                        Text(deck.name).tag(deck.name as String?)
-                    }
-                }
-
-                Toggle("Include Child Decks", isOn: $duplicateIncludeChildDecks)
-            } header: {
-                Text("Deck to Check")
-            } footer: {
-                Text("When enabled, child decks of the selected deck will also be checked for duplicates.")
-            }
-        }
-
-        Section {
-            Toggle("Check All Note Types", isOn: $duplicateCheckAllModels)
-        } footer: {
-            if duplicateCheckAllModels {
-                Text("Duplicates will be detected across all note types in your collection.")
-            } else {
-                Text("Only notes of the same type will be checked for duplicates.")
-            }
         }
     }
 
