@@ -58,65 +58,63 @@ struct DictionaryDisplaySettingsView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                Section("Font Family") {
-                    Picker("Font Family", selection: $selectedFontIndex) {
-                        ForEach(0 ..< fontOptions.count, id: \.self) { index in
-                            Text(fontOptions[index].displayName).tag(index)
+        Form {
+            Section("Font Family") {
+                Picker("Font Family", selection: $selectedFontIndex) {
+                    ForEach(0 ..< fontOptions.count, id: \.self) { index in
+                        Text(fontOptions[index].displayName).tag(index)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+
+            Section("Font Size Scale") {
+                Stepper("Content: \(fontSize.formatted(.number.precision(.fractionLength(2))))x", value: $fontSize, in: 0.5 ... 3.0, step: 0.05)
+                Stepper("Popup: \(popupFontSize.formatted(.number.precision(.fractionLength(2))))x", value: $popupFontSize, in: 0.5 ... 3.0, step: 0.05)
+            }
+
+            Section("Display Options") {
+                Toggle("Show Deinflection Info", isOn: $showDeinflection)
+                if showDeinflection {
+                    Picker("Deinflection Language", selection: $deinflectionDescriptionLanguage) {
+                        ForEach(DeinflectionLanguage.allCases, id: \.self) { language in
+                            Text(language.displayLabel).tag(language)
                         }
                     }
-                    .pickerStyle(.menu)
-                }
-
-                Section("Font Size Scale") {
-                    Stepper("Content: \(fontSize, specifier: "%.2f")x", value: $fontSize, in: 0.5 ... 3.0, step: 0.05)
-                    Stepper("Popup: \(popupFontSize, specifier: "%.2f")x", value: $popupFontSize, in: 0.5 ... 3.0, step: 0.05)
-                }
-
-                Section("Display Options") {
-                    Toggle("Show Deinflection Info", isOn: $showDeinflection)
-                    if showDeinflection {
-                        Picker("Deinflection Language", selection: $deinflectionDescriptionLanguage) {
-                            ForEach(DeinflectionLanguage.allCases, id: \.self) { language in
-                                Text(language.displayLabel).tag(language)
-                            }
-                        }
-                    }
-                }
-
-                Section("Pitch Accent") {
-                    Toggle("Downstep Notation in Header", isOn: $pitchDownstepNotationInHeaderEnabled)
-                    Toggle("Show Pitch Dictionaries", isOn: $pitchResultsAreaEnabled)
-
-                    if pitchResultsAreaEnabled {
-                        Toggle("Top Result Only", isOn: $pitchResultsAreaCollapsedDisplay)
-                        Toggle("Show Downstep Notation", isOn: $pitchResultsAreaDownstepNotationEnabled)
-                        Toggle("Show Downstep Positions", isOn: $pitchResultsAreaDownstepPositionEnabled)
-                    }
-                }
-
-                Section("Context Display") {
-                    Stepper("Font Size: \(contextFontSize, specifier: "%.1f")x", value: $contextFontSize, in: 0.5 ... 2.0, step: 0.1)
-                    Toggle("Show Furigana", isOn: $contextFuriganaEnabled)
                 }
             }
-            .navigationTitle("Display Settings")
-            .onAppear(perform: loadPreferences)
-            .onChange(of: activePreferences.count) { _, _ in loadPreferences() }
-            .onChange(of: selectedFontIndex) { _, _ in savePreferences() }
-            .onChange(of: fontSize) { _, _ in savePreferences() }
-            .onChange(of: popupFontSize) { _, _ in savePreferences() }
-            .onChange(of: showDeinflection) { _, _ in savePreferences() }
-            .onChange(of: deinflectionDescriptionLanguage) { _, _ in savePreferences() }
-            .onChange(of: pitchDownstepNotationInHeaderEnabled) { _, _ in savePreferences() }
-            .onChange(of: pitchResultsAreaCollapsedDisplay) { _, _ in savePreferences() }
-            .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
-            .onChange(of: pitchResultsAreaDownstepPositionEnabled) { _, _ in savePreferences() }
-            .onChange(of: pitchResultsAreaEnabled) { _, _ in savePreferences() }
-            .onChange(of: contextFontSize) { _, _ in savePreferences() }
-            .onChange(of: contextFuriganaEnabled) { _, _ in savePreferences() }
+
+            Section("Pitch Accent") {
+                Toggle("Downstep Notation in Header", isOn: $pitchDownstepNotationInHeaderEnabled)
+                Toggle("Show Pitch Dictionaries", isOn: $pitchResultsAreaEnabled)
+
+                if pitchResultsAreaEnabled {
+                    Toggle("Top Result Only", isOn: $pitchResultsAreaCollapsedDisplay)
+                    Toggle("Show Downstep Notation", isOn: $pitchResultsAreaDownstepNotationEnabled)
+                    Toggle("Show Downstep Positions", isOn: $pitchResultsAreaDownstepPositionEnabled)
+                }
+            }
+
+            Section("Context Display") {
+                Stepper("Font Size: \(contextFontSize.formatted(.number.precision(.fractionLength(1))))x", value: $contextFontSize, in: 0.5 ... 2.0, step: 0.1)
+                Toggle("Show Furigana", isOn: $contextFuriganaEnabled)
+            }
         }
+        .navigationTitle("Display Settings")
+        .onAppear(perform: loadPreferences)
+        .onChange(of: activePreferences.count) { _, _ in loadPreferences() }
+        .onChange(of: selectedFontIndex) { _, _ in savePreferences() }
+        .onChange(of: fontSize) { _, _ in savePreferences() }
+        .onChange(of: popupFontSize) { _, _ in savePreferences() }
+        .onChange(of: showDeinflection) { _, _ in savePreferences() }
+        .onChange(of: deinflectionDescriptionLanguage) { _, _ in savePreferences() }
+        .onChange(of: pitchDownstepNotationInHeaderEnabled) { _, _ in savePreferences() }
+        .onChange(of: pitchResultsAreaCollapsedDisplay) { _, _ in savePreferences() }
+        .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
+        .onChange(of: pitchResultsAreaDownstepPositionEnabled) { _, _ in savePreferences() }
+        .onChange(of: pitchResultsAreaEnabled) { _, _ in savePreferences() }
+        .onChange(of: contextFontSize) { _, _ in savePreferences() }
+        .onChange(of: contextFuriganaEnabled) { _, _ in savePreferences() }
     }
 
     private func loadPreferences() {

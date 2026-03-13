@@ -106,15 +106,13 @@ struct AudioSourceSettingsView: View {
                 EditButton()
             }
             ToolbarItem(placement: .primaryAction) {
-                Menu {
+                Menu("Add Source", systemImage: "plus") {
                     Button("Import Indexed ZIP") {
                         showingZipImporter = true
                     }
                     Button("Add URL Pattern") {
                         showingAddURLPatternSheet = true
                     }
-                } label: {
-                    Image(systemName: "plus")
                 }
             }
         }
@@ -375,7 +373,7 @@ private struct FailedAudioSourceRow: View {
 private struct CompletedAudioSourceRow: View {
     @Environment(\.managedObjectContext) private var viewContext
 
-    let source: AudioSource
+    @ObservedObject var source: AudioSource
     let onDelete: () -> Void
     @State private var showExpandedMetadata = false
 
@@ -394,18 +392,12 @@ private struct CompletedAudioSourceRow: View {
                 Spacer()
 
                 HStack(alignment: .center, spacing: 12) {
-                    Toggle(
-                        "Enabled",
-                        isOn: Binding(
-                            get: { source.enabled },
-                            set: { newValue in
-                                source.enabled = newValue
-                                try? viewContext.save()
-                            }
-                        )
-                    )
-                    .labelsHidden()
-                    .disabled(source.pendingDeletion)
+                    Toggle("Enabled", isOn: $source.enabled)
+                        .onChange(of: source.enabled) {
+                            try? viewContext.save()
+                        }
+                        .labelsHidden()
+                        .disabled(source.pendingDeletion)
 
                     Button(action: { showExpandedMetadata.toggle() }) {
                         Image(systemName: showExpandedMetadata ? "chevron.up" : "chevron.down")

@@ -73,7 +73,7 @@ struct DuplicateSettingsView: View {
 
         if viewModel.duplicateScope == .deck {
             Section {
-                Picker("Deck", selection: duplicateDeckBinding) {
+                Picker("Deck", selection: $viewModel.duplicateDeckName) {
                     Text("Target Deck (\(viewModel.selectedDeckName ?? ""))").tag(nil as String?)
                     ForEach(viewModel.decks, id: \.name) { deck in
                         Text(deck.name).tag(deck.name as String?)
@@ -105,13 +105,6 @@ struct DuplicateSettingsView: View {
             set: { allowDuplicates in
                 viewModel.duplicateScope = allowDuplicates ? .none : .deck
             }
-        )
-    }
-
-    private var duplicateDeckBinding: Binding<String?> {
-        Binding(
-            get: { viewModel.duplicateDeckName },
-            set: { viewModel.duplicateDeckName = $0 }
         )
     }
 }

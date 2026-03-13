@@ -64,7 +64,9 @@ struct WebSettingsView: View {
                 Toggle("Content Blocking", isOn: $webContentBlockingEnabled)
             }
             Section("Data") {
-                NavigationLink(destination: WebDataManagementView()) {
+                NavigationLink {
+                    WebDataManagementView()
+                } label: {
                     Label("Website Data", systemImage: "tray.and.arrow.down")
                 }
             }

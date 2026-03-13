@@ -39,15 +39,21 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 Section("Data") {
-                    NavigationLink(destination: DictionaryManagementView()) {
+                    NavigationLink {
+                        DictionaryManagementView()
+                    } label: {
                         Label("Dictionaries", systemImage: "book.closed")
                     }
-                    NavigationLink(destination: AudioSourceSettingsView()) {
+                    NavigationLink {
+                        AudioSourceSettingsView()
+                    } label: {
                         Label("Pronunciation Audio", systemImage: "speaker.wave.2")
                     }
                 }
                 Section("Appearance") {
-                    NavigationLink(destination: DictionaryDisplaySettingsView()) {
+                    NavigationLink {
+                        DictionaryDisplaySettingsView()
+                    } label: {
                         Label("Dictionary Display", systemImage: "textformat")
                     }
                 }
@@ -60,21 +66,19 @@ struct SettingsView: View {
                     }
                 }
                 Section("Web") {
-                    NavigationLink(destination: WebSettingsView()) {
+                    NavigationLink {
+                        WebSettingsView()
+                    } label: {
                         Label("Web", systemImage: "globe")
                     }
                 }
                 Section("Integrations") {
-                    if pendingCount > 0 {
-                        NavigationLink(destination: AnkiSettingsView()) {
-                            Label("Anki", systemImage: "rectangle.stack.badge.plus")
-                        }
-                        .badge(pendingCount)
-                    } else {
-                        NavigationLink(destination: AnkiSettingsView()) {
-                            Label("Anki", systemImage: "rectangle.stack.badge.plus")
-                        }
+                    NavigationLink {
+                        AnkiSettingsView()
+                    } label: {
+                        Label("Anki", systemImage: "rectangle.stack.badge.plus")
                     }
+                    .badge(pendingCount)
                 }
                 Section(
                     header: Text("Help"),
@@ -93,7 +97,9 @@ struct SettingsView: View {
                     }
                 }
                 Section("About") {
-                    NavigationLink(destination: AboutView()) {
+                    NavigationLink {
+                        AboutView()
+                    } label: {
                         Label("About MaruReader", systemImage: "info.circle")
                     }
                     LabeledContent("App Version", value: appVersion)
@@ -101,10 +107,8 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
-            .onAppear {
-                Task {
-                    await loadPendingCount()
-                }
+            .task {
+                await loadPendingCount()
             }
         }
     }

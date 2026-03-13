@@ -34,6 +34,7 @@ struct AnkiSettingsView: View {
     @State private var pendingCount = 0
     @State private var duplicateOptions: DuplicateDetectionOptions?
     @State private var isSavingDuplicateOptions = false
+    @State private var allowDuplicates = false
 
     var body: some View {
         Form {
@@ -43,7 +44,7 @@ struct AnkiSettingsView: View {
                 }
             } else {
                 Section {
-                    Toggle("Enable Anki Integration", isOn: ankiEnabledBinding)
+                    Toggle("Enable Anki Integration", isOn: $isAnkiEnabled)
                 }
 
                 if let settings = currentSettings {
@@ -64,16 +65,12 @@ struct AnkiSettingsView: View {
                     }
 
                     Section("Pending Notes") {
-                        if pendingCount > 0 {
-                            NavigationLink(destination: PendingNotesView()) {
-                                Label("Pending Notes", systemImage: "tray")
-                            }
-                            .badge(pendingCount)
-                        } else {
-                            NavigationLink(destination: PendingNotesView()) {
-                                Label("Pending Notes", systemImage: "tray")
-                            }
+                        NavigationLink {
+                            PendingNotesView()
+                        } label: {
+                            Label("Pending Notes", systemImage: "tray")
                         }
+                        .badge(pendingCount)
                     }
                 }
             }
@@ -82,9 +79,38 @@ struct AnkiSettingsView: View {
         .task {
             await loadSettings()
         }
-        .onAppear {
+        .onChange(of: isAnkiEnabled) { _, newValue in
+            guard currentSettings?.ankiEnabled != newValue else { return }
+            if let settings = currentSettings {
+                settings.ankiEnabled = newValue
+                try? persistence.container.viewContext.save()
+                Task {
+                    await loadSettings()
+                }
+            } else if newValue {
+                showingConfigurationFlow = true
+            }
+        }
+        .onChange(of: allowDuplicates) { _, newValue in
+            let currentScope = duplicateOptions?.scope ?? .deck
+            let newScope: DuplicateNoteScope = newValue ? .none : .deck
+            guard currentScope != newScope else { return }
+            let currentOptions = duplicateOptions ?? DuplicateDetectionOptions(
+                scope: .deck,
+                deckName: nil,
+                includeChildDecks: false,
+                checkAllModels: false
+            )
+            let updatedOptions = DuplicateDetectionOptions(
+                scope: newValue ? .none : .deck,
+                deckName: currentOptions.deckName,
+                includeChildDecks: currentOptions.includeChildDecks,
+                checkAllModels: currentOptions.checkAllModels
+            )
+
+            duplicateOptions = updatedOptions
             Task {
-                await loadSettings()
+                await saveDuplicateOptions(updatedOptions)
             }
         }
         .refreshable {
@@ -131,6 +157,7 @@ struct AnkiSettingsView: View {
         currentSettings = fetchedSettings
         isAnkiEnabled = fetchedSettings?.ankiEnabled ?? false
         duplicateOptions = parsedDuplicateOptions
+        allowDuplicates = parsedDuplicateOptions?.scope == DuplicateNoteScope.none
         pendingCount = await noteService.pendingNoteCount()
         isLoading = false
     }
@@ -178,35 +205,10 @@ struct AnkiSettingsView: View {
                     LabeledContent("Scope", value: duplicateScopeDisplayName)
                 }
             } else {
-                Toggle("Allow Duplicate Notes", isOn: allowDuplicatesBinding)
+                Toggle("Allow Duplicate Notes", isOn: $allowDuplicates)
                     .disabled(isSavingDuplicateOptions)
             }
         }
-    }
-
-    private var allowDuplicatesBinding: Binding<Bool> {
-        Binding(
-            get: { duplicateOptions?.scope == DuplicateNoteScope.none },
-            set: { allowDuplicates in
-                let currentOptions = duplicateOptions ?? DuplicateDetectionOptions(
-                    scope: .deck,
-                    deckName: nil,
-                    includeChildDecks: false,
-                    checkAllModels: false
-                )
-                let updatedOptions = DuplicateDetectionOptions(
-                    scope: allowDuplicates ? .none : .deck,
-                    deckName: currentOptions.deckName,
-                    includeChildDecks: currentOptions.includeChildDecks,
-                    checkAllModels: currentOptions.checkAllModels
-                )
-
-                duplicateOptions = updatedOptions
-                Task {
-                    await saveDuplicateOptions(updatedOptions)
-                }
-            }
-        )
     }
 
     private func saveDuplicateOptions(_ options: DuplicateDetectionOptions) async {
@@ -251,25 +253,6 @@ struct AnkiSettingsView: View {
         @unknown default:
             return String(localized: "Unknown")
         }
-    }
-
-    private var ankiEnabledBinding: Binding<Bool> {
-        Binding(
-            get: { isAnkiEnabled },
-            set: { newValue in
-                isAnkiEnabled = newValue
-                if let settings = currentSettings {
-                    settings.ankiEnabled = newValue
-                    try? persistence.container.viewContext.save()
-                    Task {
-                        await loadSettings()
-                    }
-                } else if newValue {
-                    // No settings exist, show config flow to create them
-                    showingConfigurationFlow = true
-                }
-            }
-        )
     }
 }
 
