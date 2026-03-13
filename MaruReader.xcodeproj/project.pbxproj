@@ -1571,27 +1571,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		DBC0A1012F5D111100A1B001 /* Copy Optional uBOLite */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/scripts/copy-optional-ubolite.sh",
-				"$(SRCROOT)/External/uBlock/dist/build/uBOLite.safari",
-			);
-			name = "Copy Optional uBOLite";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/uBOLite.safari",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/copy-optional-ubolite.sh\"\n";
-		};
 		DBA1B0012F5A0A0100A1B001 /* Copy Debug Sample Content */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1612,6 +1591,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/copy-debug-sample-content.sh\"\n";
+		};
+		DBC0A1012F5D111100A1B001 /* Copy Optional uBOLite */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/copy-optional-ubolite.sh",
+				"$(SRCROOT)/External/uBlock/dist/build/uBOLite.safari",
+			);
+			name = "Copy Optional uBOLite";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/uBOLite.safari",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-optional-ubolite.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
