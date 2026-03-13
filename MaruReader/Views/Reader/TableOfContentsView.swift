@@ -177,7 +177,7 @@ struct TableOfContentsView: View {
                         Button("Go to...", action: presentPositionPrompt)
                             .frame(minWidth: 44, minHeight: 44)
                             .contentShape(.rect)
-                        .accessibilityLabel("Go to position")
+                            .accessibilityLabel("Go to position")
                     }
                 }
                 .font(.caption)

@@ -143,7 +143,6 @@ struct AudioSourceSettingsView: View {
         }
     }
 
-
     private func handleZipImport(result: Result<[URL], Error>) {
         switch result {
         case let .success(urls):

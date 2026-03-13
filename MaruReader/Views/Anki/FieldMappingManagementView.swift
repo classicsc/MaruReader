@@ -228,7 +228,6 @@ struct FieldMappingManagementView: View {
         isLoading = false
     }
 
-
     private func deleteProfile(_ profile: FieldMappingProfileInfo) async {
         do {
             try await viewModel.deleteFieldMappingProfile(id: profile.id)

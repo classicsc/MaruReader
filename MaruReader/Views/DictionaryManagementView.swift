@@ -182,7 +182,6 @@ struct DictionaryManagementView: View {
         }
     }
 
-
     private func handleFileImport(result: Result<[URL], Error>) {
         switch result {
         case let .success(urls):
