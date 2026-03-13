@@ -72,6 +72,8 @@ struct BookReaderTopInset: View {
                             .font(.headline)
                             .foregroundStyle(showsToolbars ? secondaryForegroundColor : secondaryForegroundColor.opacity(0.6))
                     }
+                    .frame(minHeight: 44)
+                    .contentShape(.rect)
                 }
                 .tourAnchor(BookReaderTourAnchor.titleToggle)
                 Spacer()

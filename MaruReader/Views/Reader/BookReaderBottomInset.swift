@@ -138,7 +138,7 @@ struct BookReaderBottomInset: View {
                         .font(.caption)
                         .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
+                        .frame(minHeight: 44)
                 }
                 .buttonStyle(.plain)
                 .frame(maxWidth: .infinity)
