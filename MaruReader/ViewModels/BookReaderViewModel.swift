@@ -709,6 +709,21 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         return "{\(stylePairs.joined(separator: ", "))}"
     }
 
+    var isShowingTableOfContents: Bool {
+        get { overlayState == .showingTableOfContents }
+        set { overlayState = overlayState.settingPresentation(newValue, for: .showingTableOfContents) }
+    }
+
+    var isShowingQuickSettings: Bool {
+        get { overlayState == .showingQuickSettings }
+        set { overlayState = overlayState.settingPresentation(newValue, for: .showingQuickSettings) }
+    }
+
+    var isShowingBookmarks: Bool {
+        get { overlayState == .showingBookmarks }
+        set { overlayState = overlayState.settingPresentation(newValue, for: .showingBookmarks) }
+    }
+
     func toggleOverlay() {
         if overlayState == .none {
             overlayState = .showingToolbars

@@ -350,17 +350,6 @@ struct TableOfContentsView: View {
     }
 }
 
-private extension View {
-    @ViewBuilder
-    func applyLocalColorScheme(_ colorScheme: ColorScheme?) -> some View {
-        if let colorScheme {
-            environment(\.colorScheme, colorScheme)
-        } else {
-            self
-        }
-    }
-}
-
 // MARK: - BookmarksListView
 
 private struct BookmarksListView: View {

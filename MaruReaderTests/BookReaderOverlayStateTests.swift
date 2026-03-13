@@ -43,4 +43,51 @@ struct BookReaderOverlayStateTests {
 
         #expect(state == .showingQuickSettings)
     }
+
+    // MARK: - Computed Bool property behavior (via settingPresentation)
+
+    @Test func settingPresentation_GetterReturnsTrueOnlyForMatchingState() {
+        let toc = BookReaderOverlayState.showingTableOfContents
+        let quickSettings = BookReaderOverlayState.showingQuickSettings
+        let bookmarks = BookReaderOverlayState.showingBookmarks
+
+        // Each state should report true only for itself
+        #expect(toc == .showingTableOfContents)
+        #expect(quickSettings != .showingTableOfContents)
+        #expect(bookmarks != .showingTableOfContents)
+
+        #expect(quickSettings == .showingQuickSettings)
+        #expect(toc != .showingQuickSettings)
+        #expect(bookmarks != .showingQuickSettings)
+
+        #expect(bookmarks == .showingBookmarks)
+        #expect(toc != .showingBookmarks)
+        #expect(quickSettings != .showingBookmarks)
+    }
+
+    @Test func settingPresentation_SetTruePresentsOverlay() {
+        let fromToolbars = BookReaderOverlayState.showingToolbars.settingPresentation(true, for: .showingTableOfContents)
+        let fromNone = BookReaderOverlayState.none.settingPresentation(true, for: .showingQuickSettings)
+        let fromOther = BookReaderOverlayState.showingBookmarks.settingPresentation(true, for: .showingTableOfContents)
+
+        #expect(fromToolbars == .showingTableOfContents)
+        #expect(fromNone == .showingQuickSettings)
+        #expect(fromOther == .showingTableOfContents)
+    }
+
+    @Test func settingPresentation_SetFalseDismissesToToolbars() {
+        let dismissToc = BookReaderOverlayState.showingTableOfContents.settingPresentation(false, for: .showingTableOfContents)
+        let dismissQuickSettings = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingQuickSettings)
+        let dismissBookmarks = BookReaderOverlayState.showingBookmarks.settingPresentation(false, for: .showingBookmarks)
+
+        #expect(dismissToc == .showingToolbars)
+        #expect(dismissQuickSettings == .showingToolbars)
+        #expect(dismissBookmarks == .showingToolbars)
+    }
+
+    @Test func settingPresentation_SetFalseForDifferentStateIsNoOp() {
+        let state = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingTableOfContents)
+
+        #expect(state == .showingQuickSettings)
+    }
 }

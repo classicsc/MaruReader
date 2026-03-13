@@ -465,14 +465,3 @@ private struct BookReaderToolbarPopoverEmptyState: View {
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 }
-
-private extension View {
-    @ViewBuilder
-    func applyLocalColorScheme(_ colorScheme: ColorScheme?) -> some View {
-        if let colorScheme {
-            environment(\.colorScheme, colorScheme)
-        } else {
-            self
-        }
-    }
-}
