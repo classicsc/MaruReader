@@ -24,14 +24,14 @@ struct BookReaderFloatingBackButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: "xmark")
+            Label("Back", systemImage: "xmark")
                 .font(.system(size: iconSize, weight: .semibold))
+                .labelStyle(.iconOnly)
                 .frame(width: frameSize, height: frameSize)
         }
         .contentShape(.circle)
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .accessibilityLabel("Back")
         .accessibilityIdentifier("bookReader.back")
     }
 }
