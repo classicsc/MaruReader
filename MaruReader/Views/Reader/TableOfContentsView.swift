@@ -147,7 +147,7 @@ struct TableOfContentsView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 50, height: 75)
-                    .cornerRadius(4)
+                    .clipShape(.rect(cornerRadius: 4))
                     .shadow(radius: 1)
             } else {
                 Image(systemName: "book.closed")
@@ -174,10 +174,9 @@ struct TableOfContentsView: View {
                     Text(chapterProgressText ?? String(localized: "Chapter --"))
                     HStack(spacing: 8) {
                         Text(positionText)
-                        Button("Go to...") {
-                            presentPositionPrompt()
-                        }
-                        .controlSize(.mini)
+                        Button("Go to...", action: presentPositionPrompt)
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
                         .accessibilityLabel("Go to position")
                     }
                 }
@@ -334,16 +333,19 @@ private struct BookmarksListView: View {
         } else {
             List {
                 ForEach(bookmarks, id: \.id) { bookmark in
-                    BookmarkRowView(
-                        bookmark: bookmark,
-                        publication: publication,
-                        currentLocator: currentLocator,
-                        theme: theme
-                    )
-                    .contentShape(Rectangle())
-                    .onTapGesture {
+                    Button {
                         onNavigate(bookmark)
+                    } label: {
+                        BookmarkRowView(
+                            bookmark: bookmark,
+                            publication: publication,
+                            currentLocator: currentLocator,
+                            theme: theme
+                        )
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
                     }
+                    .buttonStyle(.plain)
                     .contextMenu {
                         Button {
                             editingTitle = bookmark.title ?? ""
@@ -454,6 +456,7 @@ private struct BookmarkRowView: View {
                     .foregroundStyle(Color.accentColor)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
     }
 
@@ -514,24 +517,18 @@ private struct TOCItemView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 if hasChildren {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            if isExpanded {
-                                expandedItems.remove(link.href)
-                            } else {
-                                expandedItems.insert(link.href)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                    Button(action: toggleExpansion) {
+                        Label(expandButtonLabel, systemImage: isExpanded ? "chevron.down" : "chevron.right")
+                            .labelStyle(.iconOnly)
                             .font(.caption)
                             .foregroundStyle(theme.secondaryForegroundColor)
-                            .frame(width: 16, height: 16)
+                            .frame(width: 44, height: 44)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
                 } else {
                     Color.clear
-                        .frame(width: 16, height: 16)
+                        .frame(width: 44, height: 44)
                 }
 
                 Button {
@@ -571,6 +568,20 @@ private struct TOCItemView: View {
                         onNavigate: onNavigate
                     )
                 }
+            }
+        }
+    }
+
+    private var expandButtonLabel: String {
+        isExpanded ? String(localized: "Collapse section") : String(localized: "Expand section")
+    }
+
+    private func toggleExpansion() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            if isExpanded {
+                expandedItems.remove(link.href)
+            } else {
+                expandedItems.insert(link.href)
             }
         }
     }

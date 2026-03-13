@@ -73,6 +73,11 @@ enum BookReaderOverlayState {
     }
 }
 
+struct DictionarySheetPresentation: Identifiable {
+    let id = UUID()
+    let viewModel: DictionarySearchViewModel
+}
+
 @MainActor
 @Observable
 final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
@@ -97,7 +102,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     var popupPage: WebPage = .init()
-    var sheetLookupSession: TextLookupSession?
+    var dictionarySheetPresentation: DictionarySheetPresentation?
     var publication: Publication?
     var initialLocation: Locator?
     var book: Book
@@ -123,6 +128,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
     private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
+    private var dictionaryWebTheme: DictionaryWebTheme?
 
     let highlightStyles = [
         "background-color": "inherit",
@@ -186,7 +192,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         return displayTitle
     }
 
-    init(book: Book) {
+    init(book: Book, loadPublicationOnInit: Bool = true) {
         self.book = book
         self.readerPreferences = ReaderPreferences(book: book)
         self.searchService = DictionarySearchService()
@@ -195,21 +201,12 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         // Load bookmarks
         loadBookmarks()
 
-        Task {
-            await loadPublication()
-        }
-        initializePopupPage()
-    }
-
-    var showingDictionarySheet: Bool {
-        get { overlayState == .showingDictionarySheet }
-        set {
-            if newValue {
-                overlayState = .showingDictionarySheet
-            } else if overlayState == .showingDictionarySheet {
-                overlayState = .none
+        if loadPublicationOnInit {
+            Task {
+                await loadPublication()
             }
         }
+        initializePopupPage()
     }
 
     private func loadPublication() async {
@@ -293,13 +290,30 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         popupPage.isInspectable = true
     }
 
+    func presentDictionarySheet(with searchViewModel: DictionarySearchViewModel) {
+        dictionarySheetPresentation = DictionarySheetPresentation(viewModel: searchViewModel)
+        overlayState = .showingDictionarySheet
+    }
+
+    func dismissDictionarySheet() {
+        dictionarySheetPresentation = nil
+        if overlayState == .showingDictionarySheet {
+            overlayState = .none
+        }
+    }
+
     func searchInDictionarySheet(session: TextLookupSession) {
         logger.debug("Opening dictionary sheet with lookup session")
-        sheetLookupSession = session
-        showingDictionarySheet = true
+        let searchViewModel = DictionarySearchViewModel(
+            session: session,
+            dictionaryWebTheme: dictionaryWebTheme
+        )
+        presentDictionarySheet(with: searchViewModel)
     }
 
     func setDictionaryWebTheme(_ theme: DictionaryWebTheme?) {
+        dictionaryWebTheme = theme
+        dictionarySheetPresentation?.viewModel.setDictionaryWebTheme(theme)
         Task {
             do {
                 await resultsSchemeHandler.setWebTheme(theme)

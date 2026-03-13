@@ -202,15 +202,15 @@ private struct BookReaderToolbarPopoverContainer<Content: View>: View {
                 Spacer()
 
                 Button(action: onDismiss) {
-                    Image(systemName: "xmark")
+                    Label(String(localized: "Close"), systemImage: "xmark")
+                        .labelStyle(.iconOnly)
                         .font(.system(size: 12, weight: .semibold))
-                        .frame(width: 28, height: 28)
+                        .frame(width: 44, height: 44)
                         .background(cardBackgroundColor)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(theme.foregroundColor)
-                .accessibilityLabel(String(localized: "Close"))
             }
             .padding(16)
 
@@ -300,10 +300,11 @@ private struct BookReaderToolbarFontSizeCard: View {
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Image(systemName: systemImage)
+            Label(accessibilityLabel, systemImage: systemImage)
+                .labelStyle(.iconOnly)
                 .font(.body.weight(.semibold))
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(minHeight: 44)
                 .background(
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
                         .fill(theme.backgroundColor.opacity(isEnabled ? 1.0 : 0.6))
@@ -312,7 +313,6 @@ private struct BookReaderToolbarFontSizeCard: View {
         .buttonStyle(.plain)
         .disabled(!isEnabled)
         .foregroundStyle(isEnabled ? theme.foregroundColor : theme.secondaryForegroundColor)
-        .accessibilityLabel(accessibilityLabel)
     }
 }
 

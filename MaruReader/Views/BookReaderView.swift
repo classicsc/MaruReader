@@ -30,7 +30,6 @@ struct BookReaderView: View {
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 48
 
     @State private var viewModel: BookReaderViewModel
-    @State private var searchSheetViewModel: DictionarySearchViewModel?
     @State private var progressDisplayMode: ProgressDisplayMode = .book
     @State private var tourManager = TourManager()
     // This is treated as the current system scheme for Follow System mode.
@@ -87,24 +86,24 @@ struct BookReaderView: View {
             errorView(error: error)
         case .reading:
             readerView
-                .sheet(isPresented: $viewModel.showingDictionarySheet) {
+                .sheet(item: $viewModel.dictionarySheetPresentation, onDismiss: {
+                    viewModel.dismissDictionarySheet()
+                }) { presentation in
                     NavigationStack {
-                        if let sheetViewModel = searchSheetViewModel {
-                            DictionarySearchView()
-                                .environment(sheetViewModel)
-                                .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
-                                .navigationTitle("Dictionary")
-                                .navigationBarTitleDisplayMode(.inline)
-                                .navigationBarBackButtonHidden(true)
-                                .toolbar {
-                                    ToolbarItem(placement: .cancellationAction) {
-                                        Button("Done") {
-                                            viewModel.showingDictionarySheet = false
-                                        }
-                                        .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
+                        DictionarySearchView()
+                            .environment(presentation.viewModel)
+                            .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
+                            .navigationTitle("Dictionary")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .navigationBarBackButtonHidden(true)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Done") {
+                                        viewModel.dismissDictionarySheet()
                                     }
+                                    .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
                                 }
-                        }
+                            }
                     }
                     .background(dictionarySheetBackgroundColor)
                     .applyLocalColorScheme(readerOverlayForcedColorScheme)
@@ -115,15 +114,6 @@ struct BookReaderView: View {
                         readerDictionaryPresentationTheme.preferredColorScheme ?? colorScheme,
                         for: .navigationBar
                     )
-                    .onAppear {
-                        // Initialize the view model with the lookup session
-                        if let session = viewModel.sheetLookupSession {
-                            searchSheetViewModel = DictionarySearchViewModel(
-                                session: session,
-                                dictionaryWebTheme: readerDictionaryPresentationTheme.dictionaryWebTheme
-                            )
-                        }
-                    }
                     .accessibilityIdentifier("bookReader.dictionarySheet")
                     .presentationDetents([.medium, .large])
                 }
@@ -280,11 +270,11 @@ struct BookReaderView: View {
                 HStack {
                     Text(viewModel.book.title ?? "Book Reader")
                         .font(.headline)
-                        .foregroundColor(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
+                        .foregroundStyle(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
                         .lineLimit(1)
                     Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.up" : "chevron.down")
                         .font(.headline)
-                        .foregroundColor(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
+                        .foregroundStyle(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
                 }
             }
             .tourAnchor(BookReaderTourAnchor.titleToggle)
@@ -371,7 +361,7 @@ struct BookReaderView: View {
                 } label: {
                     Text(text)
                         .font(.caption)
-                        .foregroundColor(toolbarSecondaryColor.opacity(0.6))
+                        .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 8)
                 }
@@ -510,7 +500,7 @@ struct BookReaderView: View {
     }
 
     private func errorView(error: Error) -> some View {
-        ZStack {
+        ZStack(alignment: .topLeading) {
             VStack(spacing: 16) {
                 Image(systemName: "exclamationmark.triangle")
                     .font(.system(size: errorIconSize))
@@ -593,7 +583,6 @@ struct BookReaderView: View {
     private func applyReaderDictionaryTheme() {
         let webTheme = readerDictionaryPresentationTheme.dictionaryWebTheme
         viewModel.setDictionaryWebTheme(webTheme)
-        searchSheetViewModel?.setDictionaryWebTheme(webTheme)
     }
 
     private func makeDictionaryWebTheme(
