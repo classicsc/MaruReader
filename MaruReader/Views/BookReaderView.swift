@@ -186,72 +186,70 @@ struct BookReaderView: View {
     }
 
     private var readerView: some View {
-        GeometryReader { _ in
-            ZStack(alignment: .topLeading) {
-                readerBackgroundColor
-                EPUBNavigatorWrapper(
-                    viewModel: viewModel,
-                    colorScheme: colorScheme
-                )
-                .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
-                .overlay {
-                    if viewModel.isDictionaryActive {
-                        DictionaryGestureOverlay(
-                            marginWidth: viewModel.readerPreferences.horizontalMargin,
-                            onTap: { globalPoint in
-                                viewModel.triggerTextScan(atGlobalPoint: globalPoint)
-                            },
-                            onSwipeLeft: {
-                                Task { await viewModel.navigator?.goRight(options: .init()) }
-                            },
-                            onSwipeRight: {
-                                Task { await viewModel.navigator?.goLeft(options: .init()) }
-                            }
-                        )
-                    } else {
-                        MarginSwipeOverlay(
-                            marginWidth: viewModel.readerPreferences.horizontalMargin,
-                            onSwipeLeft: {
-                                Task { await viewModel.navigator?.goRight(options: .init()) }
-                            },
-                            onSwipeRight: {
-                                Task { await viewModel.navigator?.goLeft(options: .init()) }
-                            }
-                        )
-                    }
-                }
-                .popover(
-                    isPresented: $viewModel.showPopup,
-                    attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
-                ) {
-                    WebView(viewModel.popupPage)
-                        .background(dictionarySheetBackgroundColor)
-                        .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
-                        .presentationCompactAdaptation(.popover)
-                        .accessibilityIdentifier("bookReader.dictionaryPopover")
+        ZStack(alignment: .topLeading) {
+            readerBackgroundColor
+            EPUBNavigatorWrapper(
+                viewModel: viewModel,
+                colorScheme: colorScheme
+            )
+            .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
+            .overlay {
+                if viewModel.isDictionaryActive {
+                    DictionaryGestureOverlay(
+                        marginWidth: viewModel.readerPreferences.horizontalMargin,
+                        onTap: { globalPoint in
+                            viewModel.triggerTextScan(atGlobalPoint: globalPoint)
+                        },
+                        onSwipeLeft: {
+                            Task { await viewModel.navigator?.goRight(options: .init()) }
+                        },
+                        onSwipeRight: {
+                            Task { await viewModel.navigator?.goLeft(options: .init()) }
+                        }
+                    )
+                } else {
+                    MarginSwipeOverlay(
+                        marginWidth: viewModel.readerPreferences.horizontalMargin,
+                        onSwipeLeft: {
+                            Task { await viewModel.navigator?.goRight(options: .init()) }
+                        },
+                        onSwipeRight: {
+                            Task { await viewModel.navigator?.goLeft(options: .init()) }
+                        }
+                    )
                 }
             }
-            .safeAreaInset(edge: .bottom) {
-                ZStack(alignment: .bottom) {
-                    // Invisible spacer to reserve consistent height
-                    bottomToolbarSpacer.hidden()
+            .popover(
+                isPresented: $viewModel.showPopup,
+                attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
+            ) {
+                WebView(viewModel.popupPage)
+                    .background(dictionarySheetBackgroundColor)
+                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
+                    .presentationCompactAdaptation(.popover)
+                    .accessibilityIdentifier("bookReader.dictionaryPopover")
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            ZStack(alignment: .bottom) {
+                // Invisible spacer to reserve consistent height
+                bottomToolbarSpacer.hidden()
 
-                    if viewModel.overlayState.shouldShowToolbars {
-                        bottomToolbarOverlay
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    } else {
-                        progressDisplayOverlay
-                            .transition(.move(edge: .bottom).combined(with: .opacity))
-                    }
+                if viewModel.overlayState.shouldShowToolbars {
+                    bottomToolbarOverlay
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                } else {
+                    progressDisplayOverlay
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
-                .applyLocalColorScheme(readerOverlayForcedColorScheme)
             }
-            .safeAreaInset(edge: .top) {
-                ZStack(alignment: .top) {
-                    topToolbarSpacer.hidden()
-                    topToolbarOverlay
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
+            .applyLocalColorScheme(readerOverlayForcedColorScheme)
+        }
+        .safeAreaInset(edge: .top) {
+            ZStack(alignment: .top) {
+                topToolbarSpacer.hidden()
+                topToolbarOverlay
+                    .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
         .background(readerBackgroundColor.ignoresSafeArea())
@@ -766,34 +764,32 @@ private struct DictionaryGestureOverlay: View {
     let onSwipeRight: () -> Void
 
     var body: some View {
-        GeometryReader { _ in
-            Color.clear
-                .contentShape(Rectangle())
-                .gesture(
-                    DragGesture(minimumDistance: 30)
-                        .onEnded { value in
-                            let horizontalDistance = value.translation.width
-                            let verticalDistance = abs(value.translation.height)
+        Color.clear
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 30)
+                    .onEnded { value in
+                        let horizontalDistance = value.translation.width
+                        let verticalDistance = abs(value.translation.height)
 
-                            guard abs(horizontalDistance) > verticalDistance else { return }
+                        guard abs(horizontalDistance) > verticalDistance else { return }
 
-                            if horizontalDistance < 0 {
-                                onSwipeLeft()
-                            } else {
-                                onSwipeRight()
-                            }
+                        if horizontalDistance < 0 {
+                            onSwipeLeft()
+                        } else {
+                            onSwipeRight()
                         }
-                )
-                .simultaneousGesture(
-                    TapGesture()
-                        .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
-                        .onEnded { value in
-                            if case let .second(_, drag) = value, let location = drag?.location {
-                                onTap(location)
-                            }
+                    }
+            )
+            .simultaneousGesture(
+                TapGesture()
+                    .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .global))
+                    .onEnded { value in
+                        if case let .second(_, drag) = value, let location = drag?.location {
+                            onTap(location)
                         }
-                )
-        }
-        .accessibilityHidden(true)
+                    }
+            )
+            .accessibilityHidden(true)
     }
 }
