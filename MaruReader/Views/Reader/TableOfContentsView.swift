@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreData
 import ReadiumShared
 import SwiftUI
 
@@ -40,6 +41,53 @@ struct TableOfContentsTheme {
     let separatorColor: Color
 }
 
+struct BookReaderBookmarkRowData: Identifiable {
+    let bookmark: Bookmark
+    let displayTitle: String
+    let chapterTitle: String?
+    let progressText: String?
+    let isCurrent: Bool
+
+    var id: NSManagedObjectID {
+        bookmark.objectID
+    }
+
+    static func makeRows(
+        bookmarks: [Bookmark],
+        currentHref: String?,
+        chapterTitleByHref: [String: String]
+    ) -> [Self] {
+        bookmarks.map { bookmark in
+            let locator = locator(for: bookmark)
+            let href = locator?.href.string
+
+            return BookReaderBookmarkRowData(
+                bookmark: bookmark,
+                displayTitle: bookmark.title ?? String(localized: "Bookmark"),
+                chapterTitle: href.flatMap { chapterTitleByHref[$0] },
+                progressText: locator.flatMap(progressText(for:)),
+                isCurrent: href == currentHref
+            )
+        }
+    }
+
+    private static func locator(for bookmark: Bookmark) -> Locator? {
+        guard let locationJSON = bookmark.location else { return nil }
+        return try? Locator(jsonString: locationJSON)
+    }
+
+    private static func progressText(for locator: Locator) -> String? {
+        if let totalProgression = locator.locations.totalProgression {
+            let percent = Int(totalProgression * 100)
+            return String(localized: "Book \(percent)%")
+        }
+        if let position = locator.locations.position {
+            return String(localized: "Position \(position)")
+        }
+        return nil
+    }
+}
+
 @MainActor
 struct TableOfContentsView: View {
     let publication: Publication
@@ -48,6 +96,7 @@ struct TableOfContentsView: View {
     let coverImage: UIImage?
     let currentLocator: Locator?
     let bookmarks: [Bookmark]
+    let chapterTitleByHref: [String: String]
     let onNavigate: (ReadiumShared.Link) -> Void
     let onNavigateToPosition: (Int) -> Void
     let onNavigateToBookmark: (Bookmark) -> Void
@@ -90,7 +139,7 @@ struct TableOfContentsView: View {
                 case .bookmarks:
                     BookmarksListView(
                         bookmarks: bookmarks,
-                        publication: publication,
+                        chapterTitleByHref: chapterTitleByHref,
                         currentLocator: currentLocator,
                         theme: theme,
                         onNavigate: onNavigateToBookmark,
@@ -244,7 +293,8 @@ struct TableOfContentsView: View {
 
     private func scrollToCurrentChapter(proxy: ScrollViewProxy) {
         guard let currentHref = currentLocator?.href.string else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+        Task {
+            try? await Task.sleep(for: .milliseconds(100))
             withAnimation {
                 proxy.scrollTo(currentHref, anchor: .center)
             }
@@ -315,7 +365,7 @@ private extension View {
 
 private struct BookmarksListView: View {
     let bookmarks: [Bookmark]
-    let publication: Publication
+    let chapterTitleByHref: [String: String]
     let currentLocator: Locator?
     let theme: TableOfContentsTheme
     let onNavigate: (Bookmark) -> Void
@@ -324,6 +374,7 @@ private struct BookmarksListView: View {
 
     @State private var editingBookmark: Bookmark?
     @State private var editingTitle: String = ""
+    @State private var bookmarkRows: [BookReaderBookmarkRowData] = []
 
     var body: some View {
         if bookmarks.isEmpty {
@@ -334,14 +385,12 @@ private struct BookmarksListView: View {
             )
         } else {
             List {
-                ForEach(bookmarks, id: \.id) { bookmark in
+                ForEach(bookmarkRows) { row in
                     Button {
-                        onNavigate(bookmark)
+                        onNavigate(row.bookmark)
                     } label: {
                         BookmarkRowView(
-                            bookmark: bookmark,
-                            publication: publication,
-                            currentLocator: currentLocator,
+                            row: row,
                             theme: theme
                         )
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -350,14 +399,14 @@ private struct BookmarksListView: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button {
-                            editingTitle = bookmark.title ?? ""
-                            editingBookmark = bookmark
+                            editingTitle = row.bookmark.title ?? ""
+                            editingBookmark = row.bookmark
                         } label: {
                             Label("Rename", systemImage: "pencil")
                         }
 
                         Button(role: .destructive) {
-                            onDelete(bookmark)
+                            onDelete(row.bookmark)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -368,6 +417,13 @@ private struct BookmarksListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(theme.backgroundColor)
+            .task(id: bookmarkRowsRefreshKey) {
+                bookmarkRows = BookReaderBookmarkRowData.makeRows(
+                    bookmarks: bookmarks,
+                    currentHref: currentLocator?.href.string,
+                    chapterTitleByHref: chapterTitleByHref
+                )
+            }
             .alert("Rename Bookmark", isPresented: .init(
                 get: { editingBookmark != nil },
                 set: { if !$0 { editingBookmark = nil } }
@@ -387,62 +443,53 @@ private struct BookmarksListView: View {
             }
         }
     }
+
+    private var bookmarkRowsRefreshKey: BookmarkRowsRefreshKey {
+        BookmarkRowsRefreshKey(
+            currentHref: currentLocator?.href.string,
+            bookmarks: bookmarks.map { bookmark in
+                BookmarkRowsRefreshItem(
+                    id: bookmark.objectID.uriRepresentation().absoluteString,
+                    title: bookmark.title,
+                    location: bookmark.location
+                )
+            }
+        )
+    }
+}
+
+private struct BookmarkRowsRefreshKey: Equatable {
+    let currentHref: String?
+    let bookmarks: [BookmarkRowsRefreshItem]
+}
+
+private struct BookmarkRowsRefreshItem: Equatable {
+    let id: String
+    let title: String?
+    let location: String?
 }
 
 // MARK: - BookmarkRowView
 
 private struct BookmarkRowView: View {
-    @ObservedObject var bookmark: Bookmark
-    let publication: Publication
-    let currentLocator: Locator?
+    let row: BookReaderBookmarkRowData
     let theme: TableOfContentsTheme
-
-    private var locator: Locator? {
-        guard let locationJSON = bookmark.location else { return nil }
-        return try? Locator(jsonString: locationJSON)
-    }
-
-    private var displayTitle: String {
-        bookmark.title ?? String(localized: "Bookmark")
-    }
-
-    private var chapterTitle: String? {
-        guard let locator else { return nil }
-        return findChapterTitle(for: locator, in: publication)
-    }
-
-    private var progressText: String? {
-        guard let locator else { return nil }
-        if let totalProgression = locator.locations.totalProgression {
-            let percent = Int(totalProgression * 100)
-            return String(localized: "Book \(percent)%")
-        }
-        if let position = locator.locations.position {
-            return String(localized: "Position \(position)")
-        }
-        return nil
-    }
-
-    private var isCurrent: Bool {
-        guard let locator, let currentLocator else { return false }
-        return locator.href.string == currentLocator.href.string
-    }
 
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text(displayTitle)
+                Text(row.displayTitle)
                     .font(.body)
-                    .fontWeight(isCurrent ? .semibold : .regular)
-                    .foregroundStyle(isCurrent ? Color.accentColor : theme.foregroundColor)
+                    .fontWeight(row.isCurrent ? .semibold : .regular)
+                    .foregroundStyle(row.isCurrent ? Color.accentColor : theme.foregroundColor)
                     .lineLimit(1)
 
                 HStack(spacing: 8) {
-                    if let chapter = chapterTitle {
+                    if let chapter = row.chapterTitle {
                         Text(chapter)
                             .lineLimit(1)
                     }
-                    if let progress = progressText {
+                    if let progress = row.progressText {
                         Text(progress)
                     }
                 }
@@ -452,7 +499,7 @@ private struct BookmarkRowView: View {
 
             Spacer()
 
-            if isCurrent {
+            if row.isCurrent {
                 Image(systemName: "bookmark.fill")
                     .font(.caption)
                     .foregroundStyle(Color.accentColor)
@@ -460,21 +507,6 @@ private struct BookmarkRowView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 4)
-    }
-
-    private func findChapterTitle(for locator: Locator, in publication: Publication) -> String? {
-        func searchLinks(_ links: [ReadiumShared.Link]) -> String? {
-            for link in links {
-                if link.href == locator.href.string, let title = link.title, !title.isEmpty {
-                    return title
-                }
-                if let found = searchLinks(link.children) {
-                    return found
-                }
-            }
-            return nil
-        }
-        return searchLinks(publication.manifest.tableOfContents)
     }
 }
 

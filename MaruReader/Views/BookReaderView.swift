@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreData
 import Foundation
 import MaruDictionaryUICommon
 import MaruReaderCore
@@ -86,6 +87,9 @@ struct BookReaderView: View {
             errorView(error: error)
         case .reading:
             readerView
+                .onChange(of: availableProgressDisplayModes) {
+                    syncProgressDisplayMode(with: availableProgressDisplayModes)
+                }
                 .sheet(item: $viewModel.dictionarySheetPresentation, onDismiss: {
                     viewModel.dismissDictionarySheet()
                 }) { presentation in
@@ -127,6 +131,7 @@ struct BookReaderView: View {
                             coverImage: viewModel.coverImage,
                             currentLocator: viewModel.currentLocator,
                             bookmarks: viewModel.bookmarks,
+                            chapterTitleByHref: viewModel.cachedChapterTitleByHref,
                             onNavigate: { link in
                                 viewModel.navigateToLink(link)
                             },
@@ -186,7 +191,9 @@ struct BookReaderView: View {
     }
 
     private var readerView: some View {
-        ZStack(alignment: .topLeading) {
+        let overlayTheme = readerDictionaryPresentationTheme
+
+        return ZStack(alignment: .topLeading) {
             readerBackgroundColor
             EPUBNavigatorWrapper(
                 viewModel: viewModel,
@@ -194,278 +201,57 @@ struct BookReaderView: View {
             )
             .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
             .overlay {
-                if viewModel.isDictionaryActive {
-                    DictionaryGestureOverlay(
-                        marginWidth: viewModel.readerPreferences.horizontalMargin,
-                        onTap: { globalPoint in
-                            viewModel.triggerTextScan(atGlobalPoint: globalPoint)
-                        },
-                        onSwipeLeft: {
-                            Task { await viewModel.navigator?.goRight(options: .init()) }
-                        },
-                        onSwipeRight: {
-                            Task { await viewModel.navigator?.goLeft(options: .init()) }
-                        }
-                    )
-                } else {
-                    MarginSwipeOverlay(
-                        marginWidth: viewModel.readerPreferences.horizontalMargin,
-                        onSwipeLeft: {
-                            Task { await viewModel.navigator?.goRight(options: .init()) }
-                        },
-                        onSwipeRight: {
-                            Task { await viewModel.navigator?.goLeft(options: .init()) }
-                        }
-                    )
-                }
-            }
-            .popover(
-                isPresented: $viewModel.showPopup,
-                attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
-            ) {
-                WebView(viewModel.popupPage)
-                    .background(dictionarySheetBackgroundColor)
-                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
-                    .presentationCompactAdaptation(.popover)
-                    .accessibilityIdentifier("bookReader.dictionaryPopover")
+                BookReaderNavigatorOverlaySurface(
+                    isDictionaryActive: viewModel.isDictionaryActive,
+                    marginWidth: viewModel.readerPreferences.horizontalMargin,
+                    showingPopup: $viewModel.showPopup,
+                    popupAnchorPosition: viewModel.popupAnchorPosition,
+                    popupPage: viewModel.popupPage,
+                    popupBackgroundColor: dictionarySheetBackgroundColor,
+                    onTap: { globalPoint in
+                        viewModel.triggerTextScan(atGlobalPoint: globalPoint)
+                    },
+                    onSwipeLeft: {
+                        Task { await viewModel.navigator?.goRight(options: .init()) }
+                    },
+                    onSwipeRight: {
+                        Task { await viewModel.navigator?.goLeft(options: .init()) }
+                    }
+                )
             }
         }
         .safeAreaInset(edge: .bottom) {
-            ZStack(alignment: .bottom) {
-                // Invisible spacer to reserve consistent height
-                bottomToolbarSpacer.hidden()
-
-                if viewModel.overlayState.shouldShowToolbars {
-                    bottomToolbarOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                } else {
-                    progressDisplayOverlay
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-            }
-            .applyLocalColorScheme(readerOverlayForcedColorScheme)
-        }
-        .safeAreaInset(edge: .top) {
-            ZStack(alignment: .top) {
-                topToolbarSpacer.hidden()
-                topToolbarOverlay
-                    .transition(.move(edge: .top).combined(with: .opacity))
-            }
-        }
-        .background(readerBackgroundColor.ignoresSafeArea())
-    }
-
-    private var topToolbarOverlay: some View {
-        HStack {
-            if viewModel.overlayState.shouldShowToolbars {
-                floatingBackButton
-                    .tourAnchor(BookReaderTourAnchor.backButton)
-            } else {
-                floatingBackButton.hidden()
-            }
-            Spacer()
-            Button { viewModel.toggleOverlay() } label: {
-                HStack {
-                    Text(viewModel.book.title ?? "Book Reader")
-                        .font(.headline)
-                        .foregroundStyle(toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars))
-                        .lineLimit(1)
-                    Image(systemName: viewModel.overlayState.shouldShowToolbars ? "chevron.up" : "chevron.down")
-                        .font(.headline)
-                        .foregroundStyle(viewModel.overlayState.shouldShowToolbars ? toolbarSecondaryColor : toolbarSecondaryColor.opacity(0.6))
-                }
-            }
-            .tourAnchor(BookReaderTourAnchor.titleToggle)
-            Spacer()
-            Spacer().frame(width: floatingButtonFrameSize)
-        }
-        .padding(.horizontal)
-    }
-
-    private var topToolbarSpacer: some View {
-        HStack {
-            Color.clear
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-            Spacer()
-            Text(viewModel.book.title ?? "Book Reader")
-                .font(.headline)
-                .hidden()
-            Spacer()
-            Color.clear
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        }
-        .padding(.horizontal)
-        .allowsHitTesting(false)
-        .accessibilityHidden(true)
-    }
-
-    private var bottomToolbarOverlay: some View {
-        HStack(spacing: 32) {
-            Button {
-                viewModel.overlayState = .showingTableOfContents
-            } label: {
-                Image(systemName: "list.bullet")
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(.rect)
-            }
-            .accessibilityLabel("Table of contents")
-            .accessibilityIdentifier("bookReader.tableOfContents")
-            .tourAnchor(BookReaderTourAnchor.tableOfContents)
-
-            Button {
-                viewModel.isDictionaryActive.toggle()
-            } label: {
-                Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
-                    .frame(minWidth: 44, minHeight: 44)
-                    .contentShape(.rect)
-            }
-            .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
-            .accessibilityIdentifier("bookReader.dictionaryMode")
-            .tourAnchor(BookReaderTourAnchor.dictionaryMode)
-
-            bookmarkButton
-                .tourAnchor(BookReaderTourAnchor.bookmark)
-
-            appearanceMenuButton
-                .tourAnchor(BookReaderTourAnchor.appearanceMenu)
-        }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 12)
-        .buttonStyle(.plain)
-        .foregroundStyle(toolbarForegroundColor(isPrimary: true))
-        .background(
-            Capsule()
-                .fill(.clear)
-                .glassEffect()
-        )
-        .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.bottom, 20)
-    }
-
-    private var bottomToolbarSpacer: some View {
-        Color.clear
-            .frame(height: 88)
-            .frame(maxWidth: .infinity)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-    }
-
-    private var progressDisplayOverlay: some View {
-        let availableModes = availableProgressDisplayModes
-        return Group {
-            if let text = progressDisplayText {
-                Button {
-                    cycleProgressDisplayMode(availableModes: availableModes)
-                } label: {
-                    Text(text)
-                        .font(.caption)
-                        .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.plain)
-                .frame(maxWidth: .infinity)
-                .padding(.bottom, 12)
-                .accessibilityLabel("Reading progress")
-                .accessibilityValue(text)
-                .onChange(of: availableModes) {
-                    syncProgressDisplayMode(with: availableModes)
-                }
-            }
-        }
-    }
-
-    private var appearanceMenuButton: some View {
-        Button {
-            if viewModel.overlayState == .showingQuickSettings {
-                viewModel.overlayState = viewModel.overlayState.settingPresentation(
-                    false,
-                    for: .showingQuickSettings
-                )
-            } else {
-                viewModel.overlayState = viewModel.overlayState.settingPresentation(
-                    true,
-                    for: .showingQuickSettings
-                )
-            }
-        } label: {
-            Image(systemName: "textformat")
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
-        }
-        .accessibilityLabel("Appearance and text")
-        .accessibilityIdentifier("bookReader.appearanceButton")
-        .popover(
-            isPresented: showingAppearancePopover,
-            attachmentAnchor: .rect(.bounds),
-            arrowEdge: .bottom
-        ) {
-            BookReaderAppearancePopover(
-                readerPreferences: viewModel.readerPreferences,
-                theme: readerDictionaryPresentationTheme,
+            BookReaderBottomInset(
+                showsToolbars: viewModel.overlayState.shouldShowToolbars,
+                isDictionaryActive: viewModel.isDictionaryActive,
+                isCurrentLocationBookmarked: viewModel.currentLocationBookmark != nil,
+                currentBookmarkID: viewModel.currentLocationBookmark?.objectID,
+                canReturnToPreviousLocation: viewModel.previousLocation != nil,
+                bookmarks: viewModel.bookmarks,
+                showingAppearancePopover: showingAppearancePopover,
+                showingBookmarksPopover: showingBookmarksPopover,
+                progressDisplayText: progressDisplayText,
+                toolbarForegroundColor: toolbarForegroundColor(isPrimary: true),
+                toolbarSecondaryColor: toolbarSecondaryColor,
+                theme: overlayTheme,
+                onShowTableOfContents: {
+                    viewModel.overlayState = .showingTableOfContents
+                },
+                onToggleDictionaryMode: {
+                    viewModel.isDictionaryActive.toggle()
+                },
+                onToggleAppearancePopover: toggleAppearancePopover,
                 onSelectAppearanceMode: { mode in
                     viewModel.readerPreferences.setAppearanceMode(mode)
                     applyReaderDictionaryTheme()
                 },
-                onDismiss: {
+                onDismissAppearancePopover: {
                     viewModel.overlayState = viewModel.overlayState.settingPresentation(
                         false,
                         for: .showingQuickSettings
                     )
-                }
-            )
-            .accessibilityIdentifier("bookReader.appearancePopover")
-        }
-    }
-
-    private var floatingBackButton: some View {
-        Button {
-            dismiss()
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        }
-        .contentShape(.circle)
-        .buttonStyle(.glass)
-        .buttonBorderShape(.circle)
-        .accessibilityLabel("Back")
-        .accessibilityIdentifier("bookReader.back")
-    }
-
-    @ViewBuilder
-    private var bookmarkButton: some View {
-        let isCurrentLocationBookmarked = viewModel.currentLocationBookmark != nil
-        Button {
-            if viewModel.overlayState == .showingBookmarks {
-                viewModel.overlayState = viewModel.overlayState.settingPresentation(
-                    false,
-                    for: .showingBookmarks
-                )
-            } else {
-                viewModel.overlayState = viewModel.overlayState.settingPresentation(
-                    true,
-                    for: .showingBookmarks
-                )
-            }
-        } label: {
-            Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
-                .frame(minWidth: 44, minHeight: 44)
-                .contentShape(.rect)
-        }
-        .accessibilityLabel("Bookmarks")
-        .accessibilityIdentifier("bookReader.bookmarksButton")
-        .popover(
-            isPresented: showingBookmarksPopover,
-            attachmentAnchor: .rect(.bounds),
-            arrowEdge: .bottom
-        ) {
-            BookReaderBookmarksPopover(
-                bookmarks: viewModel.bookmarks,
-                currentBookmarkID: viewModel.currentLocationBookmark?.objectID,
-                isCurrentLocationBookmarked: isCurrentLocationBookmarked,
-                canReturnToPreviousLocation: viewModel.previousLocation != nil,
-                theme: readerDictionaryPresentationTheme,
+                },
+                onToggleBookmarksPopover: toggleBookmarksPopover,
                 onAddBookmark: {
                     viewModel.bookmarkCurrentLocation()
                     viewModel.overlayState = viewModel.overlayState.settingPresentation(
@@ -486,15 +272,32 @@ struct BookReaderView: View {
                 onReturnToPreviousLocation: {
                     viewModel.returnToPreviousLocation()
                 },
-                onDismiss: {
+                onDismissBookmarksPopover: {
                     viewModel.overlayState = viewModel.overlayState.settingPresentation(
                         false,
                         for: .showingBookmarks
                     )
-                }
+                },
+                onCycleProgressDisplayMode: {
+                    cycleProgressDisplayMode(availableModes: availableProgressDisplayModes)
+                },
+                readerPreferences: viewModel.readerPreferences
             )
-            .accessibilityIdentifier("bookReader.bookmarksPopover")
+            .applyLocalColorScheme(readerOverlayForcedColorScheme)
         }
+        .safeAreaInset(edge: .top) {
+            BookReaderTopInset(
+                showsToolbars: viewModel.overlayState.shouldShowToolbars,
+                title: viewModel.book.title ?? "Book Reader",
+                floatingButtonIconSize: floatingButtonIconSize,
+                floatingButtonFrameSize: floatingButtonFrameSize,
+                primaryForegroundColor: toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars),
+                secondaryForegroundColor: toolbarSecondaryColor,
+                onDismiss: { dismiss() },
+                onToggleOverlay: { viewModel.toggleOverlay() }
+            )
+        }
+        .background(readerBackgroundColor.ignoresSafeArea())
     }
 
     private func errorView(error: Error) -> some View {
@@ -512,8 +315,12 @@ struct BookReaderView: View {
                     .padding(.horizontal)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            floatingBackButton
-                .padding()
+            BookReaderFloatingBackButton(
+                iconSize: floatingButtonIconSize,
+                frameSize: floatingButtonFrameSize,
+                action: { dismiss() }
+            )
+            .padding()
         }
     }
 
@@ -695,6 +502,282 @@ struct BookReaderView: View {
         guard let first = availableModes.first else { return }
         if !availableModes.contains(progressDisplayMode) {
             progressDisplayMode = first
+        }
+    }
+
+    private func toggleAppearancePopover() {
+        viewModel.overlayState = viewModel.overlayState.settingPresentation(
+            viewModel.overlayState != .showingQuickSettings,
+            for: .showingQuickSettings
+        )
+    }
+
+    private func toggleBookmarksPopover() {
+        viewModel.overlayState = viewModel.overlayState.settingPresentation(
+            viewModel.overlayState != .showingBookmarks,
+            for: .showingBookmarks
+        )
+    }
+}
+
+private struct BookReaderNavigatorOverlaySurface: View {
+    let isDictionaryActive: Bool
+    let marginWidth: Double
+    @Binding var showingPopup: Bool
+    let popupAnchorPosition: CGRect
+    let popupPage: WebPage
+    let popupBackgroundColor: SwiftUI.Color
+    let onTap: (CGPoint) -> Void
+    let onSwipeLeft: () -> Void
+    let onSwipeRight: () -> Void
+
+    var body: some View {
+        Group {
+            if isDictionaryActive {
+                DictionaryGestureOverlay(
+                    marginWidth: marginWidth,
+                    onTap: onTap,
+                    onSwipeLeft: onSwipeLeft,
+                    onSwipeRight: onSwipeRight
+                )
+            } else {
+                MarginSwipeOverlay(
+                    marginWidth: marginWidth,
+                    onSwipeLeft: onSwipeLeft,
+                    onSwipeRight: onSwipeRight
+                )
+            }
+        }
+        .popover(
+            isPresented: $showingPopup,
+            attachmentAnchor: .rect(.rect(popupAnchorPosition))
+        ) {
+            WebView(popupPage)
+                .background(popupBackgroundColor)
+                .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
+                .presentationCompactAdaptation(.popover)
+                .accessibilityIdentifier("bookReader.dictionaryPopover")
+        }
+    }
+}
+
+private struct BookReaderTopInset: View {
+    let showsToolbars: Bool
+    let title: String
+    let floatingButtonIconSize: CGFloat
+    let floatingButtonFrameSize: CGFloat
+    let primaryForegroundColor: SwiftUI.Color
+    let secondaryForegroundColor: SwiftUI.Color
+    let onDismiss: () -> Void
+    let onToggleOverlay: () -> Void
+
+    var body: some View {
+        ZStack(alignment: .top) {
+            HStack {
+                Color.clear
+                    .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+                Spacer()
+                Text(title)
+                    .font(.headline)
+                    .hidden()
+                Spacer()
+                Color.clear
+                    .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+            }
+            .padding(.horizontal)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .hidden()
+
+            HStack {
+                if showsToolbars {
+                    BookReaderFloatingBackButton(
+                        iconSize: floatingButtonIconSize,
+                        frameSize: floatingButtonFrameSize,
+                        action: onDismiss
+                    )
+                    .tourAnchor(BookReaderTourAnchor.backButton)
+                } else {
+                    BookReaderFloatingBackButton(
+                        iconSize: floatingButtonIconSize,
+                        frameSize: floatingButtonFrameSize,
+                        action: onDismiss
+                    )
+                    .hidden()
+                }
+                Spacer()
+                Button(action: onToggleOverlay) {
+                    HStack {
+                        Text(title)
+                            .font(.headline)
+                            .foregroundStyle(primaryForegroundColor)
+                            .lineLimit(1)
+                        Image(systemName: showsToolbars ? "chevron.up" : "chevron.down")
+                            .font(.headline)
+                            .foregroundStyle(showsToolbars ? secondaryForegroundColor : secondaryForegroundColor.opacity(0.6))
+                    }
+                }
+                .tourAnchor(BookReaderTourAnchor.titleToggle)
+                Spacer()
+                Spacer().frame(width: floatingButtonFrameSize)
+            }
+            .padding(.horizontal)
+        }
+    }
+}
+
+private struct BookReaderFloatingBackButton: View {
+    let iconSize: CGFloat
+    let frameSize: CGFloat
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: iconSize, weight: .semibold))
+                .frame(width: frameSize, height: frameSize)
+        }
+        .contentShape(.circle)
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .accessibilityLabel("Back")
+        .accessibilityIdentifier("bookReader.back")
+    }
+}
+
+private struct BookReaderBottomInset: View {
+    let showsToolbars: Bool
+    let isDictionaryActive: Bool
+    let isCurrentLocationBookmarked: Bool
+    let currentBookmarkID: NSManagedObjectID?
+    let canReturnToPreviousLocation: Bool
+    let bookmarks: [Bookmark]
+    let showingAppearancePopover: Binding<Bool>
+    let showingBookmarksPopover: Binding<Bool>
+    let progressDisplayText: String?
+    let toolbarForegroundColor: SwiftUI.Color
+    let toolbarSecondaryColor: SwiftUI.Color
+    let theme: DictionaryPresentationTheme
+    let onShowTableOfContents: () -> Void
+    let onToggleDictionaryMode: () -> Void
+    let onToggleAppearancePopover: () -> Void
+    let onSelectAppearanceMode: (ReaderAppearanceMode) -> Void
+    let onDismissAppearancePopover: () -> Void
+    let onToggleBookmarksPopover: () -> Void
+    let onAddBookmark: () -> Void
+    let onRemoveBookmark: () -> Void
+    let onNavigateToBookmark: (Bookmark) -> Void
+    let onReturnToPreviousLocation: () -> Void
+    let onDismissBookmarksPopover: () -> Void
+    let onCycleProgressDisplayMode: () -> Void
+    let readerPreferences: ReaderPreferences
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.clear
+                .frame(height: 88)
+                .frame(maxWidth: .infinity)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+                .hidden()
+
+            if showsToolbars {
+                HStack(spacing: 32) {
+                    Button(action: onShowTableOfContents) {
+                        Image(systemName: "list.bullet")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .accessibilityLabel("Table of contents")
+                    .accessibilityIdentifier("bookReader.tableOfContents")
+                    .tourAnchor(BookReaderTourAnchor.tableOfContents)
+
+                    Button(action: onToggleDictionaryMode) {
+                        Image(systemName: isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .accessibilityLabel(isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
+                    .accessibilityIdentifier("bookReader.dictionaryMode")
+                    .tourAnchor(BookReaderTourAnchor.dictionaryMode)
+
+                    Button(action: onToggleBookmarksPopover) {
+                        Image(systemName: isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .accessibilityLabel("Bookmarks")
+                    .accessibilityIdentifier("bookReader.bookmarksButton")
+                    .tourAnchor(BookReaderTourAnchor.bookmark)
+                    .popover(
+                        isPresented: showingBookmarksPopover,
+                        attachmentAnchor: .rect(.bounds),
+                        arrowEdge: .bottom
+                    ) {
+                        BookReaderBookmarksPopover(
+                            bookmarks: bookmarks,
+                            currentBookmarkID: currentBookmarkID,
+                            isCurrentLocationBookmarked: isCurrentLocationBookmarked,
+                            canReturnToPreviousLocation: canReturnToPreviousLocation,
+                            theme: theme,
+                            onAddBookmark: onAddBookmark,
+                            onRemoveBookmark: onRemoveBookmark,
+                            onNavigateToBookmark: onNavigateToBookmark,
+                            onReturnToPreviousLocation: onReturnToPreviousLocation,
+                            onDismiss: onDismissBookmarksPopover
+                        )
+                        .accessibilityIdentifier("bookReader.bookmarksPopover")
+                    }
+
+                    Button(action: onToggleAppearancePopover) {
+                        Image(systemName: "textformat")
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.rect)
+                    }
+                    .accessibilityLabel("Appearance and text")
+                    .accessibilityIdentifier("bookReader.appearanceButton")
+                    .tourAnchor(BookReaderTourAnchor.appearanceMenu)
+                    .popover(
+                        isPresented: showingAppearancePopover,
+                        attachmentAnchor: .rect(.bounds),
+                        arrowEdge: .bottom
+                    ) {
+                        BookReaderAppearancePopover(
+                            readerPreferences: readerPreferences,
+                            theme: theme,
+                            onSelectAppearanceMode: onSelectAppearanceMode,
+                            onDismiss: onDismissAppearancePopover
+                        )
+                        .accessibilityIdentifier("bookReader.appearancePopover")
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .buttonStyle(.plain)
+                .foregroundStyle(toolbarForegroundColor)
+                .background(
+                    Capsule()
+                        .fill(.clear)
+                        .glassEffect()
+                )
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.bottom, 20)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            } else if let progressDisplayText {
+                Button(action: onCycleProgressDisplayMode) {
+                    Text(progressDisplayText)
+                        .font(.caption)
+                        .foregroundStyle(toolbarSecondaryColor.opacity(0.6))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 12)
+                .accessibilityLabel("Reading progress")
+                .accessibilityValue(progressDisplayText)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
     }
 }

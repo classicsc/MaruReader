@@ -121,6 +121,10 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
     private var popupSearchTask: Task<Void, Error>?
     private weak var activeNavigatorWebView: WKWebView?
+    @ObservationIgnored private var cachedCoverImage: UIImage?
+    @ObservationIgnored private var hasLoadedCoverImage = false
+    @ObservationIgnored private var bookmarksByLocation: [String: Bookmark] = [:]
+    @ObservationIgnored private var chapterTitleByHref: [String: String] = [:]
 
     private let searchService: DictionarySearchService
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
@@ -154,10 +158,25 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
     /// Book cover image, if available.
     var coverImage: UIImage? {
-        guard let url = bookCoverURL,
-              let data = try? Data(contentsOf: url)
-        else { return nil }
-        return UIImage(data: data)
+        cachedCoverImage
+    }
+
+    @discardableResult
+    func loadCoverImageIfNeeded() async -> UIImage? {
+        if hasLoadedCoverImage {
+            return cachedCoverImage
+        }
+
+        guard let url = bookCoverURL else { return nil }
+        hasLoadedCoverImage = true
+
+        let image = await Task.detached(priority: .utility) { () -> UIImage? in
+            guard let data = try? Data(contentsOf: url) else { return nil }
+            return UIImage(data: data)
+        }.value
+
+        cachedCoverImage = image
+        return image
     }
 
     /// Context values for dictionary lookups, populated with book metadata.
@@ -205,6 +224,9 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             Task {
                 await loadPublication()
             }
+        }
+        Task {
+            await loadCoverImageIfNeeded()
         }
         initializePopupPage()
     }
@@ -259,6 +281,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             }
 
             self.publication = publication
+            chapterTitleByHref = Self.makeChapterTitleIndex(for: publication)
 
             logger.info("Successfully loaded publication for book \(self.book.title ?? "Unknown")")
 
@@ -338,7 +361,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         guard let locator = currentLocator,
               let currentJSON = locator.jsonString
         else { return nil }
-        return bookmarks.first { $0.location == currentJSON }
+        return bookmarksByLocation[currentJSON]
     }
 
     func bookmarkCurrentLocation() {
@@ -460,17 +483,16 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
         do {
             bookmarks = try context.fetch(request)
+            rebuildBookmarkLookup()
         } catch {
             logger.error("Failed to fetch bookmarks: \(error.localizedDescription)")
             bookmarks = []
+            rebuildBookmarkLookup()
         }
     }
 
     private func generateDefaultBookmarkTitle(for locator: Locator) -> String {
-        // Try to get chapter title from publication TOC
-        if let publication,
-           let chapterTitle = findChapterTitle(for: locator, in: publication)
-        {
+        if let chapterTitle = chapterTitleByHref[locator.href.string] {
             return chapterTitle
         }
 
@@ -486,21 +508,6 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         }
 
         return String(localized: "Bookmark")
-    }
-
-    private func findChapterTitle(for locator: Locator, in publication: Publication) -> String? {
-        func searchLinks(_ links: [ReadiumShared.Link]) -> String? {
-            for link in links {
-                if link.href == locator.href.string, let title = link.title, !title.isEmpty {
-                    return title
-                }
-                if let found = searchLinks(link.children) {
-                    return found
-                }
-            }
-            return nil
-        }
-        return searchLinks(publication.manifest.tableOfContents)
     }
 
     func searchInPopup(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
@@ -784,6 +791,10 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         return navigator.settings.readingProgression
     }
 
+    var cachedChapterTitleByHref: [String: String] {
+        chapterTitleByHref
+    }
+
     /// Navigate to a table of contents link.
     func navigateToLink(_ link: ReadiumShared.Link) {
         guard let publication, let navigator else {
@@ -851,6 +862,33 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
             } else {
                 logger.warning("navigateToTerm message body is not a string")
             }
+        }
+    }
+
+    private func rebuildBookmarkLookup() {
+        bookmarksByLocation = bookmarks.reduce(into: [:]) { lookup, bookmark in
+            guard let location = bookmark.location else { return }
+            lookup[location] = bookmark
+        }
+    }
+
+    static func makeChapterTitleIndex(for publication: Publication) -> [String: String] {
+        let rootLinks = publication.manifest.tableOfContents.isEmpty ? publication.readingOrder : publication.manifest.tableOfContents
+        return makeChapterTitleIndex(from: rootLinks)
+    }
+
+    static func makeChapterTitleIndex(from links: [ReadiumShared.Link]) -> [String: String] {
+        var index: [String: String] = [:]
+        collectChapterTitles(from: links, into: &index)
+        return index
+    }
+
+    private static func collectChapterTitles(from links: [ReadiumShared.Link], into index: inout [String: String]) {
+        for link in links {
+            if let title = link.title, !title.isEmpty {
+                index[link.href] = title
+            }
+            collectChapterTitles(from: link.children, into: &index)
         }
     }
 }
