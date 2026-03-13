@@ -194,18 +194,6 @@ public struct MangaArchiveLibraryView: View {
                         Text(error.localizedDescription)
                     }
                 }
-                .confirmationDialog(
-                    MangaLocalization.string("Delete Manga"),
-                    isPresented: $showingDeleteConfirmation,
-                    presenting: bookToDelete
-                ) { book in
-                    Button(MangaLocalization.string("Delete"), role: .destructive) {
-                        deleteMangaArchive(book)
-                    }
-                    Button(MangaLocalization.string("Cancel"), role: .cancel) {}
-                } message: { book in
-                    Text(MangaLocalization.deleteConfirmationMessage(title: book.title))
-                }
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
                     MangaMetadataEditorView(manga: book)
                 }
@@ -272,6 +260,17 @@ public struct MangaArchiveLibraryView: View {
                                 Label(MangaLocalization.string("Delete"), systemImage: "trash")
                             }
                         }
+                        .confirmationDialog(
+                            MangaLocalization.string("Delete Manga"),
+                            isPresented: deleteConfirmationBinding(for: book)
+                        ) {
+                            Button(MangaLocalization.string("Delete"), role: .destructive) {
+                                deleteMangaArchive(book)
+                            }
+                            Button(MangaLocalization.string("Cancel"), role: .cancel) {}
+                        } message: {
+                            Text(MangaLocalization.deleteConfirmationMessage(title: book.title))
+                        }
                     } else {
                         MangaArchiveGridItem(
                             book: book,
@@ -312,6 +311,13 @@ public struct MangaArchiveLibraryView: View {
         Task {
             await MangaImportManager.shared.cancelImport(jobID: book.objectID)
         }
+    }
+
+    private func deleteConfirmationBinding(for book: MangaArchive) -> Binding<Bool> {
+        Binding(
+            get: { showingDeleteConfirmation && bookToDelete?.objectID == book.objectID },
+            set: { if !$0 { showingDeleteConfirmation = false; bookToDelete = nil } }
+        )
     }
 
     private func deleteMangaArchive(_ book: MangaArchive) {

@@ -112,6 +112,20 @@ struct DictionaryManagementView: View {
                     }
                 }
             }
+            .confirmationDialog(
+                "Delete Dictionary",
+                isPresented: $showingDeleteConfirmation,
+                presenting: dictionaryToDelete
+            ) { dictionary in
+                Button("Delete", role: .destructive) {
+                    deleteDictionary(dictionary)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { dictionary in
+                Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
+                    name: dictionary.title ?? AppLocalization.unknownDictionary
+                ))
+            }
         }
         .navigationTitle("Dictionaries")
         .navigationBarTitleDisplayMode(.large)
@@ -166,17 +180,8 @@ struct DictionaryManagementView: View {
                 Text(error.localizedDescription)
             }
         }
-        .confirmationDialog("Delete Dictionary", isPresented: $showingDeleteConfirmation, presenting: dictionaryToDelete) { dictionary in
-            Button("Delete", role: .destructive) {
-                deleteDictionary(dictionary)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: { dictionary in
-            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
-                name: dictionary.title ?? AppLocalization.unknownDictionary
-            ))
-        }
     }
+
 
     private func handleFileImport(result: Result<[URL], Error>) {
         switch result {

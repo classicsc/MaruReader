@@ -70,6 +70,19 @@ struct FieldMappingManagementView: View {
                     } header: {
                         Text("Custom Profiles")
                     }
+                    .confirmationDialog(
+                        "Delete Field Mapping",
+                        isPresented: $showDeleteConfirmation,
+                        presenting: profileToDelete
+                    ) { profile in
+                        Button("Delete", role: .destructive) {
+                            Task {
+                                await deleteProfile(profile)
+                            }
+                        }
+                    } message: { profile in
+                        Text(AppLocalization.deleteConfirmationCannotBeUndone(name: profile.displayName))
+                    }
                 }
 
                 // System profiles section
@@ -138,19 +151,6 @@ struct FieldMappingManagementView: View {
                     }
                 )
             }
-        }
-        .confirmationDialog(
-            "Delete Field Mapping",
-            isPresented: $showDeleteConfirmation,
-            presenting: profileToDelete
-        ) { profile in
-            Button("Delete", role: .destructive) {
-                Task {
-                    await deleteProfile(profile)
-                }
-            }
-        } message: { profile in
-            Text(AppLocalization.deleteConfirmationCannotBeUndone(name: profile.displayName))
         }
         .alert("Error", isPresented: $showError) {
             Button("OK") {}
@@ -227,6 +227,7 @@ struct FieldMappingManagementView: View {
         await viewModel.refreshFieldMappingProfiles()
         isLoading = false
     }
+
 
     private func deleteProfile(_ profile: FieldMappingProfileInfo) async {
         do {

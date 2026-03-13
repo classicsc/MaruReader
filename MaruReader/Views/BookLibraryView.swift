@@ -171,20 +171,6 @@ struct BookLibraryView: View {
                         Text(error.localizedDescription)
                     }
                 }
-                .confirmationDialog(
-                    "Delete Book",
-                    isPresented: $showingDeleteConfirmation,
-                    presenting: bookToDelete
-                ) { book in
-                    Button("Delete", role: .destructive) {
-                        deleteBook(book)
-                    }
-                    Button("Cancel", role: .cancel) {}
-                } message: { book in
-                    Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
-                        name: book.title ?? AppLocalization.unknownBook
-                    ))
-                }
                 .fullScreenCover(isPresented: isShowingReader) {
                     if let book = selectedBook {
                         BookReaderView(book: book)
@@ -242,6 +228,19 @@ struct BookLibraryView: View {
                                 Label("Delete", systemImage: "trash")
                             }
                         }
+                        .confirmationDialog(
+                            "Delete Book",
+                            isPresented: deleteConfirmationBinding(for: book)
+                        ) {
+                            Button("Delete", role: .destructive) {
+                                deleteBook(book)
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
+                                name: book.title ?? AppLocalization.unknownBook
+                            ))
+                        }
                     } else {
                         BookGridItem(
                             book: book,
@@ -254,6 +253,13 @@ struct BookLibraryView: View {
             }
         }
         .padding()
+    }
+
+    private func deleteConfirmationBinding(for book: Book) -> Binding<Bool> {
+        Binding(
+            get: { showingDeleteConfirmation && bookToDelete?.objectID == book.objectID },
+            set: { if !$0 { showingDeleteConfirmation = false; bookToDelete = nil } }
+        )
     }
 
     private func handleFileImport(result: Result<[URL], Error>) {

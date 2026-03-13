@@ -85,6 +85,19 @@ struct AudioSourceSettingsView: View {
                     .onDelete(perform: deleteSources)
                 }
             }
+            .confirmationDialog(
+                "Delete Audio Source",
+                isPresented: $showingDeleteConfirmation,
+                presenting: sourceToDelete
+            ) { source in
+                Button("Delete", role: .destructive) {
+                    deleteSource(source)
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { source in
+                let name = source.name ?? AppLocalization.unknownSource
+                Text(AppLocalization.deleteConfirmationActionCannotBeUndone(name: name))
+            }
         }
         .navigationTitle("Pronunciation Audio")
         .navigationBarTitleDisplayMode(.large)
@@ -128,20 +141,8 @@ struct AudioSourceSettingsView: View {
                 Text(error.localizedDescription)
             }
         }
-        .confirmationDialog(
-            "Delete Audio Source",
-            isPresented: $showingDeleteConfirmation,
-            presenting: sourceToDelete
-        ) { source in
-            Button("Delete", role: .destructive) {
-                deleteSource(source)
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: { source in
-            let name = source.name ?? AppLocalization.unknownSource
-            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(name: name))
-        }
     }
+
 
     private func handleZipImport(result: Result<[URL], Error>) {
         switch result {
