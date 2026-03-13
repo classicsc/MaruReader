@@ -105,6 +105,7 @@ struct TableOfContentsView: View {
     let theme: TableOfContentsTheme
     let onDismiss: () -> Void
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedTab: ContentTab = .contents
     @State private var tableOfContents: [ReadiumShared.Link] = []
     @State private var expandedItems: Set<String> = []
@@ -295,8 +296,12 @@ struct TableOfContentsView: View {
         guard let currentHref = currentLocator?.href.string else { return }
         Task {
             try? await Task.sleep(for: .milliseconds(100))
-            withAnimation {
+            if reduceMotion {
                 proxy.scrollTo(currentHref, anchor: .center)
+            } else {
+                withAnimation {
+                    proxy.scrollTo(currentHref, anchor: .center)
+                }
             }
         }
     }
@@ -498,6 +503,7 @@ private struct TOCItemView: View {
     let currentHref: String?
     let theme: TableOfContentsTheme
     let onNavigate: (ReadiumShared.Link) -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var hasChildren: Bool {
         !link.children.isEmpty
@@ -590,12 +596,17 @@ private struct TOCItemView: View {
     }
 
     private func toggleExpansion() {
-        withAnimation(.easeInOut(duration: 0.2)) {
+        let toggle = {
             if isExpanded {
                 expandedItems.remove(link.href)
             } else {
                 expandedItems.insert(link.href)
             }
+        }
+        if reduceMotion {
+            toggle()
+        } else {
+            withAnimation(.easeInOut(duration: 0.2), toggle)
         }
     }
 }
