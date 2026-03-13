@@ -39,36 +39,30 @@ struct BookReaderBottomInset: View {
 
             if viewModel.overlayState.shouldShowToolbars {
                 HStack(spacing: 32) {
-                    Button {
+                    Button("Table of contents", systemImage: "list.bullet") {
                         viewModel.overlayState = .showingTableOfContents
-                    } label: {
-                        Image(systemName: "list.bullet")
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(.rect)
                     }
-                    .accessibilityLabel("Table of contents")
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.tableOfContents")
                     .tourAnchor(BookReaderTourAnchor.tableOfContents)
 
-                    Button {
+                    Button(
+                        viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode",
+                        systemImage: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja"
+                    ) {
                         viewModel.isDictionaryActive.toggle()
-                    } label: {
-                        Image(systemName: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja")
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(.rect)
                     }
-                    .accessibilityLabel(viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode")
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.dictionaryMode")
                     .tourAnchor(BookReaderTourAnchor.dictionaryMode)
 
-                    Button {
+                    Button("Bookmarks", systemImage: viewModel.currentLocationBookmark != nil ? "bookmark.fill" : "bookmark") {
                         viewModel.isShowingBookmarks.toggle()
-                    } label: {
-                        Image(systemName: viewModel.currentLocationBookmark != nil ? "bookmark.fill" : "bookmark")
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(.rect)
                     }
-                    .accessibilityLabel("Bookmarks")
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.bookmarksButton")
                     .tourAnchor(BookReaderTourAnchor.bookmark)
                     .popover(
@@ -103,14 +97,11 @@ struct BookReaderBottomInset: View {
                         .accessibilityIdentifier("bookReader.bookmarksPopover")
                     }
 
-                    Button {
+                    Button("Appearance and text", systemImage: "textformat") {
                         viewModel.isShowingQuickSettings.toggle()
-                    } label: {
-                        Image(systemName: "textformat")
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(.rect)
                     }
-                    .accessibilityLabel("Appearance and text")
+                    .labelStyle(.iconOnly)
+                    .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.appearanceButton")
                     .tourAnchor(BookReaderTourAnchor.appearanceMenu)
                     .popover(
