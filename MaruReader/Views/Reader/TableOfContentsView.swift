@@ -71,7 +71,9 @@ struct TableOfContentsView: View {
                     .background(theme.backgroundColor)
 
                 Divider()
-                    .overlay(theme.separatorColor)
+                    .overlay {
+                        theme.separatorColor
+                    }
 
                 Picker("Tab", selection: $selectedTab) {
                     ForEach(ContentTab.allCases, id: \.self) { tab in

@@ -215,7 +215,9 @@ private struct BookReaderToolbarPopoverContainer<Content: View>: View {
             .padding(16)
 
             Divider()
-                .overlay(theme.separatorColor)
+                .overlay {
+                    theme.separatorColor
+                }
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
