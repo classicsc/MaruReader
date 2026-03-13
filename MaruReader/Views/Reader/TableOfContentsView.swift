@@ -110,7 +110,7 @@ struct TableOfContentsView: View {
     @State private var expandedItems: Set<String> = []
     @State private var isLoading = true
     @State private var isShowingPositionPrompt = false
-    @State private var positionInput = ""
+    @State private var positionInput: Int?
 
     var body: some View {
         NavigationStack {
@@ -150,7 +150,7 @@ struct TableOfContentsView: View {
             }
             .background(theme.backgroundColor)
             .alert("Go to position", isPresented: $isShowingPositionPrompt) {
-                TextField("Position", text: $positionInput)
+                TextField("Position", value: $positionInput, format: .number)
                     .keyboardType(.numberPad)
                 Button("Go") {
                     handlePositionJump()
@@ -331,22 +331,13 @@ struct TableOfContentsView: View {
     }
 
     private func presentPositionPrompt() {
-        if let position = currentLocator?.locations.position {
-            positionInput = String(position)
-        } else {
-            positionInput = ""
-        }
+        positionInput = currentLocator?.locations.position
         isShowingPositionPrompt = true
     }
 
-    private func clampPosition(_ position: Int) -> Int {
-        max(position, 1)
-    }
-
     private func handlePositionJump() {
-        let trimmedInput = positionInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let position = Int(trimmedInput) else { return }
-        onNavigateToPosition(clampPosition(position))
+        guard let position = positionInput else { return }
+        onNavigateToPosition(max(position, 1))
     }
 }
 
@@ -362,6 +353,7 @@ private struct BookmarksListView: View {
     let onUpdateTitle: (Bookmark, String) -> Void
 
     @State private var editingBookmark: Bookmark?
+    @State private var isShowingRenameAlert = false
     @State private var editingTitle: String = ""
     @State private var bookmarkRows: [BookReaderBookmarkRowData] = []
 
@@ -390,6 +382,7 @@ private struct BookmarksListView: View {
                         Button {
                             editingTitle = row.bookmark.title ?? ""
                             editingBookmark = row.bookmark
+                            isShowingRenameAlert = true
                         } label: {
                             Label("Rename", systemImage: "pencil")
                         }
@@ -413,10 +406,7 @@ private struct BookmarksListView: View {
                     chapterTitleByHref: chapterTitleByHref
                 )
             }
-            .alert("Rename Bookmark", isPresented: .init(
-                get: { editingBookmark != nil },
-                set: { if !$0 { editingBookmark = nil } }
-            )) {
+            .alert("Rename Bookmark", isPresented: $isShowingRenameAlert) {
                 TextField("Title", text: $editingTitle)
                 Button("Save") {
                     if let bookmark = editingBookmark {
