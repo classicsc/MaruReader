@@ -197,6 +197,7 @@ struct TableOfContentsView: View {
             if let cover = coverImage {
                 Image(uiImage: cover)
                     .resizable()
+                    .accessibilityHidden(true)
                     .aspectRatio(contentMode: .fill)
                     .frame(width: 50, height: 75)
                     .clipShape(.rect(cornerRadius: 4))
@@ -204,6 +205,7 @@ struct TableOfContentsView: View {
             } else {
                 Image(systemName: "book.closed")
                     .resizable()
+                    .accessibilityHidden(true)
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 40, height: 50)
                     .foregroundStyle(theme.secondaryForegroundColor)
