@@ -6,9 +6,9 @@ MaruReader is a Japanese language learning tool for iOS/iPadOS that combines a Y
 
 ## Building
 
-Build commands are provided by `just`.
+Build and test commands are provided by `just`. Use it instead of `xcodebuild` for routine tasks.
 
-Do not run `just` recipes in parallel. Run unsandboxed if your environment has sandboxing.
+Do not run `just` recipes (or xcodebuild commands) in parallel. Run unsandboxed if your environment has sandboxing.
 
 When running unit tests, runtime warnings like `Multiple NSEntityDescriptions claim the NSManagedObject subclass '...' so +entity is unable to disambiguate.` are expected since tests use an in-memory store which duplicates the entity descriptions from the sqlite store, no need to report these.
 
