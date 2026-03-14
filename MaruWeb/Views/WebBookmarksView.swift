@@ -20,7 +20,7 @@ import SwiftUI
 
 public struct WebBookmarksView: View {
     @State private var addressText = ""
-    @State private var navigationTarget: URL?
+    @State private var navigationTarget: WebNavigationTarget?
 
     @FetchRequest(
         sortDescriptors: [
@@ -65,11 +65,7 @@ public struct WebBookmarksView: View {
             }
             .padding()
             .navigationTitle("Bookmarks")
-            .fullScreenCover(isPresented: isShowingWebView) {
-                if let target = navigationTarget {
-                    WebViewerView(initialURL: target)
-                }
-            }
+            .fullScreenCover(item: $navigationTarget, content: webViewer)
             .toolbar {
                 if !bookmarks.isEmpty {
                     EditButton()
@@ -80,32 +76,32 @@ public struct WebBookmarksView: View {
                     enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
                 )
                 if ProcessInfo.processInfo.arguments.contains("--screenshotMode") {
-                    navigationTarget = URL(string: "about:blank")
+                    if let url = URL(string: "about:blank") {
+                        navigationTarget = WebNavigationTarget(url: url)
+                    }
                 }
             }
         }
     }
 
-    private var isShowingWebView: Binding<Bool> {
-        Binding(
-            get: { navigationTarget != nil },
-            set: { if !$0 { navigationTarget = nil } }
-        )
-    }
-
     private func openAddress() {
         guard let url = WebAddressParser.resolvedURL(from: addressText) else { return }
-        navigationTarget = url
+        navigationTarget = WebNavigationTarget(url: url)
     }
 
     private func openBookmark(_ bookmark: WebBookmark) {
         guard let urlString = bookmark.url,
               let url = URL(string: urlString)
         else { return }
-        navigationTarget = url
+        navigationTarget = WebNavigationTarget(url: url)
         Task {
             try? await bookmarkManager.updateBookmarkMetadata(url: url, title: bookmark.title)
         }
+    }
+
+    @ViewBuilder
+    private func webViewer(for target: WebNavigationTarget) -> some View {
+        WebViewerView(initialURL: target.url)
     }
 
     private func deleteBookmarks(at offsets: IndexSet) {
@@ -124,6 +120,14 @@ public struct WebBookmarksView: View {
         Task {
             try? await bookmarkManager.updateSortOrder(idsInOrder: ids)
         }
+    }
+}
+
+private struct WebNavigationTarget: Identifiable {
+    let url: URL
+
+    var id: String {
+        url.absoluteString
     }
 }
 
