@@ -37,13 +37,15 @@ struct WebViewerAddressBarCapsuleView: View {
 
             ZStack(alignment: .leading) {
                 if !isEditingAddress {
-                    Text(displayText)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(.rect)
-                        .onTapGesture(perform: onBeginEditing)
+                    Button(action: onBeginEditing) {
+                        Text(displayText)
+                            .font(.subheadline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 TextField(
