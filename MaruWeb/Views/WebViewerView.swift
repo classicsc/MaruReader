@@ -19,7 +19,6 @@ import MaruDictionaryUICommon
 import MaruVision
 import MaruVisionUICommon
 import SwiftUI
-import WebKit
 
 public struct WebViewerView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
@@ -49,594 +48,217 @@ public struct WebViewerView: View {
 
         ZStack(alignment: .topLeading) {
             if let page {
-                webContent(for: page)
-                    .safeAreaBar(edge: .bottom) {
-                        bottomControlsOverlay
-                    }
+                WebViewerContentView(
+                    viewModel: viewModel,
+                    page: page,
+                    isEditingAddress: $isEditingAddress,
+                    addressSnapshot: addressSnapshot,
+                    selectedLookup: $selectedLookup,
+                    suggestionViewModel: suggestionViewModel,
+                    onNavigateFromNewTabPage: navigateFromNewTabPage,
+                    onNavigateFromAddressEditing: navigateFromAddressEditing,
+                    onSelectSuggestion: selectSuggestion
+                )
+                .safeAreaBar(edge: .bottom) {
+                    WebViewerBottomToolbarView(
+                        viewModel: viewModel,
+                        addressSelection: $addressSelection,
+                        isAddressFocused: $isAddressFocused,
+                        isEditingAddress: isEditingAddress,
+                        addressDisplayText: addressDisplayText,
+                        floatingButtonIconSize: floatingButtonIconSize,
+                        floatingButtonFrameSize: floatingButtonFrameSize,
+                        collapsedAddressMaxWidth: collapsedAddressMaxWidth,
+                        glassNamespace: glassNamespace,
+                        onBeginAddressEditing: beginAddressEditing,
+                        onCancelAddressEditing: cancelAddressEditing,
+                        onSubmitAddress: submitAddress,
+                        onShowTabSwitcher: showTabSwitcher,
+                        onShowCollapsedControls: showCollapsedControls,
+                        onDismiss: dismissViewer
+                    )
+                }
             } else {
-                webSessionLoadingView
+                WebViewerSessionLoadingView()
             }
         }
         .overlay(alignment: .top) {
             if let page {
-                loadingProgressOverlay(for: page)
+                WebViewerLoadingProgressView(page: page)
             }
         }
         .animation(.easeInOut(duration: 0.25), value: viewModel.overlayState)
         .animation(.easeInOut(duration: 0.25), value: viewModel.readingModeEnabled)
         .animation(.easeInOut(duration: 0.25), value: viewModel.isShowingNewTabPage)
         .animation(.easeInOut(duration: 0.25), value: isEditingAddress)
-        .task {
-            await viewModel.prepareSessionIfNeeded()
-            guard WebViewerViewModel.isScreenshotMode else { return }
-            try? await Task.sleep(for: .seconds(5))
-            viewModel.triggerScreenshotDictionaryLookup()
-        }
-        .onChange(of: viewModel.page?.url) { _, newValue in
-            if !isEditingAddress {
-                viewModel.updateAddressBar(from: newValue)
-            }
-            viewModel.refreshBookmarkState()
-        }
-        .onChange(of: viewModel.page?.faviconData) { _, _ in
-            viewModel.refreshBookmarkState()
-        }
-        .onChange(of: viewModel.dismissViewerRequestID) { _, newValue in
-            guard newValue != nil else { return }
-            dismiss()
-        }
-        .onChange(of: viewModel.readingModeEnabled) { _, isEnabled in
-            if !isEnabled {
-                viewModel.overlayState = .showingToolbars
-                viewModel.ocrViewModel.reset()
-                viewModel.showBoundingBoxes = false
-            }
-        }
-        .onChange(of: isAddressFocused) { _, newValue in
-            if isEditingAddress != newValue {
-                isEditingAddress = newValue
-            }
-            if newValue, viewModel.overlayState != .showingToolbars {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    viewModel.overlayState = .showingToolbars
-                }
-            }
-            if newValue, !viewModel.addressBarText.isEmpty {
-                // Defer selection until after focus change propagates to TextField
-                Task { @MainActor in
-                    addressSelection = TextSelection(range: viewModel.addressBarText.startIndex ..< viewModel.addressBarText.endIndex)
-                }
-            }
-            if !newValue {
-                suggestionViewModel.cancel()
-            }
-        }
-        .onChange(of: viewModel.addressBarText) { _, newValue in
-            if isEditingAddress, newValue != addressSnapshot {
-                suggestionViewModel.updateQuery(newValue)
-            }
-        }
+        .task(handleInitialTask)
+        .onChange(of: viewModel.page?.url, handlePageURLChange)
+        .onChange(of: viewModel.page?.faviconData, handlePageFaviconChange)
+        .onChange(of: viewModel.dismissViewerRequestID, handleDismissViewerRequestChange)
+        .onChange(of: viewModel.readingModeEnabled, handleReadingModeChange)
+        .onChange(of: isAddressFocused, handleAddressFocusChange)
+        .onChange(of: viewModel.addressBarText, handleAddressBarTextChange)
         .sheet(item: $selectedLookup) { selection in
-            NavigationStack {
-                DictionarySearchView()
-                    .environment(searchSheetViewModel)
-                    .navigationTitle("Dictionary")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarBackButtonHidden(true)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done") {
-                                selectedLookup = nil
-                            }
-                        }
-                    }
-            }
-            .onAppear {
-                searchSheetViewModel.performSearch(
-                    selection.cluster.transcript,
-                    contextValues: selection.contextValues
-                )
-            }
-            .presentationDetents([.medium, .large])
-            .accessibilityIdentifier("web.dictionarySheet")
-        }
-        .sheet(
-            item: Binding(
-                get: { viewModel.editMenuSelection },
-                set: { viewModel.editMenuSelection = $0 }
+            WebViewerDictionarySheetView(
+                searchViewModel: searchSheetViewModel,
+                searchText: selection.cluster.transcript,
+                contextValues: selection.contextValues,
+                accessibilityIdentifier: "web.dictionarySheet",
+                onDismiss: clearSelectedLookup
             )
-        ) { selection in
-            NavigationStack {
-                DictionarySearchView()
-                    .environment(searchSheetViewModel)
-                    .navigationTitle("Dictionary")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarBackButtonHidden(true)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done") {
-                                viewModel.editMenuSelection = nil
-                            }
-                        }
-                    }
-            }
-            .onAppear {
-                searchSheetViewModel.performSearch(
-                    selection.text,
-                    contextValues: selection.contextValues
-                )
-            }
-            .presentationDetents([.medium, .large])
-            .accessibilityIdentifier("web.editMenuDictionarySheet")
+        }
+        .sheet(item: editMenuSelectionBinding) { selection in
+            WebViewerDictionarySheetView(
+                searchViewModel: searchSheetViewModel,
+                searchText: selection.text,
+                contextValues: selection.contextValues,
+                accessibilityIdentifier: "web.editMenuDictionarySheet",
+                onDismiss: clearEditMenuSelection
+            )
         }
         .toolbarVisibility(.hidden, for: .tabBar)
         .toolbarVisibility(.hidden, for: .navigationBar)
         .navigationBarBackButtonHidden()
         .tourOverlay(manager: toolbarTourManager)
         .sheet(isPresented: $isTabSwitcherPresented) {
-            TabSwitcherSheet(
+            WebViewerTabSwitcherSheet(
                 tabs: viewModel.tabSummaries,
                 selectedTabID: viewModel.selectedTabID,
-                onSelect: { tabID in
-                    viewModel.switchToTab(id: tabID)
-                    isTabSwitcherPresented = false
-                },
-                onClose: { tabID in
-                    viewModel.closeTab(id: tabID)
-                },
-                onMove: { source, destination in
-                    viewModel.moveTabs(from: source, to: destination)
-                },
-                onAddTab: {
-                    viewModel.addTab()
-                    isTabSwitcherPresented = false
-                }
+                onSelect: selectTab,
+                onClose: closeTab,
+                onMove: moveTabs,
+                onAddTab: addTab
             )
         }
-        .onAppear {
-            if toolbarTourManager.startIfNeeded(WebViewerToolbarTour.self) {
-                viewModel.overlayState = .showingToolbars
-            }
-        }
+        .onAppear(perform: handleAppear)
     }
 
-    private func webContent(for page: WebBrowserPage) -> some View {
-        VStack(spacing: 0) {
-            Color.clear
-                .frame(height: 1)
-            ZStack {
-                let model = viewModel
-                WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
-                    model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
-                }
-                .id(page.webView)
-
-                if viewModel.isShowingNewTabPage, !isEditingAddress {
-                    NewTabPageView(
-                        bookmarks: viewModel.bookmarks,
-                        onNavigate: { url in
-                            viewModel.navigate(to: url)
-                        }
-                    )
-                    .transition(.opacity)
-                }
-
-                if isEditingAddress {
-                    addressEditingOverlay
-                        .transition(.opacity)
-                }
-
-                if viewModel.readingModeEnabled {
-                    GeometryReader { geometry in
-                        WebReadingModeOverlay(
-                            clusters: viewModel.ocrViewModel.clusters,
-                            showBoundingBoxes: viewModel.showBoundingBoxes,
-                            highlightedCluster: viewModel.highlightedCluster,
-                            isProcessing: viewModel.ocrViewModel.isProcessing,
-                            onTap: { location, size in
-                                Task {
-                                    if let selection = await viewModel.lookupCluster(at: location, in: size) {
-                                        viewModel.highlightedCluster = selection.cluster
-                                        try? await Task.sleep(nanoseconds: 100_000_000)
-                                        withAnimation(.easeInOut(duration: 0.25)) {
-                                            viewModel.exitReadingModeAfterLookupSelection()
-                                        }
-                                        selectedLookup = selection
-                                        viewModel.highlightedCluster = nil
-                                    }
-                                }
-                            }
-                        )
-                        .task {
-                            await viewModel.captureAndRunOCR(viewSize: geometry.size)
-                        }
-                    }
-                }
-            }
-            Color.clear
-                .frame(height: 1)
-        }
-    }
-
-    private var webSessionLoadingView: some View {
-        ProgressView("Preparing Web Viewer")
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(.background)
-    }
-
-    private var bottomControlsOverlay: some View {
-        GlassEffectContainer(spacing: 10) {
-            ZStack {
-                if shouldShowFloatingReadingModeButton {
-                    collapsedAddressCapsule
-                        .frame(maxWidth: .infinity, alignment: .center)
-                }
-
-                if shouldShowFullControls {
-                    bottomControlsRow
-                }
-
-                // Transparent placeholder that maintains the single-row toolbar height when
-                // reading mode hides the full controls, preventing a safeAreaBar layout
-                // shift that would misalign OCR bounding boxes.
-                if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
-                    readingModeToolbarPlaceholder
-                }
-
-                if shouldShowReadingModeExitButton {
-                    readingModeControlsRow
-                } else if shouldShowFloatingReadingModeButton {
-                    readingModeButton
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-            }
-        }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 16)
-        .padding(.top, 5)
-    }
-
-    private var readingModeToolbarPlaceholder: some View {
-        Color.clear.frame(height: floatingButtonFrameSize)
-            .accessibilityHidden(true)
-    }
-
-    private var bottomControlsRow: some View {
-        HStack(alignment: .bottom, spacing: 12) {
-            if !isEditingAddress, canGoBack || canGoForward {
-                navigationCluster
-            }
-
-            addressBarCapsule
-                .frame(maxWidth: .infinity)
-
-            if isEditingAddress {
-                cancelAddressEditingButton
-            } else {
-                tabsButton
-                readingModeButton
-                overflowMenuButton
-            }
-        }
-    }
-
-    private var navigationCluster: some View {
-        HStack(spacing: 0) {
-            if canGoBack {
-                navigationButton(
-                    systemName: "chevron.backward",
-                    accessibilityLabel: Text("Back"),
-                    action: viewModel.goBack
-                )
-            }
-
-            if canGoBack, canGoForward {
-                Divider()
-                    .frame(height: floatingButtonFrameSize - 12)
-            }
-
-            if canGoForward {
-                navigationButton(
-                    systemName: "chevron.forward",
-                    accessibilityLabel: Text("Forward"),
-                    action: viewModel.goForward
-                )
-            }
-        }
-        .padding(.horizontal, 2)
-        .glassEffect(in: Capsule())
-        .glassEffectID("navCluster", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
-    }
-
-    private var addressBarCapsule: some View {
-        AddressBarCapsuleView(
-            addressText: $viewModel.addressBarText,
-            addressSelection: $addressSelection,
-            shouldFocus: $isAddressFocused,
-            isEditingAddress: isEditingAddress,
-            displayText: addressDisplayText,
-            namespace: glassNamespace,
-            iconSize: floatingButtonIconSize,
-            onBeginEditing: beginAddressEditing,
-            onSubmit: submitAddress
+    private var editMenuSelectionBinding: Binding<WebTextSelection?> {
+        Binding(
+            get: { viewModel.editMenuSelection },
+            set: { viewModel.editMenuSelection = $0 }
         )
-        .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
-    }
-
-    private var cancelAddressEditingButton: some View {
-        Button(action: cancelAddressEditing) {
-            Image(systemName: "xmark")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .accessibilityLabel("Cancel")
-    }
-
-    private var collapsedAddressCapsule: some View {
-        CollapsedAddressCapsuleView(
-            displayText: addressDisplayText,
-            namespace: glassNamespace,
-            iconSize: floatingButtonIconSize,
-            maxWidth: collapsedAddressMaxWidth,
-            onTap: {
-                withAnimation(.easeInOut(duration: 0.25)) {
-                    viewModel.overlayState = .showingToolbars
-                }
-            }
-        )
-    }
-
-    private var overflowMenuButton: some View {
-        Menu {
-            reloadOverflowMenuItem
-            bookmarksOverflowSubmenu
-            Divider()
-            exitOverflowMenuItem
-        } label: {
-            overflowMenuLabel
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .glassEffectID("overflow", in: glassNamespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("More Actions")
-        .tourAnchor(WebViewerToolbarTourAnchor.bookmarkButton)
-    }
-
-    private var reloadOverflowMenuItem: some View {
-        Button {
-            if viewModel.page?.isLoading == true {
-                viewModel.stopLoading()
-            } else {
-                viewModel.reload()
-            }
-        } label: {
-            if viewModel.page?.isLoading == true {
-                Label("Stop Loading", systemImage: "xmark")
-            } else {
-                Label {
-                    Text(WebLocalization.string("Reload", comment: "A button label that reloads the current webpage."))
-                } icon: {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-        }
-    }
-
-    private var bookmarksOverflowSubmenu: some View {
-        Menu {
-            if viewModel.isBookmarked {
-                Button(role: .destructive) {
-                    viewModel.removeBookmarkForCurrentPage()
-                } label: {
-                    Label("Remove Bookmark", systemImage: "bookmark.slash")
-                }
-            } else {
-                Button {
-                    viewModel.addBookmarkForCurrentPage()
-                } label: {
-                    Label("Add Bookmark", systemImage: "bookmark.fill")
-                }
-            }
-
-            if !viewModel.bookmarks.isEmpty {
-                Section {
-                    ForEach(viewModel.bookmarks, id: \.id) { bookmark in
-                        Button {
-                            viewModel.navigate(to: bookmark.url)
-                        } label: {
-                            HStack(spacing: 8) {
-                                BookmarkFaviconView(data: bookmark.favicon, size: 16)
-                                Text(bookmark.title)
-                            }
-                        }
-                    }
-                } header: {
-                    Text(WebLocalization.string("Saved Bookmarks", comment: "A section header in the more actions overflow menu that lists saved bookmarks."))
-                }
-            }
-        } label: {
-            Label("Bookmarks", systemImage: viewModel.isBookmarked ? "bookmark.fill" : "bookmark")
-        }
-    }
-
-    private var exitOverflowMenuItem: some View {
-        Button {
-            dismiss()
-        } label: {
-            Label {
-                Text(WebLocalization.string("Exit Web Viewer", comment: "A button that exits the web viewer."))
-            } icon: {
-                Image(systemName: "xmark")
-            }
-        }
-    }
-
-    private var overflowMenuLabel: some View {
-        ZStack {
-            Image(systemName: "ellipsis")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-
-            Color.clear
-                .allowsHitTesting(false)
-                .tourAnchor(WebViewerToolbarTourAnchor.dismissButton)
-        }
-    }
-
-    private var readingModeButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                isAddressFocused = false
-                viewModel.readingModeEnabled = true
-            }
-        } label: {
-            Image(systemName: "hand.tap")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .glassEffectID("readingMode", in: glassNamespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("Enable OCR Mode")
-        .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
-    }
-
-    private var readingModeExitButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                viewModel.readingModeEnabled = false
-                viewModel.overlayState = .showingToolbars
-            }
-        } label: {
-            Image(systemName: "xmark")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .glassEffectID("readingMode", in: glassNamespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("Exit OCR Mode")
-    }
-
-    private var readingModeControlsRow: some View {
-        HStack(spacing: 12) {
-            Spacer()
-            boundingBoxToggleButton
-            readingModeExitButton
-        }
-    }
-
-    private var boundingBoxToggleButton: some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                viewModel.showBoundingBoxes.toggle()
-            }
-        } label: {
-            Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .accessibilityLabel(
-            viewModel.showBoundingBoxes
-                ? Text("Hide text regions")
-                : Text("Show text regions")
-        )
-    }
-
-    private var tabsButton: some View {
-        Button {
-            isTabSwitcherPresented = true
-        } label: {
-            Image(systemName: "square.on.square")
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-        }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.circle)
-        .buttonStyle(.plain)
-        .glassEffect(in: Circle())
-        .overlay(alignment: .topTrailing) {
-            Text("\(viewModel.tabs.count)")
-                .font(.caption2.weight(.bold))
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(.thinMaterial, in: Capsule())
-                .offset(x: 8, y: -8)
-        }
-        .accessibilityLabel("Tabs")
-        .accessibilityValue("\(viewModel.tabs.count)")
-    }
-
-    private func loadingProgressOverlay(for page: WebBrowserPage) -> some View {
-        Group {
-            if page.isLoading {
-                ProgressView(value: page.estimatedProgress)
-                    .progressViewStyle(.linear)
-                    .tint(.accentColor)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-                    .transition(.opacity)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .top)
     }
 
     private var addressDisplayText: String {
         if let host = viewModel.page?.url?.host, !host.isEmpty {
             return host
         }
+
         let trimmed = viewModel.addressBarText.trimmingCharacters(in: .whitespacesAndNewlines)
         if !trimmed.isEmpty {
             return trimmed
         }
+
         return WebStrings.webViewer()
     }
 
-    private var canGoBack: Bool {
-        viewModel.page?.canGoBack == true
+    private func handleInitialTask() async {
+        await viewModel.prepareSessionIfNeeded()
+        guard WebViewerViewModel.isScreenshotMode else { return }
+        try? await Task.sleep(for: .seconds(5))
+        viewModel.triggerScreenshotDictionaryLookup()
     }
 
-    private var canGoForward: Bool {
-        viewModel.page?.canGoForward == true
-    }
-
-    private var shouldShowFullControls: Bool {
-        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
-    }
-
-    private var shouldShowFloatingReadingModeButton: Bool {
-        !viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
-    }
-
-    private var shouldShowReadingModeExitButton: Bool {
-        viewModel.readingModeEnabled
-    }
-
-    private func navigationButton(
-        systemName: String,
-        accessibilityLabel: Text,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: floatingButtonIconSize, weight: .semibold))
+    private func handlePageURLChange(_: URL?, _ newValue: URL?) {
+        if !isEditingAddress {
+            viewModel.updateAddressBar(from: newValue)
         }
-        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-        .contentShape(.rect)
-        .buttonStyle(.plain)
-        .accessibilityLabel(accessibilityLabel)
+        viewModel.refreshBookmarkState()
+    }
+
+    private func handlePageFaviconChange(_: Data?, _: Data?) {
+        viewModel.refreshBookmarkState()
+    }
+
+    private func handleDismissViewerRequestChange(_: UUID?, _ newValue: UUID?) {
+        guard newValue != nil else { return }
+        dismiss()
+    }
+
+    private func handleReadingModeChange(_: Bool, _ isEnabled: Bool) {
+        if !isEnabled {
+            viewModel.overlayState = .showingToolbars
+            viewModel.ocrViewModel.reset()
+            viewModel.showBoundingBoxes = false
+        }
+    }
+
+    private func handleAddressFocusChange(_: Bool, _ newValue: Bool) {
+        if isEditingAddress != newValue {
+            isEditingAddress = newValue
+        }
+
+        if newValue, viewModel.overlayState != .showingToolbars {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                viewModel.overlayState = .showingToolbars
+            }
+        }
+
+        if newValue, !viewModel.addressBarText.isEmpty {
+            // Defer selection until after focus change propagates to TextField.
+            Task { @MainActor in
+                addressSelection = TextSelection(
+                    range: viewModel.addressBarText.startIndex ..< viewModel.addressBarText.endIndex
+                )
+            }
+        }
+
+        if !newValue {
+            suggestionViewModel.cancel()
+        }
+    }
+
+    private func handleAddressBarTextChange(_: String, _ newValue: String) {
+        if isEditingAddress, newValue != addressSnapshot {
+            suggestionViewModel.updateQuery(newValue)
+        }
+    }
+
+    private func handleAppear() {
+        if toolbarTourManager.startIfNeeded(WebViewerToolbarTour.self) {
+            viewModel.overlayState = .showingToolbars
+        }
+    }
+
+    private func clearSelectedLookup() {
+        selectedLookup = nil
+    }
+
+    private func clearEditMenuSelection() {
+        viewModel.editMenuSelection = nil
+    }
+
+    private func showTabSwitcher() {
+        isTabSwitcherPresented = true
+    }
+
+    private func showCollapsedControls() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            viewModel.overlayState = .showingToolbars
+        }
+    }
+
+    private func dismissViewer() {
+        dismiss()
+    }
+
+    private func selectTab(_ tabID: UUID) {
+        viewModel.switchToTab(id: tabID)
+        isTabSwitcherPresented = false
+    }
+
+    private func closeTab(_ tabID: UUID) {
+        viewModel.closeTab(id: tabID)
+    }
+
+    private func moveTabs(from source: IndexSet, to destination: Int) {
+        viewModel.moveTabs(from: source, to: destination)
+    }
+
+    private func addTab() {
+        viewModel.addTab()
+        isTabSwitcherPresented = false
     }
 
     private func beginAddressEditing() {
@@ -665,214 +287,12 @@ public struct WebViewerView: View {
         submitAddress()
     }
 
-    private var isAddressTextDirty: Bool {
-        viewModel.addressBarText != addressSnapshot
+    private func navigateFromNewTabPage(to url: URL) {
+        viewModel.navigate(to: url)
     }
 
-    @ViewBuilder
-    private var addressEditingOverlay: some View {
-        if isAddressTextDirty {
-            WebSearchSuggestionsView(
-                suggestions: suggestionViewModel.suggestions,
-                isLoading: suggestionViewModel.isLoading,
-                onSelect: selectSuggestion
-            )
-        } else {
-            NewTabPageView(
-                bookmarks: viewModel.bookmarks,
-                onNavigate: { url in
-                    viewModel.navigate(to: url)
-                    isAddressFocused = false
-                }
-            )
-        }
-    }
-}
-
-private struct AddressBarCapsuleView: View {
-    @Binding var addressText: String
-    @Binding var addressSelection: TextSelection?
-    @Binding var shouldFocus: Bool
-    let isEditingAddress: Bool
-    let displayText: String
-    let namespace: Namespace.ID
-    let iconSize: CGFloat
-    let onBeginEditing: () -> Void
-    let onSubmit: () -> Void
-
-    @FocusState private var isFocused: Bool
-
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "globe")
-                .font(.system(size: iconSize - 2, weight: .semibold))
-
-            ZStack(alignment: .leading) {
-                if !isEditingAddress {
-                    Text(displayText)
-                        .font(.subheadline)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .contentShape(.rect)
-                        .onTapGesture(perform: onBeginEditing)
-                }
-
-                TextField(
-                    "",
-                    text: $addressText,
-                    selection: $addressSelection,
-                    prompt: Text(WebLocalization.string("Search or enter URL", comment: "A placeholder text for a text field in a web address bar."))
-                )
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.go)
-                .focused($isFocused)
-                .opacity(isEditingAddress ? 1 : 0)
-                .disabled(!isEditingAddress)
-                .onSubmit(onSubmit)
-                .onChange(of: isFocused) { _, newValue in
-                    if shouldFocus != newValue {
-                        shouldFocus = newValue
-                    }
-                }
-                .onChange(of: shouldFocus) { _, newValue in
-                    if isFocused != newValue {
-                        isFocused = newValue
-                    }
-                }
-            }
-            .padding(.vertical, 10)
-
-            if isEditingAddress, !addressText.isEmpty {
-                Button {
-                    addressText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: iconSize, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .frame(width: 44, height: 44)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Clear text")
-            }
-        }
-        .frame(minHeight: 44)
-        .padding(.horizontal, 14)
-        .glassEffect(in: Capsule())
-        .glassEffectID("address", in: namespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-    }
-}
-
-private struct CollapsedAddressCapsuleView: View {
-    let displayText: String
-    let namespace: Namespace.ID
-    let iconSize: CGFloat
-    let maxWidth: CGFloat
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            HStack(spacing: 6) {
-                Image(systemName: "globe")
-                    .font(.system(size: iconSize - 2, weight: .semibold))
-                Text(displayText)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
-            .font(.subheadline)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .frame(minHeight: 44)
-            .frame(maxWidth: maxWidth)
-            .contentShape(Capsule())
-        }
-        .buttonStyle(.plain)
-        .glassEffect(in: Capsule())
-        .glassEffectID("address", in: namespace)
-        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-        .accessibilityLabel("Show Controls")
-    }
-}
-
-private struct TabSwitcherSheet: View {
-    let tabs: [WebTabSummary]
-    let selectedTabID: UUID?
-    let onSelect: (UUID) -> Void
-    let onClose: (UUID) -> Void
-    let onMove: (IndexSet, Int) -> Void
-    let onAddTab: () -> Void
-
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(tabs) { tab in
-                    TabSwitcherRow(
-                        tab: tab,
-                        isSelected: tab.id == selectedTabID,
-                        onSelect: { onSelect(tab.id) },
-                        onClose: { onClose(tab.id) }
-                    )
-                }
-                .onMove(perform: onMove)
-            }
-            .navigationTitle(WebLocalization.string("Tabs", comment: "The title of the sheet that lists browser tabs."))
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: onAddTab) {
-                        Text(WebLocalization.string("New Tab", comment: "A button that creates a new tab."))
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    EditButton()
-                }
-            }
-        }
-    }
-}
-
-private struct TabSwitcherRow: View {
-    let tab: WebTabSummary
-    let isSelected: Bool
-    let onSelect: () -> Void
-    let onClose: () -> Void
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Button(action: onSelect) {
-                HStack(spacing: 10) {
-                    Image(systemName: tab.isLoading ? "arrow.trianglehead.2.clockwise.rotate.90" : "globe")
-                        .symbolEffect(.rotate, isActive: tab.isLoading)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(tab.title)
-                            .font(.body)
-                            .lineLimit(1)
-                        Text(tab.host)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.tint)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-
-            Button(role: .destructive, action: onClose) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 44, height: 44)
-                    .contentShape(.circle)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Close Tab")
-        }
-        .padding(.vertical, 2)
+    private func navigateFromAddressEditing(to url: URL) {
+        viewModel.navigate(to: url)
+        isAddressFocused = false
     }
 }
