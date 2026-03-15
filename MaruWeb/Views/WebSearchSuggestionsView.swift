@@ -23,9 +23,11 @@ struct WebSearchSuggestionsView: View {
     let onSelect: (String) -> Void
 
     var body: some View {
+        let enumeratedSuggestions = Array(suggestions.enumerated())
+
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
-                ForEach(suggestions, id: \.self) { suggestion in
+                ForEach(enumeratedSuggestions, id: \.offset) { index, suggestion in
                     Button {
                         onSelect(suggestion)
                     } label: {
@@ -42,7 +44,7 @@ struct WebSearchSuggestionsView: View {
                     }
                     .buttonStyle(.plain)
 
-                    if suggestion != suggestions.last {
+                    if index < suggestions.count - 1 {
                         Divider()
                             .padding(.leading, 52)
                     }
