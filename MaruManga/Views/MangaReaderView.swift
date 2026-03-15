@@ -209,13 +209,13 @@ public struct MangaReaderView: View {
         Button {
             dismiss()
         } label: {
-            Image(systemName: "xmark")
+            Label(MangaLocalization.string("Back"), systemImage: "xmark")
                 .font(.system(size: floatingButtonIconSize, weight: .semibold))
                 .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
         }
+        .labelStyle(.iconOnly)
         .buttonStyle(.glass)
         .buttonBorderShape(.circle)
-        .accessibilityLabel(MangaLocalization.string("Back"))
         .accessibilityIdentifier("mangaReader.back")
         .tourAnchor(MangaReaderTourAnchor.backButton)
         .padding(.horizontal, 20)
@@ -234,15 +234,11 @@ public struct MangaReaderView: View {
                     viewModel.showBoundingBoxes.toggle()
                 }
             } label: {
-                Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+                Label(boundingBoxButtonTitle, systemImage: boundingBoxButtonSystemImage)
                     .frame(width: 44, height: 44)
                     .contentShape(.rect)
             }
-            .accessibilityLabel(
-                viewModel.showBoundingBoxes
-                    ? MangaLocalization.string("Hide text regions")
-                    : MangaLocalization.string("Show text regions")
-            )
+            .labelStyle(.iconOnly)
             .tourAnchor(MangaReaderTourAnchor.textRegions)
 
             // Spread mode toggle (only in landscape + horizontal mode)
@@ -255,15 +251,11 @@ public struct MangaReaderView: View {
                         viewModel.forceSinglePage.toggle()
                     }
                 } label: {
-                    Image(systemName: viewModel.forceSinglePage ? "rectangle" : "rectangle.split.2x1")
+                    Label(spreadModeButtonTitle, systemImage: spreadModeButtonSystemImage)
                         .frame(width: 44, height: 44)
                         .contentShape(.rect)
                 }
-                .accessibilityLabel(
-                    viewModel.forceSinglePage
-                        ? MangaLocalization.string("Switch to spreads")
-                        : MangaLocalization.string("Switch to single page")
-                )
+                .labelStyle(.iconOnly)
                 .tourAnchor(MangaReaderTourAnchor.spreadToggle)
             }
 
@@ -272,14 +264,14 @@ public struct MangaReaderView: View {
 
             // Reading direction picker
             Picker(MangaLocalization.string("Direction"), selection: $viewModel.readingDirection) {
-                Image(systemName: "arrow.left")
-                    .accessibilityLabel(MangaLocalization.string("Right to left"))
+                Label(MangaLocalization.string("Right to left"), systemImage: "arrow.left")
+                    .labelStyle(.iconOnly)
                     .tag(MangaReadingDirection.rightToLeft)
-                Image(systemName: "arrow.right")
-                    .accessibilityLabel(MangaLocalization.string("Left to right"))
+                Label(MangaLocalization.string("Left to right"), systemImage: "arrow.right")
+                    .labelStyle(.iconOnly)
                     .tag(MangaReadingDirection.leftToRight)
-                Image(systemName: "arrow.down")
-                    .accessibilityLabel(MangaLocalization.string("Vertical"))
+                Label(MangaLocalization.string("Vertical"), systemImage: "arrow.down")
+                    .labelStyle(.iconOnly)
                     .tag(MangaReadingDirection.vertical)
             }
             .pickerStyle(.segmented)
@@ -374,5 +366,25 @@ public struct MangaReaderView: View {
 
     private func toolbarForegroundColor(isPrimary: Bool) -> Color {
         isPrimary ? interfaceForegroundColor : interfaceForegroundColor.opacity(0.6)
+    }
+
+    private var boundingBoxButtonTitle: String {
+        viewModel.showBoundingBoxes
+            ? MangaLocalization.string("Hide text regions")
+            : MangaLocalization.string("Show text regions")
+    }
+
+    private var boundingBoxButtonSystemImage: String {
+        viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder"
+    }
+
+    private var spreadModeButtonTitle: String {
+        viewModel.forceSinglePage
+            ? MangaLocalization.string("Switch to spreads")
+            : MangaLocalization.string("Switch to single page")
+    }
+
+    private var spreadModeButtonSystemImage: String {
+        viewModel.forceSinglePage ? "rectangle" : "rectangle.split.2x1"
     }
 }

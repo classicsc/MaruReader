@@ -146,8 +146,9 @@ public struct MangaArchiveLibraryView: View {
 
                     ToolbarItem(placement: .primaryAction) {
                         Button(action: { showingFilePicker = true }) {
-                            Image(systemName: "plus")
+                            Label(MangaLocalization.string("Import"), systemImage: "plus")
                         }
+                        .labelStyle(.iconOnly)
                     }
 
                     ToolbarItem(placement: .secondaryAction) {
