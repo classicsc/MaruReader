@@ -99,7 +99,6 @@ public struct WebBookmarksView: View {
         }
     }
 
-    @ViewBuilder
     private func webViewer(for target: WebNavigationTarget) -> some View {
         WebViewerView(initialURL: target.url)
     }
