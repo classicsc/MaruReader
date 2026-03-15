@@ -43,6 +43,8 @@ public struct OCRImageResultsView: View {
     @State private var offset: CGSize = .zero
     @State private var lastOffset: CGSize = .zero
 
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+
     private let minScale: CGFloat = 1.0
     private let maxScale: CGFloat = 5.0
 
@@ -240,25 +242,20 @@ public struct OCRImageResultsView: View {
                 let clusterRect = calculateClusterRect(cluster: cluster, in: imageRect)
                 let path = Path(clusterRect)
 
-                let strokeColor: Color
-                let fillColor: Color?
+                let appearance = OCRBoundingBoxAppearance.make(
+                    direction: cluster.direction,
+                    isHighlighted: isHighlighted,
+                    differentiateWithoutColor: differentiateWithoutColor
+                )
 
-                if isHighlighted {
-                    strokeColor = .yellow
-                    fillColor = .yellow.opacity(0.3)
-                } else {
-                    strokeColor = cluster.direction == .vertical ? .blue : .green
-                    fillColor = nil
-                }
-
-                if let fillColor {
+                if let fillColor = appearance.fillColor {
                     context.fill(path, with: .color(fillColor))
                 }
 
                 context.stroke(
                     path,
-                    with: .color(strokeColor.opacity(0.8)),
-                    lineWidth: isHighlighted ? 3 : 2
+                    with: .color(appearance.strokeColor.opacity(appearance.strokeOpacity)),
+                    style: appearance.strokeStyle
                 )
             }
 

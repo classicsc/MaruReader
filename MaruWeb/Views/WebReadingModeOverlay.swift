@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruVision
+import MaruVisionUICommon
 import SwiftUI
 
 struct WebReadingModeOverlay: View {
@@ -24,6 +25,8 @@ struct WebReadingModeOverlay: View {
     let highlightedCluster: TextCluster?
     let isProcessing: Bool
     let onTap: (CGPoint, CGSize) -> Void
+
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
 
     var body: some View {
         GeometryReader { geometry in
@@ -70,25 +73,20 @@ struct WebReadingModeOverlay: View {
                 )
                 let path = Path(clusterRect)
 
-                let strokeColor: Color
-                let fillColor: Color?
+                let appearance = OCRBoundingBoxAppearance.make(
+                    direction: cluster.direction,
+                    isHighlighted: isHighlighted,
+                    differentiateWithoutColor: differentiateWithoutColor
+                )
 
-                if isHighlighted {
-                    strokeColor = .yellow
-                    fillColor = .yellow.opacity(0.3)
-                } else {
-                    strokeColor = cluster.direction == .vertical ? .blue : .green
-                    fillColor = nil
-                }
-
-                if let fillColor {
+                if let fillColor = appearance.fillColor {
                     context.fill(path, with: .color(fillColor))
                 }
 
                 context.stroke(
                     path,
-                    with: .color(strokeColor.opacity(0.8)),
-                    lineWidth: isHighlighted ? 3 : 2
+                    with: .color(appearance.strokeColor.opacity(appearance.strokeOpacity)),
+                    style: appearance.strokeStyle
                 )
             }
         }

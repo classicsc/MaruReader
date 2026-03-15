@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruVision
+import MaruVisionUICommon
 import SwiftUI
 
 /// A view that renders a manga page's image and OCR bounding boxes without gestures.
@@ -24,6 +25,8 @@ struct MangaPageContentView: View {
     let pageIndex: Int
     @Bindable var viewModel: MangaReaderViewModel
     let containerSize: CGSize
+
+    @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
 
     var body: some View {
         let renderedPage = viewModel.renderedPageCache[pageIndex]
@@ -100,28 +103,20 @@ struct MangaPageContentView: View {
                 let clusterRect = Self.calculateClusterRect(cluster: cluster, in: imageRect)
                 let path = Path(clusterRect)
 
-                // Color based on text direction and highlight state
-                let strokeColor: Color
-                let fillColor: Color?
+                let appearance = OCRBoundingBoxAppearance.make(
+                    direction: cluster.direction,
+                    isHighlighted: isHighlighted,
+                    differentiateWithoutColor: differentiateWithoutColor
+                )
 
-                if isHighlighted {
-                    strokeColor = .yellow
-                    fillColor = .yellow.opacity(0.3)
-                } else {
-                    strokeColor = cluster.direction == .vertical ? .blue : .green
-                    fillColor = nil
-                }
-
-                // Fill if highlighted
-                if let fillColor {
+                if let fillColor = appearance.fillColor {
                     context.fill(path, with: .color(fillColor))
                 }
 
-                // Stroke
                 context.stroke(
                     path,
-                    with: .color(strokeColor.opacity(0.8)),
-                    lineWidth: isHighlighted ? 3 : 2
+                    with: .color(appearance.strokeColor.opacity(appearance.strokeOpacity)),
+                    style: appearance.strokeStyle
                 )
             }
         }
