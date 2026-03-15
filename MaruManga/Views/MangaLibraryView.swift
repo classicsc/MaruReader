@@ -336,12 +336,11 @@ struct MangaArchiveGridItem: View {
     let state: MangaArchiveImportState
     let onCancel: () -> Void
     let onRemove: () -> Void
+    @State private var coverImage: UIImage?
+    @State private var coverImageLoader = MangaArchiveCoverImageLoader()
 
-    private var coverImage: UIImage? {
-        guard let coverURL = book.coverImage else { return nil }
-
-        guard let data = try? Data(contentsOf: coverURL) else { return nil }
-        return UIImage(data: data)
+    private var coverImageURL: URL? {
+        book.coverImage
     }
 
     private var displayTitle: String {
@@ -458,6 +457,28 @@ struct MangaArchiveGridItem: View {
             }
         }
         .contentShape(Rectangle())
+        .task(id: coverImageURL) {
+            await loadCoverImage()
+        }
+    }
+
+    @MainActor
+    private func loadCoverImage() async {
+        coverImage = nil
+
+        guard let coverImageURL else { return }
+
+        let image = await coverImageLoader.image(at: coverImageURL)
+        guard !Task.isCancelled else { return }
+
+        coverImage = image
+    }
+}
+
+private actor MangaArchiveCoverImageLoader {
+    func image(at coverURL: URL) -> UIImage? {
+        guard let data = try? Data(contentsOf: coverURL) else { return nil }
+        return UIImage(data: data)
     }
 }
 
