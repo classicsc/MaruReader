@@ -48,27 +48,27 @@ struct WelcomeView: View {
                 FeatureRow(
                     icon: "books.vertical",
                     title: "Read",
-                    description: "Read books in ePub format and manga in CBZ format"
+                    description: "Read books and manga with a fast, customizable dictionary"
                 )
                 FeatureRow(
                     icon: "globe",
                     title: "Browse",
-                    description: "Web browser with OCR reading mode"
+                    description: "Browse Japanese websites with dictionary and OCR"
                 )
                 FeatureRow(
                     icon: "doc.text.viewfinder",
                     title: "Scan",
-                    description: "OCR text from images"
+                    description: "Scan text from photos for dictionary lookup"
                 )
                 FeatureRow(
                     icon: "character.book.closed.ja",
                     title: "Dictionary",
-                    description: "Japanese-English dictionary included; import Yomitan custom dictionaries for more features"
+                    description: "Comprehensive dictionary with grammar-aware lookups; Yomitan dictionary support"
                 )
                 FeatureRow(
                     icon: "rectangle.stack",
                     title: "Anki Integration",
-                    description: "Create flashcards with the AnkiMobile app or Anki-Connect addon"
+                    description: "Send flashcards to Anki with AnkiMobile app or Anki-Connect addon"
                 )
             }
             .padding(.horizontal, 32)
