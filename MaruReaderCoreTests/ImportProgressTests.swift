@@ -143,7 +143,7 @@ struct ImportProgressTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, termJSON: termJSON)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
@@ -178,7 +178,7 @@ struct ImportProgressTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, termJSON: termJSON)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
@@ -212,7 +212,7 @@ struct ImportProgressTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, termJSON: termJSON, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
@@ -244,7 +244,7 @@ struct ImportProgressTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, termJSON: termJSON)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 

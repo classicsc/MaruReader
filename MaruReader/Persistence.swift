@@ -37,31 +37,38 @@ final class BookDataPersistenceController: Sendable {
 
     // MARK: - Initialization
 
+    init(container: NSPersistentContainer) {
+        CoreDataTransformers.register()
+        self.container = container
+        Self.configureViewContext(container.viewContext)
+    }
+
     /// Initialize persistence controller
     /// - Parameters:
-    ///   - inMemory: If true, uses in-memory store (for testing)
     ///   - storeURL: Custom store URL (if nil, uses app group default)
     init(
-        inMemory: Bool = false,
         storeURL: URL? = nil
     ) {
         CoreDataTransformers.register()
         let bundle = Bundle(for: BookDataPersistenceController.self)
-        guard let modelURL = bundle.url(forResource: "MaruBookData", withExtension: "momd") else {
-            fatalError("Failed to locate momd file for MaruBookData in framework bundle")
-        }
-        guard let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            fatalError("Failed to load model from: \(modelURL)")
-        }
+        let model: NSManagedObjectModel
+        #if DEBUG
+            model = CoreDataTestFactory.managedObjectModel(name: "MaruBookData", bundle: bundle)
+        #else
+            guard let modelURL = bundle.url(forResource: "MaruBookData", withExtension: "momd") else {
+                fatalError("Failed to locate momd file for MaruBookData in framework bundle")
+            }
+            guard let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+                fatalError("Failed to load model from: \(modelURL)")
+            }
+            model = loadedModel
+        #endif
 
         // Create container
         container = NSPersistentContainer(name: "MaruBookData", managedObjectModel: model)
 
         // Configure store location
-        if inMemory {
-            // In-memory store for testing
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-        } else if let customURL = storeURL {
+        if let customURL = storeURL {
             // Custom URL provided
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
@@ -85,9 +92,7 @@ final class BookDataPersistenceController: Sendable {
             }
         }
 
-        // Configure container
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        Self.configureViewContext(container.viewContext)
     }
 
     // MARK: - Context Creation
@@ -101,6 +106,11 @@ final class BookDataPersistenceController: Sendable {
         context.shouldDeleteInaccessibleFaults = true
         return context
     }
+
+    private static func configureViewContext(_ context: NSManagedObjectContext) {
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
 }
 
 // MARK: - Preview Support
@@ -108,6 +118,12 @@ final class BookDataPersistenceController: Sendable {
 #if DEBUG
     extension BookDataPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: BookDataPersistenceController = .init(inMemory: true)
+        @MainActor static let preview: BookDataPersistenceController = .init(
+            container: CoreDataTestFactory.makePersistentContainer(
+                name: "MaruBookData",
+                bundle: Bundle(for: BookDataPersistenceController.self),
+                storeKind: .inMemory
+            )
+        )
     }
 #endif

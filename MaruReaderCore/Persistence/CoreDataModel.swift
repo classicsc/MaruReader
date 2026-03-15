@@ -52,25 +52,28 @@ public final class DictionaryPersistenceController: Sendable {
     public init(container: NSPersistentContainer, baseDirectory: URL?) {
         self.container = container
         self.baseDirectory = baseDirectory
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        Self.configureViewContext(container.viewContext)
     }
 
     /// Initialize persistence controller
     /// - Parameters:
-    ///   - inMemory: If true, uses in-memory store (for testing)
     ///   - storeURL: Custom store URL (if nil, uses app group default)
     public init(
-        inMemory: Bool = false,
         storeURL: URL? = nil
     ) {
         let bundle = Bundle(for: DictionaryPersistenceController.self)
-        guard let modelURL = bundle.url(forResource: "MaruDictionary", withExtension: "momd") else {
-            fatalError("Failed to locate momd file for MaruDictionary in framework bundle")
-        }
-        guard let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            fatalError("Failed to load model from: \(modelURL)")
-        }
+        let model: NSManagedObjectModel
+        #if DEBUG
+            model = CoreDataTestFactory.managedObjectModel(name: "MaruDictionary", bundle: bundle)
+        #else
+            guard let modelURL = bundle.url(forResource: "MaruDictionary", withExtension: "momd") else {
+                fatalError("Failed to locate momd file for MaruDictionary in framework bundle")
+            }
+            guard let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+                fatalError("Failed to load model from: \(modelURL)")
+            }
+            model = loadedModel
+        #endif
 
         // Create container
         container = NSPersistentContainer(name: "MaruDictionary", managedObjectModel: model)
@@ -81,10 +84,7 @@ public final class DictionaryPersistenceController: Sendable {
         )
 
         // Configure store location
-        if inMemory {
-            // In-memory store for testing
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-        } else if let customURL = storeURL {
+        if let customURL = storeURL {
             // Custom URL provided
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
@@ -103,13 +103,11 @@ public final class DictionaryPersistenceController: Sendable {
             let nsError = loadFailure.error as NSError
             fatalError(
                 "Unresolved error loading persistent store at "
-                + "\(loadFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)"
+                    + "\(loadFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)"
             )
         }
 
-        // Configure container
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        Self.configureViewContext(container.viewContext)
     }
 
     // MARK: - Context Creation
@@ -141,6 +139,11 @@ public final class DictionaryPersistenceController: Sendable {
             }
         }
         return PersistentStoreLoadResult(failure: failure)
+    }
+
+    private static func configureViewContext(_ context: NSManagedObjectContext) {
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
     }
 
     public static func removeStoreFiles(at storeURL: URL) {
@@ -226,6 +229,15 @@ public final class DictionaryPersistenceController: Sendable {
 #if DEBUG
     public extension DictionaryPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: DictionaryPersistenceController = .init(inMemory: true)
+        @MainActor static let preview: DictionaryPersistenceController = .init(
+            container: CoreDataTestFactory.makePersistentContainer(
+                name: "MaruDictionary",
+                bundle: Bundle(for: DictionaryPersistenceController.self),
+                storeKind: .inMemory
+            ),
+            baseDirectory: FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+            )
+        )
     }
 #endif

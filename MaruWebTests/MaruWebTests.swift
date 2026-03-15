@@ -229,7 +229,7 @@ struct MaruWebTests {
     }
 
     @Test func addBookmarkPersistsEntry() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://bookwalker.jp"))
 
@@ -243,7 +243,7 @@ struct MaruWebTests {
     }
 
     @Test func addBookmarkPersistsFavicon() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://example.com"))
         let favicon = Data([0x01, 0x02, 0x03, 0x04])
@@ -256,7 +256,7 @@ struct MaruWebTests {
     }
 
     @Test func updateBookmarkMetadataUpdatesTitleAndFavicon() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://example.com"))
         let favicon = Data([0x11, 0x22, 0x33])
@@ -271,7 +271,7 @@ struct MaruWebTests {
     }
 
     @Test func updateBookmarkMetadataPreservesExistingFaviconWhenNil() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://example.com"))
         let favicon = Data([0xAA, 0xBB, 0xCC])
@@ -286,7 +286,7 @@ struct MaruWebTests {
     }
 
     @Test func addBookmarkPreservesExistingFaviconWhenUpdatingWithoutOne() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://example.com"))
         let favicon = Data([0xFE, 0xED, 0xFA, 0xCE])
@@ -301,7 +301,7 @@ struct MaruWebTests {
     }
 
     @Test func toggleBookmarkRemovesExisting() async throws {
-        let persistence = WebDataPersistenceController(inMemory: true)
+        let persistence = makeWebPersistenceController()
         let manager = WebBookmarkManager(persistenceController: persistence)
         let url = try #require(URL(string: "https://example.com"))
 

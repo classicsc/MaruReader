@@ -22,7 +22,7 @@ import Testing
 
 struct TermFetcherTests {
     @Test func performFetch_multipleMatchingCandidates_decodesGlossaryOncePerEntry() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
 

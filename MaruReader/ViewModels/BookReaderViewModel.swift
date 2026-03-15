@@ -364,6 +364,11 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         return bookmarksByLocation[currentJSON]
     }
 
+    private var bookmarkContext: NSManagedObjectContext {
+        let bookContext = unsafe book.managedObjectContext
+        return bookContext ?? BookDataPersistenceController.shared.container.viewContext
+    }
+
     func bookmarkCurrentLocation() {
         guard let locator = currentLocator else {
             logger.warning("Cannot bookmark: no current location")
@@ -374,7 +379,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
         let title = generateDefaultBookmarkTitle(for: locator)
         let bookObjectID = book.objectID
 
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let context = bookmarkContext
         context.perform {
             let bookmark = Bookmark(context: context)
             bookmark.id = UUID()
@@ -440,7 +445,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
 
     func deleteBookmark(_ bookmark: Bookmark) {
         let bookmarkObjectID = bookmark.objectID
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let context = bookmarkContext
         context.perform {
             let bookmarkToDelete = context.object(with: bookmarkObjectID)
             context.delete(bookmarkToDelete)
@@ -459,7 +464,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     func updateBookmarkTitle(_ bookmark: Bookmark, title: String) {
         let bookmarkObjectID = bookmark.objectID
         let newTitle = title.isEmpty ? nil : title
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let context = bookmarkContext
         context.perform {
             guard let bookmarkToUpdate = context.object(with: bookmarkObjectID) as? Bookmark else { return }
             bookmarkToUpdate.title = newTitle
@@ -476,7 +481,7 @@ final class BookReaderViewModel: NSObject, WKScriptMessageHandler {
     }
 
     func loadBookmarks() {
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let context = bookmarkContext
         let request = NSFetchRequest<Bookmark>(entityName: "Bookmark")
         request.predicate = NSPredicate(format: "book == %@", book)
         request.sortDescriptors = [NSSortDescriptor(keyPath: \Bookmark.createdAt, ascending: false)]

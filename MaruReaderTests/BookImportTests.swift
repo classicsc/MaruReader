@@ -422,7 +422,7 @@ struct BookImportTests {
         let epubURL = try createValidEPUB(title: "Alice in Wonderland", author: "Lewis Carroll")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -450,7 +450,7 @@ struct BookImportTests {
         let epubURL = try createEPUBWithCover(title: "Book with Cover", author: "Test Author")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -479,7 +479,7 @@ struct BookImportTests {
         let invalidURL = try createInvalidEPUB()
         defer { try? FileManager.default.removeItem(at: invalidURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -506,7 +506,7 @@ struct BookImportTests {
         let textURL = try createNonEPUBFile()
         defer { try? FileManager.default.removeItem(at: textURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -530,7 +530,7 @@ struct BookImportTests {
         let epubURL = try createValidEPUB(title: "Cancelled Book", author: "Test Author")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger during metadata processing
@@ -566,7 +566,7 @@ struct BookImportTests {
         let epubURL = try createValidEPUB(title: "Cancelled Book", author: "Test Author")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after file copy
@@ -602,7 +602,7 @@ struct BookImportTests {
         let epubURL = try createValidEPUB(title: "Queued Book", author: "Test Author")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -630,7 +630,7 @@ struct BookImportTests {
             .appendingPathComponent(UUID().uuidString)
             .appendingPathComponent("missing.epub")
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -650,7 +650,7 @@ struct BookImportTests {
     }
 
     @Test func cleanupInterruptedBookImports_MarksFailedAndCleansFiles() async throws {
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         let fileManager = FileManager.default
@@ -709,7 +709,7 @@ struct BookImportTests {
     }
 
     @Test func cleanupPendingBookDeletions_RemovesBookAndFiles() async throws {
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         let fileManager = FileManager.default
@@ -757,7 +757,7 @@ struct BookImportTests {
         let epubURL = try createValidEPUB(title: "Book to Delete", author: "Test Author")
         defer { try? FileManager.default.removeItem(at: epubURL.deletingLastPathComponent()) }
 
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let importManager = BookImportManager(container: persistenceController.container)
 
         let bookID = try await importManager.enqueueImport(from: epubURL)

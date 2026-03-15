@@ -102,7 +102,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "日本語 [0]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         // Set up an audio source with JSON list pattern
@@ -128,7 +128,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "テスト [12]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -152,7 +152,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "言葉 [3-1]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -176,7 +176,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "日本語"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -200,7 +200,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -224,7 +224,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "日本語 [adjective]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -248,7 +248,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test.mp3", "name": "日本語 [0] [1]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -275,7 +275,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test4.mp3", "name": "example"], // no pitch
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -307,7 +307,7 @@ struct AudioLookupServicePitchExtractionTests {
             ["url": "https://audio.example.com/test3.mp3", "name": "source3 [0]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()

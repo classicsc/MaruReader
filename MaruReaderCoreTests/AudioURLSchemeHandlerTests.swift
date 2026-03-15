@@ -114,7 +114,7 @@ struct AudioURLSchemeHandlerTests {
             ["url": "https://audio.example.com/test.mp3", "name": "日本語 [0]"],
         ])
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: mockNetwork)
 
         let context = persistenceController.newBackgroundContext()
@@ -142,7 +142,7 @@ struct AudioURLSchemeHandlerTests {
     }
 
     @Test func lookupEndpointMissingTermReturnsBadRequest() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: MockAudioLookupNetworkProvider())
         let handler = AudioURLSchemeHandler(lookupService: service)
 
@@ -154,7 +154,7 @@ struct AudioURLSchemeHandlerTests {
     }
 
     @Test func lookupEndpointReturnsEmptyWhenNoSources() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController()
         let service = AudioLookupService(persistenceController: persistenceController, networkProvider: MockAudioLookupNetworkProvider())
         let handler = AudioURLSchemeHandler(lookupService: service)
 

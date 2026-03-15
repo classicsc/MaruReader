@@ -22,7 +22,7 @@ import Testing
 
 struct DictionaryUpdateAnkiPreferencesUpdaterTests {
     @Test @MainActor func updaterReplacesDictionaryIDsInFieldMapsAndTemplates() async throws {
-        let persistenceController = AnkiPersistenceController(inMemory: true)
+        let persistenceController = makeAnkiPersistenceController()
         let updater = DictionaryUpdateAnkiPreferencesUpdater(persistence: persistenceController)
 
         let oldID = UUID()

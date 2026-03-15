@@ -146,7 +146,7 @@ private extension MangaReaderViewModelTests {
         pageCount: Int,
         requestDelayNanoseconds: UInt64 = 0
     ) throws -> (MangaReaderViewModel, FakeMangaPageProvider) {
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let context = persistenceController.container.viewContext
 
         let manga = MangaArchive(context: context)

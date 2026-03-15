@@ -274,7 +274,7 @@ struct MangaImportTests {
         let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "my_manga")
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -303,7 +303,7 @@ struct MangaImportTests {
         let archiveURL = try createMangaArchiveWithUnorderedImages()
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -329,7 +329,7 @@ struct MangaImportTests {
         let archiveURL = try createEmptyMangaArchive()
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -359,7 +359,7 @@ struct MangaImportTests {
         let invalidURL = try createInvalidArchive()
         defer { try? FileManager.default.removeItem(at: invalidURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -383,7 +383,7 @@ struct MangaImportTests {
         let textURL = try createNonArchiveFile()
         defer { try? FileManager.default.removeItem(at: textURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -408,7 +408,7 @@ struct MangaImportTests {
             .appendingPathComponent(UUID().uuidString)
             .appendingPathComponent("missing.cbz")
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -428,7 +428,7 @@ struct MangaImportTests {
     }
 
     @Test func cleanupInterruptedMangaImports_MarksFailedAndCleansFiles() async throws {
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         guard let mangaDir = MangaArchive.mangaDirectory(),
@@ -479,7 +479,7 @@ struct MangaImportTests {
     }
 
     @Test func cleanupPendingMangaDeletions_RemovesMangaAndFiles() async throws {
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         let fileManager = FileManager.default
@@ -533,7 +533,7 @@ struct MangaImportTests {
         let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "cancelled_manga")
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger during import
@@ -569,7 +569,7 @@ struct MangaImportTests {
         let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "queued_manga")
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue import
@@ -596,7 +596,7 @@ struct MangaImportTests {
         let archiveURL = try createValidMangaArchive(imageCount: 3, filename: "manga_to_delete")
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         let mangaID = try await importManager.enqueueImport(from: archiveURL)
@@ -645,7 +645,7 @@ struct MangaImportTests {
             try? FileManager.default.removeItem(at: archive3URL.deletingLastPathComponent())
         }
 
-        let persistenceController = MangaDataPersistenceController(inMemory: true)
+        let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
 
         // Action: Enqueue multiple imports

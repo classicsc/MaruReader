@@ -351,8 +351,8 @@ struct SampleContentSeederTests {
         """
         try manifest.write(to: manifestURL, atomically: true, encoding: .utf8)
 
-        let bookPersistenceController = BookDataPersistenceController(inMemory: true)
-        let mangaPersistenceController = MangaDataPersistenceController(inMemory: true)
+        let bookPersistenceController = makeBookPersistenceController()
+        let mangaPersistenceController = makeMangaPersistenceController()
 
         return (
             sampleRootURL,

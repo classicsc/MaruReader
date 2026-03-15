@@ -24,12 +24,13 @@ import UIKit
 
 @MainActor
 struct BookReaderViewModelTests {
-    private func makeViewModel() -> BookReaderViewModel {
-        let context = BookDataPersistenceController.shared.container.viewContext
+    private func makeViewModel() -> (viewModel: BookReaderViewModel, persistenceController: BookDataPersistenceController) {
+        let persistenceController = makeBookPersistenceController()
+        let context = persistenceController.container.viewContext
         let book = Book(context: context)
         book.id = UUID()
         book.language = "ja"
-        return BookReaderViewModel(book: book, loadPublicationOnInit: false)
+        return (BookReaderViewModel(book: book, loadPublicationOnInit: false), persistenceController)
     }
 
     private func makeLocator(
@@ -51,7 +52,7 @@ struct BookReaderViewModelTests {
     }
 
     @Test func presentDictionarySheet_SetsPresentationAndOverlayState() {
-        let viewModel = makeViewModel()
+        let (viewModel, _) = makeViewModel()
         let searchViewModel = DictionarySearchViewModel()
 
         viewModel.presentDictionarySheet(with: searchViewModel)
@@ -61,7 +62,7 @@ struct BookReaderViewModelTests {
     }
 
     @Test func dismissDictionarySheet_ClearsPresentationAndOverlayState() {
-        let viewModel = makeViewModel()
+        let (viewModel, _) = makeViewModel()
 
         viewModel.presentDictionarySheet(with: DictionarySearchViewModel())
         viewModel.dismissDictionarySheet()
@@ -71,7 +72,7 @@ struct BookReaderViewModelTests {
     }
 
     @Test func presentDictionarySheet_ReplacesExistingPresentation() {
-        let viewModel = makeViewModel()
+        let (viewModel, _) = makeViewModel()
         let firstSearchViewModel = DictionarySearchViewModel()
         let secondSearchViewModel = DictionarySearchViewModel()
 
@@ -85,7 +86,7 @@ struct BookReaderViewModelTests {
     }
 
     @Test func dismissDictionarySheet_LeavesOtherOverlayStateUntouched() {
-        let viewModel = makeViewModel()
+        let (viewModel, _) = makeViewModel()
         viewModel.overlayState = .showingBookmarks
 
         viewModel.dismissDictionarySheet()
@@ -94,8 +95,8 @@ struct BookReaderViewModelTests {
     }
 
     @Test func currentLocationBookmark_ReturnsBookmarkMatchingCurrentLocator() throws {
-        let viewModel = makeViewModel()
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let (viewModel, persistenceController) = makeViewModel()
+        let context = persistenceController.container.viewContext
         let locator = makeLocator(href: "chapter-1.xhtml", position: 4, totalProgression: 0.2)
         let bookmark = Bookmark(context: context)
         bookmark.id = UUID()
@@ -130,7 +131,8 @@ struct BookReaderViewModelTests {
     }
 
     @Test func bookmarkRowData_MakesPresentationValuesFromCachedInputs() {
-        let context = BookDataPersistenceController.shared.container.viewContext
+        let persistenceController = makeBookPersistenceController()
+        let context = persistenceController.container.viewContext
         let currentLocator = makeLocator(
             href: "chapter-1.xhtml",
             position: 7,
@@ -164,7 +166,7 @@ struct BookReaderViewModelTests {
     }
 
     @Test func loadCoverImageIfNeeded_CachesLoadedImage() async throws {
-        let viewModel = makeViewModel()
+        let (viewModel, _) = makeViewModel()
         let appSupportURL = try FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,

@@ -381,13 +381,14 @@ final class ReaderPreferences {
         return color.swiftUIColor
     }
 
-    init(book: Book, context: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext) {
+    init(book: Book, context: NSManagedObjectContext? = nil) {
         self.book = book
-        self.context = context
+        let bookContext = unsafe book.managedObjectContext
+        self.context = context ?? bookContext ?? BookDataPersistenceController.shared.container.viewContext
 
         // Ensure book has a profile
         if book.readerProfile == nil {
-            let themeManager = SystemThemeManager(context: context)
+            let themeManager = SystemThemeManager(context: self.context)
             themeManager.ensureSystemThemesExist()
             book.readerProfile = themeManager.getProfile(for: book)
         }

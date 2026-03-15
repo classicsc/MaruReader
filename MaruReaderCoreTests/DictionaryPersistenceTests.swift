@@ -406,7 +406,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: tagJSON, termJSON: termJSON, termMetaJSON: termMetaJSON, kanjiJSON: kanjiJSON, kanjiMetaJSON: kanjiMetaJSON, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -681,7 +681,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: kanjiJSON, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -838,7 +838,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after index processing
@@ -890,7 +890,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: ["test.png"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after data processing
@@ -940,7 +940,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil, mediaFiles: mediaFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up cancellation hook to trigger after media copy
@@ -988,7 +988,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1019,7 +1019,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try createCorruptedZIP()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1045,7 +1045,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1083,7 +1083,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: invalidTermJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1122,7 +1122,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1161,7 +1161,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: termJSON, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         // Set up error injection to simulate file system error
@@ -1205,7 +1205,7 @@ struct DictionaryPersistenceTests {
         let zipURL = try await createMockZIP(indexJSON: indexJSON, tagJSON: nil, termJSON: nil, termMetaJSON: nil, kanjiJSON: nil, kanjiMetaJSON: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -1227,7 +1227,7 @@ struct DictionaryPersistenceTests {
     }
 
     @Test @MainActor func cleanupInterruptedDictionaryImports_MarksFailedAndCleansEntries() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let dictionaryUUID = UUID()
@@ -1291,7 +1291,7 @@ struct DictionaryPersistenceTests {
     }
 
     @Test @MainActor func checkForUpdates_MarksUpdateReadyAndStoresDownloadURL() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
         let networkProvider = MockUpdateNetworkProvider()
         let updateManager = DictionaryUpdateManager(
@@ -1341,7 +1341,7 @@ struct DictionaryPersistenceTests {
     }
 
     @Test @MainActor func updateDictionary_CopiesPreferencesAndUpdatesAnki() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
         let networkProvider = MockUpdateNetworkProvider()
         let updateManager = DictionaryUpdateManager(
@@ -1491,7 +1491,7 @@ struct DictionaryPersistenceTests {
     }
 
     @Test @MainActor func cleanupInterruptedUpdateImports_RetriesInsteadOfFailing() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = DictionaryImportManager(container: persistenceController.container)
 
         let indexJSON = """

@@ -37,30 +37,36 @@ public final class MangaDataPersistenceController: Sendable {
 
     // MARK: - Initialization
 
+    public init(container: NSPersistentContainer) {
+        self.container = container
+        Self.configureViewContext(container.viewContext)
+    }
+
     /// Initialize persistence controller
     /// - Parameters:
-    ///   - inMemory: If true, uses in-memory store (for testing)
     ///   - storeURL: Custom store URL (if nil, uses app group default)
     init(
-        inMemory: Bool = false,
         storeURL: URL? = nil
     ) {
         let bundle = Bundle(for: MangaDataPersistenceController.self)
-        guard let modelURL = bundle.url(forResource: "MaruMangaData", withExtension: "momd") else {
-            fatalError("Failed to locate momd file for MaruMangaData in framework bundle")
-        }
-        guard let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            fatalError("Failed to load model from: \(modelURL)")
-        }
+        let model: NSManagedObjectModel
+        #if DEBUG
+            model = CoreDataTestFactory.managedObjectModel(name: "MaruMangaData", bundle: bundle)
+        #else
+            guard let modelURL = bundle.url(forResource: "MaruMangaData", withExtension: "momd") else {
+                fatalError("Failed to locate momd file for MaruMangaData in framework bundle")
+            }
+            guard let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+                fatalError("Failed to load model from: \(modelURL)")
+            }
+            model = loadedModel
+        #endif
 
         // Create container
         container = NSPersistentContainer(name: "MaruMangaData", managedObjectModel: model)
 
         // Configure store location
-        if inMemory {
-            // In-memory store for testing
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-        } else if let customURL = storeURL {
+        if let customURL = storeURL {
             // Custom URL provided
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
@@ -84,9 +90,7 @@ public final class MangaDataPersistenceController: Sendable {
             }
         }
 
-        // Configure container
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        Self.configureViewContext(container.viewContext)
     }
 
     // MARK: - Context Creation
@@ -100,6 +104,11 @@ public final class MangaDataPersistenceController: Sendable {
         context.shouldDeleteInaccessibleFaults = true
         return context
     }
+
+    private static func configureViewContext(_ context: NSManagedObjectContext) {
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
 }
 
 // MARK: - Preview Support
@@ -107,6 +116,12 @@ public final class MangaDataPersistenceController: Sendable {
 #if DEBUG
     extension MangaDataPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: MangaDataPersistenceController = .init(inMemory: true)
+        @MainActor static let preview: MangaDataPersistenceController = .init(
+            container: CoreDataTestFactory.makePersistentContainer(
+                name: "MaruMangaData",
+                bundle: Bundle(for: MangaDataPersistenceController.self),
+                storeKind: .inMemory
+            )
+        )
     }
 #endif

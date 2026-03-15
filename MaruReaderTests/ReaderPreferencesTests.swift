@@ -24,7 +24,7 @@ import Testing
 @MainActor
 struct ReaderPreferencesTests {
     private func makeReaderPreferences(initialFontSize: Double) throws -> (ReaderPreferences, ReaderProfile, NSManagedObjectContext) {
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let context = persistenceController.container.viewContext
 
         let book = Book(context: context)
@@ -115,7 +115,7 @@ struct ReaderPreferencesTests {
     }
 
     @Test func systemThemeManager_SeedsLightDarkAndSepiaThemes() throws {
-        let persistenceController = BookDataPersistenceController(inMemory: true)
+        let persistenceController = makeBookPersistenceController()
         let context = persistenceController.container.viewContext
         let themeManager = SystemThemeManager(context: context)
 

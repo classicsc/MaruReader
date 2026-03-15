@@ -37,30 +37,36 @@ public final class AnkiPersistenceController: Sendable {
 
     // MARK: - Initialization
 
+    public init(container: NSPersistentContainer) {
+        self.container = container
+        Self.configureViewContext(container.viewContext)
+    }
+
     /// Initialize persistence controller
     /// - Parameters:
-    ///   - inMemory: If true, uses in-memory store (for testing)
     ///   - storeURL: Custom store URL (if nil, uses app group default)
     public init(
-        inMemory: Bool = false,
         storeURL: URL? = nil
     ) {
         let bundle = Bundle(for: AnkiPersistenceController.self)
-        guard let modelURL = bundle.url(forResource: "MaruAnki", withExtension: "momd") else {
-            fatalError("Failed to locate momd file for MaruAnki in framework bundle")
-        }
-        guard let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            fatalError("Failed to load model from: \(modelURL)")
-        }
+        let model: NSManagedObjectModel
+        #if DEBUG
+            model = CoreDataTestFactory.managedObjectModel(name: "MaruAnki", bundle: bundle)
+        #else
+            guard let modelURL = bundle.url(forResource: "MaruAnki", withExtension: "momd") else {
+                fatalError("Failed to locate momd file for MaruAnki in framework bundle")
+            }
+            guard let loadedModel = NSManagedObjectModel(contentsOf: modelURL) else {
+                fatalError("Failed to load model from: \(modelURL)")
+            }
+            model = loadedModel
+        #endif
 
         // Create container
         container = NSPersistentContainer(name: "MaruAnki", managedObjectModel: model)
 
         // Configure store location
-        if inMemory {
-            // In-memory store for testing
-            container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
-        } else if let customURL = storeURL {
+        if let customURL = storeURL {
             // Custom URL provided
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
@@ -84,9 +90,7 @@ public final class AnkiPersistenceController: Sendable {
             }
         }
 
-        // Configure container
-        container.viewContext.automaticallyMergesChangesFromParent = true
-        container.viewContext.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        Self.configureViewContext(container.viewContext)
     }
 
     // MARK: - Context Creation
@@ -100,13 +104,25 @@ public final class AnkiPersistenceController: Sendable {
         context.shouldDeleteInaccessibleFaults = true
         return context
     }
+
+    private static func configureViewContext(_ context: NSManagedObjectContext) {
+        context.automaticallyMergesChangesFromParent = true
+        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
 }
 
 // MARK: - Preview Support
 
 #if DEBUG
     public extension AnkiPersistenceController {
-        /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: AnkiPersistenceController = .init(inMemory: true)
+        /// SQLite-backed controller for SwiftUI previews because composite attributes
+        /// are not supported by Core Data's atomic/in-memory stores.
+        @MainActor static let preview: AnkiPersistenceController = .init(
+            container: CoreDataTestFactory.makePersistentContainer(
+                name: "MaruAnki",
+                bundle: Bundle(for: AnkiPersistenceController.self),
+                storeKind: .temporarySQLite
+            )
+        )
     }
 #endif

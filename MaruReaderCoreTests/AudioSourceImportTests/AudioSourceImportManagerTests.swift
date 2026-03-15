@@ -242,7 +242,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: audioFiles)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -387,7 +387,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, indexFilename: "shinmeikai8.json", audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -466,7 +466,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -500,7 +500,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         // Cancel during first cancellation check (after index processing)
@@ -544,7 +544,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         // Cancel after entry processing (second cancellation check)
@@ -587,7 +587,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         // Cancel after media copy (third cancellation check)
@@ -630,7 +630,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -660,7 +660,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try createCorruptedZIP()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -684,7 +684,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createZIPWithoutIndex()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -717,7 +717,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: invalidJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -759,7 +759,7 @@ struct AudioSourceImportManagerTests {
         try await createArchive(from: contentsDir, zipURL: zipURL)
         defer { try? FileManager.default.removeItem(at: tempDir) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -791,7 +791,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         // Inject error
@@ -841,7 +841,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["sakujo.ogg", "test.ogg"])
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -897,7 +897,7 @@ struct AudioSourceImportManagerTests {
     }
 
     @Test @MainActor func cleanupInterruptedAudioSourceImports_MarksFailedAndCleansEntries() async throws {
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let sourceID = UUID()
@@ -994,7 +994,7 @@ struct AudioSourceImportManagerTests {
         let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: nil)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
-        let persistenceController = DictionaryPersistenceController(inMemory: true)
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
