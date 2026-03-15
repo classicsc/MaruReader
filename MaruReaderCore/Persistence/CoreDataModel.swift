@@ -100,17 +100,11 @@ public final class DictionaryPersistenceController: Sendable {
 
         let loadResult = Self.loadPersistentStores(for: container)
         if let loadFailure = loadResult.failure {
-            if !inMemory, let storeURL = loadFailure.url {
-                Self.removeStoreFiles(at: storeURL)
-                let retryResult = Self.loadPersistentStores(for: container)
-                if let retryFailure = retryResult.failure {
-                    let nsError = retryFailure.error as NSError
-                    fatalError("Unresolved error loading store at \(retryFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)")
-                }
-            } else {
-                let nsError = loadFailure.error as NSError
-                fatalError("Unresolved error loading store at \(loadFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)")
-            }
+            let nsError = loadFailure.error as NSError
+            fatalError(
+                "Unresolved error loading persistent store at "
+                + "\(loadFailure.url?.path ?? "unknown"): \(nsError), \(nsError.userInfo)"
+            )
         }
 
         // Configure container
@@ -149,7 +143,7 @@ public final class DictionaryPersistenceController: Sendable {
         return PersistentStoreLoadResult(failure: failure)
     }
 
-    private static func removeStoreFiles(at storeURL: URL) {
+    public static func removeStoreFiles(at storeURL: URL) {
         guard storeURL.isFileURL, storeURL.path != "/dev/null" else {
             return
         }

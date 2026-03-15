@@ -37,6 +37,41 @@ struct DictionarySeedingTests {
         #expect(!DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
+    // MARK: - removeStoreFiles
+
+    @Test func removeStoreFiles_deletesAllRelatedFiles() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(baseDirectory) }
+
+        let storeURL = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        let walURL = baseDirectory.appendingPathComponent("MaruDictionary.sqlite-wal")
+        let shmURL = baseDirectory.appendingPathComponent("MaruDictionary.sqlite-shm")
+
+        for url in [storeURL, walURL, shmURL] {
+            #expect(FileManager.default.createFile(atPath: url.path, contents: Data()))
+        }
+
+        DictionaryPersistenceController.removeStoreFiles(at: storeURL)
+
+        #expect(!FileManager.default.fileExists(atPath: storeURL.path))
+        #expect(!FileManager.default.fileExists(atPath: walURL.path))
+        #expect(!FileManager.default.fileExists(atPath: shmURL.path))
+    }
+
+    @Test func removeStoreFiles_safeOnDevNull() {
+        DictionaryPersistenceController.removeStoreFiles(at: URL(fileURLWithPath: "/dev/null"))
+    }
+
+    @Test func removeStoreFiles_noopWhenFilesAbsent() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(baseDirectory) }
+
+        let storeURL = baseDirectory.appendingPathComponent("NonExistent.sqlite")
+        DictionaryPersistenceController.removeStoreFiles(at: storeURL)
+    }
+
+    // MARK: - Helpers
+
     private func makeTemporaryDirectory() throws -> URL {
         let baseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
