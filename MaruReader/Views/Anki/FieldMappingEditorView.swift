@@ -256,9 +256,9 @@ struct FieldMappingEditorView: View {
 
     private var infoFooterText: String {
         if isConstrainedToSetupFields {
-            "Fields are based on the selected note type. Matching values are prefilled automatically."
+            String(localized: "Fields are based on the selected note type. Matching values are prefilled automatically.")
         } else {
-            "Field names should match the fields in your Anki note type. Values will be populated from the dictionary entry."
+            String(localized: "Field names should match the fields in your Anki note type. Values will be populated from the dictionary entry.")
         }
     }
 

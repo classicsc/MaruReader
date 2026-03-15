@@ -329,7 +329,7 @@ struct TableOfContentsView: View {
     }
 
     private var positionPromptMessage: String {
-        "Enter a position number."
+        String(localized: "Enter a position number.")
     }
 
     private func formatProgress(_ value: Double) -> String {
