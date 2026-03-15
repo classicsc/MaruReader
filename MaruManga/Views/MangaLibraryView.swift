@@ -129,13 +129,6 @@ public struct MangaArchiveLibraryView: View {
         )
     }
 
-    private var isShowingReader: Binding<Bool> {
-        Binding(
-            get: { selectedManga != nil },
-            set: { if !$0 { selectedManga = nil } }
-        )
-    }
-
     public var body: some View {
         NavigationStack {
             contentView
@@ -197,10 +190,8 @@ public struct MangaArchiveLibraryView: View {
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
                     MangaMetadataEditorView(manga: book)
                 }
-                .fullScreenCover(isPresented: isShowingReader) {
-                    if let manga = selectedManga {
-                        MangaReaderView(manga: manga)
-                    }
+                .fullScreenCover(item: $selectedManga) { manga in
+                    MangaReaderView(manga: manga)
                 }
                 .onChange(of: sortOption) { _, newValue in
                     books.wrappedValue.sortDescriptors = newValue.sortDescriptors
