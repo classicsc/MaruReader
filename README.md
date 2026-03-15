@@ -4,6 +4,38 @@ MaruReader is a free, open source dictionary and reading application for learnin
 
 ## Key Features
 
+### 1. Fast, customizable dictionary
+
+The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches. A comprehensive Japanese-English dictionary and more than 10,000 pronunciation audio clips are included, add custom Yomitan dictionaries to enable more features like word frequency and pitch accent.
+
+Compared to the built in iOS "Look Up" dictionary, the MaruReader dictionary is much better for looking up verbs with its grammar-aware search. MaruReader's dictionary provides more comprehensive definitions with disambiguation for alternate and irregular forms.
+
+### 2. Read manga with text recognition
+
+Text in manga is OCR'd on your device as you read so you can look up words with no pre-processing or online services required. Works great for horizontal and vertical text alike. Import your own ZIP or CBZ files, or read online in the web browser.
+
+Text recognition is designed to be easy to use. Instead of trying to highlight text from imprecise character bounds on an image, just tap on the area of the image you're interested in and choose a word from the Context area.
+
+### 3. All the ways to use the dictionary on the web
+
+#### Select text in the MaruReader Browser
+
+The MaruReader browser is great for reading Japanese websites and web novels with a dictionary at your fingertips. Ad blocker included for distraction-free reading. Just select some text and choose "Dictionary" to look it up.
+
+#### OCR in the MaruReader Browser
+
+To look up any text on screen, use the tap icon in the toolbar and tap the text you want to look up. Great for manga.
+
+#### Text and OCR from the Share Menu
+
+Share text or images from any other app for a quick lookup. Great for text in Japanese apps and games, just take a screenshot and share it to MaruReader.
+
+### 4. Anki Integration
+
+Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader has tons of options for populating notes for information-rich cards, including a configuration for the popular Lapis note.
+
+## All Features
+
 ### Dictionary System
 
 - **Built-in Japanese-English dictionary** The included Jitendex dictionary features clear definitions, examples, and variant form tables.
