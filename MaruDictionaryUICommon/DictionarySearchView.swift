@@ -111,70 +111,68 @@ public struct DictionarySearchView: View {
             }
 
             // Main results area
-            GeometryReader { _ in
-                ZStack(alignment: .topLeading) {
-                    switch viewModel.resultState {
-                    case .ready:
-                        WebView(viewModel.page)
-                            // Popup overlay for text scanning
-                            .popover(
-                                isPresented: Binding(get: { viewModel.showPopup }, set: { viewModel.showPopup = $0 }),
-                                attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
-                            ) {
-                                WebView(viewModel.popupPage)
-                                    .background(themedBackgroundColor)
-                                    .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
-                                    .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
-                                    .presentationCompactAdaptation(.popover)
-                            }
-                            // External link confirmation popover
-                            .popover(
-                                isPresented: $viewModel.showExternalLinkConfirmation,
-                                attachmentAnchor: .rect(.rect(viewModel.externalLinkAnchorRect))
-                            ) {
-                                ExternalLinkConfirmationView(
-                                    url: viewModel.pendingExternalURL,
-                                    onOpen: {
-                                        if let url = viewModel.pendingExternalURL {
-                                            openURL(url)
-                                        }
-                                        viewModel.clearPendingExternalURL()
-                                        viewModel.showExternalLinkConfirmation = false
-                                    }
-                                )
-                                .environment(\.dictionaryPresentationTheme, presentationTheme)
-                                .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
-                                .presentationCompactAdaptation(.popover)
-                            }
-                            // Tooltip popover for title attributes
-                            .popover(
-                                isPresented: $viewModel.showTooltip,
-                                attachmentAnchor: .rect(.rect(viewModel.tooltipAnchorRect))
-                            ) {
-                                ScrollView {
-                                    Text(viewModel.tooltipText)
-                                        .font(.callout)
-                                        .foregroundStyle(themedForegroundColor)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 8)
-                                }
+            ZStack(alignment: .topLeading) {
+                switch viewModel.resultState {
+                case .ready:
+                    WebView(viewModel.page)
+                        // Popup overlay for text scanning
+                        .popover(
+                            isPresented: Binding(get: { viewModel.showPopup }, set: { viewModel.showPopup = $0 }),
+                            attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
+                        ) {
+                            WebView(viewModel.popupPage)
                                 .background(themedBackgroundColor)
                                 .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
-                                .frame(minWidth: 200, maxWidth: 320, maxHeight: 240)
+                                .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
                                 .presentationCompactAdaptation(.popover)
+                        }
+                        // External link confirmation popover
+                        .popover(
+                            isPresented: $viewModel.showExternalLinkConfirmation,
+                            attachmentAnchor: .rect(.rect(viewModel.externalLinkAnchorRect))
+                        ) {
+                            ExternalLinkConfirmationView(
+                                url: viewModel.pendingExternalURL,
+                                onOpen: {
+                                    if let url = viewModel.pendingExternalURL {
+                                        openURL(url)
+                                    }
+                                    viewModel.clearPendingExternalURL()
+                                    viewModel.showExternalLinkConfirmation = false
+                                }
+                            )
+                            .environment(\.dictionaryPresentationTheme, presentationTheme)
+                            .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+                            .presentationCompactAdaptation(.popover)
+                        }
+                        // Tooltip popover for title attributes
+                        .popover(
+                            isPresented: $viewModel.showTooltip,
+                            attachmentAnchor: .rect(.rect(viewModel.tooltipAnchorRect))
+                        ) {
+                            ScrollView {
+                                Text(viewModel.tooltipText)
+                                    .font(.callout)
+                                    .foregroundStyle(themedForegroundColor)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
                             }
-                    case let .noResults(query):
-                        ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
-                    case .startPage:
-                        ContentUnavailableView("Start a Search", systemImage: "book", description: Text("Enter text to search the dictionary."))
-                    case let .error(error):
-                        ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
-                    case .searching:
-                        ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle())
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .background(themedBackgroundColor)
-                    }
+                            .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+                            .frame(minWidth: 200, maxWidth: 320, maxHeight: 240)
+                            .presentationCompactAdaptation(.popover)
+                        }
+                case let .noResults(query):
+                    ContentUnavailableView("No Results", systemImage: "magnifyingglass", description: Text("No results found for \"\(query)\""))
+                case .startPage:
+                    ContentUnavailableView("Start a Search", systemImage: "book", description: Text("Enter text to search the dictionary."))
+                case let .error(error):
+                    ContentUnavailableView("Error", systemImage: "exclamationmark.triangle", description: Text(error.localizedDescription))
+                case .searching:
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle())
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(themedBackgroundColor)
                 }
             }
 
