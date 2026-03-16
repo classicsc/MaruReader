@@ -28,6 +28,20 @@ import SwiftUI
 
 struct ContextDisplayView: View {
     @Environment(\.dictionaryPresentationTheme) private var presentationTheme
+    @ScaledMetric(relativeTo: .body) private var maxHeight: CGFloat = 150
+    @ScaledMetric(relativeTo: .body) private var scaledBaseFontSize: CGFloat = 17
+    @ScaledMetric(relativeTo: .caption) private var scaledFuriganaFontSize: CGFloat = 10
+    @ScaledMetric(relativeTo: .body) private var furiganaSpacing: CGFloat = 6
+    @ScaledMetric(relativeTo: .body) private var headerHorizontalPadding: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var headerVerticalPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var textEditorHorizontalPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var textEditorMinHeight: CGFloat = 60
+    @ScaledMetric(relativeTo: .body) private var textEditorMaxHeight: CGFloat = 160
+    @ScaledMetric(relativeTo: .body) private var contentHorizontalPadding: CGFloat = 12
+    @ScaledMetric(relativeTo: .body) private var contentBottomPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var contentHeightPadding: CGFloat = 8
+    @ScaledMetric(relativeTo: .body) private var flowVerticalSpacing: CGFloat = 2
+    @ScaledMetric(relativeTo: .body) private var fallbackMeasuredWidth: CGFloat = 300
 
     let context: String
     let matchRange: Range<String.Index>?
@@ -44,22 +58,19 @@ struct ContextDisplayView: View {
     @State private var contentHeight: CGFloat = 0
     @State private var measuredWidth: CGFloat = 0
 
-    /// Maximum height for context area
-    private let maxHeight: CGFloat = 150
-
     /// Base font size for context text
     private var baseFontSize: CGFloat {
-        17 * fontSize
+        scaledBaseFontSize * fontSize
     }
 
     /// Furigana font size (smaller than base)
     private var furiganaFontSize: CGFloat {
-        10 * fontSize
+        scaledFuriganaFontSize * fontSize
     }
 
     /// Line height for text (base + furigana space + spacing)
     private var furiganaLineHeight: CGFloat {
-        baseFontSize + furiganaFontSize + 6
+        baseFontSize + furiganaFontSize + furiganaSpacing
     }
 
     private var themedBackgroundColor: Color {
@@ -114,8 +125,8 @@ struct ContextDisplayView: View {
                     .font(.caption)
                     .foregroundStyle(themedSecondaryColor)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.horizontal, headerHorizontalPadding)
+            .padding(.vertical, headerVerticalPadding)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -125,8 +136,8 @@ struct ContextDisplayView: View {
         VStack(spacing: 0) {
             TextEditor(text: $editText)
                 .font(.system(size: baseFontSize))
-                .padding(.horizontal, 8)
-                .frame(minHeight: 60, maxHeight: 160)
+                .padding(.horizontal, textEditorHorizontalPadding)
+                .frame(minHeight: textEditorMinHeight, maxHeight: textEditorMaxHeight)
 
             HStack {
                 Spacer()
@@ -137,28 +148,28 @@ struct ContextDisplayView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
             }
-            .padding(.horizontal, 12)
-            .padding(.bottom, 8)
+            .padding(.horizontal, headerHorizontalPadding)
+            .padding(.bottom, contentBottomPadding)
         }
     }
 
     private var contextContentView: some View {
         GeometryReader { geometry in
             ScrollView(.vertical, showsIndicators: true) {
-                contextTextContent(width: geometry.size.width - 24) // Account for horizontal padding
-                    .padding(.horizontal, 12)
-                    .padding(.bottom, 8)
+                contextTextContent(width: contentWidth(for: geometry.size.width))
+                    .padding(.horizontal, contentHorizontalPadding)
+                    .padding(.bottom, contentBottomPadding)
             }
             .onAppear {
-                measuredWidth = geometry.size.width - 24
+                measuredWidth = contentWidth(for: geometry.size.width)
                 calculateContentHeight()
             }
             .onChange(of: geometry.size.width) { _, newWidth in
-                measuredWidth = newWidth - 24
+                measuredWidth = contentWidth(for: newWidth)
                 calculateContentHeight()
             }
         }
-        .frame(height: min(contentHeight + 8, maxHeight))
+        .frame(height: min(contentHeight + contentHeightPadding, maxHeight))
         .onChange(of: context) { _, _ in calculateContentHeight() }
         .onChange(of: furiganaEnabled) { _, _ in calculateContentHeight() }
         .onChange(of: fontSize) { _, _ in calculateContentHeight() }
@@ -175,13 +186,13 @@ struct ContextDisplayView: View {
 
     /// Fallback for when no furigana segments are available
     private func plainTextView(width: CGFloat) -> some View {
-        FlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
+        FlowLayout(horizontalSpacing: 0, verticalSpacing: flowVerticalSpacing) {
             ForEach(Array(context.enumerated()), id: \.offset) { index, character in
                 VStack(spacing: 0) {
                     // Reserve space for furigana to maintain consistent line height
                     Text(" ")
                         .font(.system(size: furiganaFontSize))
-                        .foregroundColor(.clear)
+                        .foregroundStyle(.clear)
                     characterView(String(character), charIndex: index)
                 }
             }
@@ -191,7 +202,7 @@ struct ContextDisplayView: View {
 
     /// Segment-based layout that maintains consistent spacing whether furigana is shown or hidden
     private func segmentedTextView(width: CGFloat) -> some View {
-        FlowLayout(horizontalSpacing: 0, verticalSpacing: 2) {
+        FlowLayout(horizontalSpacing: 0, verticalSpacing: flowVerticalSpacing) {
             ForEach(furiganaSegments.indices, id: \.self) { segmentIndex in
                 let segment = furiganaSegments[segmentIndex]
                 furiganaSegmentView(segment: segment)
@@ -206,12 +217,12 @@ struct ContextDisplayView: View {
             if furiganaEnabled, let reading = segment.reading {
                 Text(reading)
                     .font(.system(size: furiganaFontSize))
-                    .foregroundColor(themedSecondaryColor)
+                    .foregroundStyle(themedSecondaryColor)
             } else {
                 // Use the reading text (invisible) to reserve the same width, or a space for height
                 Text(segment.reading ?? " ")
                     .font(.system(size: furiganaFontSize))
-                    .foregroundColor(.clear)
+                    .foregroundStyle(.clear)
             }
 
             // Base text with per-character tap handling and highlighting
@@ -229,16 +240,37 @@ struct ContextDisplayView: View {
         let stringIndex = context.index(context.startIndex, offsetBy: charIndex, limitedBy: context.endIndex) ?? context.endIndex
         let isHighlighted = matchRange?.contains(stringIndex) ?? false
 
-        return Text(character)
-            .font(.system(size: baseFontSize))
-            .background(
-                isHighlighted
-                    ? Color.accentColor.opacity(0.2)
-                    : Color.clear
-            )
-            .onTapGesture {
-                onCharacterTap(charIndex)
-            }
+        return Button {
+            onCharacterTap(charIndex)
+        } label: {
+            Text(character)
+                .font(.system(size: baseFontSize))
+                .background(
+                    isHighlighted
+                        ? Color.accentColor.opacity(0.2)
+                        : Color.clear
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel(for: character))
+        .accessibilityHint("Start dictionary lookup from this character")
+    }
+
+    private func contentWidth(for containerWidth: CGFloat) -> CGFloat {
+        max(0, containerWidth - (contentHorizontalPadding * 2))
+    }
+
+    private func accessibilityLabel(for character: String) -> String {
+        switch character {
+        case " ":
+            "Space"
+        case "\n":
+            "New line"
+        case "\t":
+            "Tab"
+        default:
+            character
+        }
     }
 
     private func calculateGlobalIndex(segment: FuriganaSegment, charOffset: Int) -> Int {
@@ -247,13 +279,12 @@ struct ContextDisplayView: View {
     }
 
     private func calculateContentHeight() {
-        // Estimate content height based on character count and available width
-        // This is an approximation - actual height may vary slightly
+        // Estimate content height based on character count and available width.
         let estimatedCharWidth: CGFloat = baseFontSize * 1.1
-        let availableWidth: CGFloat = measuredWidth > 0 ? measuredWidth : 300 // Fallback width
+        let availableWidth: CGFloat = measuredWidth > 0 ? measuredWidth : fallbackMeasuredWidth
         let charsPerLine = max(1, Int(availableWidth / estimatedCharWidth))
         let lineCount = max(1, (context.count + charsPerLine - 1) / charsPerLine)
-        // Always use furiganaLineHeight since both views reserve space for furigana
+        // Both layouts always reserve furigana space, so use the same line height in each case.
         contentHeight = CGFloat(lineCount) * furiganaLineHeight
     }
 }
