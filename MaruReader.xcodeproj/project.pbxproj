@@ -51,7 +51,6 @@
 		DBD776752F148E3C000AFED1 /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		DBD776792F148E3F000AFED1 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
 		DBD7767D2F148E43000AFED1 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
-		E1A0C0013A10100100A11A11 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 		DBDCE1112F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11B2F0C98CC00B42F93 /* MaruManga.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; };
 		DBDCE11C2F0C98CC00B42F93 /* MaruManga.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBDCE1082F0C98CB00B42F93 /* MaruManga.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -70,6 +69,7 @@
 		DBEF7A132EEF9423002DBFFC /* MaruAnki.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; };
 		DBEF7A142EEF9423002DBFFC /* MaruAnki.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBEF7A002EEF9422002DBFFC /* MaruAnki.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DBEF7A1B2EEF945C002DBFFC /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
+		E1A0C0013A10100100A11A11 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -234,13 +234,6 @@
 			remoteGlobalIDString = DB1C34252EB8578200315E79;
 			remoteInfo = MaruVisionUICommon;
 		};
-		E1A0C0023A10100100A11A11 /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = DB1C34252EB8578200315E79;
-			remoteInfo = MaruVisionUICommon;
-		};
 		DBDCE1122F0C98CC00B42F93 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
@@ -352,6 +345,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
 			remoteInfo = MaruReaderCore;
+		};
+		E1A0C0023A10100100A11A11 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB1C34252EB8578200315E79;
+			remoteInfo = MaruVisionUICommon;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -1870,11 +1870,6 @@
 			target = DB1C34252EB8578200315E79 /* MaruVisionUICommon */;
 			targetProxy = DBD7767F2F148E43000AFED1 /* PBXContainerItemProxy */;
 		};
-		E1A0C0033A10100100A11A11 /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = DB1C34252EB8578200315E79 /* MaruVisionUICommon */;
-			targetProxy = E1A0C0023A10100100A11A11 /* PBXContainerItemProxy */;
-		};
 		DBDCE1132F0C98CC00B42F93 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = DBDCE1072F0C98CB00B42F93 /* MaruManga */;
@@ -1954,6 +1949,11 @@
 			isa = PBXTargetDependency;
 			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
 			targetProxy = DBEF7A1D2EEF945C002DBFFC /* PBXContainerItemProxy */;
+		};
+		E1A0C0033A10100100A11A11 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB1C34252EB8578200315E79 /* MaruVisionUICommon */;
+			targetProxy = E1A0C0023A10100100A11A11 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
