@@ -117,7 +117,7 @@ public struct DictionarySearchView: View {
                     WebView(viewModel.page)
                         // Popup overlay for text scanning
                         .popover(
-                            isPresented: Binding(get: { viewModel.showPopup }, set: { viewModel.showPopup = $0 }),
+                            isPresented: $viewModel.showPopup,
                             attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
                         ) {
                             WebView(viewModel.popupPage)
