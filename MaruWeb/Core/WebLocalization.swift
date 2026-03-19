@@ -93,7 +93,7 @@ enum WebStrings {
 
     static func addressBarTourDescription(locale: Locale = .current) -> String {
         WebLocalization.string(
-            "Tap to edit the URL or see the current site. The reload button refreshes the page.",
+            "Tap to edit the URL or see the current site.",
             locale: locale,
             comment: "Description of the web viewer tour step that explains the address bar."
         )
@@ -101,7 +101,7 @@ enum WebStrings {
 
     static func bookmarksTourDescription(locale: Locale = .current) -> String {
         WebLocalization.string(
-            "Open the more actions menu to add or remove bookmarks and jump to saved pages.",
+            "Tap to add or remove bookmarks and jump to saved pages.",
             locale: locale,
             comment: "Description of the web viewer tour step that explains bookmarks."
         )
@@ -109,7 +109,7 @@ enum WebStrings {
 
     static func dismissTourDescription(locale: Locale = .current) -> String {
         WebLocalization.string(
-            "Open the more actions menu, then tap Exit Web Viewer to close and return to the app.",
+            "Tap the more actions menu, then tap Exit Web Viewer to close and return to the app.",
             locale: locale,
             comment: "Description of the web viewer tour step that explains how to exit the web viewer."
         )

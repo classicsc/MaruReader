@@ -34,15 +34,15 @@ public enum WebViewerToolbarTour: TourDefinition {
 
     public static let steps: [TourStep] = [
         TourStep(
-            id: WebViewerToolbarTourAnchor.dismissButton,
-            title: WebLocalization.string("Exit Web Viewer", comment: "Title of the web viewer tour step that explains how to exit the web viewer."),
-            description: WebStrings.dismissTourDescription(),
-            popoverEdge: .top
-        ),
-        TourStep(
             id: WebViewerToolbarTourAnchor.addressBar,
             title: WebStrings.addressBarTourTitle(),
             description: WebStrings.addressBarTourDescription(),
+            popoverEdge: .top
+        ),
+        TourStep(
+            id: WebViewerToolbarTourAnchor.readingModeButton,
+            title: WebStrings.ocrModeTourTitle(),
+            description: WebStrings.ocrModeTourDescription(),
             popoverEdge: .top
         ),
         TourStep(
@@ -52,9 +52,9 @@ public enum WebViewerToolbarTour: TourDefinition {
             popoverEdge: .top
         ),
         TourStep(
-            id: WebViewerToolbarTourAnchor.readingModeButton,
-            title: WebStrings.ocrModeTourTitle(),
-            description: WebStrings.ocrModeTourDescription(),
+            id: WebViewerToolbarTourAnchor.dismissButton,
+            title: WebLocalization.string("Exit Web Viewer", comment: "Title of the web viewer tour step that explains how to exit the web viewer."),
+            description: WebStrings.dismissTourDescription(),
             popoverEdge: .top
         ),
     ]

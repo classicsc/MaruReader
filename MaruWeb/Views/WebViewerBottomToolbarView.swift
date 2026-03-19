@@ -34,11 +34,14 @@ struct WebViewerBottomToolbarView: View {
     let onSubmitAddress: () -> Void
     let onShowTabSwitcher: () -> Void
     let onShowCollapsedControls: () -> Void
+    let onToggleBookmark: () -> Void
+    let onNavigateToBookmark: (URL) -> Void
     let onDismiss: () -> Void
 
     var body: some View {
         let canGoBack = viewModel.page?.canGoBack == true
         let canGoForward = viewModel.page?.canGoForward == true
+        let isLoading = viewModel.page?.isLoading == true
         let shouldShowFullControls = viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
         let shouldShowFloatingReadingModeButton = !viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled
 
@@ -56,84 +59,42 @@ struct WebViewerBottomToolbarView: View {
                 }
 
                 if shouldShowFullControls {
-                    HStack(alignment: .bottom, spacing: 12) {
-                        if !isEditingAddress, canGoBack || canGoForward {
-                            WebViewerNavigationClusterView(
-                                canGoBack: canGoBack,
-                                canGoForward: canGoForward,
-                                iconSize: floatingButtonIconSize,
-                                frameSize: floatingButtonFrameSize,
-                                namespace: glassNamespace,
-                                onGoBack: viewModel.goBack,
-                                onGoForward: viewModel.goForward
-                            )
-                        }
-
-                        WebViewerAddressBarCapsuleView(
+                    VStack(spacing: 8) {
+                        WebViewerTopRowView(
                             addressText: $viewModel.addressBarText,
                             addressSelection: $addressSelection,
-                            shouldFocus: $isAddressFocused,
+                            isAddressFocused: $isAddressFocused,
                             isEditingAddress: isEditingAddress,
+                            isLoading: isLoading,
                             displayText: addressDisplayText,
-                            namespace: glassNamespace,
-                            iconSize: floatingButtonIconSize,
-                            onBeginEditing: onBeginAddressEditing,
-                            onSubmit: onSubmitAddress
+                            floatingButtonIconSize: floatingButtonIconSize,
+                            floatingButtonFrameSize: floatingButtonFrameSize,
+                            glassNamespace: glassNamespace,
+                            onBeginAddressEditing: onBeginAddressEditing,
+                            onCancelAddressEditing: onCancelAddressEditing,
+                            onSubmitAddress: onSubmitAddress,
+                            onEnableReadingMode: enableReadingMode,
+                            onStopLoading: viewModel.stopLoading,
+                            onReload: viewModel.reload
                         )
-                        .frame(maxWidth: .infinity)
-                        .tourAnchor(WebViewerToolbarTourAnchor.addressBar)
 
-                        if isEditingAddress {
-                            Button(action: onCancelAddressEditing) {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                            }
-                            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                            .contentShape(.circle)
-                            .buttonStyle(.plain)
-                            .glassEffect(in: Circle())
-                            .accessibilityLabel("Cancel")
-                        } else {
-                            Button(action: onShowTabSwitcher) {
-                                Image(systemName: "square.on.square")
-                                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                            }
-                            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                            .contentShape(.circle)
-                            .buttonStyle(.plain)
-                            .glassEffect(in: Circle())
-                            .overlay(alignment: .topTrailing) {
-                                Text("\(viewModel.tabs.count)")
-                                    .font(.caption2.weight(.bold))
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 2)
-                                    .background(.thinMaterial, in: Capsule())
-                                    .offset(x: 8, y: -8)
-                            }
-                            .accessibilityLabel("Tabs")
-                            .accessibilityValue("\(viewModel.tabs.count)")
-
-                            Button(action: enableReadingMode) {
-                                Image(systemName: "hand.tap")
-                                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                            }
-                            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                            .contentShape(.circle)
-                            .buttonStyle(.plain)
-                            .glassEffect(in: Circle())
-                            .glassEffectID("readingMode", in: glassNamespace)
-                            .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-                            .accessibilityLabel("Enable OCR Mode")
-                            .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
-
-                            WebViewerOverflowMenuButton(
-                                viewModel: viewModel,
+                        if !isEditingAddress {
+                            WebViewerBottomRowView(
+                                canGoBack: canGoBack,
+                                canGoForward: canGoForward,
+                                isBookmarked: viewModel.isBookmarked,
+                                bookmarks: viewModel.bookmarks,
+                                tabCount: viewModel.tabs.count,
                                 floatingButtonIconSize: floatingButtonIconSize,
                                 floatingButtonFrameSize: floatingButtonFrameSize,
                                 glassNamespace: glassNamespace,
+                                onGoBack: viewModel.goBack,
+                                onGoForward: viewModel.goForward,
+                                onToggleBookmark: onToggleBookmark,
+                                onNavigateToBookmark: onNavigateToBookmark,
+                                onShowTabSwitcher: onShowTabSwitcher,
                                 onDismiss: onDismiss
                             )
-                            .tourAnchor(WebViewerToolbarTourAnchor.bookmarkButton)
                         }
                     }
                 }

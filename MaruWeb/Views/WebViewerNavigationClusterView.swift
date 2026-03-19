@@ -28,32 +28,30 @@ struct WebViewerNavigationClusterView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if canGoBack {
-                Button(action: onGoBack) {
-                    Image(systemName: "chevron.backward")
-                        .font(.system(size: iconSize, weight: .semibold))
-                }
-                .frame(width: frameSize, height: frameSize)
-                .contentShape(.rect)
-                .buttonStyle(.plain)
-                .accessibilityLabel("Back")
+            Button(action: onGoBack) {
+                Image(systemName: "chevron.backward")
+                    .font(.system(size: iconSize, weight: .semibold))
             }
+            .frame(width: frameSize, height: frameSize)
+            .contentShape(.rect)
+            .buttonStyle(.plain)
+            .disabled(!canGoBack)
+            .opacity(canGoBack ? 1.0 : 0.38)
+            .accessibilityLabel("Back")
 
-            if canGoBack, canGoForward {
-                Divider()
-                    .frame(height: frameSize - 12)
-            }
+            Divider()
+                .frame(height: frameSize - 12)
 
-            if canGoForward {
-                Button(action: onGoForward) {
-                    Image(systemName: "chevron.forward")
-                        .font(.system(size: iconSize, weight: .semibold))
-                }
-                .frame(width: frameSize, height: frameSize)
-                .contentShape(.rect)
-                .buttonStyle(.plain)
-                .accessibilityLabel("Forward")
+            Button(action: onGoForward) {
+                Image(systemName: "chevron.forward")
+                    .font(.system(size: iconSize, weight: .semibold))
             }
+            .frame(width: frameSize, height: frameSize)
+            .contentShape(.rect)
+            .buttonStyle(.plain)
+            .disabled(!canGoForward)
+            .opacity(canGoForward ? 1.0 : 0.38)
+            .accessibilityLabel("Forward")
         }
         .padding(.horizontal, 2)
         .glassEffect(in: Capsule())

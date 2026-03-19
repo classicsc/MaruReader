@@ -458,6 +458,7 @@
     },
     "Open the more actions menu to add or remove bookmarks and jump to saved pages." : {
       "comment" : "Description of the web viewer tour step that explains bookmarks.",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -469,6 +470,7 @@
     },
     "Open the more actions menu, then tap Exit Web Viewer to close and return to the app." : {
       "comment" : "Description of the web viewer tour step that explains how to exit the web viewer.",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -620,6 +622,7 @@
     },
     "Tap to edit the URL or see the current site. The reload button refreshes the page." : {
       "comment" : "Description of the web viewer tour step that explains the address bar.",
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

@@ -75,6 +75,8 @@ public struct WebViewerView: View {
                         onSubmitAddress: submitAddress,
                         onShowTabSwitcher: showTabSwitcher,
                         onShowCollapsedControls: showCollapsedControls,
+                        onToggleBookmark: toggleBookmark,
+                        onNavigateToBookmark: navigateToBookmark,
                         onDismiss: dismissViewer
                     )
                 }
@@ -237,6 +239,14 @@ public struct WebViewerView: View {
         withAnimation(.easeInOut(duration: 0.25)) {
             viewModel.overlayState = .showingToolbars
         }
+    }
+
+    private func toggleBookmark() {
+        viewModel.toggleBookmark()
+    }
+
+    private func navigateToBookmark(_ url: URL) {
+        viewModel.navigate(to: url)
     }
 
     private func dismissViewer() {
