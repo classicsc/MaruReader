@@ -15,54 +15,71 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import MaruReaderCore
-import os
 import SwiftUI
 
 struct DictionaryDisplaySettingsView: View {
-    private static let logger = Logger.maru(category: "DictionaryDisplaySettingsView")
-    @Environment(\.managedObjectContext) private var viewContext
-
-    @FetchRequest(
-        entity: DictionaryDisplayPreferences.entity(),
-        sortDescriptors: [NSSortDescriptor(keyPath: \DictionaryDisplayPreferences.id, ascending: true)],
-        predicate: NSPredicate(format: "enabled == %@", NSNumber(value: true)),
-        animation: .default
-    ) private var activePreferences: FetchedResults<DictionaryDisplayPreferences>
-
-    @State private var selectedFontIndex: Int = 0
-    @State private var fontSize: Double = DictionaryDisplayDefaults.defaultFontSize
-    @State private var popupFontSize: Double = DictionaryDisplayDefaults.defaultPopupFontSize
-    @State private var showDeinflection: Bool = DictionaryDisplayDefaults.defaultShowDeinflection
-    @State private var deinflectionDescriptionLanguage: DeinflectionLanguage = .init(rawValue: DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage) ?? .followSystem
-    @State private var pitchDownstepNotationInHeaderEnabled: Bool = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
-    @State private var pitchResultsAreaCollapsedDisplay: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
-    @State private var pitchResultsAreaDownstepNotationEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
-    @State private var pitchResultsAreaDownstepPositionEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
-    @State private var pitchResultsAreaEnabled: Bool = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
-
-    // Context display settings
-    @State private var contextFontSize: Double = DictionaryDisplayDefaults.defaultContextFontSize
-    @State private var contextFuriganaEnabled: Bool = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
-
-    private let fontOptions: [(displayName: String, family: String)] = [
+    private static let fontOptions: [(displayName: String, family: String)] = [
         (String(localized: "System"), "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
         (String(localized: "Serif"), "Hiragino Mincho ProN, TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
         (String(localized: "Sans Serif"), "Hiragino Sans, HelveticaNeue, Helvetica, Arial, sans-serif"),
         (String(localized: "Monospace"), "'Osaka Mono', Menlo, Monaco, 'Courier New', monospace"),
     ]
 
+    @AppStorage(DictionaryDisplayPreferences.fontFamilyKey)
+    private var storedFontFamily = DictionaryDisplayPreferences.fontFamilyDefault
+    @AppStorage(DictionaryDisplayPreferences.fontSizeKey)
+    private var fontSize = DictionaryDisplayPreferences.fontSizeDefault
+    @AppStorage(DictionaryDisplayPreferences.popupFontSizeKey)
+    private var popupFontSize = DictionaryDisplayPreferences.popupFontSizeDefault
+    @AppStorage(DictionaryDisplayPreferences.showDeinflectionKey)
+    private var showDeinflection = DictionaryDisplayPreferences.showDeinflectionDefault
+    @AppStorage(DictionaryDisplayPreferences.deinflectionDescriptionLanguageKey)
+    private var deinflectionDescriptionLanguageRawValue = DictionaryDisplayPreferences.deinflectionDescriptionLanguageDefault
+    @AppStorage(DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabledKey)
+    private var pitchDownstepNotationInHeaderEnabled = DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabledDefault
+    @AppStorage(DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplayKey)
+    private var pitchResultsAreaCollapsedDisplay = DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplayDefault
+    @AppStorage(DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabledKey)
+    private var pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabledDefault
+    @AppStorage(DictionaryDisplayPreferences.pitchResultsAreaDownstepPositionEnabledKey)
+    private var pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayPreferences.pitchResultsAreaDownstepPositionEnabledDefault
+    @AppStorage(DictionaryDisplayPreferences.pitchResultsAreaEnabledKey)
+    private var pitchResultsAreaEnabled = DictionaryDisplayPreferences.pitchResultsAreaEnabledDefault
+    @AppStorage(DictionaryDisplayPreferences.contextFontSizeKey)
+    private var contextFontSize = DictionaryDisplayPreferences.contextFontSizeDefault
+    @AppStorage(DictionaryDisplayPreferences.contextFuriganaEnabledKey)
+    private var contextFuriganaEnabled = DictionaryDisplayPreferences.contextFuriganaEnabledDefault
+
+    @State private var selectedFontIndex: Int
+
     private var fontFamily: String {
-        fontOptions[selectedFontIndex].family
+        Self.fontOptions[selectedFontIndex].family
+    }
+
+    private var deinflectionDescriptionLanguage: Binding<DeinflectionLanguage> {
+        Binding(
+            get: {
+                DeinflectionLanguage(rawValue: deinflectionDescriptionLanguageRawValue) ?? .followSystem
+            },
+            set: { newValue in
+                deinflectionDescriptionLanguageRawValue = newValue.rawValue
+            }
+        )
+    }
+
+    init() {
+        let defaultFamily = DictionaryDisplayPreferences.fontFamily
+        let defaultIndex = Self.fontOptions.firstIndex(where: { $0.family == defaultFamily }) ?? 0
+        _selectedFontIndex = State(initialValue: defaultIndex)
     }
 
     var body: some View {
         Form {
             Section("Font Family") {
                 Picker("Font Family", selection: $selectedFontIndex) {
-                    ForEach(0 ..< fontOptions.count, id: \.self) { index in
-                        Text(fontOptions[index].displayName).tag(index)
+                    ForEach(0 ..< Self.fontOptions.count, id: \.self) { index in
+                        Text(Self.fontOptions[index].displayName).tag(index)
                     }
                 }
                 .pickerStyle(.menu)
@@ -76,7 +93,7 @@ struct DictionaryDisplaySettingsView: View {
             Section("Display Options") {
                 Toggle("Show Deinflection Info", isOn: $showDeinflection)
                 if showDeinflection {
-                    Picker("Deinflection Language", selection: $deinflectionDescriptionLanguage) {
+                    Picker("Deinflection Language", selection: deinflectionDescriptionLanguage) {
                         ForEach(DeinflectionLanguage.allCases, id: \.self) { language in
                             Text(language.displayLabel).tag(language)
                         }
@@ -101,107 +118,18 @@ struct DictionaryDisplaySettingsView: View {
             }
         }
         .navigationTitle("Display Settings")
-        .onAppear(perform: loadPreferences)
-        .onChange(of: activePreferences.count) { _, _ in loadPreferences() }
-        .onChange(of: selectedFontIndex) { _, _ in savePreferences() }
-        .onChange(of: fontSize) { _, _ in savePreferences() }
-        .onChange(of: popupFontSize) { _, _ in savePreferences() }
-        .onChange(of: showDeinflection) { _, _ in savePreferences() }
-        .onChange(of: deinflectionDescriptionLanguage) { _, _ in savePreferences() }
-        .onChange(of: pitchDownstepNotationInHeaderEnabled) { _, _ in savePreferences() }
-        .onChange(of: pitchResultsAreaCollapsedDisplay) { _, _ in savePreferences() }
-        .onChange(of: pitchResultsAreaDownstepNotationEnabled) { _, _ in savePreferences() }
-        .onChange(of: pitchResultsAreaDownstepPositionEnabled) { _, _ in savePreferences() }
-        .onChange(of: pitchResultsAreaEnabled) { _, _ in savePreferences() }
-        .onChange(of: contextFontSize) { _, _ in savePreferences() }
-        .onChange(of: contextFuriganaEnabled) { _, _ in savePreferences() }
-    }
-
-    private func loadPreferences() {
-        if let pref = activePreferences.first {
-            if let family = pref.fontFamily,
-               let index = fontOptions.firstIndex(where: { $0.family == family })
-            {
-                selectedFontIndex = index
-            } else {
-                selectedFontIndex = 0
-            }
-            fontSize = pref.fontSize
-            popupFontSize = pref.popupFontSize
-            showDeinflection = pref.showDeinflection
-            deinflectionDescriptionLanguage = DeinflectionLanguage(rawValue: pref.deinflectionDescriptionLanguage ?? DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage) ?? .followSystem
-            pitchDownstepNotationInHeaderEnabled = pref.pitchDownstepNotationInHeaderEnabled
-            pitchResultsAreaCollapsedDisplay = pref.pitchResultsAreaCollapsedDisplay
-            pitchResultsAreaDownstepNotationEnabled = pref.pitchResultsAreaDownstepNotationEnabled
-            pitchResultsAreaDownstepPositionEnabled = pref.pitchResultsAreaDownstepPositionEnabled
-            pitchResultsAreaEnabled = pref.pitchResultsAreaEnabled
-            contextFontSize = pref.contextFontSize
-            contextFuriganaEnabled = pref.contextFuriganaEnabled
-        } else {
-            createDefaultPreferences()
+        .onAppear {
+            selectedFontIndex = Self.fontOptions.firstIndex(where: { $0.family == storedFontFamily }) ?? 0
         }
-    }
-
-    private func createDefaultPreferences() {
-        // Disable existing enabled preferences
-        let request: NSFetchRequest<DictionaryDisplayPreferences> = DictionaryDisplayPreferences.fetchRequest()
-        request.predicate = NSPredicate(format: "enabled == %@", NSNumber(value: true))
-        do {
-            let enabledPrefs = try viewContext.fetch(request)
-            for pref in enabledPrefs {
-                pref.enabled = false
-            }
-        } catch {
-            Self.logger.error("Error disabling existing preferences: \(String(describing: error), privacy: .public)")
+        .onChange(of: selectedFontIndex) { _, _ in
+            storedFontFamily = fontFamily
         }
-
-        // Create new default
-        let newPref = DictionaryDisplayPreferences(context: viewContext)
-        newPref.id = UUID()
-        newPref.enabled = true
-        newPref.fontFamily = DictionaryDisplayDefaults.defaultFontFamily
-        newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
-        newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
-        newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
-        newPref.deinflectionDescriptionLanguage = DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage
-        newPref.pitchDownstepNotationInHeaderEnabled = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
-        newPref.pitchResultsAreaCollapsedDisplay = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
-        newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
-        newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
-        newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
-        newPref.contextFontSize = DictionaryDisplayDefaults.defaultContextFontSize
-        newPref.contextFuriganaEnabled = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
-
-        do {
-            try viewContext.save()
-        } catch {
-            Self.logger.error("Error saving default preferences: \(String(describing: error), privacy: .public)")
-        }
-    }
-
-    private func savePreferences() {
-        guard let pref = activePreferences.first else { return }
-        pref.fontFamily = fontFamily
-        pref.fontSize = fontSize
-        pref.popupFontSize = popupFontSize
-        pref.showDeinflection = showDeinflection
-        pref.deinflectionDescriptionLanguage = deinflectionDescriptionLanguage.rawValue
-        pref.pitchDownstepNotationInHeaderEnabled = pitchDownstepNotationInHeaderEnabled
-        pref.pitchResultsAreaCollapsedDisplay = pitchResultsAreaCollapsedDisplay
-        pref.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled
-        pref.pitchResultsAreaDownstepPositionEnabled = pitchResultsAreaDownstepPositionEnabled
-        pref.pitchResultsAreaEnabled = pitchResultsAreaEnabled
-        pref.contextFontSize = contextFontSize
-        pref.contextFuriganaEnabled = contextFuriganaEnabled
-        do {
-            try viewContext.save()
-        } catch {
-            Self.logger.error("Error saving preferences: \(String(describing: error), privacy: .public)")
+        .onChange(of: storedFontFamily) { _, newValue in
+            selectedFontIndex = Self.fontOptions.firstIndex(where: { $0.family == newValue }) ?? 0
         }
     }
 }
 
 #Preview {
     DictionaryDisplaySettingsView()
-        .environment(\.managedObjectContext, DictionaryPersistenceController.shared.container.viewContext)
 }

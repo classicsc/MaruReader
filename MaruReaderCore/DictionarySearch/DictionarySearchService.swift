@@ -87,61 +87,6 @@ public struct DictionarySearchService: Sendable {
         }
     }
 
-    private func getDisplayStyles() async throws -> DisplayStyles {
-        let backgroundContext = persistenceController.newBackgroundContext()
-        return try await backgroundContext.perform {
-            let fetchRequest: NSFetchRequest<DictionaryDisplayPreferences> = DictionaryDisplayPreferences.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "enabled == %@", NSNumber(booleanLiteral: true))
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: true)]
-            fetchRequest.fetchLimit = 1
-
-            let prefs = try backgroundContext.fetch(fetchRequest)
-
-            if let pref = prefs.first {
-                return DisplayStyles(
-                    fontFamily: pref.fontFamily ?? DictionaryDisplayDefaults.defaultFontFamily,
-                    contentFontSize: pref.fontSize,
-                    popupFontSize: pref.popupFontSize,
-                    showDeinflection: pref.showDeinflection,
-                    deinflectionDescriptionLanguage: pref.deinflectionDescriptionLanguage ?? DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage,
-                    pitchDownstepNotationInHeaderEnabled: pref.pitchDownstepNotationInHeaderEnabled,
-                    pitchResultsAreaCollapsedDisplay: pref.pitchResultsAreaCollapsedDisplay,
-                    pitchResultsAreaDownstepNotationEnabled: pref.pitchResultsAreaDownstepNotationEnabled,
-                    pitchResultsAreaDownstepPositionEnabled: pref.pitchResultsAreaDownstepPositionEnabled,
-                    pitchResultsAreaEnabled: pref.pitchResultsAreaEnabled
-                )
-            } else {
-                let newPref = DictionaryDisplayPreferences(context: backgroundContext)
-                newPref.id = UUID()
-                newPref.enabled = true
-                newPref.fontFamily = DictionaryDisplayDefaults.defaultFontFamily
-                newPref.fontSize = DictionaryDisplayDefaults.defaultFontSize
-                newPref.popupFontSize = DictionaryDisplayDefaults.defaultPopupFontSize
-                newPref.showDeinflection = DictionaryDisplayDefaults.defaultShowDeinflection
-                newPref.pitchDownstepNotationInHeaderEnabled = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
-                newPref.pitchResultsAreaCollapsedDisplay = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
-                newPref.pitchResultsAreaDownstepNotationEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
-                newPref.pitchResultsAreaDownstepPositionEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled
-                newPref.pitchResultsAreaEnabled = DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
-
-                try backgroundContext.save()
-
-                return DisplayStyles(
-                    fontFamily: DictionaryDisplayDefaults.defaultFontFamily,
-                    contentFontSize: DictionaryDisplayDefaults.defaultFontSize,
-                    popupFontSize: DictionaryDisplayDefaults.defaultPopupFontSize,
-                    showDeinflection: DictionaryDisplayDefaults.defaultShowDeinflection,
-                    deinflectionDescriptionLanguage: DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage,
-                    pitchDownstepNotationInHeaderEnabled: DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled,
-                    pitchResultsAreaCollapsedDisplay: DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay,
-                    pitchResultsAreaDownstepNotationEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled,
-                    pitchResultsAreaDownstepPositionEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepPositionEnabled,
-                    pitchResultsAreaEnabled: DictionaryDisplayDefaults.defaultPitchResultsAreaEnabled
-                )
-            }
-        }
-    }
-
     /// Start a lookup session for incremental results.
     public func startTextLookup(request: TextLookupRequest) async throws -> TextLookupSession? {
         guard let queryInfo = DictionarySearchService.extractQueryInfo(from: request) else {
@@ -160,9 +105,8 @@ public struct DictionarySearchService: Sendable {
 
         let candidateGroups = DictionarySearchService.groupCandidatesByRanking(candidates)
 
-        async let styles = getDisplayStyles()
         async let metadata = getDictionaryMetadata()
-        let stylesValue = try await styles
+        let stylesValue = DictionaryDisplayPreferences.displayStyles
         let metadataValue = try await metadata
 
         let dictionaryStyles = DictionarySearchService.dictionaryStylesCSS(from: metadataValue)

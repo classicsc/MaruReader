@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import Foundation
 import MaruReaderCore
 import Observation
@@ -771,25 +770,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     // MARK: - Context Display
 
-    /// Load context display settings from Core Data
+    /// Load context display settings from user defaults-backed preferences.
     public func loadContextDisplaySettings() {
-        Task {
-            let container = DictionaryPersistenceController.shared.container
-            let context = container.viewContext
-
-            await context.perform {
-                let fetchRequest = DictionaryDisplayPreferences.fetchRequest()
-                fetchRequest.predicate = NSPredicate(format: "enabled == YES")
-                fetchRequest.fetchLimit = 1
-
-                if let preferences = try? context.fetch(fetchRequest).first {
-                    Task { @MainActor in
-                        self.contextFontSize = preferences.contextFontSize
-                        self.contextFuriganaEnabled = preferences.contextFuriganaEnabled
-                    }
-                }
-            }
-        }
+        contextFontSize = DictionaryDisplayPreferences.contextFontSize
+        contextFuriganaEnabled = DictionaryDisplayPreferences.contextFuriganaEnabled
     }
 
     /// Toggle furigana display on/off

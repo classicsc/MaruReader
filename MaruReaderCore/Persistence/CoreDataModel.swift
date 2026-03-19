@@ -98,6 +98,9 @@ public final class DictionaryPersistenceController: Sendable {
             }
         }
 
+        container.persistentStoreDescriptions.first?.shouldMigrateStoreAutomatically = true
+        container.persistentStoreDescriptions.first?.shouldInferMappingModelAutomatically = true
+
         let loadResult = Self.loadPersistentStores(for: container)
         if let loadFailure = loadResult.failure {
             let nsError = loadFailure.error as NSError
