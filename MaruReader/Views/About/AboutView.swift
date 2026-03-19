@@ -30,9 +30,9 @@ struct AboutView: View {
             Section("Project") {
                 Link("Source Code Repository", destination: repositoryURL)
 
-                NavigationLink("MaruReader License (GPLv3)") {
+                NavigationLink("MaruReader License") {
                     LicenseDocumentView(
-                        title: "MaruReader License (GPLv3)",
+                        title: "MaruReader License",
                         document: ThirdPartyLicenseDocument(
                             title: "GNU General Public License Version 3",
                             path: ThirdPartyLicenseCatalogLoader.appLicensePath,

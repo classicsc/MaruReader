@@ -362,7 +362,7 @@
       "version" : "3.0.1"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-platform-mv3-extension-lib-codemirror-codemirror-ubol-license",
@@ -378,7 +378,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/platform\/mv3\/extension\/lib\/codemirror\/codemirror-ubol\/LICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-publish-extension-license",
@@ -394,7 +394,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/publish-extension\/LICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-css-fonts-inter-license-txt",
@@ -410,7 +410,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Inter\/LICENSE.txt"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-css-fonts-metropolis-unlicense",
@@ -426,7 +426,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Metropolis\/UNLICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-img-fontawesome-license-txt",
@@ -442,7 +442,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/img\/fontawesome\/LICENSE.txt"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-lib-codemirror-license",
@@ -458,7 +458,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/codemirror\/LICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-lib-csstree-license",
@@ -474,7 +474,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/csstree\/LICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-lib-hsluv-license",
@@ -490,7 +490,7 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/hsluv\/LICENSE"
     },
     {
-      "attribution" : "Various authors (see included license text)",
+      "attribution" : "See license text",
       "category" : "ublockEmbedded",
       "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
       "id" : "ublock-embedded-src-lib-js-beautify-license",
@@ -506,6 +506,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-03-16T13:59:29.816Z",
+  "generatedAt" : "2026-03-19T02:21:22.772Z",
   "schemaVersion" : 1
 }

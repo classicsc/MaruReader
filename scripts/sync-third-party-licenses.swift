@@ -479,7 +479,7 @@ private func buildUBLockEmbeddedComponents(
             sourceURL: sourceURL,
             version: nil,
             revision: nil,
-            attribution: "Various authors (see included license text)",
+            attribution: "See license text",
             notes: "Discovered automatically from External/uBlock.",
             licenses: [
                 CatalogLicense(
