@@ -113,45 +113,6 @@ final class MangaMetadataExtractionTests: XCTestCase {
         )
     }
 
-    func testHeuristicMetadataExtractsDashedEnglishAuthor() {
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = extractor.heuristicMetadata(
-            for: "Chainsaw Man - Tatsuki Fujimoto.cbz",
-            fallbackTitle: "Chainsaw Man - Tatsuki Fujimoto"
-        )
-
-        XCTAssertEqual(metadata?.title, "Chainsaw Man")
-        XCTAssertEqual(metadata?.author, "Tatsuki Fujimoto")
-        XCTAssertEqual(metadata?.titleWasExtracted, true)
-        XCTAssertEqual(metadata?.authorWasExtracted, true)
-    }
-
-    func testHeuristicMetadataExtractsLeadingBracketedJapaneseAuthor() {
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = extractor.heuristicMetadata(
-            for: "【石黒正数】それでも町は廻っている 第01巻.zip",
-            fallbackTitle: "【石黒正数】それでも町は廻っている 第01巻"
-        )
-
-        XCTAssertEqual(metadata?.title, "それでも町は廻っている 第01巻")
-        XCTAssertEqual(metadata?.author, "石黒正数")
-        XCTAssertEqual(metadata?.titleWasExtracted, true)
-        XCTAssertEqual(metadata?.authorWasExtracted, true)
-    }
-
-    func testHeuristicMetadataExtractsTrailingJapaneseAuthor() {
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = extractor.heuristicMetadata(
-            for: "[Library Edition] 呪術廻戦 10巻 芥見下々.cbz",
-            fallbackTitle: "[Library Edition] 呪術廻戦 10巻 芥見下々"
-        )
-
-        XCTAssertEqual(metadata?.title, "呪術廻戦 10巻")
-        XCTAssertEqual(metadata?.author, "芥見下々")
-        XCTAssertEqual(metadata?.titleWasExtracted, true)
-        XCTAssertEqual(metadata?.authorWasExtracted, true)
-    }
-
     func testExtractMetadataUsesFallbackWhenSmartExtractionDisabled() async {
         let extractor = MangaFilenameMetadataExtractor()
         let metadata = await extractor.extractMetadata(

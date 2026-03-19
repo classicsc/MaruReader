@@ -97,18 +97,17 @@ struct MangaFilenameMetadataExtractor {
         let fallback = fallbackMetadata(for: filename)
         let fallbackTitle = fallback.title
         let promptInput = normalizedPromptInput(for: filename)
-        let heuristic = heuristicMetadata(for: filename, fallbackTitle: fallbackTitle)
 
         guard !fallbackTitle.isEmpty, !promptInput.isEmpty else {
             return fallback
         }
 
         guard !Task.isCancelled else {
-            return heuristic ?? fallback
+            return fallback
         }
 
         guard isModelAvailable else {
-            return heuristic ?? fallback
+            return fallback
         }
 
         do {
@@ -120,18 +119,17 @@ struct MangaFilenameMetadataExtractor {
             )
             let output = response.content
             if let parsed = parseOutput(output, fallbackTitle: fallbackTitle) {
-                let preferred = preferredMetadata(primary: parsed, secondary: heuristic)
                 logger.debug("Successfully extracted manga metadata from filename: \(filename)")
-                logger.debug("Extracted Title: \(preferred.title), Author: \(preferred.author)")
+                logger.debug("Extracted Title: \(parsed.title), Author: \(parsed.author)")
                 logger.debug("Model output: \(response.content)")
-                return preferred
+                return parsed
             }
             logger.debug("Manga metadata extraction output did not match expected format.")
             logger.debug("Model output: \(response.content)")
-            return heuristic ?? fallback
+            return fallback
         } catch {
             logger.debug("Manga metadata extraction failed: \(error.localizedDescription)")
-            return heuristic ?? fallback
+            return fallback
         }
     }
 
@@ -151,30 +149,6 @@ struct MangaFilenameMetadataExtractor {
         let baseName = (trimmedFilename as NSString).deletingPathExtension
         let promptInput = baseName.isEmpty ? trimmedFilename : baseName
         return promptInput.collapsingWhitespace().trimmed
-    }
-
-    func heuristicMetadata(for filename: String, fallbackTitle: String) -> ExtractedMangaMetadata? {
-        var working = normalizedPromptInput(for: filename)
-        guard !working.isEmpty else {
-            return nil
-        }
-
-        working = stripLeadingNonAuthorTags(from: working)
-        working = stripTrailingNonAuthorTags(from: working)
-
-        if let extracted = extractLeadingBracketedAuthor(from: working) {
-            return makeExtractedMetadata(title: extracted.title, author: extracted.author, fallbackTitle: fallbackTitle)
-        }
-
-        if let extracted = extractDashedAuthor(from: working) {
-            return makeExtractedMetadata(title: extracted.title, author: extracted.author, fallbackTitle: fallbackTitle)
-        }
-
-        if let extracted = extractTrailingAuthor(from: working) {
-            return makeExtractedMetadata(title: extracted.title, author: extracted.author, fallbackTitle: fallbackTitle)
-        }
-
-        return nil
     }
 
     private static func makeModel() -> SystemLanguageModel {
@@ -238,266 +212,6 @@ struct MangaFilenameMetadataExtractor {
         )
     }
 
-    private func preferredMetadata(
-        primary: ExtractedMangaMetadata,
-        secondary: ExtractedMangaMetadata?
-    ) -> ExtractedMangaMetadata {
-        guard let secondary else {
-            return primary
-        }
-
-        let primaryScore = metadataScore(primary)
-        let secondaryScore = metadataScore(secondary)
-
-        if secondaryScore > primaryScore {
-            return secondary
-        }
-
-        if secondaryScore == primaryScore, secondaryScore > 0 {
-            let primaryTitleContainsAuthor = title(primary.title, containsAuthor: primary.author)
-            let secondaryTitleContainsAuthor = title(secondary.title, containsAuthor: secondary.author)
-
-            if primaryTitleContainsAuthor != secondaryTitleContainsAuthor {
-                return secondaryTitleContainsAuthor ? primary : secondary
-            }
-
-            if secondary.title.count < primary.title.count {
-                return secondary
-            }
-        }
-
-        return primary
-    }
-
-    private func metadataScore(_ metadata: ExtractedMangaMetadata) -> Int {
-        var score = 0
-        if metadata.titleWasExtracted {
-            score += 1
-        }
-        if metadata.authorWasExtracted {
-            score += 1
-        }
-        return score
-    }
-
-    private func title(_ title: String, containsAuthor author: String) -> Bool {
-        let normalizedAuthor = author.trimmed
-        guard !normalizedAuthor.isEmpty else {
-            return false
-        }
-
-        return title.localizedCaseInsensitiveContains(normalizedAuthor)
-    }
-
-    private func makeExtractedMetadata(
-        title: String,
-        author: String,
-        fallbackTitle: String
-    ) -> ExtractedMangaMetadata? {
-        let cleanedTitle = title.normalizedSeparatorWhitespace().trimmed
-        let cleanedAuthor = author.normalizedSeparatorWhitespace().trimmed
-        let titleWasExtracted = !cleanedTitle.isEmpty && cleanedTitle != fallbackTitle
-        let authorWasExtracted = !cleanedAuthor.isEmpty
-
-        guard titleWasExtracted || authorWasExtracted else {
-            return nil
-        }
-
-        return ExtractedMangaMetadata(
-            title: titleWasExtracted ? cleanedTitle : fallbackTitle,
-            author: cleanedAuthor,
-            titleWasExtracted: titleWasExtracted,
-            authorWasExtracted: authorWasExtracted
-        )
-    }
-
-    private func stripLeadingNonAuthorTags(from value: String) -> String {
-        var result = value.trimmed
-
-        while let segment = leadingBracketedSegment(in: result), !looksLikeAuthor(segment.content) {
-            result = segment.remainder.trimmed
-        }
-
-        return result
-    }
-
-    private func stripTrailingNonAuthorTags(from value: String) -> String {
-        var result = value.trimmed
-
-        while let segment = trailingBracketedSegment(in: result), !looksLikeAuthor(segment.content) {
-            result = segment.remainder.trimmed
-        }
-
-        return result
-    }
-
-    private func extractLeadingBracketedAuthor(from value: String) -> (title: String, author: String)? {
-        guard let segment = leadingBracketedSegment(in: value), looksLikeAuthor(segment.content) else {
-            return nil
-        }
-
-        let title = stripTrailingNonAuthorTags(from: segment.remainder)
-        guard !title.isEmpty else {
-            return nil
-        }
-
-        return (title, segment.content)
-    }
-
-    private func extractDashedAuthor(from value: String) -> (title: String, author: String)? {
-        let separators = [" - ", " – ", " — "]
-
-        for separator in separators {
-            guard let range = value.range(of: separator, options: .backwards) else {
-                continue
-            }
-
-            let title = String(value[..<range.lowerBound]).trimmed
-            let author = String(value[range.upperBound...]).trimmed
-            guard !title.isEmpty, looksLikeAuthor(author) else {
-                continue
-            }
-
-            return (title, author)
-        }
-
-        return nil
-    }
-
-    private func extractTrailingAuthor(from value: String) -> (title: String, author: String)? {
-        guard let separatorIndex = value.lastIndex(where: { $0 == " " || $0 == "_" }) else {
-            return nil
-        }
-
-        let title = String(value[..<separatorIndex]).trimmed
-        let authorStart = value.index(after: separatorIndex)
-        let author = String(value[authorStart...]).trimmed
-        guard !title.isEmpty, !author.isEmpty else {
-            return nil
-        }
-        guard containsVolumeOrChapterMarker(title), looksLikeAuthor(author) else {
-            return nil
-        }
-
-        return (title, author)
-    }
-
-    private func leadingBracketedSegment(in value: String) -> (content: String, remainder: String)? {
-        let pairs: [(open: Character, close: Character)] = [("[", "]"), ("(", ")"), ("（", "）"), ("【", "】")]
-
-        guard let firstCharacter = value.first else {
-            return nil
-        }
-
-        for pair in pairs where firstCharacter == pair.open {
-            guard let closingIndex = value.firstIndex(of: pair.close) else {
-                return nil
-            }
-
-            let contentStart = value.index(after: value.startIndex)
-            let content = String(value[contentStart ..< closingIndex]).trimmed
-            let remainderStart = value.index(after: closingIndex)
-            let remainder = String(value[remainderStart...]).trimmed
-            return (content, remainder)
-        }
-
-        return nil
-    }
-
-    private func trailingBracketedSegment(in value: String) -> (content: String, remainder: String)? {
-        let pairs: [(open: Character, close: Character)] = [("[", "]"), ("(", ")"), ("（", "）"), ("【", "】")]
-
-        guard let lastCharacter = value.last else {
-            return nil
-        }
-
-        for pair in pairs where lastCharacter == pair.close {
-            guard let openingIndex = value.lastIndex(of: pair.open) else {
-                return nil
-            }
-
-            let contentStart = value.index(after: openingIndex)
-            let content = String(value[contentStart ..< value.index(before: value.endIndex)]).trimmed
-            let remainder = String(value[..<openingIndex]).trimmed
-            return (content, remainder)
-        }
-
-        return nil
-    }
-
-    private func looksLikeAuthor(_ value: String) -> Bool {
-        let candidate = value.trimmed
-        guard !candidate.isEmpty else {
-            return false
-        }
-
-        if looksLikeMetadataTag(candidate) {
-            return false
-        }
-
-        let lowercaseCandidate = candidate.lowercased()
-        let disallowedKeywords = [
-            "english", "eng", "japanese", "jpn", "ja", "volume", "vol",
-            "chapter", "ch", "complete", "edition", "archive", "bonus",
-            "sample", "preview", "extra", "extras", "collection", "deluxe",
-        ]
-        if disallowedKeywords.contains(where: { lowercaseCandidate.contains($0) }) {
-            return false
-        }
-
-        if candidate.rangeOfCharacter(from: .decimalDigits) != nil {
-            return false
-        }
-
-        let hasJapanese = candidate.containsJapaneseCharacters
-        let hasLatinLetters = candidate.containsLatinLetters
-
-        if hasJapanese {
-            return candidate.count <= 12
-        }
-
-        if hasLatinLetters {
-            let words = candidate.split(separator: " ").filter { !$0.isEmpty }
-            return words.count >= 2 && words.count <= 4
-        }
-
-        return false
-    }
-
-    private func looksLikeMetadataTag(_ value: String) -> Bool {
-        let candidate = value.trimmed
-        guard !candidate.isEmpty else {
-            return false
-        }
-
-        let lowercaseCandidate = candidate.lowercased()
-        let keywordMatches = [
-            "english", "eng", "japanese", "jpn", "ja", "volume", "vol",
-            "chapter", "ch", "complete", "edition", "archive", "bonus",
-            "sample", "preview", "extra", "extras", "collection", "deluxe", "ver",
-        ]
-        if keywordMatches.contains(where: { lowercaseCandidate.contains($0) }) {
-            return true
-        }
-
-        if candidate.range(of: #"\b\d+\s*p\b"#, options: [.regularExpression, .caseInsensitive]) != nil {
-            return true
-        }
-
-        return false
-    }
-
-    private func containsVolumeOrChapterMarker(_ value: String) -> Bool {
-        let lowercaseValue = value.lowercased()
-        if lowercaseValue.contains("volume") || lowercaseValue.contains("chapter") {
-            return true
-        }
-        if lowercaseValue.contains("vol") || lowercaseValue.contains("ch") {
-            return true
-        }
-        return value.contains("巻") || value.contains("話") || value.contains("第")
-    }
-
     private func labeledValue(from line: String) -> (String, String)? {
         guard let colonIndex = line.firstIndex(of: ":") else {
             return nil
@@ -527,28 +241,5 @@ private extension String {
 
     func normalizedSeparatorWhitespace() -> String {
         replacingOccurrences(of: "_", with: " ").collapsingWhitespace()
-    }
-
-    var containsJapaneseCharacters: Bool {
-        unicodeScalars.contains { scalar in
-            switch scalar.value {
-            case 0x3040 ... 0x30FF, 0x4E00 ... 0x9FFF, 0x3400 ... 0x4DBF, 0xF900 ... 0xFAFF:
-                true
-            default:
-                false
-            }
-        }
-    }
-
-    var containsLatinLetters: Bool {
-        unicodeScalars.contains { scalar in
-            switch scalar.value {
-            case 0x0041 ... 0x005A, 0x0061 ... 0x007A,
-                 0x00C0 ... 0x00D6, 0x00D8 ... 0x00F6, 0x00F8 ... 0x024F:
-                true
-            default:
-                false
-            }
-        }
     }
 }
