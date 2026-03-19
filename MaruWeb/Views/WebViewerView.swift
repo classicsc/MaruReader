@@ -74,6 +74,7 @@ public struct WebViewerView: View {
                         onCancelAddressEditing: cancelAddressEditing,
                         onSubmitAddress: submitAddress,
                         onShowTabSwitcher: showTabSwitcher,
+                        onCollapseToolbar: collapseToolbar,
                         onShowCollapsedControls: showCollapsedControls,
                         onToggleBookmark: toggleBookmark,
                         onNavigateToBookmark: navigateToBookmark,
@@ -180,7 +181,7 @@ public struct WebViewerView: View {
 
     private func handleReadingModeChange(_: Bool, _ isEnabled: Bool) {
         if !isEnabled {
-            viewModel.overlayState = .showingToolbars
+            viewModel.overlayState = viewModel.toolbarCollapsedByUser ? .none : .showingToolbars
             viewModel.ocrViewModel.reset()
             viewModel.showBoundingBoxes = false
         }
@@ -235,9 +236,15 @@ public struct WebViewerView: View {
         isTabSwitcherPresented = true
     }
 
+    private func collapseToolbar() {
+        withAnimation(.easeInOut(duration: 0.25)) {
+            viewModel.collapseToolbar()
+        }
+    }
+
     private func showCollapsedControls() {
         withAnimation(.easeInOut(duration: 0.25)) {
-            viewModel.overlayState = .showingToolbars
+            viewModel.expandToolbar()
         }
     }
 

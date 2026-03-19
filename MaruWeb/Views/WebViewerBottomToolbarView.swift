@@ -33,6 +33,7 @@ struct WebViewerBottomToolbarView: View {
     let onCancelAddressEditing: () -> Void
     let onSubmitAddress: () -> Void
     let onShowTabSwitcher: () -> Void
+    let onCollapseToolbar: () -> Void
     let onShowCollapsedControls: () -> Void
     let onToggleBookmark: () -> Void
     let onNavigateToBookmark: (URL) -> Void
@@ -92,6 +93,7 @@ struct WebViewerBottomToolbarView: View {
                                 onToggleBookmark: onToggleBookmark,
                                 onNavigateToBookmark: onNavigateToBookmark,
                                 onShowTabSwitcher: onShowTabSwitcher,
+                                onCollapseToolbar: onCollapseToolbar,
                                 onDismiss: onDismiss
                             )
                         }

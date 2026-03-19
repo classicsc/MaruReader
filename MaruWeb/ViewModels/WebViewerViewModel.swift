@@ -117,6 +117,7 @@ final class WebViewerViewModel {
     var isBookmarked = false
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
+    var toolbarCollapsedByUser = false
     var editMenuSelection: WebTextSelection?
 
     private var initialURL: URL?
@@ -157,12 +158,23 @@ final class WebViewerViewModel {
     }
 
     func toggleOverlay() {
+        toolbarCollapsedByUser = false
         switch overlayState {
         case .none:
             overlayState = .showingToolbars
         case .showingToolbars:
             overlayState = .none
         }
+    }
+
+    func collapseToolbar() {
+        toolbarCollapsedByUser = true
+        overlayState = .none
+    }
+
+    func expandToolbar() {
+        toolbarCollapsedByUser = false
+        overlayState = .showingToolbars
     }
 
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
@@ -177,6 +189,9 @@ final class WebViewerViewModel {
             }
             return
         }
+
+        // User locked the toolbar collapsed — skip auto show/hide
+        guard !toolbarCollapsedByUser else { return }
 
         let delta = newOffset - oldOffset
         guard abs(delta) >= scrollThreshold else { return }
@@ -213,6 +228,7 @@ final class WebViewerViewModel {
         readingModeEnabled = false
         showBoundingBoxes = false
         highlightedCluster = nil
+        toolbarCollapsedByUser = false
         ocrViewModel.reset()
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)
@@ -240,6 +256,7 @@ final class WebViewerViewModel {
         readingModeEnabled = false
         showBoundingBoxes = false
         highlightedCluster = nil
+        toolbarCollapsedByUser = false
         ocrViewModel.reset()
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)
@@ -392,7 +409,7 @@ final class WebViewerViewModel {
 
     func exitReadingModeAfterLookupSelection() {
         readingModeEnabled = false
-        overlayState = .showingToolbars
+        overlayState = toolbarCollapsedByUser ? .none : .showingToolbars
     }
 
     func handleEditMenuLookup(_ selectedText: String) {

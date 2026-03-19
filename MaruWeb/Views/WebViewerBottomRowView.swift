@@ -32,6 +32,7 @@ struct WebViewerBottomRowView: View {
     let onToggleBookmark: () -> Void
     let onNavigateToBookmark: (URL) -> Void
     let onShowTabSwitcher: () -> Void
+    let onCollapseToolbar: () -> Void
     let onDismiss: () -> Void
 
     var body: some View {
@@ -83,6 +84,16 @@ struct WebViewerBottomRowView: View {
                 glassNamespace: glassNamespace,
                 onDismiss: onDismiss
             )
+
+            Button(action: onCollapseToolbar) {
+                Image(systemName: "chevron.down")
+                    .font(.system(size: floatingButtonIconSize, weight: .semibold))
+            }
+            .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+            .contentShape(.circle)
+            .buttonStyle(.plain)
+            .glassEffect(in: Circle())
+            .accessibilityLabel("Collapse toolbar")
         }
     }
 }
