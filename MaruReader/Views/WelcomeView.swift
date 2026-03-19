@@ -27,53 +27,56 @@ struct WelcomeView: View {
     let onContinue: () -> Void
 
     var body: some View {
-        VStack(spacing: 32) {
-            Spacer()
+        VStack(spacing: 0) {
+            ScrollView(.vertical) {
+                VStack(spacing: 32) {
+                    // App icon and title
+                    VStack(spacing: 16) {
+                        Image("AppIconImage")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 100, height: 100)
+                            .clipShape(RoundedRectangle(cornerRadius: 22))
 
-            // App icon and title
-            VStack(spacing: 16) {
-                Image("AppIconImage")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                        Text("Welcome to MaruReader")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                    }
 
-                Text("Welcome to MaruReader")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                    // Feature list
+                    VStack(alignment: .leading, spacing: 16) {
+                        FeatureRow(
+                            icon: "books.vertical",
+                            title: "Read",
+                            description: "Read books and manga with a fast, customizable dictionary"
+                        )
+                        FeatureRow(
+                            icon: "globe",
+                            title: "Browse",
+                            description: "Browse Japanese websites with dictionary and OCR"
+                        )
+                        FeatureRow(
+                            icon: "doc.text.viewfinder",
+                            title: "Scan",
+                            description: "Scan text from photos for dictionary lookup"
+                        )
+                        FeatureRow(
+                            icon: "character.book.closed.ja",
+                            title: "Dictionary",
+                            description: "Comprehensive dictionary with grammar-aware lookups; Yomitan dictionary support"
+                        )
+                        FeatureRow(
+                            icon: "rectangle.stack",
+                            title: "Anki Integration",
+                            description: "Send flashcards to Anki with AnkiMobile app or Anki-Connect addon"
+                        )
+                    }
+                    .padding(.horizontal, 32)
+                }
+                .padding(.vertical, 32)
+                .frame(maxWidth: .infinity)
             }
-
-            // Feature list
-            VStack(alignment: .leading, spacing: 16) {
-                FeatureRow(
-                    icon: "books.vertical",
-                    title: "Read",
-                    description: "Read books and manga with a fast, customizable dictionary"
-                )
-                FeatureRow(
-                    icon: "globe",
-                    title: "Browse",
-                    description: "Browse Japanese websites with dictionary and OCR"
-                )
-                FeatureRow(
-                    icon: "doc.text.viewfinder",
-                    title: "Scan",
-                    description: "Scan text from photos for dictionary lookup"
-                )
-                FeatureRow(
-                    icon: "character.book.closed.ja",
-                    title: "Dictionary",
-                    description: "Comprehensive dictionary with grammar-aware lookups; Yomitan dictionary support"
-                )
-                FeatureRow(
-                    icon: "rectangle.stack",
-                    title: "Anki Integration",
-                    description: "Send flashcards to Anki with AnkiMobile app or Anki-Connect addon"
-                )
-            }
-            .padding(.horizontal, 32)
-
-            Spacer()
+            .scrollBounceBehavior(.basedOnSize)
 
             VStack(spacing: 16) {
                 Group {
@@ -117,6 +120,7 @@ struct WelcomeView: View {
                 .disabled(!canContinue)
             }
             .padding(.horizontal, 32)
+            .padding(.vertical, 16)
         }
     }
 }
