@@ -62,7 +62,7 @@ struct SettingsView: View {
                         header: Text("Manga"),
                         footer: Text("Uses the on-device language model to infer titles and authors from filenames.")
                     ) {
-                        Toggle("Smart Metadata Extraction", isOn: $smartMetadataExtractionEnabled)
+                        Toggle("Smart Metadata", isOn: $smartMetadataExtractionEnabled)
                     }
                 }
                 Section("Web") {
