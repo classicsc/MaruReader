@@ -32,9 +32,6 @@ struct WebViewerAddressBarCapsuleView: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Image(systemName: "globe")
-                .font(.system(size: iconSize - 2, weight: .semibold))
-
             ZStack(alignment: .leading) {
                 if !isEditingAddress {
                     Button(action: onBeginEditing) {

@@ -20,16 +20,12 @@ import SwiftUI
 struct WebViewerCollapsedAddressCapsuleView: View {
     let displayText: String
     let namespace: Namespace.ID
-    let iconSize: CGFloat
     let maxWidth: CGFloat
     let onTap: () -> Void
 
     var body: some View {
         Button(action: onTap) {
             HStack(spacing: 6) {
-                Image(systemName: "globe")
-                    .font(.system(size: iconSize - 2, weight: .semibold))
-
                 Text(displayText)
                     .lineLimit(1)
                     .truncationMode(.middle)

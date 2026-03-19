@@ -51,7 +51,6 @@ struct WebViewerBottomToolbarView: View {
                     WebViewerCollapsedAddressCapsuleView(
                         displayText: addressDisplayText,
                         namespace: glassNamespace,
-                        iconSize: floatingButtonIconSize,
                         maxWidth: collapsedAddressMaxWidth,
                         onTap: onShowCollapsedControls
                     )
@@ -148,7 +147,7 @@ struct WebViewerBottomToolbarView: View {
                     .glassEffectID("readingMode", in: glassNamespace)
                     .glassEffectTransition(GlassEffectTransition.matchedGeometry)
                     .accessibilityLabel("Enable OCR Mode")
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
                 }
             }
