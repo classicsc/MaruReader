@@ -23,7 +23,28 @@ import Testing
 
 @MainActor
 struct ReaderPreferencesTests {
-    private func makeReaderPreferences(initialFontSize: Double) throws -> (ReaderPreferences, ReaderProfile, NSManagedObjectContext) {
+    private func withAppearancePreferencesIsolation<T>(
+        _ body: () throws -> T
+    ) rethrows -> T {
+        let defaults = UserDefaults.standard
+        let savedValues = ReaderAppearancePreferences.allKeys.reduce(into: [String: Any]()) { partialResult, key in
+            if let value = defaults.object(forKey: key) {
+                partialResult[key] = value
+            }
+        }
+        ReaderAppearancePreferences.allKeys.forEach { defaults.removeObject(forKey: $0) }
+
+        defer {
+            ReaderAppearancePreferences.allKeys.forEach { defaults.removeObject(forKey: $0) }
+            for (key, value) in savedValues {
+                defaults.set(value, forKey: key)
+            }
+        }
+
+        return try body()
+    }
+
+    private func makeReaderPreferences() -> (ReaderPreferences, Book, NSManagedObjectContext) {
         let persistenceController = makeBookPersistenceController()
         let context = persistenceController.container.viewContext
 
@@ -31,103 +52,119 @@ struct ReaderPreferencesTests {
         book.id = UUID()
         book.language = "ja"
 
-        let profile = ReaderProfile(context: context)
-        profile.id = UUID()
-        profile.language = "ja"
-        profile.name = "Test Profile"
-        profile.fontSize = initialFontSize
-
-        book.readerProfile = profile
-        try context.save()
-
-        return (ReaderPreferences(book: book, context: context), profile, context)
+        return (ReaderPreferences(book: book, context: context), book, context)
     }
 
-    @Test func increaseFontSize_UsesEffectiveDefaultWhenNoStoredOverride() throws {
-        let (preferences, profile, _) = try makeReaderPreferences(initialFontSize: 0.0)
+    @Test func increaseFontSize_UsesGlobalDefaultWhenNoStoredOverride() {
+        withAppearancePreferencesIsolation {
+            ReaderAppearancePreferences.fontScale = 0.0
+            let (preferences, _, _) = makeReaderPreferences()
 
-        preferences.increaseFontSize()
+            preferences.increaseFontSize()
 
-        #expect(profile.fontSize == 110.0)
+            #expect(ReaderAppearancePreferences.fontScale == 110.0)
+            #expect(preferences.effectiveFontSize == 110.0)
+        }
     }
 
-    @Test func decreaseFontSize_UsesEffectiveDefaultWhenNoStoredOverride() throws {
-        let (preferences, profile, _) = try makeReaderPreferences(initialFontSize: 0.0)
+    @Test func decreaseFontSize_UsesGlobalDefaultWhenNoStoredOverride() {
+        withAppearancePreferencesIsolation {
+            ReaderAppearancePreferences.fontScale = 0.0
+            let (preferences, _, _) = makeReaderPreferences()
 
-        preferences.decreaseFontSize()
+            preferences.decreaseFontSize()
 
-        #expect(profile.fontSize == 90.0)
+            #expect(ReaderAppearancePreferences.fontScale == 90.0)
+            #expect(preferences.effectiveFontSize == 90.0)
+        }
     }
 
-    @Test func fontFamilyOption_DefaultsToMinchoAndCanToggleGothic() throws {
-        let (preferences, profile, _) = try makeReaderPreferences(initialFontSize: 100.0)
+    @Test func fontSizeAdjustmentsClampToSupportedBounds() {
+        withAppearancePreferencesIsolation {
+            ReaderAppearancePreferences.fontScale = 200.0
+            let (preferences, _, _) = makeReaderPreferences()
 
-        #expect(preferences.selectedFontFamilyOption == .mincho)
+            preferences.increaseFontSize()
+            #expect(ReaderAppearancePreferences.fontScale == 200.0)
 
-        preferences.setFontFamilyOption(.gothic)
-        #expect(preferences.selectedFontFamilyOption == .gothic)
-        #expect(profile.fontFamily?.contains("Hiragino Kaku") == true)
-
-        preferences.setFontFamilyOption(.mincho)
-        #expect(preferences.selectedFontFamilyOption == .mincho)
-        #expect(profile.fontFamily?.contains("Hiragino Mincho") == true)
+            ReaderAppearancePreferences.fontScale = 50.0
+            preferences.decreaseFontSize()
+            #expect(ReaderAppearancePreferences.fontScale == 50.0)
+        }
     }
 
-    @Test func appearanceMode_DefaultsAndExplicitModesUpdateProfileThemes() throws {
-        let (preferences, profile, context) = try makeReaderPreferences(initialFontSize: 100.0)
+    @Test func fontFamilyOption_DefaultsToMinchoAndCanToggleGothic() {
+        withAppearancePreferencesIsolation {
+            let (preferences, _, _) = makeReaderPreferences()
 
-        let themeManager = SystemThemeManager(context: context)
-        themeManager.ensureSystemThemesExist()
+            #expect(preferences.selectedFontFamilyOption == .mincho)
+            #expect(preferences.buildEPUBPreferences().fontFamily == nil)
 
-        preferences.setAppearanceMode(.followSystem)
-        #expect(preferences.selectedAppearanceMode == .followSystem)
-        #expect(themeManager.kind(for: profile.theme) == .light)
-        #expect(themeManager.kind(for: profile.darkTheme) == .dark)
+            preferences.setFontFamilyOption(.gothic)
+            #expect(preferences.selectedFontFamilyOption == .gothic)
+            #expect(ReaderAppearancePreferences.fontFamilyOption == .gothic)
 
-        preferences.setAppearanceMode(.sepia)
-        #expect(preferences.selectedAppearanceMode == .sepia)
-        #expect(themeManager.kind(for: profile.theme) == .sepia)
-        #expect(profile.darkTheme == nil)
+            let gothicPreferences = preferences.buildEPUBPreferences()
+            #expect(gothicPreferences.fontFamily?.rawValue == ReaderFontFamilyOption.gothic.fontFamilyStack)
 
-        preferences.setAppearanceMode(.dark)
-        #expect(preferences.selectedAppearanceMode == .dark)
-        #expect(themeManager.kind(for: profile.theme) == .dark)
-        #expect(profile.darkTheme == nil)
+            preferences.setFontFamilyOption(.mincho)
+            #expect(preferences.selectedFontFamilyOption == .mincho)
+
+            let minchoPreferences = preferences.buildEPUBPreferences()
+            #expect(minchoPreferences.fontFamily?.rawValue == ReaderFontFamilyOption.mincho.fontFamilyStack)
+        }
     }
 
-    @Test func buildEPUBPreferences_UsesSelectedAppearanceModeAndSystemColorScheme() throws {
-        let (preferences, _, context) = try makeReaderPreferences(initialFontSize: 100.0)
+    @Test func appearanceMode_UsesStoredSelection() {
+        withAppearancePreferencesIsolation {
+            let (preferences, _, _) = makeReaderPreferences()
 
-        _ = SystemThemeManager(context: context)
+            #expect(preferences.selectedAppearanceMode == .followSystem)
 
-        preferences.setAppearanceMode(.sepia)
-        var epubPreferences = preferences.buildEPUBPreferences()
-        #expect(epubPreferences.theme == .sepia)
+            preferences.setAppearanceMode(.sepia)
+            #expect(preferences.selectedAppearanceMode == .sepia)
+            #expect(ReaderAppearancePreferences.appearanceMode == .sepia)
 
-        preferences.setAppearanceMode(.followSystem)
-        preferences.systemColorScheme = .dark
-        epubPreferences = preferences.buildEPUBPreferences()
-        #expect(epubPreferences.theme == .dark)
-
-        preferences.systemColorScheme = .light
-        epubPreferences = preferences.buildEPUBPreferences()
-        #expect(epubPreferences.theme == .light)
+            preferences.setAppearanceMode(.dark)
+            #expect(preferences.selectedAppearanceMode == .dark)
+            #expect(ReaderAppearancePreferences.appearanceMode == .dark)
+        }
     }
 
-    @Test func systemThemeManager_SeedsLightDarkAndSepiaThemes() throws {
-        let persistenceController = makeBookPersistenceController()
-        let context = persistenceController.container.viewContext
-        let themeManager = SystemThemeManager(context: context)
+    @Test func buildEPUBPreferences_UsesSelectedAppearanceModeAndSystemColorScheme() {
+        withAppearancePreferencesIsolation {
+            let (preferences, _, _) = makeReaderPreferences()
 
-        themeManager.ensureSystemThemesExist()
+            preferences.setAppearanceMode(.sepia)
+            var epubPreferences = preferences.buildEPUBPreferences()
+            #expect(epubPreferences.theme == .sepia)
 
-        let request = ReaderTheme.fetchRequest()
-        request.predicate = NSPredicate(format: "isSystemTheme == YES")
-        let themes = try context.fetch(request)
+            preferences.setAppearanceMode(.followSystem)
+            preferences.systemColorScheme = .dark
+            epubPreferences = preferences.buildEPUBPreferences()
+            #expect(epubPreferences.theme == .dark)
 
-        #expect(themes.count == 3)
-        #expect(themeManager.fetchSystemTheme(.light) != nil)
-        #expect(themeManager.fetchSystemTheme(.dark) != nil)
-        #expect(themeManager.fetchSystemTheme(.sepia) != nil)
+            preferences.systemColorScheme = .light
+            epubPreferences = preferences.buildEPUBPreferences()
+            #expect(epubPreferences.theme == .light)
+        }
+    }
+
+    @Test func resolvedThemeColorsMatchExpectedPalette() {
+        withAppearancePreferencesIsolation {
+            let (preferences, _, _) = makeReaderPreferences()
+
+            preferences.setAppearanceMode(.light)
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentPageBackgroundColor)?.cssHex == "#FFFFFF")
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentInterfaceForegroundColor)?.cssHex == "#000000")
+
+            preferences.setAppearanceMode(.dark)
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentPageBackgroundColor)?.cssHex == "#000000")
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentInterfaceForegroundColor)?.cssHex == "#FFFFFF")
+
+            preferences.setAppearanceMode(.sepia)
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentPageBackgroundColor)?.cssHex == "#F9F4E9")
+            #expect(ReadiumNavigator.Color(swiftUIColor: preferences.currentInterfaceBackgroundColor)?.cssHex == "#F5EDD6")
+        }
     }
 }

@@ -32,7 +32,6 @@
         <attribute name="title" optional="YES" attributeType="String"/>
         <attribute name="verticalText" optional="YES" attributeType="Boolean" usesScalarValueType="YES"/>
         <relationship name="bookmarks" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="Bookmark" inverseName="book" inverseEntity="Bookmark"/>
-        <relationship name="readerProfile" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="books" inverseEntity="ReaderProfile"/>
         <fetchIndex name="byTitle">
             <fetchIndexElement property="title" type="Binary" order="ascending"/>
         </fetchIndex>
@@ -43,38 +42,5 @@
         <attribute name="location" attributeType="String"/>
         <attribute name="title" optional="YES" attributeType="String"/>
         <relationship name="book" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Book" inverseName="bookmarks" inverseEntity="Book"/>
-    </entity>
-    <entity name="ReaderProfile" representedClassName="ReaderProfile" syncable="YES" codeGenerationType="class">
-        <attribute name="displayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="fontFamily" optional="YES" attributeType="String"/>
-        <attribute name="fontSize" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="fontWeight" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="horizontalMargin" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <attribute name="iconCharacter" optional="YES" attributeType="String"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="isDefault" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="language" optional="YES" attributeType="String"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="verticalMargin" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <relationship name="books" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Book" inverseName="readerProfile" inverseEntity="Book"/>
-        <relationship name="darkTheme" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderTheme" inverseName="profilesDark" inverseEntity="ReaderTheme"/>
-        <relationship name="theme" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderTheme" inverseName="profiles" inverseEntity="ReaderTheme"/>
-    </entity>
-    <entity name="ReaderTheme" representedClassName="ReaderTheme" syncable="YES" codeGenerationType="class">
-        <attribute name="backgroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="displayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="highlightColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="iconColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="iconTextColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="imageFilter" optional="YES" attributeType="Transformable" valueTransformerName="ImageFilterTransformer"/>
-        <attribute name="interfaceBackgroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="interfaceForegroundColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="interfaceSecondaryColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <attribute name="isSystemTheme" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="textColor" optional="YES" attributeType="Transformable" valueTransformerName="ReadiumColorTransformer"/>
-        <relationship name="profiles" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="theme" inverseEntity="ReaderProfile"/>
-        <relationship name="profilesDark" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="ReaderProfile" inverseName="darkTheme" inverseEntity="ReaderProfile"/>
     </entity>
 </model>

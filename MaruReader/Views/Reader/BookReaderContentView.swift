@@ -232,9 +232,9 @@ struct BookReaderContentView: View {
     }
 
     private var readerDictionaryPresentationTheme: DictionaryPresentationTheme {
-        let interfaceBackground = viewModel.readerPreferences.currentInterfaceBackgroundColor ?? viewModel.readerPreferences.currentPageBackgroundColor
-        let interfaceForeground = viewModel.readerPreferences.currentInterfaceForegroundColor ?? .primary
-        let secondary = viewModel.readerPreferences.currentInterfaceSecondaryColor ?? interfaceForeground.opacity(0.6)
+        let interfaceBackground = viewModel.readerPreferences.currentInterfaceBackgroundColor
+        let interfaceForeground = viewModel.readerPreferences.currentInterfaceForegroundColor
+        let secondary = viewModel.readerPreferences.currentInterfaceSecondaryColor
         let separator = secondary.opacity(0.35)
 
         let preferredColorScheme: ColorScheme? = switch viewModel.readerPreferences.selectedAppearanceMode {
@@ -306,14 +306,12 @@ struct BookReaderContentView: View {
     }
 
     func toolbarForegroundColor(isPrimary: Bool) -> SwiftUI.Color {
-        if let color = viewModel.readerPreferences.currentInterfaceForegroundColor {
-            return isPrimary ? color : color.opacity(0.6)
-        }
-        return isPrimary ? .primary : .secondary
+        let color = viewModel.readerPreferences.currentInterfaceForegroundColor
+        return isPrimary ? color : color.opacity(0.6)
     }
 
     private var toolbarSecondaryColor: SwiftUI.Color {
-        viewModel.readerPreferences.currentInterfaceSecondaryColor ?? .secondary
+        viewModel.readerPreferences.currentInterfaceSecondaryColor
     }
 
     // MARK: - Progress Display
