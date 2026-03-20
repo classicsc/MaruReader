@@ -169,12 +169,6 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="transcriptions" attributeType="String" valueTransformerName="IPATranscriptionArrayTransformer"/>
-        <fetchIndex name="byExpression">
-            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
-        </fetchIndex>
-        <fetchIndex name="byReading">
-            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-        </fetchIndex>
     </entity>
     <entity name="KanjiEntry" representedClassName="KanjiEntry" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String"/>
@@ -185,10 +179,6 @@
         <attribute name="onyomi" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <attribute name="stats" attributeType="String" valueTransformerName="StringDictionaryTransformer"/>
         <attribute name="tags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
-        <fetchIndex name="byCharacter">
-            <fetchIndexElement property="character" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
-        </fetchIndex>
     </entity>
     <entity name="KanjiFrequencyEntry" representedClassName="KanjiFrequencyEntry" syncable="YES" codeGenerationType="class">
         <attribute name="character" attributeType="String"/>
@@ -196,10 +186,6 @@
         <attribute name="displayFrequency" optional="YES" attributeType="String"/>
         <attribute name="frequencyValue" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <fetchIndex name="byCharacter">
-            <fetchIndexElement property="character" type="Binary" order="ascending"/>
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
-        </fetchIndex>
     </entity>
     <entity name="PitchAccentEntry" representedClassName="PitchAccentEntry" syncable="YES" codeGenerationType="class">
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
@@ -207,12 +193,6 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="pitches" attributeType="String" valueTransformerName="PitchAccentArrayTransformer"/>
         <attribute name="reading" attributeType="String"/>
-        <fetchIndex name="byExpression">
-            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
-        </fetchIndex>
-        <fetchIndex name="byReading">
-            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-        </fetchIndex>
         <fetchIndex name="expressionReadingDict">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
@@ -230,12 +210,6 @@
         <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="sequence" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="termTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
-        <fetchIndex name="byExpression">
-            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
-        </fetchIndex>
-        <fetchIndex name="byReading">
-            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-        </fetchIndex>
         <fetchIndex name="byExpressionDict">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
             <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
@@ -252,12 +226,6 @@
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="value" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
-        <fetchIndex name="byExpression">
-            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
-        </fetchIndex>
-        <fetchIndex name="byReading">
-            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
-        </fetchIndex>
         <fetchIndex name="expressionReadingDict">
             <fetchIndexElement property="expression" type="Binary" order="ascending"/>
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
