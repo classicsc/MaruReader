@@ -352,6 +352,7 @@ actor AudioLookupService {
                 request.term,
                 sourceID as CVarArg
             )
+            headwordRequest.fetchLimit = 1
 
             guard let headwords = try context.fetch(headwordRequest) as? [NSManagedObject],
                   let headword = headwords.first,
