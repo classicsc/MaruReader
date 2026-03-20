@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25C56" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25D2128" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
     <entity name="AudioFile" representedClassName="AudioFile" syncable="YES" codeGenerationType="class">
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="kanaReading" attributeType="String"/>
@@ -8,12 +8,25 @@
         <attribute name="pitchNumber" attributeType="String"/>
         <attribute name="pitchPattern" optional="YES" attributeType="String"/>
         <attribute name="sourceID" attributeType="UUID" usesScalarValueType="NO"/>
+        <fetchIndex name="sourceName">
+            <fetchIndexElement property="sourceID" type="Binary" order="ascending"/>
+            <fetchIndexElement property="name" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="sourceReadingName">
+            <fetchIndexElement property="sourceID" type="Binary" order="ascending"/>
+            <fetchIndexElement property="normalizedReading" type="Binary" order="ascending"/>
+            <fetchIndexElement property="name" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="AudioHeadword" representedClassName="AudioHeadword" syncable="YES" codeGenerationType="class">
         <attribute name="expression" attributeType="String"/>
         <attribute name="files" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="sourceID" attributeType="UUID" usesScalarValueType="NO"/>
+        <fetchIndex name="expressionSource">
+            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+            <fetchIndexElement property="sourceID" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="AudioSource" representedClassName="AudioSource" syncable="YES" codeGenerationType="class">
         <attribute name="audioFileExtensions" attributeType="String"/>
@@ -24,8 +37,8 @@
         <attribute name="entriesProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="file" optional="YES" attributeType="URI"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="indexProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="indexedByHeadword" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="indexProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isComplete" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -57,7 +70,6 @@
         <attribute name="format" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="frequencyMode" optional="YES" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="updateTaskID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="indexProcessed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="indexURL" optional="YES" attributeType="String"/>
         <attribute name="ipaCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -68,7 +80,6 @@
         <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
-        <attribute name="updateReady" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="kanjiCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiDisplayPriority" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="kanjiFrequencyCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
@@ -98,6 +109,8 @@
         <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="title" attributeType="String"/>
+        <attribute name="updateReady" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="updateTaskID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="url" optional="YES" attributeType="String"/>
         <fetchIndex name="byTermResultsEnabled">
             <fetchIndexElement property="termResultsEnabled" type="Binary" order="ascending"/>
@@ -118,13 +131,25 @@
             <fetchIndexElement property="ipaEnabled" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
+    <entity name="DictionaryTagMeta" representedClassName="DictionaryTagMeta" syncable="YES" codeGenerationType="class">
+        <attribute name="category" attributeType="String"/>
+        <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="notes" attributeType="String"/>
+        <attribute name="order" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
+        <fetchIndex name="byDictionaryID">
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="DictionaryUpdateTask" representedClassName="DictionaryUpdateTask" syncable="YES" codeGenerationType="class">
         <attribute name="bytesReceived" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="dictionaryTitle" attributeType="String"/>
         <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
-        <attribute name="downloadURL" attributeType="String"/>
         <attribute name="downloadedFile" optional="YES" attributeType="URI"/>
+        <attribute name="downloadURL" attributeType="String"/>
         <attribute name="errorMessage" optional="YES" attributeType="String"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
@@ -137,18 +162,6 @@
         <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="totalBytes" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
-    </entity>
-    <entity name="DictionaryTagMeta" representedClassName="DictionaryTagMeta" syncable="YES" codeGenerationType="class">
-        <attribute name="category" attributeType="String"/>
-        <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
-        <attribute name="name" attributeType="String"/>
-        <attribute name="notes" attributeType="String"/>
-        <attribute name="order" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
-        <attribute name="score" attributeType="Double" defaultValueString="0" usesScalarValueType="YES"/>
-        <fetchIndex name="byDictionaryID">
-            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
-        </fetchIndex>
     </entity>
     <entity name="IPAEntry" representedClassName="IPAEntry" syncable="YES" codeGenerationType="class">
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
@@ -200,12 +213,17 @@
         <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
         </fetchIndex>
+        <fetchIndex name="expressionReadingDict">
+            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
+        </fetchIndex>
     </entity>
     <entity name="TermEntry" representedClassName="TermEntry" syncable="YES" codeGenerationType="class">
         <attribute name="definitionTags" attributeType="String" valueTransformerName="StringArrayTransformer"/>
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="expression" attributeType="String"/>
-        <attribute name="glossary" attributeType="Binary" allowsExternalBinaryDataStorage="NO"/>
+        <attribute name="glossary" attributeType="Binary"/>
         <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="reading" attributeType="String"/>
         <attribute name="rules" attributeType="String" valueTransformerName="StringArrayTransformer"/>
@@ -217,6 +235,14 @@
         </fetchIndex>
         <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byExpressionDict">
+            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byReadingDict">
+            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
     <entity name="TermFrequencyEntry" representedClassName="TermFrequencyEntry" syncable="YES" codeGenerationType="class">
@@ -231,6 +257,11 @@
         </fetchIndex>
         <fetchIndex name="byReading">
             <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="expressionReadingDict">
+            <fetchIndexElement property="expression" type="Binary" order="ascending"/>
+            <fetchIndexElement property="reading" type="Binary" order="ascending"/>
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
         </fetchIndex>
     </entity>
 </model>
