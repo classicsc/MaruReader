@@ -22,6 +22,7 @@ import os
 /// Fetches terms from Core Data using batch queries and converts them to SearchResult structs
 enum TermFetcher {
     private static let logger = Logger.maru(category: "TermFetcher")
+    private static let exactPairFetchBatchSize = 200
 
     // MARK: - Public Methods
 
@@ -63,20 +64,17 @@ enum TermFetcher {
         logger.debug("Found \(termEntries.count) term entries")
 
         // Build lookup maps for related data
-        let expressions = Set(termEntries.compactMap(\.expression))
-        let readings = Set(termEntries.compactMap(\.reading))
+        let termReadingKeys = Set(termEntries.map { Self.termReadingKey(expression: $0.expression, reading: $0.reading) })
 
         async let frequencyMap = try fetchFrequencyMap(
-            expressions: expressions,
-            readings: readings,
+            termReadingKeys: termReadingKeys,
             dictionaryMetadata: dictionaryMetadata,
             context: context,
             logger: logger
         )
 
         async let pitchAccentMap = try fetchPitchAccentMap(
-            expressions: expressions,
-            readings: readings,
+            termReadingKeys: termReadingKeys,
             enabledDictionaryIDs: enabledDictionaryIDs,
             dictionaryMetadata: dictionaryMetadata,
             context: context,
@@ -153,15 +151,15 @@ enum TermFetcher {
                         }
 
                         // Get frequencies for this term
-                        let frequencyKey = "\(expression)|\(reading)"
-                        let frequencies = frequencyMapValue[frequencyKey] ?? []
+                        let key = Self.termReadingKey(expression: expression, reading: reading)
+                        let frequencies = frequencyMapValue[key] ?? []
                         let rankingFrequency = rankingFrequency(
                             from: frequencies,
                             dictionaryMetadata: dictionaryMetadata
                         )
 
                         // Get pitch accents for this term
-                        let pitchAccents = pitchAccentMapValue[frequencyKey] ?? []
+                        let pitchAccents = pitchAccentMapValue[key] ?? []
 
                         // Build term tags
                         let termTagNames = decodeStringArray(from: entry.termTags) ?? []
@@ -260,6 +258,11 @@ enum TermFetcher {
         let score: Double
     }
 
+    private struct TermReadingKey: Hashable {
+        let expression: String
+        let reading: String
+    }
+
     // MARK: - Helper Methods
 
     /// Fetch TermEntry entities matching the candidate texts
@@ -310,64 +313,57 @@ enum TermFetcher {
 
     /// Fetch frequency data and build a lookup map
     private static func fetchFrequencyMap(
-        expressions: Set<String>,
-        readings: Set<String>,
+        termReadingKeys: Set<TermReadingKey>,
         dictionaryMetadata: [UUID: DictionaryMetadata],
         context: NSManagedObjectContext,
         logger: Logger
-    ) async throws -> [String: [FrequencyInfo]] {
+    ) async throws -> [TermReadingKey: [FrequencyInfo]] {
         let frequencyDictionaryIDs = Array(dictionaryMetadata.keys)
 
-        guard !frequencyDictionaryIDs.isEmpty else {
+        guard !frequencyDictionaryIDs.isEmpty, !termReadingKeys.isEmpty else {
             return [:]
         }
 
         return try await context.perform {
             let fetchRequest: NSFetchRequest<TermFrequencyEntry> = TermFrequencyEntry.fetchRequest()
-            fetchRequest.predicate = NSPredicate(
-                format: "expression IN %@ AND reading IN %@ AND dictionaryID IN %@",
-                Array(expressions),
-                Array(readings),
-                frequencyDictionaryIDs
-            )
-
-            let frequencyEntries = try context.fetch(fetchRequest)
+            var frequencyEntries: [TermFrequencyEntry] = []
+            for batch in Self.chunked(Array(termReadingKeys), size: Self.exactPairFetchBatchSize) {
+                fetchRequest.predicate = Self.exactPairPredicate(
+                    termReadingKeys: batch,
+                    dictionaryIDs: frequencyDictionaryIDs
+                )
+                try frequencyEntries.append(contentsOf: context.fetch(fetchRequest))
+            }
             logger.debug("Found \(frequencyEntries.count) frequency entries")
 
-            // Build map: "expression|reading" -> [FrequencyInfo] sorted by priority asc
-            var frequencyMap: [String: [FrequencyInfo]] = [:]
+            // Build map: expression+reading -> [FrequencyInfo] sorted by priority asc
+            var frequencyMap: [TermReadingKey: [FrequencyInfo]] = [:]
 
-            // Group by expression+reading
-            let grouped = Swift.Dictionary(grouping: frequencyEntries, by: { entry in
-                guard let expression = entry.expression, let reading = entry.reading else {
-                    return ""
+            for entry in frequencyEntries {
+                guard let expression = entry.expression,
+                      let reading = entry.reading,
+                      let dictionaryID = entry.dictionaryID,
+                      let dictMetadata = dictionaryMetadata[dictionaryID]
+                else {
+                    continue
                 }
-                return "\(expression)|\(reading)"
-            })
 
-            for (key, entries) in grouped {
-                var freqInfos: [FrequencyInfo] = []
-                for entry in entries {
-                    guard let dictionaryID = entry.dictionaryID,
-                          let dictMetadata = dictionaryMetadata[dictionaryID]
-                    else {
-                        continue
-                    }
-                    let value = entry.value
-                    let displayValue = entry.displayValue?.isEmpty == false ? entry.displayValue : nil
-                    let info = FrequencyInfo(
-                        dictionaryID: dictionaryID,
-                        dictionaryTitle: dictMetadata.title,
-                        value: value,
-                        displayValue: displayValue,
-                        mode: dictMetadata.frequencyMode,
-                        priority: dictMetadata.termFrequencyDisplayPriority
-                    )
-                    freqInfos.append(info)
-                }
-                // Sort by priority ascending (lower number = higher priority)
-                freqInfos.sort { $0.priority < $1.priority }
-                frequencyMap[key] = freqInfos
+                let key = Self.termReadingKey(expression: expression, reading: reading)
+                let value = entry.value
+                let displayValue = entry.displayValue?.isEmpty == false ? entry.displayValue : nil
+                let info = FrequencyInfo(
+                    dictionaryID: dictionaryID,
+                    dictionaryTitle: dictMetadata.title,
+                    value: value,
+                    displayValue: displayValue,
+                    mode: dictMetadata.frequencyMode,
+                    priority: dictMetadata.termFrequencyDisplayPriority
+                )
+                frequencyMap[key, default: []].append(info)
+            }
+
+            for key in frequencyMap.keys {
+                frequencyMap[key]?.sort { $0.priority < $1.priority }
             }
 
             return frequencyMap
@@ -376,66 +372,59 @@ enum TermFetcher {
 
     /// Fetch pitch accent data and build a lookup map
     private static func fetchPitchAccentMap(
-        expressions: Set<String>,
-        readings: Set<String>,
+        termReadingKeys: Set<TermReadingKey>,
         enabledDictionaryIDs _: [UUID],
         dictionaryMetadata: [UUID: DictionaryMetadata],
         context: NSManagedObjectContext,
         logger: Logger
-    ) async throws -> [String: [PitchAccentResults]] {
+    ) async throws -> [TermReadingKey: [PitchAccentResults]] {
         // Filter to only pitch-accent-enabled dictionaries
         let pitchEnabledIDs = dictionaryMetadata
             .filter(\.value.pitchAccentEnabled)
             .map(\.key)
 
-        guard !pitchEnabledIDs.isEmpty else {
+        guard !pitchEnabledIDs.isEmpty, !termReadingKeys.isEmpty else {
             return [:]
         }
 
         return try await context.perform {
             let fetchRequest: NSFetchRequest<PitchAccentEntry> = PitchAccentEntry.fetchRequest()
-            fetchRequest.predicate = NSPredicate(
-                format: "expression IN %@ AND reading IN %@ AND dictionaryID IN %@",
-                Array(expressions),
-                Array(readings),
-                pitchEnabledIDs
-            )
-
-            let pitchEntries = try context.fetch(fetchRequest)
+            var pitchEntries: [PitchAccentEntry] = []
+            for batch in Self.chunked(Array(termReadingKeys), size: Self.exactPairFetchBatchSize) {
+                fetchRequest.predicate = Self.exactPairPredicate(
+                    termReadingKeys: batch,
+                    dictionaryIDs: pitchEnabledIDs
+                )
+                try pitchEntries.append(contentsOf: context.fetch(fetchRequest))
+            }
             logger.debug("Found \(pitchEntries.count) pitch accent entries")
 
-            // Build map: "expression|reading" -> [PitchAccentResults] sorted by priority asc
-            var pitchAccentMap: [String: [PitchAccentResults]] = [:]
+            // Build map: expression+reading -> [PitchAccentResults] sorted by priority asc
+            var pitchAccentMap: [TermReadingKey: [PitchAccentResults]] = [:]
 
-            // Group by expression+reading
-            let grouped = Swift.Dictionary(grouping: pitchEntries, by: { entry in
-                guard let expression = entry.expression, let reading = entry.reading else {
-                    return ""
+            for entry in pitchEntries {
+                guard let expression = entry.expression,
+                      let reading = entry.reading,
+                      let dictionaryID = entry.dictionaryID,
+                      let dictMetadata = dictionaryMetadata[dictionaryID],
+                      dictMetadata.pitchAccentEnabled,
+                      let pitches = decodePitchAccents(from: entry.pitches)
+                else {
+                    continue
                 }
-                return "\(expression)|\(reading)"
-            })
 
-            for (key, entries) in grouped {
-                var pitchResults: [PitchAccentResults] = []
-                for entry in entries {
-                    guard let dictionaryID = entry.dictionaryID,
-                          let dictMetadata = dictionaryMetadata[dictionaryID],
-                          dictMetadata.pitchAccentEnabled,
-                          let pitches = decodePitchAccents(from: entry.pitches)
-                    else {
-                        continue
-                    }
-                    let result = PitchAccentResults(
-                        dictionaryTitle: dictMetadata.title,
-                        dictionaryID: dictionaryID,
-                        priority: dictMetadata.pitchDisplayPriority,
-                        pitches: pitches
-                    )
-                    pitchResults.append(result)
-                }
-                // Sort by priority ascending (lower number = higher priority)
-                pitchResults.sort { $0.priority < $1.priority }
-                pitchAccentMap[key] = pitchResults
+                let key = Self.termReadingKey(expression: expression, reading: reading)
+                let result = PitchAccentResults(
+                    dictionaryTitle: dictMetadata.title,
+                    dictionaryID: dictionaryID,
+                    priority: dictMetadata.pitchDisplayPriority,
+                    pitches: pitches
+                )
+                pitchAccentMap[key, default: []].append(result)
+            }
+
+            for key in pitchAccentMap.keys {
+                pitchAccentMap[key]?.sort { $0.priority < $1.priority }
             }
 
             return pitchAccentMap
@@ -511,5 +500,44 @@ enum TermFetcher {
         }
 
         return try? JSONDecoder().decode([PitchAccent].self, from: data)
+    }
+
+    private static func termReadingKey(expression: String, reading: String) -> TermReadingKey {
+        TermReadingKey(expression: expression, reading: reading)
+    }
+
+    private static func exactPairPredicate(
+        termReadingKeys: [TermReadingKey],
+        dictionaryIDs: [UUID]
+    ) -> NSPredicate {
+        let pairPredicates = termReadingKeys.map { key in
+            NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "expression == %@", key.expression),
+                NSPredicate(format: "reading == %@", key.reading),
+            ])
+        }
+
+        return NSCompoundPredicate(andPredicateWithSubpredicates: [
+            NSPredicate(format: "dictionaryID IN %@", dictionaryIDs),
+            NSCompoundPredicate(orPredicateWithSubpredicates: pairPredicates),
+        ])
+    }
+
+    private static func chunked<T>(_ items: [T], size: Int) -> [[T]] {
+        guard size > 0, !items.isEmpty else {
+            return []
+        }
+
+        var chunks: [[T]] = []
+        chunks.reserveCapacity((items.count + size - 1) / size)
+
+        var startIndex = 0
+        while startIndex < items.count {
+            let endIndex = min(startIndex + size, items.count)
+            chunks.append(Array(items[startIndex ..< endIndex]))
+            startIndex = endIndex
+        }
+
+        return chunks
     }
 }
