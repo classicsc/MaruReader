@@ -19,53 +19,51 @@ import MaruAnki
 import SwiftUI
 
 struct AnkiConfigurationSectionView: View {
-    let settings: MaruAnkiSettings
-    let duplicateScopeDisplayName: String
+    let snapshot: AnkiSettingsSnapshot
     @Binding var allowDuplicates: Bool
     let isSavingDuplicateOptions: Bool
 
     var body: some View {
         Section("Current Configuration") {
-            if settings.isAnkiConnect {
+            switch snapshot.connection {
+            case let .ankiConnect(server):
                 LabeledContent("Connection", value: "Anki-Connect")
-                if let config = settings.connectConfiguration,
-                   let host = config["hostname"] as? String,
-                   let port = config["port"] as? Int
-                {
-                    LabeledContent("Server", value: "\(host):\(port)")
+                if let server {
+                    LabeledContent("Server", value: server)
                 }
-            } else {
+            case .ankiMobile:
                 LabeledContent("Connection", value: "AnkiMobile")
             }
 
-            if let profile = settings.defaultProfileName, !profile.isEmpty {
+            if let profile = snapshot.profileName {
                 LabeledContent("Profile", value: profile)
             }
 
-            if let deck = settings.defaultDeckName, !deck.isEmpty {
+            if let deck = snapshot.deckName {
                 LabeledContent("Deck", value: deck)
             }
 
-            if let model = settings.defaultModelName, !model.isEmpty {
+            if let model = snapshot.modelName {
                 LabeledContent("Note Type", value: model)
             }
 
-            if let fieldMapping = settings.modelConfiguration?.displayName, !fieldMapping.isEmpty {
+            if let fieldMapping = snapshot.fieldMappingName {
                 LabeledContent("Field Mapping", value: fieldMapping)
             }
         }
 
         Section("Duplicate Detection") {
-            if settings.isAnkiConnect {
+            switch snapshot.connection {
+            case .ankiConnect:
                 NavigationLink {
                     DuplicateSettingsEditorView(
                         decks: [],
-                        selectedDeckName: settings.defaultDeckName
+                        selectedDeckName: snapshot.deckName
                     )
                 } label: {
-                    LabeledContent("Scope", value: duplicateScopeDisplayName)
+                    LabeledContent("Scope", value: snapshot.duplicateScopeDisplayName)
                 }
-            } else {
+            case .ankiMobile:
                 Toggle("Allow Duplicate Notes", isOn: $allowDuplicates)
                     .disabled(isSavingDuplicateOptions)
             }
