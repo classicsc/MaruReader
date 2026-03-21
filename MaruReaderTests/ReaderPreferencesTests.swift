@@ -52,7 +52,15 @@ struct ReaderPreferencesTests {
         book.id = UUID()
         book.language = "ja"
 
-        return (ReaderPreferences(book: book, context: context), book, context)
+        return (
+            ReaderPreferences(
+                bookID: book.objectID,
+                persistenceController: persistenceController,
+                context: context
+            ),
+            book,
+            context
+        )
     }
 
     @Test func increaseFontSize_UsesGlobalDefaultWhenNoStoredOverride() {

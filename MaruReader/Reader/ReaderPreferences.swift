@@ -26,12 +26,13 @@ import SwiftUI
 @MainActor
 @Observable
 final class ReaderPreferences {
-    private(set) var book: Book
+    private let bookID: NSManagedObjectID
     private let context: NSManagedObjectContext
     private let logger = Logger.maru(category: "ReaderPreferences")
     private var saveContextDebounceTask: Task<Void, Never>?
     private var appearanceUpdateTrigger = 0
 
+    @ObservationIgnored
     weak var navigator: EPUBNavigatorViewController?
     var systemColorScheme: ColorScheme = .light
 
@@ -44,42 +45,38 @@ final class ReaderPreferences {
     /// Book-specific preferences
     var scroll: Bool {
         get {
-            book.value(forKey: "scroll") as? Bool ?? false
+            bookValue(forKey: "scroll") as? Bool ?? false
         }
         set {
-            book.setValue(newValue, forKey: "scroll")
-            saveContext()
+            updateBookValue(newValue, forKey: "scroll")
             submitToNavigator()
         }
     }
 
     var spread: Bool {
         get {
-            book.value(forKey: "spread") as? Bool ?? false
+            bookValue(forKey: "spread") as? Bool ?? false
         }
         set {
-            book.setValue(newValue, forKey: "spread")
-            saveContext()
+            updateBookValue(newValue, forKey: "spread")
             submitToNavigator()
         }
     }
 
     var textDirection: ReadiumNavigator.ReadingProgression? {
-        get { book.value(forKey: "textDirection") as? ReadiumNavigator.ReadingProgression }
+        get { bookValue(forKey: "textDirection") as? ReadiumNavigator.ReadingProgression }
         set {
-            book.setValue(newValue, forKey: "textDirection")
-            saveContext()
+            updateBookValue(newValue, forKey: "textDirection")
             submitToNavigator()
         }
     }
 
     var verticalText: Bool {
         get {
-            book.value(forKey: "verticalText") as? Bool ?? false
+            bookValue(forKey: "verticalText") as? Bool ?? false
         }
         set {
-            book.setValue(newValue, forKey: "verticalText")
-            saveContext()
+            updateBookValue(newValue, forKey: "verticalText")
             submitToNavigator()
         }
     }
@@ -124,7 +121,7 @@ final class ReaderPreferences {
     }
 
     var isScrollInferred: Bool {
-        book.value(forKey: "scroll") == nil
+        bookValue(forKey: "scroll") == nil
     }
 
     var effectiveVerticalText: Bool {
@@ -132,7 +129,7 @@ final class ReaderPreferences {
     }
 
     var isVerticalTextInferred: Bool {
-        book.value(forKey: "verticalText") == nil
+        bookValue(forKey: "verticalText") == nil
     }
 
     var effectiveReadingProgression: ReadiumNavigator.ReadingProgression {
@@ -140,21 +137,21 @@ final class ReaderPreferences {
     }
 
     var isReadingProgressionInferred: Bool {
-        book.value(forKey: "textDirection") == nil
+        bookValue(forKey: "textDirection") == nil
     }
 
     var effectiveSpread: Spread {
         if let navigatorSpread = navigator?.settings.spread {
             return navigatorSpread
         }
-        if let spreadValue = book.value(forKey: "spread") as? Bool {
+        if let spreadValue = bookValue(forKey: "spread") as? Bool {
             return spreadValue ? .always : .never
         }
         return .auto
     }
 
     var isSpreadInferred: Bool {
-        book.value(forKey: "spread") == nil
+        bookValue(forKey: "spread") == nil
     }
 
     // MARK: - Theme Colors
@@ -175,10 +172,13 @@ final class ReaderPreferences {
         resolvedAppearanceTheme.interfaceSecondaryColor
     }
 
-    init(book: Book, context: NSManagedObjectContext? = nil) {
-        self.book = book
-        let bookContext = unsafe book.managedObjectContext
-        self.context = context ?? bookContext ?? BookDataPersistenceController.shared.container.viewContext
+    init(
+        bookID: NSManagedObjectID,
+        persistenceController: BookDataPersistenceController = .shared,
+        context: NSManagedObjectContext? = nil
+    ) {
+        self.bookID = bookID
+        self.context = context ?? persistenceController.container.viewContext
     }
 
     // MARK: - Navigator Integration
@@ -202,7 +202,7 @@ final class ReaderPreferences {
     func buildEPUBPreferences() -> EPUBPreferences {
         var preferences = EPUBPreferences()
 
-        if let scrollValue = book.value(forKey: "scroll") as? Bool {
+        if let scrollValue = bookValue(forKey: "scroll") as? Bool {
             preferences.scroll = scrollValue
         }
 
@@ -210,11 +210,11 @@ final class ReaderPreferences {
         // so we always set verticalText to false.
         preferences.verticalText = false
 
-        if let spreadValue = book.value(forKey: "spread") as? Bool {
+        if let spreadValue = bookValue(forKey: "spread") as? Bool {
             preferences.spread = spreadValue ? .always : .never
         }
 
-        if let textDirection = book.value(forKey: "textDirection") as? ReadiumNavigator.ReadingProgression {
+        if let textDirection = bookValue(forKey: "textDirection") as? ReadiumNavigator.ReadingProgression {
             preferences.readingProgression = textDirection
         }
 
@@ -282,6 +282,23 @@ final class ReaderPreferences {
     private func appearanceDidChange() {
         appearanceUpdateTrigger += 1
         submitToNavigator()
+    }
+
+    private func bookObject() -> Book? {
+        guard let book = try? context.existingObject(with: bookID) as? Book else {
+            return nil
+        }
+        return book
+    }
+
+    private func bookValue(forKey key: String) -> Any? {
+        bookObject()?.value(forKey: key)
+    }
+
+    private func updateBookValue(_ value: Any?, forKey key: String) {
+        guard let book = bookObject() else { return }
+        book.setValue(value, forKey: key)
+        saveContext()
     }
 
     private func saveContext() {

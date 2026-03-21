@@ -15,12 +15,13 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import MaruDictionaryUICommon
 import SwiftUI
 
 struct BookReaderBottomInset: View {
-    @Bindable var viewModel: BookReaderViewModel
+    @Bindable var chrome: BookReaderChromeModel
+    @Bindable var bookmarks: BookReaderBookmarksModel
+    @Bindable var readerPreferences: ReaderPreferences
     let progressDisplayText: String?
     let toolbarForegroundColor: SwiftUI.Color
     let toolbarSecondaryColor: SwiftUI.Color
@@ -37,10 +38,10 @@ struct BookReaderBottomInset: View {
                 .accessibilityHidden(true)
                 .hidden()
 
-            if viewModel.overlayState.shouldShowToolbars {
+            if chrome.showsToolbars {
                 HStack(spacing: 32) {
                     Button("Table of contents", systemImage: "list.bullet") {
-                        viewModel.overlayState = .showingTableOfContents
+                        chrome.route = .showingTableOfContents
                     }
                     .labelStyle(.iconOnly)
                     .frame(minWidth: 44, minHeight: 44)
@@ -48,73 +49,77 @@ struct BookReaderBottomInset: View {
                     .tourAnchor(BookReaderTourAnchor.tableOfContents)
 
                     Button(
-                        viewModel.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode",
-                        systemImage: viewModel.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja"
+                        chrome.isDictionaryActive ? "Disable dictionary mode" : "Enable dictionary mode",
+                        systemImage: chrome.isDictionaryActive ? "character.book.closed.fill.ja" : "character.book.closed.ja"
                     ) {
-                        viewModel.isDictionaryActive.toggle()
+                        chrome.isDictionaryActive.toggle()
                     }
                     .labelStyle(.iconOnly)
                     .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.dictionaryMode")
                     .tourAnchor(BookReaderTourAnchor.dictionaryMode)
 
-                    Button("Bookmarks", systemImage: viewModel.currentLocationBookmark != nil ? "bookmark.fill" : "bookmark") {
-                        viewModel.isShowingBookmarks.toggle()
+                    Button("Bookmarks", systemImage: bookmarks.isCurrentLocationBookmarked ? "bookmark.fill" : "bookmark") {
+                        chrome.isShowingBookmarks.toggle()
                     }
                     .labelStyle(.iconOnly)
                     .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.bookmarksButton")
                     .tourAnchor(BookReaderTourAnchor.bookmark)
                     .popover(
-                        isPresented: $viewModel.isShowingBookmarks,
+                        isPresented: $chrome.isShowingBookmarks,
                         attachmentAnchor: .rect(.bounds),
                         arrowEdge: .bottom
                     ) {
                         BookReaderBookmarksPopover(
-                            bookmarks: viewModel.bookmarks,
-                            currentBookmarkID: viewModel.currentLocationBookmark?.objectID,
-                            isCurrentLocationBookmarked: viewModel.currentLocationBookmark != nil,
-                            canReturnToPreviousLocation: viewModel.previousLocation != nil,
+                            rows: bookmarks.bookmarkRows,
+                            currentBookmarkID: bookmarks.currentLocationBookmarkID,
+                            isCurrentLocationBookmarked: bookmarks.isCurrentLocationBookmarked,
+                            canReturnToPreviousLocation: bookmarks.previousLocation != nil,
                             theme: theme,
                             onAddBookmark: {
-                                viewModel.bookmarkCurrentLocation()
-                                viewModel.isShowingBookmarks = false
+                                bookmarks.bookmarkCurrentLocation()
+                                chrome.isShowingBookmarks = false
                             },
                             onRemoveBookmark: {
-                                viewModel.removeBookmarkAtCurrentLocation()
-                                viewModel.isShowingBookmarks = false
+                                bookmarks.removeBookmarkAtCurrentLocation()
+                                chrome.isShowingBookmarks = false
                             },
                             onNavigateToBookmark: { bookmark in
-                                viewModel.navigateToBookmark(bookmark)
+                                bookmarks.navigateToBookmark(bookmark) {
+                                    chrome.route = .none
+                                }
                             },
                             onReturnToPreviousLocation: {
-                                viewModel.returnToPreviousLocation()
+                                bookmarks.returnToPreviousLocation {
+                                    chrome.route = .none
+                                }
                             },
                             onDismiss: {
-                                viewModel.isShowingBookmarks = false
+                                chrome.isShowingBookmarks = false
                             }
                         )
                         .accessibilityIdentifier("bookReader.bookmarksPopover")
                     }
 
                     Button("Appearance and text", systemImage: "textformat") {
-                        viewModel.isShowingQuickSettings.toggle()
+                        chrome.isShowingQuickSettings.toggle()
                     }
                     .labelStyle(.iconOnly)
                     .frame(minWidth: 44, minHeight: 44)
                     .accessibilityIdentifier("bookReader.appearanceButton")
                     .tourAnchor(BookReaderTourAnchor.appearanceMenu)
                     .popover(
-                        isPresented: $viewModel.isShowingQuickSettings,
+                        isPresented: $chrome.isShowingQuickSettings,
                         attachmentAnchor: .rect(.bounds),
                         arrowEdge: .bottom
                     ) {
                         BookReaderAppearancePopover(
-                            readerPreferences: viewModel.readerPreferences,
+                            readerPreferences: readerPreferences,
                             theme: theme,
                             onSelectAppearanceMode: onSelectAppearanceMode,
                             onDismiss: {
-                                viewModel.isShowingQuickSettings = false
+                                chrome.isShowingQuickSettings = false
                             }
                         )
                         .accessibilityIdentifier("bookReader.appearancePopover")

@@ -15,33 +15,79 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreData
 import SwiftUI
 
 struct BookReaderView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 44
 
-    @State private var viewModel: BookReaderViewModel
+    private let bookID: NSManagedObjectID
+    private let persistenceController: BookDataPersistenceController
+    @State private var featureState: BookReaderFeatureState?
+    private let onDismissOverride: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
-    init(book: Book) {
-        _viewModel = State(wrappedValue: BookReaderViewModel(book: book))
+    init(
+        bookID: NSManagedObjectID,
+        persistenceController: BookDataPersistenceController = .shared,
+        onDismiss: (() -> Void)? = nil
+    ) {
+        self.bookID = bookID
+        self.persistenceController = persistenceController
+        onDismissOverride = onDismiss
     }
 
     var body: some View {
-        switch viewModel.readerState {
-        case .loading:
-            ProgressView("Loading book...")
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-        case let .error(error):
-            BookReaderErrorView(
-                error: error,
-                floatingButtonIconSize: floatingButtonIconSize,
-                floatingButtonFrameSize: floatingButtonFrameSize,
-                onDismiss: { dismiss() }
-            )
-        case .reading:
-            BookReaderContentView(viewModel: viewModel)
+        Group {
+            if let featureState {
+                switch featureState.session.phase {
+                case .loading:
+                    ProgressView("Loading book...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case let .error(error):
+                    BookReaderErrorView(
+                        error: error,
+                        floatingButtonIconSize: floatingButtonIconSize,
+                        floatingButtonFrameSize: floatingButtonFrameSize,
+                        onDismiss: dismissReader
+                    )
+                case .reading:
+                    BookReaderContentView(
+                        session: featureState.session,
+                        chrome: featureState.chrome,
+                        bookmarks: featureState.bookmarks,
+                        lookup: featureState.lookup,
+                        readerPreferences: featureState.readerPreferences,
+                        onDismiss: dismissReader
+                    )
+                }
+            } else {
+                ProgressView("Loading book...")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         }
+        .task {
+            await initializeFeatureStateIfNeeded()
+        }
+    }
+
+    private func dismissReader() {
+        if let onDismissOverride {
+            onDismissOverride()
+        } else {
+            dismiss()
+        }
+    }
+
+    private func initializeFeatureStateIfNeeded() async {
+        guard featureState == nil else { return }
+
+        let featureState = BookReaderFeatureState(
+            bookID: bookID,
+            persistenceController: persistenceController
+        )
+        self.featureState = featureState
+        await featureState.session.startIfNeeded()
     }
 }

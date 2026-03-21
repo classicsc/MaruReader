@@ -18,28 +18,28 @@
 @testable import MaruReader
 import Testing
 
-struct BookReaderOverlayStateTests {
+struct BookReaderChromeRouteTests {
     @Test func shouldShowToolbars_IncludesReaderPopovers() {
-        #expect(BookReaderOverlayState.showingQuickSettings.shouldShowToolbars)
-        #expect(BookReaderOverlayState.showingBookmarks.shouldShowToolbars)
+        #expect(BookReaderChromeRoute.showingQuickSettings.shouldShowToolbars)
+        #expect(BookReaderChromeRoute.showingBookmarks.shouldShowToolbars)
     }
 
     @Test func settingPresentation_PresentsRequestedOverlay() {
-        let state = BookReaderOverlayState.showingToolbars.settingPresentation(true, for: .showingBookmarks)
+        let state = BookReaderChromeRoute.showingToolbars.settingPresentation(true, for: .showingBookmarks)
 
         #expect(state == .showingBookmarks)
     }
 
     @Test func settingPresentation_DismissesPresentedOverlayToToolbars() {
-        let bookmarksState = BookReaderOverlayState.showingBookmarks.settingPresentation(false, for: .showingBookmarks)
-        let quickSettingsState = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingQuickSettings)
+        let bookmarksState = BookReaderChromeRoute.showingBookmarks.settingPresentation(false, for: .showingBookmarks)
+        let quickSettingsState = BookReaderChromeRoute.showingQuickSettings.settingPresentation(false, for: .showingQuickSettings)
 
         #expect(bookmarksState == .showingToolbars)
         #expect(quickSettingsState == .showingToolbars)
     }
 
     @Test func settingPresentation_LeavesOtherOverlayUntouchedWhenDismissed() {
-        let state = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingBookmarks)
+        let state = BookReaderChromeRoute.showingQuickSettings.settingPresentation(false, for: .showingBookmarks)
 
         #expect(state == .showingQuickSettings)
     }
@@ -47,9 +47,9 @@ struct BookReaderOverlayStateTests {
     // MARK: - Computed Bool property behavior (via settingPresentation)
 
     @Test func settingPresentation_GetterReturnsTrueOnlyForMatchingState() {
-        let toc = BookReaderOverlayState.showingTableOfContents
-        let quickSettings = BookReaderOverlayState.showingQuickSettings
-        let bookmarks = BookReaderOverlayState.showingBookmarks
+        let toc = BookReaderChromeRoute.showingTableOfContents
+        let quickSettings = BookReaderChromeRoute.showingQuickSettings
+        let bookmarks = BookReaderChromeRoute.showingBookmarks
 
         // Each state should report true only for itself
         #expect(toc == .showingTableOfContents)
@@ -66,9 +66,9 @@ struct BookReaderOverlayStateTests {
     }
 
     @Test func settingPresentation_SetTruePresentsOverlay() {
-        let fromToolbars = BookReaderOverlayState.showingToolbars.settingPresentation(true, for: .showingTableOfContents)
-        let fromNone = BookReaderOverlayState.none.settingPresentation(true, for: .showingQuickSettings)
-        let fromOther = BookReaderOverlayState.showingBookmarks.settingPresentation(true, for: .showingTableOfContents)
+        let fromToolbars = BookReaderChromeRoute.showingToolbars.settingPresentation(true, for: .showingTableOfContents)
+        let fromNone = BookReaderChromeRoute.none.settingPresentation(true, for: .showingQuickSettings)
+        let fromOther = BookReaderChromeRoute.showingBookmarks.settingPresentation(true, for: .showingTableOfContents)
 
         #expect(fromToolbars == .showingTableOfContents)
         #expect(fromNone == .showingQuickSettings)
@@ -76,9 +76,9 @@ struct BookReaderOverlayStateTests {
     }
 
     @Test func settingPresentation_SetFalseDismissesToToolbars() {
-        let dismissToc = BookReaderOverlayState.showingTableOfContents.settingPresentation(false, for: .showingTableOfContents)
-        let dismissQuickSettings = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingQuickSettings)
-        let dismissBookmarks = BookReaderOverlayState.showingBookmarks.settingPresentation(false, for: .showingBookmarks)
+        let dismissToc = BookReaderChromeRoute.showingTableOfContents.settingPresentation(false, for: .showingTableOfContents)
+        let dismissQuickSettings = BookReaderChromeRoute.showingQuickSettings.settingPresentation(false, for: .showingQuickSettings)
+        let dismissBookmarks = BookReaderChromeRoute.showingBookmarks.settingPresentation(false, for: .showingBookmarks)
 
         #expect(dismissToc == .showingToolbars)
         #expect(dismissQuickSettings == .showingToolbars)
@@ -86,7 +86,7 @@ struct BookReaderOverlayStateTests {
     }
 
     @Test func settingPresentation_SetFalseForDifferentStateIsNoOp() {
-        let state = BookReaderOverlayState.showingQuickSettings.settingPresentation(false, for: .showingTableOfContents)
+        let state = BookReaderChromeRoute.showingQuickSettings.settingPresentation(false, for: .showingTableOfContents)
 
         #expect(state == .showingQuickSettings)
     }

@@ -18,6 +18,8 @@
 import Foundation
 
 enum BookReaderError: LocalizedError {
+    case bookNotFound
+    case bookmarkNotFound
     case bookFileNotFound
     case cannotAccessAppSupport
     case invalidBookPath
@@ -25,6 +27,10 @@ enum BookReaderError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
+        case .bookNotFound:
+            String(localized: "Book not found")
+        case .bookmarkNotFound:
+            String(localized: "Bookmark not found")
         case .bookFileNotFound:
             String(localized: "Book file not found")
         case .cannotAccessAppSupport:

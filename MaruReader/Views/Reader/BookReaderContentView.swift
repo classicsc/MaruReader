@@ -19,27 +19,28 @@ import MaruDictionaryUICommon
 import MaruReaderCore
 import ReadiumNavigator
 import SwiftUI
-import WebKit
 
 struct BookReaderContentView: View {
     @ScaledMetric(relativeTo: .body) private var floatingButtonIconSize: CGFloat = 15
     @ScaledMetric(relativeTo: .body) private var floatingButtonFrameSize: CGFloat = 44
 
-    @Bindable var viewModel: BookReaderViewModel
-    @State private var progressDisplayMode: ProgressDisplayMode = .book
+    @Bindable var session: BookReaderSessionModel
+    @Bindable var chrome: BookReaderChromeModel
+    @Bindable var bookmarks: BookReaderBookmarksModel
+    @Bindable var lookup: BookReaderLookupModel
+    @Bindable var readerPreferences: ReaderPreferences
+    let onDismiss: () -> Void
+
     @State private var tourManager = TourManager()
-    // This is treated as the current system scheme for Follow System mode.
-    // Avoid using `.preferredColorScheme` in descendant overlays, which can contaminate this value.
-    @Environment(\.colorScheme) var colorScheme
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         readerContent
             .onChange(of: availableProgressDisplayModes) {
-                syncProgressDisplayMode(with: availableProgressDisplayModes)
+                chrome.syncProgressDisplayMode(for: session.currentLocator)
             }
-            .sheet(item: $viewModel.dictionarySheetPresentation, onDismiss: {
-                viewModel.dismissDictionarySheet()
+            .sheet(item: $lookup.dictionarySheetPresentation, onDismiss: {
+                lookup.dismissDictionarySheet()
             }) { presentation in
                 NavigationStack {
                     DictionarySearchView()
@@ -51,7 +52,7 @@ struct BookReaderContentView: View {
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Done") {
-                                    viewModel.dismissDictionarySheet()
+                                    lookup.dismissDictionarySheet()
                                 }
                                 .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
                             }
@@ -69,35 +70,40 @@ struct BookReaderContentView: View {
                 .accessibilityIdentifier("bookReader.dictionarySheet")
                 .presentationDetents([.medium, .large])
             }
-            .sheet(isPresented: $viewModel.isShowingTableOfContents) {
-                if let publication = viewModel.publication {
+            .sheet(isPresented: $chrome.isShowingTableOfContents) {
+                if let publication = session.publication {
                     let tableOfContentsTheme = readerTableOfContentsTheme
                     TableOfContentsView(
                         publication: publication,
-                        bookTitle: viewModel.book.title,
-                        bookAuthor: viewModel.book.author,
-                        coverImage: viewModel.coverImage,
-                        currentLocator: viewModel.currentLocator,
-                        bookmarks: viewModel.bookmarks,
-                        chapterTitleByHref: viewModel.cachedChapterTitleByHref,
+                        bookTitle: session.bookSnapshot.title,
+                        bookAuthor: session.bookSnapshot.author,
+                        coverImage: session.coverImage,
+                        currentLocator: session.currentLocator,
+                        bookmarkRows: bookmarks.bookmarkRows,
                         onNavigate: { link in
-                            viewModel.navigateToLink(link)
+                            session.navigateToLink(link) {
+                                chrome.route = .none
+                            }
                         },
                         onNavigateToPosition: { position in
-                            viewModel.navigateToPosition(position)
+                            session.navigateToPosition(position) {
+                                chrome.route = .none
+                            }
                         },
                         onNavigateToBookmark: { bookmark in
-                            viewModel.navigateToBookmark(bookmark)
+                            bookmarks.navigateToBookmark(bookmark) {
+                                chrome.route = .none
+                            }
                         },
                         onDeleteBookmark: { bookmark in
-                            viewModel.deleteBookmark(bookmark)
+                            bookmarks.deleteBookmark(bookmark)
                         },
                         onUpdateBookmarkTitle: { bookmark, title in
-                            viewModel.updateBookmarkTitle(bookmark, title: title)
+                            bookmarks.updateBookmarkTitle(bookmark, title: title)
                         },
                         theme: tableOfContentsTheme,
                         onDismiss: {
-                            viewModel.overlayState = .showingToolbars
+                            chrome.route = .showingToolbars
                         }
                     )
                     .background(tableOfContentsTheme.backgroundColor)
@@ -113,27 +119,27 @@ struct BookReaderContentView: View {
                 }
             }
             .onChange(of: colorScheme) {
-                viewModel.readerPreferences.systemColorScheme = colorScheme
-                viewModel.readerPreferences.submitToNavigator()
+                readerPreferences.systemColorScheme = colorScheme
+                readerPreferences.submitToNavigator()
                 applyReaderDictionaryTheme()
             }
-            .onChange(of: viewModel.readerPreferences.selectedAppearanceMode) {
+            .onChange(of: readerPreferences.selectedAppearanceMode) {
                 applyReaderDictionaryTheme()
             }
             .tourOverlay(manager: tourManager)
             .onAppear {
-                viewModel.readerPreferences.systemColorScheme = colorScheme
+                readerPreferences.systemColorScheme = colorScheme
                 applyReaderDictionaryTheme()
                 if MaruReaderApp.isScreenshotMode {
-                    viewModel.isDictionaryActive = true
+                    chrome.isDictionaryActive = true
                 } else if tourManager.startIfNeeded(BookReaderTour.self) {
-                    viewModel.overlayState = .showingToolbars
+                    chrome.route = .showingToolbars
                 }
             }
             .task {
                 guard MaruReaderApp.isScreenshotMode else { return }
                 try? await Task.sleep(for: .seconds(3))
-                viewModel.triggerScreenshotTextLookup()
+                lookup.triggerScreenshotTextLookup()
             }
     }
 
@@ -143,66 +149,72 @@ struct BookReaderContentView: View {
         return ZStack(alignment: .topLeading) {
             readerBackgroundColor
             EPUBNavigatorWrapper(
-                viewModel: viewModel,
+                session: session,
+                lookup: lookup,
+                readerPreferences: readerPreferences,
                 colorScheme: colorScheme
             )
-            .padding(.horizontal, viewModel.readerPreferences.horizontalMargin)
+            .padding(.horizontal, readerPreferences.horizontalMargin)
             .overlay {
                 BookReaderNavigatorOverlaySurface(
-                    isDictionaryActive: viewModel.isDictionaryActive,
-                    marginWidth: viewModel.readerPreferences.horizontalMargin,
-                    showingPopup: $viewModel.showPopup,
-                    popupAnchorPosition: viewModel.popupAnchorPosition,
-                    popupPage: viewModel.popupPage,
+                    isDictionaryActive: chrome.isDictionaryActive,
+                    marginWidth: readerPreferences.horizontalMargin,
+                    showingPopup: $lookup.showPopup,
+                    popupAnchorPosition: lookup.popupAnchorPosition,
+                    popupPage: lookup.popupPage,
                     popupBackgroundColor: dictionarySheetBackgroundColor,
                     onTap: { globalPoint in
-                        viewModel.triggerTextScan(atGlobalPoint: globalPoint)
+                        lookup.triggerTextScan(atGlobalPoint: globalPoint)
                     },
                     onSwipeLeft: {
-                        Task { await viewModel.navigator?.goRight(options: .init()) }
+                        session.goRight()
                     },
                     onSwipeRight: {
-                        Task { await viewModel.navigator?.goLeft(options: .init()) }
+                        session.goLeft()
                     }
                 )
             }
         }
         .safeAreaInset(edge: .bottom) {
             BookReaderBottomInset(
-                viewModel: viewModel,
-                progressDisplayText: progressDisplayText,
+                chrome: chrome,
+                bookmarks: bookmarks,
+                readerPreferences: readerPreferences,
+                progressDisplayText: chrome.progressDisplayText(for: session.currentLocator),
                 toolbarForegroundColor: toolbarForegroundColor(isPrimary: true),
                 toolbarSecondaryColor: toolbarSecondaryColor,
                 theme: overlayTheme,
                 onSelectAppearanceMode: { mode in
-                    viewModel.readerPreferences.setAppearanceMode(mode)
+                    readerPreferences.setAppearanceMode(mode)
                     applyReaderDictionaryTheme()
                 },
                 onCycleProgressDisplayMode: {
-                    cycleProgressDisplayMode(availableModes: availableProgressDisplayModes)
+                    chrome.cycleProgressDisplayMode(for: session.currentLocator)
                 }
             )
             .applyLocalColorScheme(readerOverlayForcedColorScheme)
         }
         .safeAreaInset(edge: .top) {
             BookReaderTopInset(
-                showsToolbars: viewModel.overlayState.shouldShowToolbars,
-                title: viewModel.book.title ?? "Book Reader",
+                showsToolbars: chrome.showsToolbars,
+                title: session.bookSnapshot.title ?? "Book Reader",
                 floatingButtonIconSize: floatingButtonIconSize,
                 floatingButtonFrameSize: floatingButtonFrameSize,
-                primaryForegroundColor: toolbarForegroundColor(isPrimary: viewModel.overlayState.shouldShowToolbars),
+                primaryForegroundColor: toolbarForegroundColor(isPrimary: chrome.showsToolbars),
                 secondaryForegroundColor: toolbarSecondaryColor,
-                onDismiss: { dismiss() },
-                onToggleOverlay: { viewModel.toggleOverlay() }
+                onDismiss: onDismiss,
+                onToggleOverlay: { chrome.toggleOverlay() }
             )
         }
         .background(readerBackgroundColor.ignoresSafeArea())
     }
 
-    // MARK: - Theme Color Helpers
+    private var availableProgressDisplayModes: [BookReaderProgressDisplayMode] {
+        chrome.availableProgressDisplayModes(for: session.currentLocator)
+    }
 
     private var readerBackgroundColor: SwiftUI.Color {
-        viewModel.readerPreferences.currentPageBackgroundColor
+        readerPreferences.currentPageBackgroundColor
     }
 
     private var dictionarySheetBackgroundColor: SwiftUI.Color {
@@ -221,7 +233,7 @@ struct BookReaderContentView: View {
     }
 
     private var readerOverlayForcedColorScheme: ColorScheme? {
-        switch viewModel.readerPreferences.selectedAppearanceMode {
+        switch readerPreferences.selectedAppearanceMode {
         case .dark:
             .dark
         case .light, .sepia:
@@ -232,12 +244,12 @@ struct BookReaderContentView: View {
     }
 
     private var readerDictionaryPresentationTheme: DictionaryPresentationTheme {
-        let interfaceBackground = viewModel.readerPreferences.currentInterfaceBackgroundColor
-        let interfaceForeground = viewModel.readerPreferences.currentInterfaceForegroundColor
-        let secondary = viewModel.readerPreferences.currentInterfaceSecondaryColor
+        let interfaceBackground = readerPreferences.currentInterfaceBackgroundColor
+        let interfaceForeground = readerPreferences.currentInterfaceForegroundColor
+        let secondary = readerPreferences.currentInterfaceSecondaryColor
         let separator = secondary.opacity(0.35)
 
-        let preferredColorScheme: ColorScheme? = switch viewModel.readerPreferences.selectedAppearanceMode {
+        let preferredColorScheme: ColorScheme? = switch readerPreferences.selectedAppearanceMode {
         case .dark:
             .dark
         case .light, .sepia:
@@ -262,7 +274,7 @@ struct BookReaderContentView: View {
 
     private func applyReaderDictionaryTheme() {
         let webTheme = readerDictionaryPresentationTheme.dictionaryWebTheme
-        viewModel.setDictionaryWebTheme(webTheme)
+        lookup.setDictionaryWebTheme(webTheme)
     }
 
     private func makeDictionaryWebTheme(
@@ -271,7 +283,7 @@ struct BookReaderContentView: View {
         foregroundColor: SwiftUI.Color
     ) -> DictionaryWebTheme? {
         let interfaceBackgroundHex = cssHex(for: interfaceBackgroundColor)
-        let pageBackgroundHex = cssHex(for: viewModel.readerPreferences.currentPageBackgroundColor)
+        let pageBackgroundHex = cssHex(for: readerPreferences.currentPageBackgroundColor)
         let foregroundHex = cssHex(for: foregroundColor)
         let accentHex = cssHex(for: .accentColor)
 
@@ -305,78 +317,12 @@ struct BookReaderContentView: View {
         ReadiumNavigator.Color(swiftUIColor: color)?.cssHex
     }
 
-    func toolbarForegroundColor(isPrimary: Bool) -> SwiftUI.Color {
-        let color = viewModel.readerPreferences.currentInterfaceForegroundColor
+    private func toolbarForegroundColor(isPrimary: Bool) -> SwiftUI.Color {
+        let color = readerPreferences.currentInterfaceForegroundColor
         return isPrimary ? color : color.opacity(0.6)
     }
 
     private var toolbarSecondaryColor: SwiftUI.Color {
-        viewModel.readerPreferences.currentInterfaceSecondaryColor
-    }
-
-    // MARK: - Progress Display
-
-    enum ProgressDisplayMode: CaseIterable {
-        case book
-        case chapter
-        case position
-    }
-
-    private var availableProgressDisplayModes: [ProgressDisplayMode] {
-        guard let locator = viewModel.currentLocator else { return [] }
-        var modes: [ProgressDisplayMode] = []
-        if locator.locations.totalProgression != nil {
-            modes.append(.book)
-        }
-        if locator.locations.progression != nil {
-            modes.append(.chapter)
-        }
-        if locator.locations.position != nil {
-            modes.append(.position)
-        }
-        return modes
-    }
-
-    private var progressDisplayText: String? {
-        guard let locator = viewModel.currentLocator else { return nil }
-        guard let displayMode = resolvedProgressDisplayMode(from: availableProgressDisplayModes) else { return nil }
-        switch displayMode {
-        case .book:
-            guard let totalProgression = locator.locations.totalProgression else { return nil }
-            return String(localized: "Book \(formatProgress(totalProgression))")
-        case .chapter:
-            guard let progression = locator.locations.progression else { return nil }
-            return String(localized: "Chapter \(formatProgress(progression))")
-        case .position:
-            guard let position = locator.locations.position else { return nil }
-            return String(localized: "Position \(position)")
-        }
-    }
-
-    private func resolvedProgressDisplayMode(from availableModes: [ProgressDisplayMode]) -> ProgressDisplayMode? {
-        guard let first = availableModes.first else { return nil }
-        return availableModes.contains(progressDisplayMode) ? progressDisplayMode : first
-    }
-
-    private func formatProgress(_ value: Double) -> String {
-        let clampedValue = min(max(value, 0), 1)
-        return clampedValue.formatted(.percent.precision(.fractionLength(0)))
-    }
-
-    private func cycleProgressDisplayMode(availableModes: [ProgressDisplayMode]) {
-        guard !availableModes.isEmpty else { return }
-        guard let currentIndex = availableModes.firstIndex(of: progressDisplayMode) else {
-            progressDisplayMode = availableModes[0]
-            return
-        }
-        let nextIndex = (currentIndex + 1) % availableModes.count
-        progressDisplayMode = availableModes[nextIndex]
-    }
-
-    private func syncProgressDisplayMode(with availableModes: [ProgressDisplayMode]) {
-        guard let first = availableModes.first else { return }
-        if !availableModes.contains(progressDisplayMode) {
-            progressDisplayMode = first
-        }
+        readerPreferences.currentInterfaceSecondaryColor
     }
 }

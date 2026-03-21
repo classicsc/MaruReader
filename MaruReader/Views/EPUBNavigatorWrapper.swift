@@ -15,25 +15,35 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import Foundation
-import MaruReaderCore
 import os
 import ReadiumNavigator
-import ReadiumShared
-import ReadiumStreamer
 import SwiftUI
 import UIKit
 
 struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
-    @State var viewModel: BookReaderViewModel
+    @State private var session: BookReaderSessionModel
+    @State private var lookup: BookReaderLookupModel
+    @State private var readerPreferences: ReaderPreferences
     let colorScheme: ColorScheme
 
     private let logger = Logger.maru(category: "EPUBNavigatorWrapper")
 
+    init(
+        session: BookReaderSessionModel,
+        lookup: BookReaderLookupModel,
+        readerPreferences: ReaderPreferences,
+        colorScheme: ColorScheme
+    ) {
+        _session = State(wrappedValue: session)
+        _lookup = State(wrappedValue: lookup)
+        _readerPreferences = State(wrappedValue: readerPreferences)
+        self.colorScheme = colorScheme
+    }
+
     func makeUIViewController(context: Context) -> UIViewController {
         do {
-            guard let publication = viewModel.publication else {
+            guard let publication = session.publication else {
                 return createErrorViewController(message: "Publication not ready")
             }
 
@@ -42,10 +52,8 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
                 .regular: (top: 0, bottom: 0),
             ]
 
-            // Build initial preferences from stored settings
-            // The CSS override is required for pagination of vertical writing
-            viewModel.readerPreferences.systemColorScheme = colorScheme
-            let initialPreferences = viewModel.readerPreferences.buildEPUBPreferences()
+            readerPreferences.systemColorScheme = colorScheme
+            let initialPreferences = readerPreferences.buildEPUBPreferences()
             let config = EPUBNavigatorViewController.Configuration(
                 preferences: initialPreferences,
                 defaults: EPUBDefaults(),
@@ -56,22 +64,20 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
             // Create the EPUB navigator with pre-loaded publication
             let navigator = try EPUBNavigatorViewController(
                 publication: publication,
-                initialLocation: viewModel.initialLocation,
+                initialLocation: session.initialLocation,
                 config: config
             )
 
             navigator.delegate = context.coordinator
 
-            viewModel.navigator = navigator
-            viewModel.currentLocator = navigator.currentLocation ?? viewModel.initialLocation
+            session.attachNavigator(navigator)
 
-            // Set navigator reference on readerPreferences for future updates
-            viewModel.readerPreferences.navigator = navigator
+            readerPreferences.navigator = navigator
 
             return navigator
         } catch {
             logger.error("Error creating navigator: \(error)")
-            viewModel.readerState = .error(error)
+            session.phase = .error(error)
             return createErrorViewController(message: "Failed to load book: \(error.localizedDescription)")
         }
     }
@@ -81,7 +87,7 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
     }
 
     func makeCoordinator() -> BookReaderCoordinator {
-        BookReaderCoordinator(viewModel: viewModel)
+        BookReaderCoordinator(session: session, lookup: lookup)
     }
 
     private func createErrorViewController(message: String) -> UIViewController {

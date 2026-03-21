@@ -93,7 +93,7 @@ struct BookLibraryView: View {
     @State private var showingError = false
     @State private var bookToDelete: Book?
     @State private var showingDeleteConfirmation = false
-    @State private var selectedBook: Book?
+    @State private var selectedBookID: NSManagedObjectID?
 
     private var books: FetchRequest<Book>
 
@@ -116,8 +116,8 @@ struct BookLibraryView: View {
 
     private var isShowingReader: Binding<Bool> {
         Binding(
-            get: { selectedBook != nil },
-            set: { if !$0 { selectedBook = nil } }
+            get: { selectedBookID != nil },
+            set: { if !$0 { selectedBookID = nil } }
         )
     }
 
@@ -172,8 +172,11 @@ struct BookLibraryView: View {
                     }
                 }
                 .fullScreenCover(isPresented: isShowingReader) {
-                    if let book = selectedBook {
-                        BookReaderView(book: book)
+                    if let selectedBookID {
+                        BookReaderView(
+                            bookID: selectedBookID,
+                            onDismiss: { self.selectedBookID = nil }
+                        )
                     }
                 }
                 .onChange(of: sortOption) { _, newValue in
@@ -215,7 +218,7 @@ struct BookLibraryView: View {
                 Group {
                     if state.isComplete {
                         Button {
-                            selectedBook = book
+                            selectedBookID = book.objectID
                         } label: {
                             BookGridItem(book: book, state: state, onCancel: {}, onRemove: {})
                         }

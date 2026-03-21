@@ -110,14 +110,14 @@ struct BookReaderAppearancePopover: View {
 }
 
 struct BookReaderBookmarksPopover: View {
-    let bookmarks: [Bookmark]
+    let rows: [BookReaderBookmarkRowData]
     let currentBookmarkID: NSManagedObjectID?
     let isCurrentLocationBookmarked: Bool
     let canReturnToPreviousLocation: Bool
     let theme: DictionaryPresentationTheme
     let onAddBookmark: () -> Void
     let onRemoveBookmark: () -> Void
-    let onNavigateToBookmark: (Bookmark) -> Void
+    let onNavigateToBookmark: (BookReaderBookmarkSnapshot) -> Void
     let onReturnToPreviousLocation: () -> Void
     let onDismiss: () -> Void
 
@@ -161,7 +161,7 @@ struct BookReaderBookmarksPopover: View {
                     theme: theme
                 )
 
-                if bookmarks.isEmpty {
+                if rows.isEmpty {
                     BookReaderToolbarPopoverEmptyState(
                         title: String(localized: "No Bookmarks"),
                         description: String(localized: "Tap the bookmark button to save your place"),
@@ -169,13 +169,13 @@ struct BookReaderBookmarksPopover: View {
                         theme: theme
                     )
                 } else {
-                    ForEach(bookmarks, id: \.objectID) { bookmark in
+                    ForEach(rows) { row in
                         BookReaderToolbarBookmarkButton(
-                            bookmark: bookmark,
-                            isCurrentLocation: bookmark.objectID == currentBookmarkID,
+                            row: row,
+                            isCurrentLocation: row.id == currentBookmarkID,
                             theme: theme
                         ) {
-                            onNavigateToBookmark(bookmark)
+                            onNavigateToBookmark(row.snapshot)
                         }
                     }
                 }
@@ -393,14 +393,10 @@ private struct BookReaderToolbarPopoverActionButton: View {
 }
 
 private struct BookReaderToolbarBookmarkButton: View {
-    @ObservedObject var bookmark: Bookmark
+    let row: BookReaderBookmarkRowData
     let isCurrentLocation: Bool
     let theme: DictionaryPresentationTheme
     let action: () -> Void
-
-    private var displayTitle: String {
-        bookmark.title ?? String(localized: "Bookmark")
-    }
 
     var body: some View {
         Button(action: action) {
@@ -410,13 +406,17 @@ private struct BookReaderToolbarBookmarkButton: View {
                     .foregroundStyle(isCurrentLocation ? Color.accentColor : theme.secondaryForegroundColor)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(displayTitle)
+                    Text(row.displayTitle)
                         .font(.body)
                         .foregroundStyle(theme.foregroundColor)
                         .lineLimit(1)
 
                     if isCurrentLocation {
                         Text(String(localized: "Current location"))
+                            .font(.caption)
+                            .foregroundStyle(theme.secondaryForegroundColor)
+                    } else if let progressText = row.progressText {
+                        Text(progressText)
                             .font(.caption)
                             .foregroundStyle(theme.secondaryForegroundColor)
                     }

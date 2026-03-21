@@ -15,49 +15,28 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import Foundation
-import MaruReaderCore
 import os
 import ReadiumNavigator
 import ReadiumShared
-import SwiftUI
-import UIKit
 import WebKit
 
 @MainActor
 class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate, WKScriptMessageHandler {
-    let viewModel: BookReaderViewModel
-    let viewContext: NSManagedObjectContext = BookDataPersistenceController.shared.container.viewContext
+    let session: BookReaderSessionModel
+    let lookup: BookReaderLookupModel
 
     private let logger = Logger.maru(category: "BookReaderCoordinator")
 
-    init(viewModel: BookReaderViewModel) {
-        self.viewModel = viewModel
+    init(session: BookReaderSessionModel, lookup: BookReaderLookupModel) {
+        self.session = session
+        self.lookup = lookup
     }
 
     // MARK: - NavigatorDelegate
 
     func navigator(_: Navigator, locationDidChange locator: Locator) {
-        // Serialize locator to JSON and save to Book.lastOpenedPage
-        Task { @MainActor in
-            do {
-                viewModel.currentLocator = locator
-                let locatorJSON = locator.jsonString
-                viewModel.book.lastOpenedPage = locatorJSON
-                if let totalProgression = locator.locations.totalProgression {
-                    viewModel.book.progressPercent = formatProgress(totalProgression)
-                }
-                try viewContext.save()
-            } catch {
-                logger.error("Error saving last read location: \(error)")
-            }
-        }
-    }
-
-    private func formatProgress(_ value: Double) -> String {
-        let clampedValue = min(max(value, 0), 1)
-        return clampedValue.formatted(.percent.precision(.fractionLength(0)))
+        session.handleLocationDidChange(locator)
     }
 
     func navigator(_: Navigator, presentError error: NavigatorError) {
@@ -98,7 +77,12 @@ class BookReaderCoordinator: NSObject, NavigatorDelegate, EPUBNavigatorDelegate,
                 return
             }
 
-            viewModel.searchInPopup(offset: offset, context: context, contextStartOffset: contextStartOffset, cssSelector: cssSelector)
+            lookup.searchInPopup(
+                offset: offset,
+                context: context,
+                contextStartOffset: contextStartOffset,
+                cssSelector: cssSelector
+            )
         }
     }
 }

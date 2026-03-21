@@ -15,9 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import CoreData
 import ReadiumShared
 import SwiftUI
+import UIKit
 
 private enum ContentTab: String, CaseIterable {
     case contents = "Contents"
@@ -41,53 +41,6 @@ struct TableOfContentsTheme {
     let separatorColor: Color
 }
 
-struct BookReaderBookmarkRowData: Identifiable {
-    let bookmark: Bookmark
-    let displayTitle: String
-    let chapterTitle: String?
-    let progressText: String?
-    let isCurrent: Bool
-
-    var id: NSManagedObjectID {
-        bookmark.objectID
-    }
-
-    static func makeRows(
-        bookmarks: [Bookmark],
-        currentHref: String?,
-        chapterTitleByHref: [String: String]
-    ) -> [Self] {
-        bookmarks.map { bookmark in
-            let locator = locator(for: bookmark)
-            let href = locator?.href.string
-
-            return BookReaderBookmarkRowData(
-                bookmark: bookmark,
-                displayTitle: bookmark.title ?? String(localized: "Bookmark"),
-                chapterTitle: href.flatMap { chapterTitleByHref[$0] },
-                progressText: locator.flatMap(progressText(for:)),
-                isCurrent: href == currentHref
-            )
-        }
-    }
-
-    private static func locator(for bookmark: Bookmark) -> Locator? {
-        guard let locationJSON = bookmark.location else { return nil }
-        return try? Locator(jsonString: locationJSON)
-    }
-
-    private static func progressText(for locator: Locator) -> String? {
-        if let totalProgression = locator.locations.totalProgression {
-            let percent = Int(totalProgression * 100)
-            return String(localized: "Book \(percent)%")
-        }
-        if let position = locator.locations.position {
-            return String(localized: "Position \(position)")
-        }
-        return nil
-    }
-}
-
 @MainActor
 struct TableOfContentsView: View {
     let publication: Publication
@@ -95,13 +48,12 @@ struct TableOfContentsView: View {
     let bookAuthor: String?
     let coverImage: UIImage?
     let currentLocator: Locator?
-    let bookmarks: [Bookmark]
-    let chapterTitleByHref: [String: String]
+    let bookmarkRows: [BookReaderBookmarkRowData]
     let onNavigate: (ReadiumShared.Link) -> Void
     let onNavigateToPosition: (Int) -> Void
-    let onNavigateToBookmark: (Bookmark) -> Void
-    let onDeleteBookmark: (Bookmark) -> Void
-    let onUpdateBookmarkTitle: (Bookmark, String) -> Void
+    let onNavigateToBookmark: (BookReaderBookmarkSnapshot) -> Void
+    let onDeleteBookmark: (BookReaderBookmarkSnapshot) -> Void
+    let onUpdateBookmarkTitle: (BookReaderBookmarkSnapshot, String) -> Void
     let theme: TableOfContentsTheme
     let onDismiss: () -> Void
 
@@ -139,9 +91,7 @@ struct TableOfContentsView: View {
                     contentsTabView
                 case .bookmarks:
                     BookmarksListView(
-                        bookmarks: bookmarks,
-                        chapterTitleByHref: chapterTitleByHref,
-                        currentLocator: currentLocator,
+                        rows: bookmarkRows,
                         theme: theme,
                         onNavigate: onNavigateToBookmark,
                         onDelete: onDeleteBookmark,
@@ -348,24 +298,19 @@ struct TableOfContentsView: View {
     }
 }
 
-// MARK: - BookmarksListView
-
 private struct BookmarksListView: View {
-    let bookmarks: [Bookmark]
-    let chapterTitleByHref: [String: String]
-    let currentLocator: Locator?
+    let rows: [BookReaderBookmarkRowData]
     let theme: TableOfContentsTheme
-    let onNavigate: (Bookmark) -> Void
-    let onDelete: (Bookmark) -> Void
-    let onUpdateTitle: (Bookmark, String) -> Void
+    let onNavigate: (BookReaderBookmarkSnapshot) -> Void
+    let onDelete: (BookReaderBookmarkSnapshot) -> Void
+    let onUpdateTitle: (BookReaderBookmarkSnapshot, String) -> Void
 
-    @State private var editingBookmark: Bookmark?
+    @State private var editingBookmark: BookReaderBookmarkSnapshot?
     @State private var isShowingRenameAlert = false
     @State private var editingTitle: String = ""
-    @State private var bookmarkRows: [BookReaderBookmarkRowData] = []
 
     var body: some View {
-        if bookmarks.isEmpty {
+        if rows.isEmpty {
             ContentUnavailableView(
                 "No Bookmarks",
                 systemImage: "bookmark",
@@ -373,9 +318,9 @@ private struct BookmarksListView: View {
             )
         } else {
             List {
-                ForEach(bookmarkRows) { row in
+                ForEach(rows) { row in
                     Button {
-                        onNavigate(row.bookmark)
+                        onNavigate(row.snapshot)
                     } label: {
                         BookmarkRowView(
                             row: row,
@@ -387,15 +332,15 @@ private struct BookmarksListView: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button {
-                            editingTitle = row.bookmark.title ?? ""
-                            editingBookmark = row.bookmark
+                            editingTitle = row.snapshot.title ?? ""
+                            editingBookmark = row.snapshot
                             isShowingRenameAlert = true
                         } label: {
                             Label("Rename", systemImage: "pencil")
                         }
 
                         Button(role: .destructive) {
-                            onDelete(row.bookmark)
+                            onDelete(row.snapshot)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -406,18 +351,11 @@ private struct BookmarksListView: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .background(theme.backgroundColor)
-            .task(id: bookmarkRowsRefreshKey) {
-                bookmarkRows = BookReaderBookmarkRowData.makeRows(
-                    bookmarks: bookmarks,
-                    currentHref: currentLocator?.href.string,
-                    chapterTitleByHref: chapterTitleByHref
-                )
-            }
             .alert("Rename Bookmark", isPresented: $isShowingRenameAlert) {
                 TextField("Title", text: $editingTitle)
                 Button("Save") {
-                    if let bookmark = editingBookmark {
-                        onUpdateTitle(bookmark, editingTitle)
+                    if let editingBookmark {
+                        onUpdateTitle(editingBookmark, editingTitle)
                     }
                     editingBookmark = nil
                 }
@@ -429,33 +367,7 @@ private struct BookmarksListView: View {
             }
         }
     }
-
-    private var bookmarkRowsRefreshKey: BookmarkRowsRefreshKey {
-        BookmarkRowsRefreshKey(
-            currentHref: currentLocator?.href.string,
-            bookmarks: bookmarks.map { bookmark in
-                BookmarkRowsRefreshItem(
-                    id: bookmark.objectID.uriRepresentation().absoluteString,
-                    title: bookmark.title,
-                    location: bookmark.location
-                )
-            }
-        )
-    }
 }
-
-private struct BookmarkRowsRefreshKey: Equatable {
-    let currentHref: String?
-    let bookmarks: [BookmarkRowsRefreshItem]
-}
-
-private struct BookmarkRowsRefreshItem: Equatable {
-    let id: String
-    let title: String?
-    let location: String?
-}
-
-// MARK: - BookmarkRowView
 
 private struct BookmarkRowView: View {
     let row: BookReaderBookmarkRowData
@@ -496,8 +408,6 @@ private struct BookmarkRowView: View {
     }
 }
 
-// MARK: - TOCItemView
-
 private struct TOCItemView: View {
     let link: ReadiumShared.Link
     let level: Int
@@ -519,66 +429,43 @@ private struct TOCItemView: View {
         link.href == currentHref
     }
 
-    private var displayTitle: String {
-        if let title = link.title, !title.isEmpty {
-            return title
-        }
-        let href = link.href
-        if let lastComponent = href.split(separator: "/").last {
-            let filename = String(lastComponent)
-            if let dotIndex = filename.lastIndex(of: ".") {
-                return String(filename[..<dotIndex])
-            }
-            return filename
-        }
-        return href
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(spacing: 8) {
+        VStack(spacing: 0) {
+            Button {
                 if hasChildren {
-                    Button(action: toggleExpansion) {
-                        Label(expandButtonLabel, systemImage: isExpanded ? "chevron.down" : "chevron.right")
-                            .labelStyle(.iconOnly)
-                            .font(.caption)
-                            .foregroundStyle(theme.secondaryForegroundColor)
-                            .frame(width: 44, height: 44)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+                    toggleExpanded()
                 } else {
-                    Color.clear
-                        .frame(width: 44, height: 44)
-                }
-
-                Button {
                     onNavigate(link)
-                } label: {
-                    HStack {
-                        Text(displayTitle)
-                            .foregroundStyle(isCurrent ? Color.accentColor : theme.foregroundColor)
-                            .fontWeight(isCurrent ? .semibold : .regular)
-                            .lineLimit(2)
-                            .multilineTextAlignment(.leading)
-
-                        Spacer()
-
-                        if isCurrent {
-                            Image(systemName: "book.fill")
-                                .font(.caption)
-                                .foregroundStyle(Color.accentColor)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+            } label: {
+                HStack(spacing: 12) {
+                    if hasChildren {
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(theme.secondaryForegroundColor)
+                            .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                            .frame(width: 12)
+                    } else {
+                        Color.clear
+                            .frame(width: 12, height: 12)
+                    }
+
+                    Text(link.title ?? String(localized: "Untitled"))
+                        .font(.body)
+                        .foregroundStyle(isCurrent ? Color.accentColor : theme.foregroundColor)
+                        .fontWeight(isCurrent ? .semibold : .regular)
+                        .multilineTextAlignment(.leading)
+
+                    Spacer()
+                }
+                .padding(.vertical, 8)
+                .padding(.leading, CGFloat(level) * 20)
+                .contentShape(.rect)
             }
-            .padding(.leading, CGFloat(level) * 20)
+            .buttonStyle(.plain)
             .id(link.href)
 
-            if hasChildren, isExpanded {
+            if isExpanded {
                 ForEach(link.children, id: \.href) { child in
                     TOCItemView(
                         link: child,
@@ -593,22 +480,21 @@ private struct TOCItemView: View {
         }
     }
 
-    private var expandButtonLabel: String {
-        isExpanded ? String(localized: "Collapse section") : String(localized: "Expand section")
-    }
-
-    private func toggleExpansion() {
-        let toggle = {
-            if isExpanded {
-                expandedItems.remove(link.href)
-            } else {
-                expandedItems.insert(link.href)
+    private func toggleExpanded() {
+        if reduceMotion {
+            setExpanded(!isExpanded)
+        } else {
+            withAnimation {
+                setExpanded(!isExpanded)
             }
         }
-        if reduceMotion {
-            toggle()
+    }
+
+    private func setExpanded(_ expanded: Bool) {
+        if expanded {
+            expandedItems.insert(link.href)
         } else {
-            withAnimation(.easeInOut(duration: 0.2), toggle)
+            expandedItems.remove(link.href)
         }
     }
 }
