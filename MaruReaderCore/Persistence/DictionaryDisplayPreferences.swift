@@ -61,11 +61,18 @@ public enum DictionaryDisplayPreferences {
 
     public static var fontFamily: String {
         get {
-            let stored = UserDefaults.standard.string(forKey: fontFamilyKey)
-            return stored ?? fontFamilyDefault
+            guard let stored = UserDefaults.standard.string(forKey: fontFamilyKey) else {
+                return fontFamilyDefault
+            }
+
+            let normalized = DictionaryDisplayFontFamilyStacks.normalize(stored)
+            if normalized != stored {
+                UserDefaults.standard.set(normalized, forKey: fontFamilyKey)
+            }
+            return normalized
         }
         set {
-            UserDefaults.standard.set(newValue, forKey: fontFamilyKey)
+            UserDefaults.standard.set(DictionaryDisplayFontFamilyStacks.normalize(newValue), forKey: fontFamilyKey)
         }
     }
 

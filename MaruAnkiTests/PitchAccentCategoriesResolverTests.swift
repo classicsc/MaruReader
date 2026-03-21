@@ -68,7 +68,7 @@ struct PitchAccentCategoriesResolverTests {
     private func makeResponse(primaryResult: String, group: GroupedSearchResults) -> TextLookupResponse {
         let request = TextLookupRequest(context: primaryResult)
         let styles = DisplayStyles(
-            fontFamily: "System",
+            fontFamily: DictionaryDisplayFontFamilyStacks.sansSerif,
             contentFontSize: 1,
             popupFontSize: 1,
             showDeinflection: false,
