@@ -20,10 +20,9 @@ import SwiftUI
 
 struct DictionaryDisplaySettingsView: View {
     private static let fontOptions: [(displayName: String, family: String)] = [
-        (String(localized: "System"), "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif"),
-        (String(localized: "Serif"), "Hiragino Mincho ProN, TimesNewRomanPSMT, 'Times New Roman', Times, Georgia, serif"),
-        (String(localized: "Sans Serif"), "Hiragino Sans, HelveticaNeue, Helvetica, Arial, sans-serif"),
-        (String(localized: "Monospace"), "'Osaka Mono', Menlo, Monaco, 'Courier New', monospace"),
+        (String(localized: "Sans Serif"), DictionaryDisplayFontFamilyStacks.sansSerif),
+        (String(localized: "Serif"), DictionaryDisplayFontFamilyStacks.serif),
+        (String(localized: "Monospace"), DictionaryDisplayFontFamilyStacks.monospace),
     ]
 
     @AppStorage(DictionaryDisplayPreferences.fontFamilyKey)
@@ -57,6 +56,10 @@ struct DictionaryDisplaySettingsView: View {
         Self.fontOptions[selectedFontIndex].family
     }
 
+    private static func fontIndex(for family: String) -> Int {
+        fontOptions.firstIndex(where: { $0.family == family }) ?? 0
+    }
+
     private var deinflectionDescriptionLanguage: Binding<DeinflectionLanguage> {
         Binding(
             get: {
@@ -70,7 +73,7 @@ struct DictionaryDisplaySettingsView: View {
 
     init() {
         let defaultFamily = DictionaryDisplayPreferences.fontFamily
-        let defaultIndex = Self.fontOptions.firstIndex(where: { $0.family == defaultFamily }) ?? 0
+        let defaultIndex = Self.fontIndex(for: defaultFamily)
         _selectedFontIndex = State(initialValue: defaultIndex)
     }
 
@@ -119,13 +122,22 @@ struct DictionaryDisplaySettingsView: View {
         }
         .navigationTitle("Display Settings")
         .onAppear {
-            selectedFontIndex = Self.fontOptions.firstIndex(where: { $0.family == storedFontFamily }) ?? 0
+            let normalizedFontFamily = DictionaryDisplayPreferences.fontFamily
+            if storedFontFamily != normalizedFontFamily {
+                storedFontFamily = normalizedFontFamily
+            }
+            selectedFontIndex = Self.fontIndex(for: normalizedFontFamily)
         }
         .onChange(of: selectedFontIndex) { _, _ in
             storedFontFamily = fontFamily
         }
         .onChange(of: storedFontFamily) { _, newValue in
-            selectedFontIndex = Self.fontOptions.firstIndex(where: { $0.family == newValue }) ?? 0
+            let normalizedValue = DictionaryDisplayFontFamilyStacks.normalize(newValue)
+            if normalizedValue != newValue {
+                storedFontFamily = normalizedValue
+                return
+            }
+            selectedFontIndex = Self.fontIndex(for: normalizedValue)
         }
     }
 }

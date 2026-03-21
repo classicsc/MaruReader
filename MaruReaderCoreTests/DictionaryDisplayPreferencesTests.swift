@@ -99,6 +99,26 @@ struct DictionaryDisplayPreferencesTests {
         }
     }
 
+    @Test func fontFamily_migratesLegacySystemStackFromStoredDefaults() async {
+        await withStandardDefaultsSnapshot {
+            UserDefaults.standard.set(DictionaryDisplayFontFamilyStacks.legacySystem, forKey: DictionaryDisplayPreferences.fontFamilyKey)
+
+            let fontFamily = DictionaryDisplayPreferences.fontFamily
+
+            #expect(fontFamily == DictionaryDisplayFontFamilyStacks.sansSerif)
+            #expect(UserDefaults.standard.string(forKey: DictionaryDisplayPreferences.fontFamilyKey) == DictionaryDisplayFontFamilyStacks.sansSerif)
+        }
+    }
+
+    @Test func fontFamily_setterNormalizesLegacySystemStack() async {
+        await withStandardDefaultsSnapshot {
+            DictionaryDisplayPreferences.fontFamily = DictionaryDisplayFontFamilyStacks.legacySystem
+
+            #expect(DictionaryDisplayPreferences.fontFamily == DictionaryDisplayFontFamilyStacks.sansSerif)
+            #expect(UserDefaults.standard.string(forKey: DictionaryDisplayPreferences.fontFamilyKey) == DictionaryDisplayFontFamilyStacks.sansSerif)
+        }
+    }
+
     @Test func displayStylesReflectStoredPreferences() async {
         await withStandardDefaultsSnapshot {
             DictionaryDisplayPreferences.fontFamily = "Display Font"
@@ -124,6 +144,17 @@ struct DictionaryDisplayPreferencesTests {
             #expect(styles.pitchResultsAreaDownstepNotationEnabled)
             #expect(!styles.pitchResultsAreaDownstepPositionEnabled)
             #expect(styles.pitchResultsAreaEnabled)
+        }
+    }
+
+    @Test func displayStyles_normalizeLegacySystemFontFamilyFromStorage() async {
+        await withStandardDefaultsSnapshot {
+            UserDefaults.standard.set(DictionaryDisplayFontFamilyStacks.legacySystem, forKey: DictionaryDisplayPreferences.fontFamilyKey)
+
+            let styles = DictionaryDisplayPreferences.displayStyles
+
+            #expect(styles.fontFamily == DictionaryDisplayFontFamilyStacks.sansSerif)
+            #expect(UserDefaults.standard.string(forKey: DictionaryDisplayPreferences.fontFamilyKey) == DictionaryDisplayFontFamilyStacks.sansSerif)
         }
     }
 
