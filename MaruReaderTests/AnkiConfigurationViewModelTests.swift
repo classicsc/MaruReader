@@ -136,4 +136,113 @@ struct AnkiConfigurationViewModelTests {
 
         #expect(viewModel.currentStep == .mobileDetails)
     }
+
+    @Test @MainActor func proceedFromConnectionDetailsLoadsProfilesAndSelectsActiveProfile() async {
+        let probe = MockAnkiConnectionProbe(
+            profilesResult: .success([
+                AnkiProfileMeta(id: "User 1", isActiveProfile: false),
+                AnkiProfileMeta(id: "User 2", isActiveProfile: true),
+            ])
+        )
+        let viewModel = AnkiConfigurationViewModel(connectionProbeFactory: { probe })
+        viewModel.connectionType = .ankiConnect
+        viewModel.currentStep = .connectionDetails
+        viewModel.host = "localhost"
+        viewModel.port = "8765"
+
+        await viewModel.proceed()
+
+        #expect(viewModel.currentStep == .profileSelection)
+        #expect(viewModel.profiles.map(\.id) == ["User 1", "User 2"])
+        #expect(viewModel.selectedProfileID == "User 2")
+        #expect(viewModel.showError == false)
+    }
+
+    @Test @MainActor func proceedFromConnectionDetailsShowsErrorOnProbeFailure() async {
+        let probe = MockAnkiConnectionProbe(
+            profilesResult: .failure(TestProbeError.failed)
+        )
+        let viewModel = AnkiConfigurationViewModel(connectionProbeFactory: { probe })
+        viewModel.connectionType = AnkiConfigurationViewModel.ConnectionType.ankiConnect
+        viewModel.currentStep = AnkiConfigurationViewModel.ConfigurationStep.connectionDetails
+        viewModel.host = "localhost"
+        viewModel.port = "8765"
+
+        await viewModel.proceed()
+
+        #expect(viewModel.currentStep == AnkiConfigurationViewModel.ConfigurationStep.connectionDetails)
+        #expect(viewModel.showError)
+        #expect(viewModel.error as? TestProbeError == .failed)
+    }
+
+    @Test @MainActor func proceedFromProfileSelectionLoadsDecksAndModelsForAnkiConnect() async {
+        let probe = MockAnkiConnectionProbe(
+            decksResult: .success([
+                AnkiDeckMeta(id: "1", name: "Default", profileName: "User 1"),
+            ]),
+            modelsResult: .success([
+                AnkiModelMeta(id: "1", name: "Basic", profileName: "User 1", fields: ["Front", "Back"]),
+            ])
+        )
+        let viewModel = AnkiConfigurationViewModel(connectionProbeFactory: { probe })
+        viewModel.connectionType = .ankiConnect
+        viewModel.currentStep = .profileSelection
+        viewModel.host = "localhost"
+        viewModel.port = "8765"
+        viewModel.selectedProfileID = "User 1"
+
+        await viewModel.proceed()
+
+        #expect(viewModel.currentStep == .deckSelection)
+        #expect(viewModel.decks.map(\.name) == ["Default"])
+        #expect(viewModel.models.map(\.name) == ["Basic"])
+        #expect(viewModel.showError == false)
+    }
+}
+
+private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
+    private let profilesResult: Result<[AnkiProfileMeta], Error>
+    private let decksResult: Result<[AnkiDeckMeta], Error>
+    private let modelsResult: Result<[AnkiModelMeta], Error>
+
+    init(
+        profilesResult: Result<[AnkiProfileMeta], Error> = .success([]),
+        decksResult: Result<[AnkiDeckMeta], Error> = .success([]),
+        modelsResult: Result<[AnkiModelMeta], Error> = .success([])
+    ) {
+        self.profilesResult = profilesResult
+        self.decksResult = decksResult
+        self.modelsResult = modelsResult
+    }
+
+    func fetchProfiles(connection _: AnkiConnectConnectionInfo) async throws -> [AnkiProfileMeta] {
+        switch profilesResult {
+        case let .success(profiles):
+            return profiles
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func fetchDecks(connection _: AnkiConnectConnectionInfo, profileName _: String) async throws -> [AnkiDeckMeta] {
+        switch decksResult {
+        case let .success(decks):
+            return decks
+        case let .failure(error):
+            throw error
+        }
+    }
+
+    func fetchModels(connection _: AnkiConnectConnectionInfo, profileName _: String) async throws -> [AnkiModelMeta] {
+        switch modelsResult {
+        case let .success(models):
+            return models
+        case let .failure(error):
+            throw error
+        }
+    }
+}
+
+private enum TestProbeError: Error, Equatable {
+    case failed
 }
