@@ -15,8 +15,8 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import MaruDictionaryUICommon
 import CoreData
+import MaruDictionaryUICommon
 import SwiftUI
 
 /// The main manga reader view with paging, toolbars, and dictionary integration.

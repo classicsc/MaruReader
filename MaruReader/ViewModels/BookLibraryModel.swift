@@ -483,8 +483,7 @@ final class BookLibraryModel {
     }
 
     private func managedObjects(forKey key: String, in notification: Notification) -> Set<NSManagedObject> {
-        let rawObjects = notification.userInfo?[key] as? Set<NSManagedObject> ?? []
-        return rawObjects
+        notification.userInfo?[key] as? Set<NSManagedObject> ?? []
     }
 
     private func objectIDs(forKey key: String, in notification: Notification) -> Set<NSManagedObjectID> {

@@ -122,7 +122,7 @@ struct BookLibraryView: View {
                 .frame(height: 0)
                 .id(Self.scrollAnchor)
 
-            if model.hasLoadedInitialPage == false && model.snapshots.isEmpty {
+            if model.hasLoadedInitialPage == false, model.snapshots.isEmpty {
                 ProgressView("Loading books...")
                     .frame(maxWidth: .infinity, minHeight: 240)
                     .padding()
