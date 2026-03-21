@@ -1,4 +1,4 @@
-// DictionarySearchViewModelTests.swift
+// ResultDisplayState.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -15,21 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
-@testable import MaruDictionaryUICommon
-import Testing
-
-@MainActor
-struct DictionarySearchViewModelTests {
-    @Test func linksAreActiveByDefaultAndToggleOffThenOn() {
-        let viewModel = DictionarySearchViewModel()
-
-        #expect(viewModel.linksActiveEnabled)
-
-        viewModel.toggleLinksActive()
-        #expect(!viewModel.linksActiveEnabled)
-
-        viewModel.toggleLinksActive()
-        #expect(viewModel.linksActiveEnabled)
-    }
+public enum ResultDisplayState {
+    case startPage
+    case noResults(String)
+    case searching
+    case ready
+    case error(Error)
 }

@@ -22,15 +22,8 @@ import os
 import SwiftUI
 import WebKit
 
-public enum ResultDisplayState {
-    case startPage
-    case noResults(String)
-    case searching
-    case ready
-    case error(Error)
-}
-
 /// Helper class to hold mutable state references for the scheme handler
+@MainActor
 @Observable
 public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var resultState: ResultDisplayState
@@ -65,16 +58,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var currentResponse: TextLookupResponse?
     private var currentSession: TextLookupSession?
 
-    // Context display settings
-    var contextFontSize: Double = DictionaryDisplayDefaults.defaultContextFontSize
-    var contextFuriganaEnabled: Bool = DictionaryDisplayDefaults.defaultContextFuriganaEnabled
-    var toolbarFuriganaOverride: Bool?
-
-    /// Effective furigana enabled state (toolbar override takes precedence)
-    var furiganaEnabled: Bool {
-        toolbarFuriganaOverride ?? contextFuriganaEnabled
-    }
-
     /// Link activation state
     var toolbarLinksActiveOverride: Bool?
 
@@ -92,30 +75,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     var tooltipText: String = ""
     var tooltipAnchorRect: CGRect = .zero
     var showTooltip: Bool = false
-
-    // Context editing state
-    var isEditingContext: Bool = false
-    var editContextText: String = ""
-
-    // Cached furigana segments for current context
-    private var cachedFuriganaSegments: [FuriganaSegment] = []
-    private var cachedFuriganaContext: String?
-
-    /// Get furigana segments for the current context
-    var currentFuriganaSegments: [FuriganaSegment] {
-        guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else {
-            return []
-        }
-
-        if cachedFuriganaContext == context {
-            return cachedFuriganaSegments
-        }
-
-        let segments = FuriganaGenerator.generateSegments(from: context)
-        cachedFuriganaContext = context
-        cachedFuriganaSegments = segments
-        return segments
-    }
 
     /// Navigation history for back/forward functionality
     let history = NavigationHistory()
@@ -303,7 +262,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     /// Perform a search with a specific TextLookupRequest
     private func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
-        resetContextEditingState()
         searchTask?.cancel()
         searchTask = Task {
             if Task.isCancelled { return }
@@ -359,7 +317,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     public func performSearch(_ searchQuery: String, contextValues: LookupContextValues? = nil) {
         // Cancel any existing search
         searchTask?.cancel()
-        resetContextEditingState()
 
         // Handle empty query
         guard !searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -768,27 +725,6 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
-    // MARK: - Context Display
-
-    /// Load context display settings from user defaults-backed preferences.
-    public func loadContextDisplaySettings() {
-        contextFontSize = DictionaryDisplayPreferences.contextFontSize
-        contextFuriganaEnabled = DictionaryDisplayPreferences.contextFuriganaEnabled
-    }
-
-    /// Toggle furigana display on/off
-    public func toggleFurigana() {
-        if toolbarFuriganaOverride == nil {
-            // First toggle: override the setting
-            toolbarFuriganaOverride = !contextFuriganaEnabled
-        } else {
-            // Subsequent toggles: flip the override
-            toolbarFuriganaOverride = !furiganaEnabled
-        }
-        // Invalidate furigana cache
-        cachedFuriganaContext = nil
-    }
-
     /// Toggle link activation on/off
     public func toggleLinksActive() {
         toolbarLinksActiveOverride = !linksActiveEnabled
@@ -809,47 +745,20 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         pendingExternalURL = nil
     }
 
-    /// Start editing the context text
-    public func startEditingContext() {
-        guard let context = currentResponse?.effectiveContext ?? currentRequest?.context else { return }
-        editContextText = context
-        isEditingContext = true
-    }
-
-    private func resetContextEditingState() {
-        isEditingContext = false
-        editContextText = ""
-    }
-
     /// Commit the edited context text
-    public func commitContextEdit() {
-        guard isEditingContext else { return }
+    public func commitContextEdit(_ editedText: String) async {
         guard let session = currentSession else {
-            isEditingContext = false
             return
         }
 
-        Task {
-            let termFound = await session.updateEditedContext(editContextText)
+        let termFound = await session.updateEditedContext(editedText)
 
-            if let response = await session.snapshot() {
-                if !termFound {
-                    logger.info("Primary result '\(response.primaryResult)' not found in edited context")
-                }
-                currentResponse = response
+        if let response = await session.snapshot() {
+            if !termFound {
+                logger.info("Primary result '\(response.primaryResult)' not found in edited context")
             }
-
-            // Invalidate furigana cache since context changed
-            cachedFuriganaContext = nil
-
-            isEditingContext = false
+            currentResponse = response
         }
-    }
-
-    /// Cancel editing and discard changes
-    public func cancelContextEdit() {
-        isEditingContext = false
-        editContextText = ""
     }
 
     /// Copy the current context to clipboard

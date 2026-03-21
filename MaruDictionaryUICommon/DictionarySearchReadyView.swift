@@ -1,0 +1,84 @@
+// DictionarySearchReadyView.swift
+// MaruReader
+// Copyright (c) 2026  Samuel Smoker
+//
+// MaruReader is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// MaruReader is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
+
+import SwiftUI
+import WebKit
+
+@MainActor
+struct DictionarySearchReadyView: View {
+    let viewModel: DictionarySearchViewModel
+    let openURL: OpenURLAction
+    let presentationTheme: DictionaryPresentationTheme?
+
+    var body: some View {
+        @Bindable var viewModel = viewModel
+
+        WebView(viewModel.page)
+            .popover(
+                isPresented: $viewModel.showPopup,
+                attachmentAnchor: .rect(.rect(viewModel.popupAnchorPosition))
+            ) {
+                WebView(viewModel.popupPage)
+                    .background(themedBackgroundColor)
+                    .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+                    .frame(
+                        minWidth: 250,
+                        idealWidth: 300,
+                        maxWidth: 400,
+                        minHeight: 150,
+                        idealHeight: 200,
+                        maxHeight: 300
+                    )
+                    .presentationCompactAdaptation(.popover)
+            }
+            .popover(
+                isPresented: $viewModel.showExternalLinkConfirmation,
+                attachmentAnchor: .rect(.rect(viewModel.externalLinkAnchorRect))
+            ) {
+                DictionarySearchExternalLinkConfirmationView(
+                    url: viewModel.pendingExternalURL,
+                    onOpen: openPendingExternalURL
+                )
+                .environment(\.dictionaryPresentationTheme, presentationTheme)
+                .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+                .presentationCompactAdaptation(.popover)
+            }
+            .popover(
+                isPresented: $viewModel.showTooltip,
+                attachmentAnchor: .rect(.rect(viewModel.tooltipAnchorRect))
+            ) {
+                DictionarySearchTooltipPopoverView(
+                    text: viewModel.tooltipText,
+                    presentationTheme: presentationTheme
+                )
+                .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+                .presentationCompactAdaptation(.popover)
+            }
+    }
+
+    private var themedBackgroundColor: Color {
+        presentationTheme?.backgroundColor ?? Color(.systemBackground)
+    }
+
+    private func openPendingExternalURL() {
+        if let url = viewModel.pendingExternalURL {
+            openURL(url)
+        }
+        viewModel.clearPendingExternalURL()
+        viewModel.showExternalLinkConfirmation = false
+    }
+}
