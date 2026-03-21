@@ -215,6 +215,169 @@ struct BookLibraryModelTests {
         #expect(snapshots.first?.progressPercent == "100")
     }
 
+    @Test func backgroundVisibleQueryUpdateReloadsLoadedWindow() async throws {
+        let persistence = makeBookPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let updateContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_700_300_000)
+
+        var firstLoadedID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertBook(
+                into: viewContext,
+                title: String(format: "Book %02d", index),
+                originalFileName: nil,
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 59 {
+                firstLoadedID = objectID
+            }
+        }
+        let hiddenObjectID = try #require(firstLoadedID)
+
+        let model = await MainActor.run {
+            BookLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await updateContext.perform {
+            let book = try #require(updateContext.existingObject(with: hiddenObjectID) as? Book)
+            book.pendingDeletion = true
+            try updateContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Book 58"
+                && currentSnapshots.contains { $0.objectID == hiddenObjectID } == false
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Book 58")
+        #expect(snapshots.contains { $0.objectID == hiddenObjectID } == false)
+    }
+
+    @Test func backgroundOffscreenQueryUpdateReloadsLoadedWindow() async throws {
+        let persistence = makeBookPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let updateContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_700_310_000)
+
+        var offscreenID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertBook(
+                into: viewContext,
+                title: String(format: "Book %02d", index),
+                originalFileName: nil,
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 0 {
+                offscreenID = objectID
+            }
+        }
+        let promotedObjectID = try #require(offscreenID)
+
+        let model = await MainActor.run {
+            BookLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await updateContext.perform {
+            let book = try #require(updateContext.existingObject(with: promotedObjectID) as? Book)
+            book.added = baseDate.addingTimeInterval(1000)
+            try updateContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.objectID == promotedObjectID
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.first?.objectID == promotedObjectID)
+        #expect(snapshots.first?.title == "Book 00")
+    }
+
+    @Test func backgroundInsertInvalidatesLoadedWindow() async throws {
+        let persistence = makeBookPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let insertContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_700_320_000)
+
+        for index in 0 ..< 60 {
+            _ = try await insertBook(
+                into: viewContext,
+                title: String(format: "Book %02d", index),
+                originalFileName: nil,
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+        }
+
+        let model = await MainActor.run {
+            BookLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        _ = try await insertBook(
+            into: insertContext,
+            title: "Newest Book",
+            originalFileName: nil,
+            added: baseDate.addingTimeInterval(1000)
+        )
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Newest Book"
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Newest Book")
+    }
+
+    @Test func backgroundDeleteInvalidatesLoadedWindow() async throws {
+        let persistence = makeBookPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let deleteContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_700_330_000)
+
+        var firstLoadedID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertBook(
+                into: viewContext,
+                title: String(format: "Book %02d", index),
+                originalFileName: nil,
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 59 {
+                firstLoadedID = objectID
+            }
+        }
+        let deletedObjectID = try #require(firstLoadedID)
+
+        let model = await MainActor.run {
+            BookLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await deleteContext.perform {
+            let book = try #require(deleteContext.existingObject(with: deletedObjectID) as? Book)
+            deleteContext.delete(book)
+            try deleteContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Book 58"
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Book 58")
+        #expect(snapshots.contains { $0.objectID == deletedObjectID } == false)
+    }
+
     @Test func insertInvalidatesLoadedWindow() async throws {
         let persistence = makeBookPersistenceController()
         let viewContext = persistence.container.viewContext
