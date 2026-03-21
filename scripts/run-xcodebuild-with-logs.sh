@@ -20,6 +20,21 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/build/logs"
 mkdir -p "$LOG_DIR"
 
+is_test_invocation=false
+for arg in "$@"; do
+  if [[ "$arg" == "test" ]]; then
+    is_test_invocation=true
+    break
+  fi
+done
+
+filter_misleading_test_summary() {
+  awk '
+    /^[[:space:]]*Executed 0 tests, with 0 failures \(0 unexpected\) in 0\.000 \([0-9.]+\) seconds$/ { next }
+    { print }
+  '
+}
+
 log_key="${1//[^A-Za-z0-9._-]/-}"
 shift
 
@@ -34,9 +49,19 @@ echo "Raw log: $raw_log_path"
 echo "Parsed log: $parsed_log_path"
 
 set +e
-xcodebuild "$@" 2>&1 | tee "$raw_log_path" | xcbeautify -q | tee "$parsed_log_path"
+if [[ "$is_test_invocation" == true ]]; then
+  xcodebuild "$@" 2>&1 | tee "$raw_log_path" | xcbeautify -q | filter_misleading_test_summary | tee "$parsed_log_path"
+else
+  xcodebuild "$@" 2>&1 | tee "$raw_log_path" | xcbeautify -q | tee "$parsed_log_path"
+fi
 xcodebuild_exit_code=${PIPESTATUS[0]}
 set -e
+
+if [[ "$is_test_invocation" == true ]]; then
+  if test_summary="$("$ROOT_DIR/scripts/extract-test-summary.sh" "$raw_log_path" 2>/dev/null)"; then
+    printf '%s\n' "$test_summary" | tee -a "$parsed_log_path"
+  fi
+fi
 
 cp "$raw_log_path" "$latest_raw_path"
 cp "$parsed_log_path" "$latest_parsed_path"
