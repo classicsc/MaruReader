@@ -2,11 +2,15 @@
 
 ## How do I learn Japanese?
 
-It's too big a question to answer here, but generally language ability is a muscle you have to use. To get better at reading, getting lots of practice with reading real books usually yields better results than studying individual kanji or textbook examples. Through the sentence mining technique, you create flashcards to help with memorizing new vocabulary and grammar from real contexts. MaruReader is meant to make this practice more efficient by putting a high quality learning dictionary system at your fingertips while reading, and automating the process of creating flashcards with the Anki integration.
+It's too big a question to answer here, consult a dedicated guide on the topic. To get better at reading specifically, getting lots of practice with reading real books usually yields better results than studying individual kanji or textbook examples. MaruReader is meant to make this practice more efficient by putting a high quality learning dictionary system at your fingertips while reading, and automating the process of creating flashcards with the Anki integration.
+
+## What dictionaries should I use?
+
+In addition to the included Jiten
 
 ## What should I read?
 
-MaruReader intentionally does not come with any starter reading materials, because it's better to read what you're actually interested in reading. There are many guides, databases, and listicles online with books and manga organized by level.
+You're more likely to stick with stuff that you're actually interested in reading. There are many guides, databases, and listicles online with books and manga organized by level.
 
 ## Can MaruReader open eBooks in non-epub formats like Aozora?
 
@@ -22,11 +26,11 @@ Text recognition can always produce errors. MaruReader uses on-device text recog
 
 All is not lost, however. If you know how to type the correct character, you can use the pen icon at the bottom of the dictionary sheet to edit the context before looking up the word again or creating an Anki note.
 
-For the web browser specifically, accuracy can sometimes be improved by zooming in on the text you are trying to read. This will not help with the manga reader since the text recognition system always has the full-resolution image for local manga.
+For the web browser specifically, accuracy can sometimes be improved by zooming in on the text you are trying to read. This will not help with the manga reader since the text recognition system always uses the full-resolution image for local manga.
 
 ## I have a particular EPUB where the layout looks off and tapping the text doesn't work
 
-It might be a fixed-layout EPUB. Certain books, mostly older ones or PDF conversions, lack adjustable layout and might even contain pictures of each page instead of text. If a newer digital edition of the same book is available, it might work better in MaruReader.
+It might be a fixed-layout EPUB. Certain books, mostly older ones or PDF conversions, lack adjustable layout and might even contain pictures of each page instead of text. These are not supported since text is not available for dictionary lookups. If a newer digital edition of the same book is available, it might work better in MaruReader.
 
 ## Does MaruReader support Yomitan dictionaries with structured-content?
 
@@ -42,15 +46,11 @@ Yes.
 
 The Anki integrations are designed to support mining, which is the process of reading and creating flashcards for unfamiliar words. See the Anki guide for full details.
 
-MaruReader can work with many of the same mining setups as Yomitan, the main limitation being that MaruReader cannot use custom handlebars, only a set of values that roughly corresponds to Yomitan's default handlebars. If your workflow requires custom handlebars or some other feature that is missing, open an issue so we can look at whether it can be supported.
+MaruReader can work with many of the same mining setups as Yomitan, the main limitation being that MaruReader cannot use custom handlebars, only a set of values that roughly corresponds to Yomitan's default handlebars. If your workflow requires custom handlebars or some other feature that is missing, open a discussion thread so we can look at whether it can be supported.
 
 ## Formatting looks wrong on my Anki cards
 
 Make sure you are using the latest version of Anki, as older versions have issues with styled content. Otherwise, see the Anki Guide for more troubleshooting steps.
-
-## Is iOS 26+ really required?
-
-Yes, MaruReader relies on certain iOS 26 APIs for displaying dictionary content and the user interface.
 
 ## Why is it called MaruReader?
 
@@ -58,4 +58,4 @@ Maru is the name of the correct answer mark in Japanese, and you'll see more of 
 
 ## I have a question or issue that isn't answered here, or a suggestion
 
-Please open an issue. For problems, include as many specifics as possible: the dictionary/book/website, a screenshot of the problem, steps to make it happen, etc.
+Please open a discussion thread. For problems, include as many specifics as possible: the dictionary/book/website, a screenshot of the problem, steps to make it happen, etc.

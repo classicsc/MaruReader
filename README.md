@@ -52,12 +52,12 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
 
 ### Book Reader
 
-- **Optimized for Japanese eBooks** MaruReader displays books with vertical text (tategaki) and and a nice mincho/serif font with great legibility on phone screens. Light/dark mode follows system.
+- **Optimized for Japanese eBooks** MaruReader displays books with vertical text (tategaki) and fonts designed for Japanese text.
 - **Compact dictionary popup search** In the book reader, tapping on text opens a compact popup for the specific word you tapped, keeping you closer to the book.
 
 ### Web Browser
 
-- **Text recognition for web-based content** You can use MaruReader even without offline books and manga. Open what you want to read online in the built-in web browser. Activate OCR mode and tap on text to look it up using the same text recognition system used by the manga reader.
+- **Text recognition for web-based content** You can use MaruReader even without offline books and manga. Open what you want to read online in the built-in web browser. Activate OCR mode and tap on text to look it up using the same text recognition system used by the manga reader, or search text in the dictionary by highlighting it.
 - **Content blocker** The web browser has a content blocker with general and Japan-specific filters, so you can read with fewer distracting ads and trackers.
 
 ### Photo Scanner
