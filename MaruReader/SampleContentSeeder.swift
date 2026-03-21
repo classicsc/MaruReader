@@ -252,6 +252,7 @@ actor SampleContentSeeder {
 
     private func reusableBookID(for sampleContentID: String) async throws -> NSManagedObjectID? {
         let context = bookContainer.newBackgroundContext()
+        Self.configureUniquenessWriteContext(context)
         return try await context.perform {
             let request: NSFetchRequest<Book> = Book.fetchRequest()
             request.predicate = NSPredicate(format: "sampleContentID == %@", sampleContentID)
@@ -286,6 +287,7 @@ actor SampleContentSeeder {
 
     private func reusableMangaID(for sampleContentID: String) async throws -> NSManagedObjectID? {
         let context = mangaContainer.newBackgroundContext()
+        Self.configureUniquenessWriteContext(context)
         return try await context.perform {
             let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
             request.predicate = NSPredicate(format: "sampleContentID == %@", sampleContentID)
@@ -319,6 +321,7 @@ actor SampleContentSeeder {
 
     private func finalizeBookImport(jobID: NSManagedObjectID, sampleContentID: String) async throws -> NSManagedObjectID {
         let context = bookContainer.newBackgroundContext()
+        Self.configureUniquenessWriteContext(context)
         return try await context.perform {
             guard let book = try context.existingObject(with: jobID) as? Book else {
                 throw SampleContentSeederError.sampleImportFailed("Book import record was not found")
@@ -336,6 +339,7 @@ actor SampleContentSeeder {
 
     private func finalizeMangaImport(jobID: NSManagedObjectID, sampleContentID: String) async throws -> NSManagedObjectID {
         let context = mangaContainer.newBackgroundContext()
+        Self.configureUniquenessWriteContext(context)
         return try await context.perform {
             guard let manga = try context.existingObject(with: jobID) as? MangaArchive else {
                 throw SampleContentSeederError.sampleImportFailed("Manga import record was not found")
@@ -617,5 +621,9 @@ actor SampleContentSeeder {
     private nonisolated static func formatProgress(_ value: Double) -> String {
         let clampedValue = min(max(value, 0), 1)
         return clampedValue.formatted(.percent.precision(.fractionLength(0)))
+    }
+
+    static func configureUniquenessWriteContext(_ context: NSManagedObjectContext) {
+        context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
     }
 }

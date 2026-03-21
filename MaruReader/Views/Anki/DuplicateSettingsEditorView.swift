@@ -73,13 +73,14 @@ struct DuplicateSettingsEditorView: View {
     private func loadSettings() async {
         let context = persistence.container.viewContext
         let loadedOptions: DuplicateDetectionOptions? = await context.perform {
-            let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-            request.fetchLimit = 1
-            guard let settings = try? context.fetch(request).first,
+            guard let settings = try? AnkiSettingsStore.fetchOrCreateSettings(in: context),
                   let duplicateJSON = settings.duplicateNoteSettings,
                   let data = duplicateJSON.data(using: .utf8)
             else {
                 return nil
+            }
+            if context.hasChanges {
+                try? context.save()
             }
             return try? JSONDecoder().decode(DuplicateDetectionOptions.self, from: data)
         }
@@ -106,11 +107,7 @@ struct DuplicateSettingsEditorView: View {
         let context = persistence.newBackgroundContext()
         do {
             try await context.perform {
-                let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-                request.fetchLimit = 1
-                guard let settings = try context.fetch(request).first else {
-                    return
-                }
+                let settings = try AnkiSettingsStore.fetchOrCreateSettings(in: context)
 
                 let options = DuplicateDetectionOptions(
                     scope: scopeValue,

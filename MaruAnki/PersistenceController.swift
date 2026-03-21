@@ -99,7 +99,7 @@ public final class AnkiPersistenceController: Sendable {
     /// - Returns: A configured background context
     public func newBackgroundContext() -> NSManagedObjectContext {
         let context = container.newBackgroundContext()
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
         return context
@@ -107,7 +107,7 @@ public final class AnkiPersistenceController: Sendable {
 
     private static func configureViewContext(_ context: NSManagedObjectContext) {
         context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
     }
 }
 

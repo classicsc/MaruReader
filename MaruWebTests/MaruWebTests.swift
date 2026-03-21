@@ -15,8 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreData
 import CoreGraphics
 import Foundation
+import MaruReaderCore
 import MaruVision
 @testable import MaruWeb
 import Testing
@@ -298,6 +300,41 @@ struct MaruWebTests {
         let bookmark = try #require(bookmarks.first)
         #expect(bookmark.title == "Example 2")
         #expect(bookmark.favicon == favicon)
+    }
+
+    @Test func concurrentAddsForSameURLKeepSingleBookmarkRow() async throws {
+        let persistence = makeWebPersistenceController(storeKind: .temporarySQLite)
+        let url = try #require(URL(string: "https://example.com"))
+
+        try await withThrowingTaskGroup(of: Void.self) { group in
+            for title in ["First", "Second"] {
+                group.addTask {
+                    let manager = WebBookmarkManager(persistenceController: persistence)
+                    _ = try await manager.addBookmark(url: url, title: title)
+                }
+            }
+
+            try await group.waitForAll()
+        }
+
+        let manager = WebBookmarkManager(persistenceController: persistence)
+        let bookmarks = try await manager.fetchBookmarks()
+        #expect(bookmarks.count == 1)
+        #expect(bookmarks.first?.url == url)
+        #expect(["First", "Second"].contains(bookmarks.first?.title ?? ""))
+    }
+
+    @Test func writerContextsUseStoreTrumpMergePolicy() async {
+        let persistence = makeWebPersistenceController()
+
+        #expect(
+            await mergePolicyType(for: persistence.container.viewContext)
+                == NSMergePolicyType.mergeByPropertyStoreTrumpMergePolicyType
+        )
+        #expect(
+            await mergePolicyType(for: persistence.newBackgroundContext())
+                == NSMergePolicyType.mergeByPropertyStoreTrumpMergePolicyType
+        )
     }
 
     @Test func toggleBookmarkRemovesExisting() async throws {
@@ -653,5 +690,11 @@ struct MaruWebTests {
             }
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
+    }
+}
+
+private func mergePolicyType(for context: NSManagedObjectContext) async -> NSMergePolicyType? {
+    await context.perform {
+        (context.mergePolicy as? NSMergePolicy)?.mergeType
     }
 }

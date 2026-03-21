@@ -63,9 +63,11 @@ struct ContextImageSettingsView: View {
     private func loadSettings() async {
         let context = persistence.container.viewContext
         let fetchedSettings: MaruAnkiSettings? = await context.perform {
-            let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-            request.fetchLimit = 1
-            return try? context.fetch(request).first
+            let settings = try? AnkiSettingsStore.fetchOrCreateSettings(in: context)
+            if context.hasChanges {
+                try? context.save()
+            }
+            return settings
         }
 
         currentSettings = fetchedSettings

@@ -362,13 +362,9 @@ public actor AnkiConnectionManager {
     }
 
     private func fetchSettings() async throws -> AnkiConfiguration {
-        let context = persistence.container.newBackgroundContext()
+        let context = persistence.newBackgroundContext()
         return try await context.perform {
-            let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-            request.fetchLimit = 1
-            let settings = try context.fetch(request).first
-
-            guard let settings else {
+            guard let settings = try AnkiSettingsStore.fetchSettings(in: context) else {
                 throw AnkiConnectionManagerError.missingRequiredSettings
             }
 

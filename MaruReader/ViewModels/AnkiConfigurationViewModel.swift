@@ -545,17 +545,7 @@ final class AnkiConfigurationViewModel {
 
         do {
             try await context.perform {
-                // Fetch or create settings
-                let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-                request.fetchLimit = 1
-
-                let settings: MaruAnkiSettings
-                if let existing = try context.fetch(request).first {
-                    settings = existing
-                } else {
-                    settings = MaruAnkiSettings(context: context)
-                    settings.id = UUID()
-                }
+                let settings = try AnkiSettingsStore.fetchOrCreateSettings(in: context)
 
                 // Update settings
                 settings.ankiEnabled = true

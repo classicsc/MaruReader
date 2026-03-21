@@ -176,13 +176,19 @@ struct SampleContentSeederTests {
         )
 
         try await seeder.seedIfAvailable()
+        let firstBooks = await fetchBooks(from: fixture.bookContainer.viewContext)
+        let firstManga = await fetchManga(from: fixture.mangaContainer.viewContext)
         try await seeder.seedIfAvailable()
 
         let books = await fetchBooks(from: fixture.bookContainer.viewContext)
         let manga = await fetchManga(from: fixture.mangaContainer.viewContext)
 
+        #expect(firstBooks.count == 1)
+        #expect(firstManga.count == 1)
         #expect(books.count == 1)
         #expect(manga.count == 1)
+        #expect(books[0].objectID == firstBooks[0].objectID)
+        #expect(manga[0].objectID == firstManga[0].objectID)
         #expect(books[0].sampleContentID == "sample-book")
         #expect(manga[0].sampleContentID == "sample-manga")
         #expect(books[0].progressPercent?.isEmpty == false)
@@ -569,6 +575,7 @@ private struct BookSnapshot {
 }
 
 private struct MangaSnapshot {
+    let objectID: NSManagedObjectID
     let sampleContentID: String?
     let localPath: URL?
     let coverImage: URL?
@@ -576,6 +583,7 @@ private struct MangaSnapshot {
     let lastReadDate: Date?
 
     init(_ manga: MangaArchive) {
+        objectID = manga.objectID
         sampleContentID = manga.sampleContentID
         localPath = manga.localPath
         coverImage = manga.coverImage

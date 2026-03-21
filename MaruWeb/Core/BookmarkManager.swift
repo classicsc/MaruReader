@@ -41,6 +41,11 @@ actor WebBookmarkManager {
         let context = persistenceController.newBackgroundContext()
         return try await context.perform {
             let now = Date()
+            let resolvedTitle = if let title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                title
+            } else {
+                url.host ?? url.absoluteString
+            }
             let bookmark = try self.fetchBookmark(url: url, in: context) ?? WebBookmark(context: context)
 
             if bookmark.id == nil {
@@ -50,16 +55,31 @@ actor WebBookmarkManager {
             }
 
             bookmark.url = url.absoluteString
-            if let title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                bookmark.title = title
-            } else if bookmark.title?.isEmpty != false {
-                bookmark.title = url.host ?? url.absoluteString
-            }
+            bookmark.title = resolvedTitle
             bookmark.favicon = favicon ?? bookmark.favicon
             bookmark.lastVisitedAt = now
 
             try context.save()
-            return try self.snapshot(from: bookmark)
+
+            let persistedBookmark = try self.fetchBookmark(url: url, in: context) ?? bookmark
+            var needsCanonicalSave = false
+            if persistedBookmark.title != resolvedTitle {
+                persistedBookmark.title = resolvedTitle
+                needsCanonicalSave = true
+            }
+            if let favicon, persistedBookmark.favicon != favicon {
+                persistedBookmark.favicon = favicon
+                needsCanonicalSave = true
+            }
+            if persistedBookmark.lastVisitedAt != now {
+                persistedBookmark.lastVisitedAt = now
+                needsCanonicalSave = true
+            }
+            if needsCanonicalSave {
+                try context.save()
+            }
+
+            return try self.snapshot(from: persistedBookmark)
         }
     }
 

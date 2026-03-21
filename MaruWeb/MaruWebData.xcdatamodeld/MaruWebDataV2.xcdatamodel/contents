@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25D2128" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="1.1.0">
+    <entity name="WebBookmark" representedClassName="WebBookmark" syncable="YES" codeGenerationType="class">
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="favicon" optional="YES" attributeType="Binary"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="lastVisitedAt" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="sortOrder" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="title" attributeType="String" defaultValueString="Untitled Bookmark"/>
+        <attribute name="url" attributeType="String"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="url"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+</model>

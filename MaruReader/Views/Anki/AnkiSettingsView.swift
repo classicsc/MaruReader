@@ -144,10 +144,11 @@ struct AnkiSettingsView: View {
     private func loadSettings() async {
         let context = persistence.container.viewContext
         let (fetchedSettings, parsedDuplicateOptions): (MaruAnkiSettings?, DuplicateDetectionOptions?) = await context.perform {
-            let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-            request.fetchLimit = 1
-            guard let settings = try? context.fetch(request).first else {
+            guard let settings = try? AnkiSettingsStore.fetchOrCreateSettings(in: context) else {
                 return (nil, nil)
+            }
+            if context.hasChanges {
+                try? context.save()
             }
 
             var options: DuplicateDetectionOptions?
@@ -175,11 +176,7 @@ struct AnkiSettingsView: View {
 
         do {
             try await context.perform {
-                let request = NSFetchRequest<MaruAnkiSettings>(entityName: "MaruAnkiSettings")
-                request.fetchLimit = 1
-                guard let settings = try context.fetch(request).first else {
-                    return
-                }
+                let settings = try AnkiSettingsStore.fetchOrCreateSettings(in: context)
 
                 let data = try JSONEncoder().encode(options)
                 settings.duplicateNoteSettings = String(data: data, encoding: .utf8)

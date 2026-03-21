@@ -94,8 +94,6 @@ public enum SystemProfileManager {
         configuration: ConfiguredProfileData,
         in context: NSManagedObjectContext
     ) async throws -> UUID {
-        let profileID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
-
         try await context.perform {
             // Find existing or create new
             let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
@@ -107,7 +105,7 @@ public enum SystemProfileManager {
                 profile = existing
             } else {
                 profile = MaruModelSettings(context: context)
-                profile.id = profileID
+                profile.id = UUID()
             }
 
             // Update profile
@@ -129,7 +127,19 @@ public enum SystemProfileManager {
             try context.save()
         }
 
-        return profileID
+        return try await context.perform {
+            let request = NSFetchRequest<MaruModelSettings>(entityName: "MaruModelSettings")
+            request.predicate = NSPredicate(format: "sourceTemplateID == %@", templateID)
+            request.fetchLimit = 1
+
+            guard let profile = try context.fetch(request).first,
+                  let profileID = profile.id
+            else {
+                throw CocoaError(.validationMissingMandatoryProperty)
+            }
+
+            return profileID
+        }
     }
 
     /// Retrieves the configuration data for a template-based profile.
