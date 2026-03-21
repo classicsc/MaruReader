@@ -26,7 +26,7 @@ struct AnkiSettingsView: View {
     private let persistence = AnkiPersistenceController.shared
     private let noteService = AnkiNoteService()
 
-    @State private var currentSettings: MaruAnkiSettings?
+    @State private var currentSnapshot: AnkiSettingsSnapshot?
     @State private var isAnkiEnabled = false
     @State private var showingConfigurationFlow = false
     @State private var showingFieldMappingManagement = false
@@ -47,11 +47,10 @@ struct AnkiSettingsView: View {
                     Toggle("Enable Anki Integration", isOn: $isAnkiEnabled)
                 }
 
-                if let settings = currentSettings {
+                if let snapshot = currentSnapshot {
                     if isAnkiEnabled {
                         AnkiConfigurationSectionView(
-                            settings: settings,
-                            duplicateScopeDisplayName: duplicateScopeDisplayName,
+                            snapshot: snapshot,
                             allowDuplicates: $allowDuplicates,
                             isSavingDuplicateOptions: isSavingDuplicateOptions
                         )
@@ -85,14 +84,15 @@ struct AnkiSettingsView: View {
             await loadSettings()
         }
         .onChange(of: isAnkiEnabled) { _, newValue in
-            guard currentSettings?.ankiEnabled != newValue else { return }
-            if let settings = currentSettings {
-                settings.ankiEnabled = newValue
-                try? persistence.container.viewContext.save()
+            switch AnkiSettingsToggleAction.resolve(currentSnapshot: currentSnapshot, newValue: newValue) {
+            case .noChange:
+                break
+            case let .persistEnabled(isEnabled):
                 Task {
-                    await loadSettings()
+                    await saveAnkiEnabled(isEnabled)
                 }
-            } else if newValue {
+            case .showConfigurationFlow:
+                isAnkiEnabled = currentSnapshot?.isEnabled ?? false
                 showingConfigurationFlow = true
             }
         }
@@ -143,7 +143,7 @@ struct AnkiSettingsView: View {
 
     private func loadSettings() async {
         let context = persistence.container.viewContext
-        let (fetchedSettings, parsedDuplicateOptions): (MaruAnkiSettings?, DuplicateDetectionOptions?) = await context.perform {
+        let (snapshot, parsedDuplicateOptions): (AnkiSettingsSnapshot?, DuplicateDetectionOptions?) = await context.perform {
             guard let settings = try? AnkiSettingsStore.fetchOrCreateSettings(in: context) else {
                 return (nil, nil)
             }
@@ -158,14 +158,30 @@ struct AnkiSettingsView: View {
                 options = try? JSONDecoder().decode(DuplicateDetectionOptions.self, from: data)
             }
 
-            return (settings, options)
+            return (AnkiSettingsSnapshot(settings: settings, duplicateOptions: options), options)
         }
-        currentSettings = fetchedSettings
-        isAnkiEnabled = fetchedSettings?.ankiEnabled ?? false
+        currentSnapshot = snapshot
+        isAnkiEnabled = snapshot?.isEnabled ?? false
         duplicateOptions = parsedDuplicateOptions
-        allowDuplicates = parsedDuplicateOptions?.scope == DuplicateNoteScope.none
+        allowDuplicates = snapshot?.allowsDuplicates ?? false
         pendingCount = await noteService.pendingNoteCount()
         isLoading = false
+    }
+
+    private func saveAnkiEnabled(_ isEnabled: Bool) async {
+        let context = persistence.newBackgroundContext()
+
+        do {
+            try await context.perform {
+                let settings = try AnkiSettingsStore.fetchOrCreateSettings(in: context)
+                settings.ankiEnabled = isEnabled
+                try context.save()
+            }
+            await loadSettings()
+        } catch {
+            await loadSettings()
+            Self.logger.error("Failed to save Anki enabled state: \(String(describing: error), privacy: .public)")
+        }
     }
 
     private func saveDuplicateOptions(_ options: DuplicateDetectionOptions) async {
@@ -186,25 +202,6 @@ struct AnkiSettingsView: View {
         } catch {
             await loadSettings()
             Self.logger.error("Failed to save duplicate settings: \(String(describing: error), privacy: .public)")
-        }
-    }
-
-    private var duplicateScopeDisplayName: String {
-        guard let options = duplicateOptions else {
-            return String(localized: "Not Configured")
-        }
-        switch options.scope {
-        case .none:
-            return String(localized: "Allow Duplicates")
-        case .deck:
-            if let deckName = options.deckName {
-                return AppLocalization.checkInDeck(deckName)
-            }
-            return String(localized: "Check in Target Deck")
-        case .collection:
-            return String(localized: "Check Entire Collection")
-        @unknown default:
-            return String(localized: "Unknown")
         }
     }
 }

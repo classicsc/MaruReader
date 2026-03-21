@@ -72,56 +72,6 @@ public actor AnkiConnectionManager {
         startObservingSaves()
     }
 
-    // MARK: - Temporary Connection Methods
-
-    /// Tests connection to Anki-Connect with temporary settings (not persisted).
-    /// Throws on failure.
-    public func testConnection(host: String, port: Int, apiKey: String?) async throws {
-        _ = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
-    }
-
-    /// Fetches profiles using temporary connection settings.
-    public func getProfiles(host: String, port: Int, apiKey: String?) async throws -> [AnkiProfileMeta] {
-        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
-        let response = await provider.getAnkiProfiles()
-        switch response {
-        case let .success(profiles):
-            return profiles
-        case let .failure(error):
-            throw error
-        case .apiCapabilityMissing:
-            throw AnkiConnectionManagerError.providerUnavailable
-        }
-    }
-
-    /// Fetches decks for a profile using temporary connection settings.
-    public func getDecks(host: String, port: Int, apiKey: String?, forProfile profileName: String) async throws -> [AnkiDeckMeta] {
-        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
-        let response = await provider.getAnkiDecks(forProfile: profileName)
-        switch response {
-        case let .success(decks):
-            return decks
-        case let .failure(error):
-            throw error
-        case .apiCapabilityMissing:
-            throw AnkiConnectionManagerError.providerUnavailable
-        }
-    }
-
-    /// Fetches models for a profile using temporary connection settings.
-    public func getModels(host: String, port: Int, apiKey: String?, forProfile profileName: String) async throws -> [AnkiModelMeta] {
-        let provider = try await AnkiConnectProvider(host: host, port: port, apiKey: apiKey)
-        let response = await provider.getAnkiModels(forProfile: profileName)
-        switch response {
-        case let .success(models):
-            return models
-        case let .failure(error):
-            throw error
-        case .apiCapabilityMissing:
-            throw AnkiConnectionManagerError.providerUnavailable
-        }
-    }
-
     /// Add a note using the provided template resolver.
     /// - Returns: The result containing Anki note ID and configuration used.
     @discardableResult
@@ -326,9 +276,7 @@ public actor AnkiConnectionManager {
 
             guard let provider = await makeProvider(
                 isAnkiConnect: config.isAnkiConnect,
-                host: config.apiHost,
-                port: config.apiPort,
-                apiKey: config.apiKey
+                connectionInfo: config.connectionInfo
             ) else {
                 throw AnkiConnectionManagerError.providerUnavailable
             }
@@ -355,9 +303,7 @@ public actor AnkiConnectionManager {
         let deckName: String?
         let modelName: String?
         let profileName: String?
-        let apiHost: String?
-        let apiPort: Int?
-        let apiKey: String?
+        let connectionInfo: AnkiConnectConnectionInfo?
         let isAnkiConnect: Bool
     }
 
@@ -373,6 +319,17 @@ public actor AnkiConnectionManager {
             }
 
             let connectConfig = settings.isAnkiConnect ? settings.connectConfiguration : nil
+            let connectionInfo: AnkiConnectConnectionInfo? = if let host = connectConfig?["hostname"] as? String,
+                                                                let port = connectConfig?["port"] as? Int
+            {
+                AnkiConnectConnectionInfo(
+                    host: host,
+                    port: port,
+                    apiKey: connectConfig?["apiKey"] as? String
+                )
+            } else {
+                nil
+            }
 
             return AnkiConfiguration(
                 duplicateNoteSettingsJSON: settings.duplicateNoteSettings,
@@ -380,25 +337,29 @@ public actor AnkiConnectionManager {
                 deckName: settings.defaultDeckName,
                 modelName: settings.defaultModelName,
                 profileName: settings.defaultProfileName,
-                apiHost: connectConfig?["hostname"] as? String,
-                apiPort: connectConfig?["port"] as? Int,
-                apiKey: connectConfig?["apiKey"] as? String,
+                connectionInfo: connectionInfo,
                 isAnkiConnect: settings.isAnkiConnect
             )
         }
     }
 
-    private func makeProvider(isAnkiConnect: Bool, host: String?, port: Int?, apiKey: String?) async -> (any AnkiProvider)? {
+    private func makeProvider(
+        isAnkiConnect: Bool,
+        connectionInfo: AnkiConnectConnectionInfo?
+    ) async -> (any AnkiProvider)? {
         if isAnkiConnect {
-            guard let host, port != nil, (port ?? 0) > 0, !host.isEmpty else {
+            guard let connectionInfo,
+                  !connectionInfo.host.isEmpty,
+                  connectionInfo.port > 0
+            else {
                 return nil
             }
 
             do {
                 return try await AnkiConnectProvider(
-                    host: host,
-                    port: port!,
-                    apiKey: apiKey
+                    host: connectionInfo.host,
+                    port: connectionInfo.port,
+                    apiKey: connectionInfo.apiKey
                 )
             } catch {
                 self.error = error

@@ -49,6 +49,14 @@ private struct AnkiMobileInfoForAdding: Decodable {
     let profiles: [NamedItem]?
 }
 
+protocol AnkiConnectionProbing: Sendable {
+    func fetchProfiles(connection: AnkiConnectConnectionInfo) async throws -> [AnkiProfileMeta]
+    func fetchDecks(connection: AnkiConnectConnectionInfo, profileName: String) async throws -> [AnkiDeckMeta]
+    func fetchModels(connection: AnkiConnectConnectionInfo, profileName: String) async throws -> [AnkiModelMeta]
+}
+
+extension AnkiConnectProbe: AnkiConnectionProbing {}
+
 @MainActor
 @Observable
 final class AnkiConfigurationViewModel {
@@ -119,9 +127,14 @@ final class AnkiConfigurationViewModel {
 
     /// Dependencies
     private let persistence: AnkiPersistenceController
+    private let connectionProbeFactory: @Sendable () -> any AnkiConnectionProbing
 
-    init(persistence: AnkiPersistenceController = .shared) {
+    init(
+        persistence: AnkiPersistenceController = .shared,
+        connectionProbeFactory: @escaping @Sendable () -> any AnkiConnectionProbing = { AnkiConnectProbe() }
+    ) {
         self.persistence = persistence
+        self.connectionProbeFactory = connectionProbeFactory
     }
 
     // MARK: - Computed Properties
@@ -288,11 +301,15 @@ final class AnkiConfigurationViewModel {
         defer { isLoading = false }
 
         do {
-            let manager = await AnkiConnectionManager(persistence: persistence)
-            try await manager.testConnection(host: host, port: portInt, apiKey: apiKeyOrNil)
+            let connection = AnkiConnectConnectionInfo(
+                host: host,
+                port: portInt,
+                apiKey: apiKeyOrNil
+            )
+            let probe = connectionProbeFactory()
 
-            // Connection successful, fetch profiles
-            profiles = try await manager.getProfiles(host: host, port: portInt, apiKey: apiKeyOrNil)
+            // Fetching profiles is the validation step for temporary Anki-Connect setup.
+            profiles = try await probe.fetchProfiles(connection: connection)
 
             // Auto-select active profile if there is one
             if let activeProfile = profiles.first(where: { $0.isActiveProfile }) {
@@ -317,21 +334,16 @@ final class AnkiConfigurationViewModel {
         defer { isLoading = false }
 
         do {
-            let manager = await AnkiConnectionManager(persistence: persistence)
-
-            decks = try await manager.getDecks(
+            let connection = AnkiConnectConnectionInfo(
                 host: host,
                 port: portInt,
-                apiKey: apiKeyOrNil,
-                forProfile: profileID
+                apiKey: apiKeyOrNil
             )
+            let probe = connectionProbeFactory()
 
-            models = try await manager.getModels(
-                host: host,
-                port: portInt,
-                apiKey: apiKeyOrNil,
-                forProfile: profileID
-            )
+            decks = try await probe.fetchDecks(connection: connection, profileName: profileID)
+
+            models = try await probe.fetchModels(connection: connection, profileName: profileID)
 
             currentStep = .deckSelection
         } catch {

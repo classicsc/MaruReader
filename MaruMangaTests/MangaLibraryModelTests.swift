@@ -212,6 +212,164 @@ struct MangaLibraryModelTests {
         #expect(snapshots.first?.progressText == "100 / 100 Read")
     }
 
+    @Test func backgroundVisibleQueryUpdateReloadsLoadedWindow() async throws {
+        let persistence = makeMangaPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let updateContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_800_300_000)
+
+        var firstLoadedID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertManga(
+                into: viewContext,
+                title: String(format: "Manga %02d", index),
+                dateAdded: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 59 {
+                firstLoadedID = objectID
+            }
+        }
+        let hiddenObjectID = try #require(firstLoadedID)
+
+        let model = await MainActor.run {
+            MangaLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await updateContext.perform {
+            let manga = try #require(updateContext.existingObject(with: hiddenObjectID) as? MangaArchive)
+            manga.pendingDeletion = true
+            try updateContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Manga 58"
+                && currentSnapshots.contains { $0.objectID == hiddenObjectID } == false
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Manga 58")
+        #expect(snapshots.contains { $0.objectID == hiddenObjectID } == false)
+    }
+
+    @Test func backgroundOffscreenQueryUpdateReloadsLoadedWindow() async throws {
+        let persistence = makeMangaPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let updateContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_800_310_000)
+
+        var offscreenID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertManga(
+                into: viewContext,
+                title: String(format: "Manga %02d", index),
+                dateAdded: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 0 {
+                offscreenID = objectID
+            }
+        }
+        let promotedObjectID = try #require(offscreenID)
+
+        let model = await MainActor.run {
+            MangaLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await updateContext.perform {
+            let manga = try #require(updateContext.existingObject(with: promotedObjectID) as? MangaArchive)
+            manga.dateAdded = baseDate.addingTimeInterval(1000)
+            try updateContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.objectID == promotedObjectID
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.first?.objectID == promotedObjectID)
+        #expect(snapshots.first?.title == "Manga 00")
+    }
+
+    @Test func backgroundInsertInvalidatesLoadedWindow() async throws {
+        let persistence = makeMangaPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let insertContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_800_320_000)
+
+        for index in 0 ..< 60 {
+            _ = try await insertManga(
+                into: viewContext,
+                title: String(format: "Manga %02d", index),
+                dateAdded: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+        }
+
+        let model = await MainActor.run {
+            MangaLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        _ = try await insertManga(
+            into: insertContext,
+            title: "Newest Manga",
+            dateAdded: baseDate.addingTimeInterval(1000)
+        )
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Newest Manga"
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Newest Manga")
+    }
+
+    @Test func backgroundDeleteInvalidatesLoadedWindow() async throws {
+        let persistence = makeMangaPersistenceController()
+        let viewContext = persistence.container.viewContext
+        let deleteContext = persistence.newBackgroundContext()
+        let baseDate = Date(timeIntervalSince1970: 1_800_330_000)
+
+        var firstLoadedID: NSManagedObjectID?
+        for index in 0 ..< 60 {
+            let objectID = try await insertManga(
+                into: viewContext,
+                title: String(format: "Manga %02d", index),
+                dateAdded: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+            if index == 59 {
+                firstLoadedID = objectID
+            }
+        }
+        let deletedObjectID = try #require(firstLoadedID)
+
+        let model = await MainActor.run {
+            MangaLibraryModel(debounceDuration: .milliseconds(5))
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+
+        try await deleteContext.perform {
+            let manga = try #require(deleteContext.existingObject(with: deletedObjectID) as? MangaArchive)
+            deleteContext.delete(manga)
+            try deleteContext.save()
+        }
+
+        await waitUntil {
+            let currentSnapshots = await currentSnapshots(of: model)
+            return currentSnapshots.first?.title == "Manga 58"
+        }
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == 48)
+        #expect(snapshots.first?.title == "Manga 58")
+        #expect(snapshots.contains { $0.objectID == deletedObjectID } == false)
+    }
+
     @Test func deleteInvalidatesLoadedWindow() async throws {
         let persistence = makeMangaPersistenceController()
         let viewContext = persistence.container.viewContext

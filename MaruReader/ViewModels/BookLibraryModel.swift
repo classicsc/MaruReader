@@ -17,6 +17,7 @@
 
 import CoreData
 import Foundation
+import MaruReaderCore
 import Observation
 
 private let bookLibraryPageSize = 48
@@ -158,6 +159,11 @@ struct BookLibrarySnapshot: Identifiable, Equatable {
 @MainActor
 @Observable
 final class BookLibraryModel {
+    private struct FetchedEntry {
+        let snapshot: BookLibrarySnapshot
+        let queryState: LibraryQueryState
+    }
+
     private(set) var snapshots: [BookLibrarySnapshot] = []
     private(set) var hasMorePages = true
     private(set) var isLoadingPage = false
@@ -169,10 +175,10 @@ final class BookLibraryModel {
 
     private var contextObserverTask: Task<Void, Never>?
     private var mergeObserverTask: Task<Void, Never>?
-    private var saveObserverTask: Task<Void, Never>?
     private var debouncedReloadTask: Task<Void, Never>?
     private var currentOffset = 0
     private var loadToken = UUID()
+    private var loadedQueryStates: [NSManagedObjectID: LibraryQueryState] = [:]
     private let debounceDuration: Duration
     private let notificationCenter: NotificationCenter
     private var viewContext: NSManagedObjectContext?
@@ -189,15 +195,14 @@ final class BookLibraryModel {
         if self.viewContext !== viewContext {
             contextObserverTask?.cancel()
             mergeObserverTask?.cancel()
-            saveObserverTask?.cancel()
             debouncedReloadTask?.cancel()
             self.viewContext = viewContext
             observeContextChanges()
             observeMergedObjectIDChanges()
-            observeSavedObjectIDChanges()
             invalidateInFlightLoads()
             snapshots = []
             currentOffset = 0
+            loadedQueryStates = [:]
             hasMorePages = true
             hasLoadedInitialPage = false
         }
@@ -215,14 +220,17 @@ final class BookLibraryModel {
         let token = loadToken
 
         do {
-            let nextSnapshots = try await fetchSnapshots(offset: offset, limit: bookLibraryPageSize)
+            let nextEntries = try await fetchEntries(offset: offset, limit: bookLibraryPageSize)
             guard token == loadToken else { return }
 
             let existingIDs = Set(snapshots.map(\.objectID))
-            let uniqueSnapshots = nextSnapshots.filter { !existingIDs.contains($0.objectID) }
-            snapshots.append(contentsOf: uniqueSnapshots)
+            let uniqueEntries = nextEntries.filter { !existingIDs.contains($0.snapshot.objectID) }
+            snapshots.append(contentsOf: uniqueEntries.map(\.snapshot))
+            for entry in uniqueEntries {
+                loadedQueryStates[entry.snapshot.objectID] = entry.queryState
+            }
             currentOffset = snapshots.count
-            hasMorePages = nextSnapshots.count == bookLibraryPageSize
+            hasMorePages = nextEntries.count == bookLibraryPageSize
             hasLoadedInitialPage = true
         } catch {
             hasMorePages = false
@@ -237,6 +245,7 @@ final class BookLibraryModel {
         invalidateInFlightLoads()
         snapshots = []
         currentOffset = 0
+        loadedQueryStates = [:]
         hasMorePages = true
         hasLoadedInitialPage = false
         await loadNextPage()
@@ -274,23 +283,6 @@ final class BookLibraryModel {
             ) {
                 guard let self else { return }
                 await self.handleMergedObjectIDChange(notification)
-            }
-        }
-    }
-
-    private func observeSavedObjectIDChanges() {
-        guard let viewContext else { return }
-        guard let persistentStoreCoordinator = viewContext.persistentStoreCoordinator else { return }
-
-        saveObserverTask = Task { [weak self, notificationCenter, viewContext, persistentStoreCoordinator] in
-            for await notification in notificationCenter.notifications(
-                named: NSManagedObjectContext.didSaveObjectIDsNotification
-            ) {
-                guard let self else { return }
-                guard let sourceContext = notification.object as? NSManagedObjectContext else { continue }
-                guard sourceContext !== viewContext else { continue }
-                guard sourceContext.persistentStoreCoordinator === persistentStoreCoordinator else { continue }
-                await self.handleSavedObjectIDChange(notification)
             }
         }
     }
@@ -358,17 +350,21 @@ final class BookLibraryModel {
         let token = loadToken
 
         do {
-            let refreshedSnapshots = try await fetchSnapshots(offset: 0, limit: targetCount)
+            let refreshedEntries = try await fetchEntries(offset: 0, limit: targetCount)
             guard token == loadToken else { return }
 
-            snapshots = refreshedSnapshots
-            currentOffset = refreshedSnapshots.count
-            hasMorePages = refreshedSnapshots.count == targetCount
+            snapshots = refreshedEntries.map(\.snapshot)
+            loadedQueryStates = Swift.Dictionary(
+                uniqueKeysWithValues: refreshedEntries.map { ($0.snapshot.objectID, $0.queryState) }
+            )
+            currentOffset = refreshedEntries.count
+            hasMorePages = refreshedEntries.count == targetCount
             hasLoadedInitialPage = true
         } catch {
             guard token == loadToken else { return }
             snapshots = []
             currentOffset = 0
+            loadedQueryStates = [:]
             hasMorePages = false
             hasLoadedInitialPage = true
         }
@@ -383,11 +379,8 @@ final class BookLibraryModel {
         guard !uniqueIDs.isEmpty else { return }
 
         do {
-            let refreshedSnapshots = try await fetchSnapshots(for: uniqueIDs)
-            let snapshotsByID = Dictionary(uniqueKeysWithValues: refreshedSnapshots.map { ($0.objectID, $0) })
-            snapshots = snapshots.map { snapshot in
-                snapshotsByID[snapshot.objectID] ?? snapshot
-            }
+            let refreshedEntries = try await fetchEntries(for: uniqueIDs)
+            applyPatchedEntries(refreshedEntries)
         } catch {
             scheduleReloadLoadedWindow()
         }
@@ -395,55 +388,60 @@ final class BookLibraryModel {
 
     private func handleMergedObjectIDChange(_ notification: Notification) async {
         guard !snapshots.isEmpty || hasLoadedInitialPage else { return }
-        if notification.userInfo?[NSInvalidatedAllObjectsKey] != nil {
+        let changeSet = CoreDataObjectIDChangeSet(notification: notification)
+        if changeSet.invalidatedAllObjects {
             scheduleReloadLoadedWindow()
             return
         }
 
-        let inserted = objectIDs(forKey: NSInsertedObjectIDsKey, in: notification)
-        let deleted = objectIDs(forKey: NSDeletedObjectIDsKey, in: notification)
-        if !inserted.isEmpty || !deleted.isEmpty {
+        if !changeSet.insertedObjectIDs.isEmpty || !changeSet.deletedObjectIDs.isEmpty {
             scheduleReloadLoadedWindow()
             return
         }
 
-        let changedIDs = objectIDs(forKey: NSUpdatedObjectIDsKey, in: notification)
-            .union(objectIDs(forKey: NSRefreshedObjectIDsKey, in: notification))
-            .union(objectIDs(forKey: NSInvalidatedObjectIDsKey, in: notification))
+        let changedIDs = changeSet.changedObjectIDs
+        guard !changedIDs.isEmpty else { return }
+
         let loadedIDs = Set(snapshots.map(\.objectID))
-        let visibleChangedIDs = Array(changedIDs.intersection(loadedIDs))
+        guard changedIDs.isSubset(of: loadedIDs) else {
+            scheduleReloadLoadedWindow()
+            return
+        }
 
-        if !visibleChangedIDs.isEmpty {
-            await patchLoadedSnapshots(for: visibleChangedIDs)
+        do {
+            let refreshedEntries = try await fetchEntries(for: Array(changedIDs))
+            let entriesByID = Swift.Dictionary(uniqueKeysWithValues: refreshedEntries.map { ($0.snapshot.objectID, $0) })
+
+            for changedID in changedIDs {
+                guard let entry = entriesByID[changedID] else {
+                    scheduleReloadLoadedWindow()
+                    return
+                }
+
+                guard loadedQueryStates[changedID] == entry.queryState else {
+                    scheduleReloadLoadedWindow()
+                    return
+                }
+            }
+
+            applyPatchedEntries(refreshedEntries)
+        } catch {
+            scheduleReloadLoadedWindow()
         }
     }
 
-    private func handleSavedObjectIDChange(_ notification: Notification) async {
-        guard !snapshots.isEmpty || hasLoadedInitialPage else { return }
-        if notification.userInfo?[NSInvalidatedAllObjectsKey] != nil {
-            scheduleReloadLoadedWindow()
-            return
+    private func applyPatchedEntries(_ entries: [FetchedEntry]) {
+        let snapshotsByID = Swift.Dictionary(uniqueKeysWithValues: entries.map { ($0.snapshot.objectID, $0.snapshot) })
+        snapshots = snapshots.map { snapshot in
+            snapshotsByID[snapshot.objectID] ?? snapshot
         }
 
-        let inserted = objectIDs(forKey: NSInsertedObjectIDsKey, in: notification)
-        let deleted = objectIDs(forKey: NSDeletedObjectIDsKey, in: notification)
-        if !inserted.isEmpty || !deleted.isEmpty {
-            scheduleReloadLoadedWindow()
-            return
-        }
-
-        let changedIDs = objectIDs(forKey: NSUpdatedObjectIDsKey, in: notification)
-            .union(objectIDs(forKey: NSRefreshedObjectIDsKey, in: notification))
-            .union(objectIDs(forKey: NSInvalidatedObjectIDsKey, in: notification))
-        let loadedIDs = Set(snapshots.map(\.objectID))
-        let visibleChangedIDs = Array(changedIDs.intersection(loadedIDs))
-
-        if !visibleChangedIDs.isEmpty {
-            await patchLoadedSnapshots(for: visibleChangedIDs)
+        for entry in entries {
+            loadedQueryStates[entry.snapshot.objectID] = entry.queryState
         }
     }
 
-    private func fetchSnapshots(offset: Int, limit: Int) async throws -> [BookLibrarySnapshot] {
+    private func fetchEntries(offset: Int, limit: Int) async throws -> [FetchedEntry] {
         guard let viewContext else { return [] }
 
         let sortOption = sortOption
@@ -456,11 +454,21 @@ final class BookLibraryModel {
             request.fetchLimit = limit
             request.fetchOffset = offset
             let books = try context.fetch(request)
-            return books.map(BookLibrarySnapshot.init(book:))
+            return books.map { book in
+                FetchedEntry(
+                    snapshot: BookLibrarySnapshot(book: book),
+                    queryState: LibraryQueryState(
+                        title: book.title,
+                        author: book.author,
+                        sortDate: book.added,
+                        pendingDeletion: book.pendingDeletion
+                    )
+                )
+            }
         }
     }
 
-    private func fetchSnapshots(for objectIDs: [NSManagedObjectID]) async throws -> [BookLibrarySnapshot] {
+    private func fetchEntries(for objectIDs: [NSManagedObjectID]) async throws -> [FetchedEntry] {
         guard let viewContext else { return [] }
 
         let sortOption = sortOption
@@ -476,7 +484,17 @@ final class BookLibraryModel {
                 ]
             )
             let books = try context.fetch(request)
-            return books.map(BookLibrarySnapshot.init(book:))
+            return books.map { book in
+                FetchedEntry(
+                    snapshot: BookLibrarySnapshot(book: book),
+                    queryState: LibraryQueryState(
+                        title: book.title,
+                        author: book.author,
+                        sortDate: book.added,
+                        pendingDeletion: book.pendingDeletion
+                    )
+                )
+            }
         }
     }
 
@@ -490,11 +508,7 @@ final class BookLibraryModel {
     }
 
     private func objectIDs(forKey key: String, in notification: Notification) -> Set<NSManagedObjectID> {
-        if let rawIDs = notification.userInfo?[key] as? Set<NSManagedObjectID> {
-            return rawIDs
-        }
-        let rawObjects = managedObjects(forKey: key, in: notification)
-        return Set(rawObjects.map(\.objectID))
+        CoreDataNotificationObjectIDs.objectIDs(forKey: key, in: notification)
     }
 }
 
