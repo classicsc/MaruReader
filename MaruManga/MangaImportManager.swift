@@ -50,11 +50,11 @@ public actor MangaImportManager {
     // MARK: - Public API
 
     /// Prewarm the metadata extractor model
-    public func prewarmMetadataExtractor() {
+    public func prewarmMetadataExtractor() async {
         guard shouldUseSmartMetadataExtraction else {
             return
         }
-        metadataExtractor.prewarm()
+        await metadataExtractor.prewarm()
     }
 
     /// Enqueue a new manga archive import from the given file URL.
@@ -446,7 +446,7 @@ public actor MangaImportManager {
     // MARK: - Helper Methods
 
     private var shouldUseSmartMetadataExtraction: Bool {
-        MangaMetadataExtractionSettings.smartExtractionEnabled && metadataExtractor.isModelAvailable
+        MangaMetadataExtractionSettings.smartExtractionEnabled && MangaFilenameMetadataExtractor.isModelAvailable
     }
 
     private func isImageFile(_ path: String) -> Bool {

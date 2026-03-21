@@ -27,10 +27,16 @@ struct ExtractedMangaMetadata {
     var authorWasExtracted: Bool
 }
 
-struct MangaFilenameMetadataExtractor {
+actor MangaFilenameMetadataExtractor {
     private let logger = Logger.maru(category: "MangaMetadata")
     private let model: SystemLanguageModel
-    private let session: LanguageModelSession
+    private var prewarmedSession: LanguageModelSession?
+    private let instructions = """
+    Extract manga title and author from filenames.
+    NEVER translate, transliterate, or romanize any extracted text.
+    Move author names out of leading brackets or parentheses and out of the title.
+    Output ONLY the requested Title and Author lines.
+    """
     private let promptPrefix = """
     Extract manga metadata from the provided filename.
     NEVER translate, transliterate, or romanize title or author text.
@@ -68,22 +74,15 @@ struct MangaFilenameMetadataExtractor {
 
     init() {
         model = Self.makeModel()
-        let instructions = """
-        Extract manga title and author from filenames.
-        NEVER translate, transliterate, or romanize any extracted text.
-        Move author names out of leading brackets or parentheses and out of the title.
-        Output ONLY the requested Title and Author lines.
-        """
-        session = LanguageModelSession(model: model) {
-            Instructions(instructions)
-        }
     }
 
     func prewarm() {
         guard isModelAvailable else {
             return
         }
+        let session = makeSession()
         session.prewarm(promptPrefix: Prompt(promptPrefix))
+        prewarmedSession = session
     }
 
     func extractMetadata(from filename: String, useSmartExtraction: Bool) async -> ExtractedMangaMetadata {
@@ -113,7 +112,7 @@ struct MangaFilenameMetadataExtractor {
         do {
             var options = GenerationOptions()
             options.sampling = .greedy
-            let response = try await session.respond(
+            let response = try await takeSession().respond(
                 to: Prompt(promptPrefix + promptInput),
                 options: options
             )
@@ -133,7 +132,7 @@ struct MangaFilenameMetadataExtractor {
         }
     }
 
-    private func fallbackMetadata(for filename: String) -> ExtractedMangaMetadata {
+    private nonisolated func fallbackMetadata(for filename: String) -> ExtractedMangaMetadata {
         let baseName = (filename as NSString).deletingPathExtension
         let fallbackTitle = baseName.isEmpty ? filename : baseName
         return ExtractedMangaMetadata(
@@ -144,7 +143,7 @@ struct MangaFilenameMetadataExtractor {
         )
     }
 
-    func normalizedPromptInput(for filename: String) -> String {
+    nonisolated func normalizedPromptInput(for filename: String) -> String {
         let trimmedFilename = filename.trimmed
         let baseName = (trimmedFilename as NSString).deletingPathExtension
         let promptInput = baseName.isEmpty ? trimmedFilename : baseName
@@ -165,7 +164,21 @@ struct MangaFilenameMetadataExtractor {
         return false
     }
 
-    func parseOutput(_ output: String, fallbackTitle: String) -> ExtractedMangaMetadata? {
+    private func makeSession() -> LanguageModelSession {
+        LanguageModelSession(model: model) {
+            Instructions(instructions)
+        }
+    }
+
+    private func takeSession() -> LanguageModelSession {
+        if let prewarmedSession {
+            self.prewarmedSession = nil
+            return prewarmedSession
+        }
+        return makeSession()
+    }
+
+    nonisolated func parseOutput(_ output: String, fallbackTitle: String) -> ExtractedMangaMetadata? {
         let lines = output
             .split(whereSeparator: \.isNewline)
             .map { String($0).trimmed }
@@ -212,7 +225,7 @@ struct MangaFilenameMetadataExtractor {
         )
     }
 
-    private func labeledValue(from line: String) -> (String, String)? {
+    private nonisolated func labeledValue(from line: String) -> (String, String)? {
         guard let colonIndex = line.firstIndex(of: ":") else {
             return nil
         }
