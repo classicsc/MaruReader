@@ -8,6 +8,21 @@ MaruReader is a Japanese language learning tool for iOS/iPadOS that combines a Y
 
 Build and test commands are provided by `just`. Use it instead of invoking `xcodebuild` directly for routine build and test runs. Tests can take upwards of 3 minutes (sometimes over 5 minutes for a brand new simulator) so set timeouts/waits accordingly.
 
+```
+Available recipes:
+    build configuration="Debug" destination=""   # builds the project, optionally specify a build configuration and destination
+    contentblocker                               # builds the optional uBOL content blocker extension bundle
+    default                                      # list the available recipes
+    format                                       # runs swiftformat on the entire project
+    licenses                                     # syncs bundled third-party license documents and catalog
+    licenses-refresh                             # refreshes upstream license snapshots before syncing bundled third-party licenses
+    screenshots                                  # captures screenshots via fastlane snapshot to fastlane/screenshots/
+    starterdict                                  # builds the initial database with Jitendex and Kanji Alive
+    test destination=""                          # runs all test plans, optionally specify a destination
+    test-one only_testing plan="" destination="" # runs a specific test, optionally specify a test plan and destination
+    test-plan plan destination=""                # runs a specific test plan, optionally specify a destination
+```
+
 Do not run `just` recipes (or xcodebuild commands) in parallel, each invocation needs a lock on the build folder. Run unsandboxed if your environment has sandboxing.
 
 ## Idealized Workflow
@@ -18,7 +33,7 @@ This demonstrates the red/green TDD pattern and best practices for major changes
 1. Plan the scope and structure of your patch.
 1. Decide acceptance criteria and test strategy.
     - Most non-minor changes, and even minor changes that could use a regression test, need unit test coverage. Expectations of existing tests might also require updates.
-    - Changes that touch the UI require interactive validation in simulator. If available in your environment, the CLI tool `axe` can be used to launch a simulator, capture screenshots and recordings, read the accessibility hierarchy, and interact with the running app with various gestures to validate many types of UI changes, so it doesn't have to be left as a "next step".
+    - For some changes, interactive validation in simulator may be requested. If available in your environment, the CLI tool `axe` can be used to launch a simulator, capture screenshots and recordings, read the accessibility hierarchy, and interact with the running app with various gestures to validate many types of UI changes.
 1. If existing expectations are being updated, run tests now to verify current state.
 1. Write tests and update expectations.
 1. Run tests and validation to verify failing ("red") state
@@ -28,6 +43,5 @@ This demonstrates the red/green TDD pattern and best practices for major changes
 1. Run a build, fix any compile errors or new warnings.
 1. Run tests and validation, fix any failures to get to "green" state.
     - Again, using sub-agents if available can streamline the testing process.
-1. Stage changes, run formatting, verify build still works. If formatting breaks build, back out the breaking change(s) and use `swiftformat --lint` to identify the specific rule which needs to be disabled at the broken line.
 1. If your environment has a code review function or a suitable sub-agent, get a code review. If there are findings to address, run build, tests, and validation after patching.
-1. Commit changes.
+1. Commit changes, run `just format`, verify build still works, and amend the commit. If formatting breaks build, reset out the broken file(s) and use `swiftformat --lint` to identify the specific rule which needs to be disabled at the broken line.
