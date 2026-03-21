@@ -6,7 +6,7 @@ MaruReader is a Japanese language learning tool for iOS/iPadOS that combines a Y
 
 ## Building
 
-Build and test commands are provided by `just`. Use it instead of invoking `xcodebuild` directly for routine build and test runs.
+Build and test commands are provided by `just`. Use it instead of invoking `xcodebuild` directly for routine build and test runs. Tests can take upwards of 3 minutes (sometimes over 5 minutes for a brand new simulator) so set timeouts/waits accordingly.
 
 Do not run `just` recipes (or xcodebuild commands) in parallel, each invocation needs a lock on the build folder. Run unsandboxed if your environment has sandboxing.
 
