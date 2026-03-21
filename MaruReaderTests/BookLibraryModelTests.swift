@@ -101,6 +101,51 @@ struct BookLibraryModelTests {
         #expect(snapshots.first?.title == "00")
     }
 
+    @Test func titlePaginationIsDeterministicWhenSortKeysTie() async throws {
+        let ids = stableUUIDs(count: 60)
+        let baseDate = Date(timeIntervalSince1970: 1_700_250_000)
+        let seeds = ids.enumerated().map { index, id in
+            BookPaginationSeed(
+                id: id,
+                title: index < 30 ? "Alpha" : "Beta",
+                author: index.isMultiple(of: 3) ? "Author A" : "Author B",
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+        }
+
+        try await assertDeterministicPagination(for: .title, seeds: seeds)
+    }
+
+    @Test func authorPaginationIsDeterministicWhenSortKeysTie() async throws {
+        let ids = stableUUIDs(count: 60)
+        let baseDate = Date(timeIntervalSince1970: 1_700_260_000)
+        let seeds = ids.enumerated().map { index, id in
+            BookPaginationSeed(
+                id: id,
+                title: index.isMultiple(of: 3) ? "Series A" : "Series B",
+                author: index < 30 ? "Author A" : "Author B",
+                added: baseDate.addingTimeInterval(TimeInterval(index))
+            )
+        }
+
+        try await assertDeterministicPagination(for: .author, seeds: seeds)
+    }
+
+    @Test func dateAddedPaginationIsDeterministicWhenSortKeysTie() async throws {
+        let ids = stableUUIDs(count: 60)
+        let baseDate = Date(timeIntervalSince1970: 1_700_270_000)
+        let seeds = ids.enumerated().map { index, id in
+            BookPaginationSeed(
+                id: id,
+                title: "Shared Title",
+                author: "Shared Author",
+                added: baseDate.addingTimeInterval(TimeInterval(index / 15))
+            )
+        }
+
+        try await assertDeterministicPagination(for: .dateAdded, seeds: seeds)
+    }
+
     @Test func nonQueryUpdatePatchesLoadedSnapshot() async throws {
         let persistence = makeBookPersistenceController()
         let viewContext = persistence.container.viewContext
@@ -232,6 +277,7 @@ struct BookLibraryModelTests {
 
     private func insertBook(
         into viewContext: NSManagedObjectContext,
+        id: UUID = UUID(),
         title: String?,
         originalFileName: String?,
         added: Date,
@@ -243,7 +289,7 @@ struct BookLibraryModelTests {
     ) async throws -> NSManagedObjectID {
         try await viewContext.perform {
             let book = Book(context: viewContext)
-            book.id = UUID()
+            book.id = id
             book.title = title
             book.originalFileName = originalFileName
             book.author = author
@@ -277,4 +323,94 @@ struct BookLibraryModelTests {
 
         Issue.record("Timed out waiting for condition")
     }
+
+    private func assertDeterministicPagination(
+        for sortOption: BookSortOption,
+        seeds: [BookPaginationSeed]
+    ) async throws {
+        let persistence = makeBookPersistenceController()
+        let viewContext = persistence.container.viewContext
+
+        for seed in seeds.reversed() {
+            _ = try await insertBook(
+                into: viewContext,
+                id: seed.id,
+                title: seed.title,
+                originalFileName: nil,
+                added: seed.added,
+                author: seed.author
+            )
+        }
+
+        let model = await MainActor.run {
+            let model = BookLibraryModel(debounceDuration: .milliseconds(5))
+            model.sortOption = sortOption
+            return model
+        }
+        await model.configureIfNeeded(viewContext: viewContext)
+        await model.loadNextPage()
+
+        let snapshots = await currentSnapshots(of: model)
+        #expect(snapshots.count == seeds.count)
+        #expect(Set(snapshots.map(\.objectID)).count == seeds.count)
+
+        let actualIDs = try await bookIDs(for: snapshots, in: viewContext)
+        let expectedIDs = sortedSeeds(seeds, for: sortOption).map(\.id)
+        #expect(actualIDs == expectedIDs)
+    }
+
+    private func bookIDs(
+        for snapshots: [BookLibrarySnapshot],
+        in viewContext: NSManagedObjectContext
+    ) async throws -> [UUID] {
+        try await viewContext.perform {
+            try snapshots.map { snapshot in
+                let book = try #require(viewContext.existingObject(with: snapshot.objectID) as? Book)
+                return try #require(book.id)
+            }
+        }
+    }
+
+    private func sortedSeeds(
+        _ seeds: [BookPaginationSeed],
+        for sortOption: BookSortOption
+    ) -> [BookPaginationSeed] {
+        seeds.sorted { lhs, rhs in
+            switch sortOption {
+            case .title:
+                if lhs.title != rhs.title {
+                    return lhs.title < rhs.title
+                }
+                if lhs.author != rhs.author {
+                    return lhs.author < rhs.author
+                }
+            case .author:
+                if lhs.author != rhs.author {
+                    return lhs.author < rhs.author
+                }
+                if lhs.title != rhs.title {
+                    return lhs.title < rhs.title
+                }
+            case .dateAdded:
+                if lhs.added != rhs.added {
+                    return lhs.added > rhs.added
+                }
+            }
+
+            return lhs.id.uuidString < rhs.id.uuidString
+        }
+    }
+
+    private func stableUUIDs(count: Int) -> [UUID] {
+        (0 ..< count).map { index in
+            UUID(uuidString: String(format: "00000000-0000-0000-0000-%012d", index + 1))!
+        }
+    }
+}
+
+private struct BookPaginationSeed {
+    let id: UUID
+    let title: String
+    let author: String
+    let added: Date
 }

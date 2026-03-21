@@ -54,15 +54,18 @@ enum BookSortOption: String, CaseIterable, Identifiable {
             [
                 NSSortDescriptor(keyPath: \Book.title, ascending: true),
                 NSSortDescriptor(keyPath: \Book.author, ascending: true),
+                NSSortDescriptor(keyPath: \Book.id, ascending: true),
             ]
         case .author:
             [
                 NSSortDescriptor(keyPath: \Book.author, ascending: true),
                 NSSortDescriptor(keyPath: \Book.title, ascending: true),
+                NSSortDescriptor(keyPath: \Book.id, ascending: true),
             ]
         case .dateAdded:
             [
                 NSSortDescriptor(keyPath: \Book.added, ascending: false),
+                NSSortDescriptor(keyPath: \Book.id, ascending: true),
             ]
         }
     }

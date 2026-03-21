@@ -54,15 +54,18 @@ enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
             [
                 NSSortDescriptor(keyPath: \MangaArchive.title, ascending: true),
                 NSSortDescriptor(keyPath: \MangaArchive.author, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.id, ascending: true),
             ]
         case .author:
             [
                 NSSortDescriptor(keyPath: \MangaArchive.author, ascending: true),
                 NSSortDescriptor(keyPath: \MangaArchive.title, ascending: true),
+                NSSortDescriptor(keyPath: \MangaArchive.id, ascending: true),
             ]
         case .dateAdded:
             [
                 NSSortDescriptor(keyPath: \MangaArchive.dateAdded, ascending: false),
+                NSSortDescriptor(keyPath: \MangaArchive.id, ascending: true),
             ]
         }
     }
