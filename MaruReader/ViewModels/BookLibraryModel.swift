@@ -19,6 +19,7 @@ import CoreData
 import Foundation
 import MaruReaderCore
 import Observation
+import SwiftUI
 
 private let bookLibraryPageSize = 48
 private let bookLibraryBasePredicateFormat = "pendingDeletion == NO"
@@ -353,7 +354,9 @@ final class BookLibraryModel {
             let refreshedEntries = try await fetchEntries(offset: 0, limit: targetCount)
             guard token == loadToken else { return }
 
-            snapshots = refreshedEntries.map(\.snapshot)
+            withAnimation {
+                snapshots = refreshedEntries.map(\.snapshot)
+            }
             loadedQueryStates = Swift.Dictionary(
                 uniqueKeysWithValues: refreshedEntries.map { ($0.snapshot.objectID, $0.queryState) }
             )
@@ -362,7 +365,9 @@ final class BookLibraryModel {
             hasLoadedInitialPage = true
         } catch {
             guard token == loadToken else { return }
-            snapshots = []
+            withAnimation {
+                snapshots = []
+            }
             currentOffset = 0
             loadedQueryStates = [:]
             hasMorePages = false
