@@ -108,35 +108,15 @@ struct WebViewerBottomToolbarView: View {
                 }
 
                 if viewModel.readingModeEnabled {
-                    HStack(spacing: 12) {
-                        Spacer()
-
-                        Button(action: toggleBoundingBoxes) {
-                            Image(systemName: viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder")
-                                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                        }
-                        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                        .contentShape(.circle)
-                        .buttonStyle(.plain)
-                        .glassEffect(in: Circle())
-                        .accessibilityLabel(
-                            viewModel.showBoundingBoxes
-                                ? Text("Hide text regions")
-                                : Text("Show text regions")
-                        )
-
-                        Button(action: disableReadingMode) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: floatingButtonIconSize, weight: .semibold))
-                        }
-                        .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
-                        .contentShape(.circle)
-                        .buttonStyle(.plain)
-                        .glassEffect(in: Circle())
-                        .glassEffectID("readingMode", in: glassNamespace)
-                        .glassEffectTransition(GlassEffectTransition.matchedGeometry)
-                        .accessibilityLabel("Exit OCR Mode")
-                    }
+                    WebViewerReadingModeControlsCluster(
+                        showBoundingBoxes: viewModel.showBoundingBoxes,
+                        iconSize: floatingButtonIconSize,
+                        frameSize: floatingButtonFrameSize,
+                        namespace: glassNamespace,
+                        onToggleBoundingBoxes: toggleBoundingBoxes,
+                        onDisableReadingMode: disableReadingMode
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 } else if shouldShowFloatingReadingModeButton {
                     Button(action: enableReadingMode) {
                         Image(systemName: "hand.tap")
