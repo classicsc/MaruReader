@@ -4,7 +4,16 @@
       "id" : "73E9D68F-21D1-4159-8E9D-D7BAB5B83157",
       "name" : "Configuration 1",
       "options" : {
-
+        "language" : "en",
+        "region" : "US"
+      }
+    },
+    {
+      "id" : "AB9FA2D2-4D71-4133-8D98-F0F8ECBA51EC",
+      "name" : "Configuration 2",
+      "options" : {
+        "language" : "ja",
+        "region" : "JP"
       }
     }
   ],

@@ -40,6 +40,6 @@ licenses:
 licenses-refresh:
   swift scripts/sync-third-party-licenses.swift --refresh-snapshots
 
-# captures screenshots via fastlane snapshot to fastlane/screenshots/
+# runs the UI screenshot test plan and extracts images to build/screenshots/
 screenshots:
-  fastlane snapshot
+  ./scripts/run-screenshots.sh

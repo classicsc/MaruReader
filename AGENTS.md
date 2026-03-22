@@ -16,7 +16,7 @@ Available recipes:
     format                                       # runs swiftformat on the entire project
     licenses                                     # syncs bundled third-party license documents and catalog
     licenses-refresh                             # refreshes upstream license snapshots before syncing bundled third-party licenses
-    screenshots                                  # captures screenshots via fastlane snapshot to fastlane/screenshots/
+    screenshots                                  # runs the UI screenshot test plan and extracts images to build/screenshots/
     starterdict                                  # builds the initial database with Jitendex and Kanji Alive
     test destination=""                          # runs all test plans, optionally specify a destination
     test-one only_testing plan="" destination="" # runs the only_testing test/suite in the given plan, optionally specify destination

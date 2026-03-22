@@ -53,7 +53,7 @@ This pulls the uBOL submodule and builds the extension with the latest filter li
 just contentblocker # Sync uBOL
 just starterdict # Prepare the default jitendex and kanji-alive dictionaries
 just licenses-refresh # Get acknowledgments for all dependencies
-just screenshots # Generate new screenshots for App Store listing (requires fastlane installed)
+just screenshots # Generate new screenshots for App Store listing (writes to build/screenshots/)
 ```
 
 ### Agents
