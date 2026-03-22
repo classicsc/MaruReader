@@ -103,7 +103,7 @@ struct WebViewerBottomToolbarView: View {
                 // Maintain toolbar height when reading mode hides the regular controls.
                 if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
                     Color.clear
-                        .frame(height: floatingButtonFrameSize)
+                        .frame(height: floatingButtonFrameSize * 2 + 8)
                         .accessibilityHidden(true)
                 }
 
