@@ -6,9 +6,9 @@ MaruReader is a free, open source dictionary and reading application for learnin
 
 ### 1. Fast, customizable dictionary
 
-The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches. A comprehensive Japanese-English dictionary and more than 10,000 pronunciation audio clips are included, add custom Yomitan dictionaries to enable more features like word frequency and pitch accent.
+The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches. A comprehensive Japanese-English dictionary and more than 10,000 pronunciation audio clips are included. Add custom Yomitan dictionaries to enable more features like word frequency and pitch accent.
 
-Compared to the built in iOS "Look Up" dictionary, the MaruReader dictionary is much better for looking up verbs with its grammar-aware search. MaruReader's dictionary provides more comprehensive definitions with disambiguation for alternate and irregular forms.
+The MaruReader dictionary system automatically converts verbs to dictionary form, converts between hiragana, katakana, and romaji, and performs other normalizations to make searching faster. The built-in dictionary provides comprehensive definitions with disambiguation for alternate and irregular forms.
 
 ### 2. Read manga with text recognition
 
@@ -20,7 +20,7 @@ Text recognition is designed to be easy to use. Instead of trying to highlight t
 
 #### Select text in the MaruReader Browser
 
-The MaruReader browser is great for reading Japanese websites and web novels with a dictionary at your fingertips. Ad blocker included for distraction-free reading. Just select some text and choose "Dictionary" to look it up.
+The MaruReader browser is great for reading Japanese websites and web novels with a dictionary at your fingertips. Ad blocker included to reduce distractions. Just select some text and choose "Dictionary" to look it up.
 
 #### OCR in the MaruReader Browser
 
@@ -39,10 +39,11 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
 ### Dictionary System
 
 - **Built-in Japanese-English dictionary** The included Jitendex dictionary features clear definitions, examples, and variant form tables.
-- **Pronunciation Audio** Over 10,000 audio clips included. See the Pronunciation Audio guide for instructions on adding additional audio or network sources.
+- **Pronunciation Audio** Over 10,000 audio clips included. See the [Pronunciation Audio guide](doc/Audio.md) for instructions on adding additional audio or network sources.
 - **Yomitan Dictionary Format Support**
   - MaruReader uses the same dictionary format as [Yomitan](https://yomitan.wiki/). Term, frequency, and pitch accent dictionaries are supported.
   - Add as many custom dictionaries as you like, search is fast even with many large dictionaries.
+  - Learn more in the [Dictionary Guide](doc/Dictionaries.md)
 - **Search Within Definitions** Tap on words in dictionary definitions to search in a compact popup, and tap in the popup to open those results in the full dictionary search page. This is a must-have feature for learners using monolingual (Japanese-Japanese) dictionaries.
 
 ### Manga Reader
@@ -68,3 +69,20 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
 
 - **AnkiMobile Integration** MaruReader can add notes to the AnkiMobile app by tapping the "+" button in any dictionary lookup context. Includes built-in configuration for Lapis, and the ability to configure your own note fields for other note types.
 - **Anki-Connect Integration** Advanced users also have Anki-Connect as an option. This has some benefits including customizable duplicate note detection.
+- Learn more in the [Anki Guide](doc/Anki.md)
+
+## Questions?
+
+See the [FAQ](doc/FAQ.md), or open a thread in the Discussions tab.
+
+## Acknowledgements
+
+The MaruReader dictionary system is based on [Yomitan](https://yomitan.wiki/). Third-party libraries and content are listed in the About section of the app.
+
+The included dictionaries are [Jitendex](https://jitendex.org/) and [Kanji alive](https://github.com/kanjialive/kanji-data-media).
+
+The manga shown in the screenshots is used under the terms listed on [the author's website](https://densho810.com/free/).
+
+**Title**: Give My Regards to Black Jack
+
+**Author**: SHUHO SATO

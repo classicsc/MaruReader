@@ -40,17 +40,17 @@ Yes.
 
 - Some dictionaries use characters like the Unicode arrow `→` for purposes like indicating links, and on iOS some of these symbols are displayed as color emoji instead of the shape and color the dictionary's creator had in mind. This can be fixed in some cases by modifying the dictionary's stylesheet, but the better solution is for the dictionary to use images instead of Unicode characters for symbols that need to look the same on all platforms.
 - MaruReader supports the `styles.css` at the dictionary root, but there's no equivalent to Yomitan's custom popup CSS settings. If you use custom styles on desktop, that could be the difference. A workaround is to add your custom styles to the dictionary's `styles.css` and re-import the dictionary.
-- Otherwise, it may be a bug in MaruReader. Please open an issue, specifying the dictionary and an entry with the problem, so it can be investigated.
+- Otherwise, it may be a bug in MaruReader. Please open a discussion, specifying the dictionary and an entry with the problem, so it can be investigated.
 
 ## How do I use MaruReader with Anki?
 
-The Anki integrations are designed to support mining, which is the process of reading and creating flashcards for unfamiliar words. See the Anki guide for full details.
+The Anki integrations are designed to support mining, which is the process of reading and creating flashcards for unfamiliar words. See the [Anki guide](/doc/Anki.md) for full details.
 
 MaruReader can work with many of the same mining setups as Yomitan, the main limitation being that MaruReader cannot use custom handlebars, only a set of values that roughly corresponds to Yomitan's default handlebars. If your workflow requires custom handlebars or some other feature that is missing, open a discussion thread so we can look at whether it can be supported.
 
 ## Formatting looks wrong on my Anki cards
 
-Make sure you are using the latest version of Anki, as older versions have issues with styled content. Otherwise, see the Anki Guide for more troubleshooting steps.
+Make sure you are using the latest version of Anki, as older versions have issues with styled content. Otherwise, see the [Anki guide](/doc/Anki.md) for more troubleshooting steps.
 
 ## Why is it called MaruReader?
 

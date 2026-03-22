@@ -20,7 +20,7 @@ test destination="":
 test-plan plan destination="":
   ./scripts/run-test-plan.sh "{{plan}}" "{{destination}}"
 
-# runs a specific test, optionally specify a test plan and destination
+# runs the only_testing test/suite in the given plan, optionally specify destination
 test-one only_testing plan="" destination="":
   ./scripts/run-test-only.sh "{{only_testing}}" "{{plan}}" "{{destination}}"
 

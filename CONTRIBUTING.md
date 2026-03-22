@@ -2,9 +2,9 @@
 
 Thanks for your interest in helping to improve MaruReader!
 
-If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue for discussion.
+If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue. For general feedback and bug reports, use the Discussions tab.
 
-Before sending a PR, make sure it passes the unit tests, and within the bounds of common sense, include new unit tests proving that the changes work.
+Before sending a PR, make sure it passes the unit tests, and if possible, include new test coverage.
 
 ## Development
 
@@ -18,6 +18,8 @@ For development, these tools are required:
 For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and raw/parsed logs are written under `build/logs/` with timestamped files plus `latest-*.log` aliases.
 
 ### Building
+
+Builds and tests can also be run in Xcode GUI if you prefer.
 
 #### Main App
 
@@ -43,35 +45,23 @@ Accepted device specifier formats:
 
 `just contentblocker`
 
-This pulls the uBOL submodule and builds the extension with the latest filter lists. Extension persists for future builds unless you run `git submodule deinit`. Run again to build with updated source and filter lists.
+This pulls the uBOL submodule and builds the extension with the latest filter lists. Extension persists for future builds unless you run `git submodule deinit`. Run again to build with updated filter lists.
 
 #### Release build checklist
 
 ```bash
-just contentblocker # Sync the latest uBOL code and filter lists
+just contentblocker # Sync uBOL
 just starterdict # Prepare the default jitendex and kanji-alive dictionaries
-just licenses-refresh
-just licenses # Get acknowledgments for all dependencies
+just licenses-refresh # Get acknowledgments for all dependencies
 just screenshots # Generate new screenshots for App Store listing (requires fastlane installed)
 ```
 
 ### Agents
 
-Much of MaruReader was made using coding agents! Specifically, the initial translation to Swift of deinflection and test code from Yomitan, dictionary HTML generation, the WebKit parts of MaruWeb, most of the MaruAnki framework, and most of the JP localization were made using agents, albeit with strict steering and review. I'm not against anyone sending AI-assisted pull requests if they're good, but manually ensuring that the patch is sensible, self-contained and not massive, passes tests, actually works in practice, etc, is just good manners. Development style is "AI-assisted", not "vibe coded".
-
-If you want to work on MaruReader with a coding agent, I recommend getting the a tool for docs searches, either the xcode one or [sosumi](https://sosumi.ai), and the [AXe UI automation CLI](https://github.com/cameroncooke/AXe). Also make sure that xcodebuild-based `just` commands and `xcodebuildmcp` (if you're using it) can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder.
+To save some frustration: If you want to work on MaruReader with a coding agent, I recommend getting a tool for docs searches, either the xcode one or [sosumi](https://sosumi.ai). Also make sure that xcodebuild-based `just` commands can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder. If you send a pull request you still have to review it manually first.
 
 ## Licensing Note
 
-I've seen a lot of developers of OSS apps for iOS complain about their apps getting ripped off, so I will say some things up front to hopefully discourage anyone from making a noncompliant version of MaruReader.
+The GPLv3 license allows you to distribute copies or derivative works of MaruReader, provided you comply with all the terms. Distribition of derivative works without sharing the modified sources under the same license, or distribution of derivative works that bundle GPL-incompatible libraries, will not be tolerated.
 
-- MaruReader is licensed under GPLv3. This is not a permisssive type license like MIT, it carries obligations you have to follow or lose it
-- If you distribute a derivative work, incorporate all or part of MaruReader into your app, or put something that is derived from or includes MaruReader on the Apple App Store or a third-party app store, you must comply with the license terms
-  - It's not very long, reading the whole thing is a good idea
-- See sections 5 and 6 of the license for some specific obligations. MaruReader follows these by:
-  - Licensing under GPLv3 (5c)
-  - Carrying all the proper notices in the About section of the GUI (5a, 5b, 5d)
-  - Source code corresponding to each release can be accessed from a designated place (GitHub Releases), linked from the App Store page and the GUI (6d), and I'll ensure this stays available at least as long as the app is offered on the App Store or somewhere else
-  - MaruReader does not use any libraries or assets with incompatible licenses, aside from system libraries
-
-If you have concerns about GPL compliance, please open an issue to discuss.
+If you have concerns about GPL compliance, please open a discussion.

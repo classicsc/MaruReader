@@ -18,13 +18,13 @@ If you don't care about AnkiMobile compatibility, `opus` (which often uses the `
 
 Like Yomitan, MaruReader supports URL patterns to connect to audio servers like the Local Audio Server for Yomitan. SSL connection is required.
 
-### Setup Instructions
+### URL Pattern Setup
 
 1. Open MaruReader **Settings → Pronunciation Audio**
 2. Tap **+ → Add URL Pattern**
 3. Give your source a **Name**
 4. Enter the URL Pattern, using the replacement values `{term}`, `{language}`, and `{reading}`
-5. If your audio server's instructions say to use the "Custom URL (JSON)" option, toggle JSON on
+5. If your audio server's instructions say to use the "Custom URL (JSON)" option in Yomitan, toggle JSON on
 6. Save the source
 
 ### Pitch Accent Details
@@ -35,7 +35,7 @@ If you have a pitch accent dictionary added, MaruReader will try to match result
 
 If you'd rather not depend on a network connection for audio, you can use an indexed ZIP.
 
-### Setup Instructions
+### Indexed ZIP Setup
 
 1. Open MaruReader **Settings → Pronunciation Audio**
 2. Tap **+ → Add Indexed ZIP**
