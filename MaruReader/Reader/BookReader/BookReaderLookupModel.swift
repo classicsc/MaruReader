@@ -254,7 +254,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         }
     }
 
-    static let screenshotLookupSearchText = "呼んでいた"
+    static let screenshotLookupSearchText = "自然"
 
     func triggerScreenshotTextLookup() {
         guard let webView = currentNavigatorWebView() else {

@@ -18,16 +18,6 @@
 import XCTest
 
 /// Automated screenshot capture for documentation and App Store submissions.
-///
-/// Run via fastlane:
-/// ```
-/// just screenshots
-/// ```
-///
-/// Run a single screenshot test (without fastlane collection):
-/// ```
-/// just test-one 'MaruReaderUITests/ScreenshotTests/testScreenshot_BookLibrary()' MaruReaderUITests
-/// ```
 final class ScreenshotTests: XCTestCase {
     private var app: XCUIApplication!
 
@@ -36,7 +26,6 @@ final class ScreenshotTests: XCTestCase {
 
         app = XCUIApplication()
         app.launchArguments += ["--screenshotMode"]
-        setupSnapshot(app)
         app.launch()
 
         // Wait for startup to complete and main UI to appear.
@@ -59,7 +48,7 @@ final class ScreenshotTests: XCTestCase {
         navigateToTab("Read")
         selectLibrarySegment("Books")
         sleep(2)
-        snapshot("01-BookLibrary")
+        takeScreenshot(named: "01-BookLibrary")
     }
 
     @MainActor
@@ -67,7 +56,7 @@ final class ScreenshotTests: XCTestCase {
         navigateToTab("Read")
         selectLibrarySegment("Manga")
         sleep(2)
-        snapshot("02-MangaLibrary")
+        takeScreenshot(named: "02-MangaLibrary")
     }
 
     // MARK: - Book Reader Screenshots
@@ -78,7 +67,7 @@ final class ScreenshotTests: XCTestCase {
         sleep(3)
 
         // In screenshot mode, dictionary mode is auto-enabled and a lookup
-        // for "呼んでいた" is auto-triggered to demonstrate verb deinflection.
+        // for "自然" is auto-triggered.
         // Wait for the popover to appear.
         let dictionaryPopover = app.otherElements["bookReader.dictionaryPopover"].firstMatch
         if !dictionaryPopover.waitForExistence(timeout: 15) {
@@ -89,7 +78,7 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
         }
 
-        snapshot("03-BookDictionary")
+        takeScreenshot(named: "03-BookDictionary")
     }
 
     // MARK: - Manga Reader Screenshots
@@ -104,14 +93,14 @@ final class ScreenshotTests: XCTestCase {
         // Wait for the sheet to appear.
         let dictionarySheet = app.otherElements["mangaReader.dictionarySheet"].firstMatch
         if dictionarySheet.waitForExistence(timeout: 10) {
-            snapshot("04-MangaDictionary")
+            takeScreenshot(named: "04-MangaDictionary")
         } else {
             // Fallback: tap in the center of the page where OCR text clusters are likely
             let pageArea = app.windows.firstMatch
             let center = pageArea.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
             center.tap()
             sleep(2)
-            snapshot("04-MangaDictionary")
+            takeScreenshot(named: "04-MangaDictionary")
         }
     }
 
@@ -138,7 +127,7 @@ final class ScreenshotTests: XCTestCase {
             }
         }
         sleep(2)
-        snapshot("05-WebDictionary")
+        takeScreenshot(named: "05-WebDictionary")
     }
 
     // MARK: - Dictionary Search Screenshot
@@ -158,7 +147,7 @@ final class ScreenshotTests: XCTestCase {
             searchField.typeText("読む")
         }
         sleep(2)
-        snapshot("06-DictionarySearch")
+        takeScreenshot(named: "06-DictionarySearch")
     }
 
     // MARK: - Helpers
@@ -212,5 +201,29 @@ final class ScreenshotTests: XCTestCase {
             mangaButton.tap()
         }
         sleep(3)
+    }
+    
+    private func takeScreenshot(named name: String) {
+        // from https://blog.winsmith.de/english/ios/2020/04/14/xcuitest-screenshots.html
+        // Take the screenshot
+        let fullScreenshot = XCUIScreen.main.screenshot()
+        
+        // Create a new attachment to save our screenshot
+        // and give it a name consisting of the "named"
+        // parameter and the device name, so we can find
+        // it later.
+        let screenshotAttachment = XCTAttachment(
+            uniformTypeIdentifier: "public.png",
+            name: "Screenshot-\(UIDevice.current.name)-\(name).png",
+            payload: fullScreenshot.pngRepresentation,
+            userInfo: nil)
+            
+        // Usually Xcode will delete attachments after
+        // the test has run; we don't want that!
+        screenshotAttachment.lifetime = .keepAlways
+        
+        // Add the attachment to the test log,
+        // so we can retrieve it later
+        add(screenshotAttachment)
     }
 }

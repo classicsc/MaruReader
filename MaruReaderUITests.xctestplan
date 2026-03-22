@@ -9,7 +9,9 @@
     }
   ],
   "defaultOptions" : {
-    "testTimeoutsEnabled" : true
+    "testTimeoutsEnabled" : true,
+    "uiTestingScreenshotsLifetime" : "keepAlways",
+    "userAttachmentLifetime" : "keepAlways"
   },
   "testTargets" : [
     {
