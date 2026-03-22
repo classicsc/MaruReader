@@ -651,7 +651,7 @@ final class WebViewerViewModel {
     <title>お花見ガイド – 日本の春を楽しむ</title>
     <style>
     body {
-        font-family: -apple-system, "Hiragino Sans", sans-serif;
+        font-family: "Hiragino Kaku Gothic ProN";
         line-height: 1.9;
         padding: 24px 20px;
         color: #1a1a1a;
