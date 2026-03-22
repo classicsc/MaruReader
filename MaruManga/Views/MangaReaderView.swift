@@ -113,7 +113,7 @@ public struct MangaReaderView: View {
                 // Wait for OCR to complete on the current page, then auto-trigger
                 // lookup for the preferred screenshot example text.
                 await viewModel.loadPage(at: viewModel.currentPageIndex)
-                try? await Task.sleep(for: .seconds(1))
+                await viewModel.waitForPendingPageLoads()
                 viewModel.triggerScreenshotClusterLookup()
             }
         }

@@ -30,7 +30,7 @@ final class ScreenshotTests: XCTestCase {
 
         // Wait for startup to complete and main UI to appear.
         // In screenshot mode the welcome screen auto-dismisses.
-        let readTab = app.buttons["Read"].firstMatch
+        let readTab = button(english: "Read", japanese: "読む")
         XCTAssertTrue(
             readTab.waitForExistence(timeout: 60),
             "App did not finish startup within timeout"
@@ -45,16 +45,16 @@ final class ScreenshotTests: XCTestCase {
 
     @MainActor
     func testScreenshot_BookLibrary() {
-        navigateToTab("Read")
-        selectLibrarySegment("Books")
+        navigateToTab(english: "Read", japanese: "読む")
+        selectLibrarySegment(english: "Books", japanese: "本")
         sleep(2)
         takeScreenshot(named: "01-BookLibrary")
     }
 
     @MainActor
     func testScreenshot_MangaLibrary() {
-        navigateToTab("Read")
-        selectLibrarySegment("Manga")
+        navigateToTab(english: "Read", japanese: "読む")
+        selectLibrarySegment(english: "Manga", japanese: "マンガ")
         sleep(2)
         takeScreenshot(named: "02-MangaLibrary")
     }
@@ -120,7 +120,7 @@ final class ScreenshotTests: XCTestCase {
                 let textArea = webView.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
                 textArea.press(forDuration: 1.0)
                 sleep(1)
-                let dictionaryButton = app.menuItems["Dictionary"].firstMatch
+                let dictionaryButton = menuItem(english: "Dictionary", japanese: "辞書")
                 if dictionaryButton.waitForExistence(timeout: 5) {
                     dictionaryButton.tap()
                 }
@@ -135,7 +135,7 @@ final class ScreenshotTests: XCTestCase {
     @MainActor
     func testScreenshot_DictionarySearch() {
         // Tap the search tab (role: .search shows as a magnifying glass)
-        let searchTab = app.buttons["Search"].firstMatch
+        let searchTab = button(english: "Search", japanese: "検索")
         if searchTab.waitForExistence(timeout: 5) {
             searchTab.tap()
         }
@@ -150,17 +150,35 @@ final class ScreenshotTests: XCTestCase {
         takeScreenshot(named: "06-DictionarySearch")
     }
 
-    // MARK: - Helpers
+    // MARK: - Locale-Independent Element Lookup
 
-    private func navigateToTab(_ tabName: String) {
-        let tab = app.buttons[tabName].firstMatch
+    /// Finds a button matching either the English or Japanese label.
+    /// The test plan runs under both en/US and ja/JP configurations;
+    /// using a predicate avoids hardcoding a single locale's labels.
+    private func button(english: String, japanese: String) -> XCUIElement {
+        app.buttons.matching(
+            NSPredicate(format: "label == %@ OR label == %@", english, japanese)
+        ).firstMatch
+    }
+
+    /// Finds a menu item matching either the English or Japanese label.
+    private func menuItem(english: String, japanese: String) -> XCUIElement {
+        app.menuItems.matching(
+            NSPredicate(format: "label == %@ OR label == %@", english, japanese)
+        ).firstMatch
+    }
+
+    // MARK: - Navigation Helpers
+
+    private func navigateToTab(english: String, japanese: String) {
+        let tab = button(english: english, japanese: japanese)
         if tab.waitForExistence(timeout: 5) {
             tab.tap()
         }
     }
 
-    private func selectLibrarySegment(_ segmentName: String) {
-        let segment = app.buttons[segmentName].firstMatch
+    private func selectLibrarySegment(english: String, japanese: String) {
+        let segment = button(english: english, japanese: japanese)
         if segment.waitForExistence(timeout: 5) {
             segment.tap()
         }
@@ -169,15 +187,15 @@ final class ScreenshotTests: XCTestCase {
     /// Navigates to the Web tab and waits for the web viewer to auto-present.
     /// In screenshot mode, the bookmarks view auto-navigates and sample content loads.
     private func navigateToWebViewer() {
-        navigateToTab("Web")
+        navigateToTab(english: "Web", japanese: "Web")
 
         let webView = app.webViews.firstMatch
         _ = webView.waitForExistence(timeout: 10)
     }
 
     private func openBook(_ titleSubstring: String) {
-        navigateToTab("Read")
-        selectLibrarySegment("Books")
+        navigateToTab(english: "Read", japanese: "読む")
+        selectLibrarySegment(english: "Books", japanese: "本")
         sleep(1)
 
         let bookButton = app.buttons.containing(
@@ -190,8 +208,8 @@ final class ScreenshotTests: XCTestCase {
     }
 
     private func openManga() {
-        navigateToTab("Read")
-        selectLibrarySegment("Manga")
+        navigateToTab(english: "Read", japanese: "読む")
+        selectLibrarySegment(english: "Manga", japanese: "マンガ")
         sleep(1)
 
         let mangaButton = app.buttons.containing(
@@ -202,12 +220,12 @@ final class ScreenshotTests: XCTestCase {
         }
         sleep(3)
     }
-    
+
     private func takeScreenshot(named name: String) {
         // from https://blog.winsmith.de/english/ios/2020/04/14/xcuitest-screenshots.html
         // Take the screenshot
         let fullScreenshot = XCUIScreen.main.screenshot()
-        
+
         // Create a new attachment to save our screenshot
         // and give it a name consisting of the "named"
         // parameter and the device name, so we can find
@@ -216,12 +234,13 @@ final class ScreenshotTests: XCTestCase {
             uniformTypeIdentifier: "public.png",
             name: "Screenshot-\(UIDevice.current.name)-\(name).png",
             payload: fullScreenshot.pngRepresentation,
-            userInfo: nil)
-            
+            userInfo: nil
+        )
+
         // Usually Xcode will delete attachments after
         // the test has run; we don't want that!
         screenshotAttachment.lifetime = .keepAlways
-        
+
         // Add the attachment to the test log,
         // so we can retrieve it later
         add(screenshotAttachment)
