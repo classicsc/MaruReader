@@ -50,7 +50,8 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
 
     private let session: BookReaderSessionModel
     private let readerPreferences: ReaderPreferences
-    private let searchService: DictionarySearchService
+    private let searchServiceFactory: () -> DictionarySearchService
+    private var resolvedSearchService: DictionarySearchService?
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
@@ -66,13 +67,23 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     init(
         session: BookReaderSessionModel,
         readerPreferences: ReaderPreferences,
-        searchService: DictionarySearchService = DictionarySearchService()
+        searchServiceFactory: @escaping () -> DictionarySearchService = { DictionarySearchService() }
     ) {
         self.session = session
         self.readerPreferences = readerPreferences
-        self.searchService = searchService
+        self.searchServiceFactory = searchServiceFactory
         super.init()
         initializePopupPage()
+    }
+
+    private func searchService() -> DictionarySearchService {
+        if let resolvedSearchService {
+            return resolvedSearchService
+        }
+
+        let searchService = searchServiceFactory()
+        resolvedSearchService = searchService
+        return searchService
     }
 
     func presentDictionarySheet(with searchViewModel: DictionarySearchViewModel) {
@@ -131,7 +142,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
                 cssSelector: cssSelector,
                 contextValues: contextValues
             )
-            guard let lookupSession = try await searchService.startTextLookup(request: lookupRequest) else {
+            guard let lookupSession = try await self.searchService().startTextLookup(request: lookupRequest) else {
                 logger.debug("No search session created for lookup")
                 return
             }

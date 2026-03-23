@@ -1,4 +1,4 @@
-// WebViewerDictionarySheetView.swift
+// DictionarySearchSheetView.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -15,18 +15,31 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import MaruDictionaryUICommon
 import MaruReaderCore
 import SwiftUI
 
-struct WebViewerDictionarySheetView: View {
+@MainActor
+public struct DictionarySearchSheetView: View {
     let searchText: String
     let contextValues: LookupContextValues
     let accessibilityIdentifier: String
     let onDismiss: () -> Void
+
     @State private var searchViewModel = DictionarySearchViewModel(resultState: .searching)
 
-    var body: some View {
+    public init(
+        searchText: String,
+        contextValues: LookupContextValues,
+        accessibilityIdentifier: String,
+        onDismiss: @escaping () -> Void
+    ) {
+        self.searchText = searchText
+        self.contextValues = contextValues
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.onDismiss = onDismiss
+    }
+
+    public var body: some View {
         NavigationStack {
             DictionarySearchView()
                 .environment(searchViewModel)

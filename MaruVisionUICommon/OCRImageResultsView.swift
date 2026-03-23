@@ -35,8 +35,6 @@ public struct OCRImageResultsView: View {
     @State private var showBoundingBoxes: Bool = false
     @State private var highlightedCluster: TextCluster?
     @State private var selectedCluster: TextCluster?
-    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
-
     // Pan-zoom state
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
@@ -135,31 +133,17 @@ public struct OCRImageResultsView: View {
             }
         }
         .sheet(item: $selectedCluster) { cluster in
-            NavigationStack {
-                DictionarySearchView()
-                    .environment(searchSheetViewModel)
-                    .navigationTitle("Dictionary")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .navigationBarBackButtonHidden(true)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Done") {
-                                selectedCluster = nil
-                            }
-                        }
-                    }
-            }
-            .onAppear {
-                // Initialize the view model with the cluster's transcript
-                searchSheetViewModel.performSearch(
-                    cluster.transcript,
-                    contextValues: LookupContextValues(
-                        contextInfo: "Scanned image",
-                        sourceType: .dictionary
-                    )
-                )
-            }
-            .presentationDetents([.medium, .large])
+            DictionarySearchSheetView(
+                searchText: cluster.transcript,
+                contextValues: LookupContextValues(
+                    contextInfo: "Scanned image",
+                    sourceType: .dictionary
+                ),
+                accessibilityIdentifier: "ocr.dictionarySheet",
+                onDismiss: {
+                    selectedCluster = nil
+                }
+            )
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {

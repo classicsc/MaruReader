@@ -79,7 +79,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Navigation history for back/forward functionality
     let history = NavigationHistory()
 
-    private var searchService: DictionarySearchService
+    private let searchServiceFactory: () -> DictionarySearchService
+    private var resolvedSearchService: DictionarySearchService?
 
     private var mediaSchemeHandler: MediaURLSchemeHandler = .init()
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
@@ -95,9 +96,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     private let logger = Logger.maru(category: "DictionarySearchViewModel")
 
-    public init(resultState: ResultDisplayState = .startPage, dictionaryWebTheme: DictionaryWebTheme? = nil) {
+    public init(
+        resultState: ResultDisplayState = .startPage,
+        dictionaryWebTheme: DictionaryWebTheme? = nil,
+        searchServiceFactory: @escaping () -> DictionarySearchService = { DictionarySearchService() }
+    ) {
         self.resultState = resultState
-        self.searchService = DictionarySearchService()
+        self.searchServiceFactory = searchServiceFactory
         self.dictionaryWebTheme = dictionaryWebTheme
         super.init()
         initializeWebPage()
@@ -106,9 +111,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     }
 
     /// Initialize with an existing lookup session to preserve context/results.
-    public init(session: TextLookupSession, dictionaryWebTheme: DictionaryWebTheme? = nil) {
+    public init(
+        session: TextLookupSession,
+        dictionaryWebTheme: DictionaryWebTheme? = nil,
+        searchServiceFactory: @escaping () -> DictionarySearchService = { DictionarySearchService() }
+    ) {
         self.resultState = .ready
-        self.searchService = DictionarySearchService()
+        self.searchServiceFactory = searchServiceFactory
         self.dictionaryWebTheme = dictionaryWebTheme
         super.init()
         initializeWebPage()
@@ -242,6 +251,16 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         popupPage.isInspectable = true
     }
 
+    private func searchService() -> DictionarySearchService {
+        if let resolvedSearchService {
+            return resolvedSearchService
+        }
+
+        let searchService = searchServiceFactory()
+        resolvedSearchService = searchService
+        return searchService
+    }
+
     /// Perform a search at a specific offset within the current context
     public func performSearchAtOffset(_ offset: Int) {
         guard let currentRequest else { return }
@@ -268,7 +287,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             self.hidePopup()
             self.resultState = .searching
             do {
-                guard let session = try await searchService.startTextLookup(request: lookupRequest) else {
+                guard let session = try await self.searchService().startTextLookup(request: lookupRequest) else {
                     self.currentRequest = lookupRequest
                     self.currentResponse = nil
                     self.currentSession = nil
@@ -484,7 +503,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 cssSelector: cssSelector,
                 contextValues: transitionedContextValues
             )
-            guard let session = try await searchService.startTextLookup(request: lookupRequest) else {
+            guard let session = try await self.searchService().startTextLookup(request: lookupRequest) else {
                 return
             }
 

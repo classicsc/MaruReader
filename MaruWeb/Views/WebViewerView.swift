@@ -27,7 +27,6 @@ public struct WebViewerView: View {
 
     @State private var viewModel: WebViewerViewModel
     @State private var selectedLookup: WebLookupSelection?
-    @State private var searchSheetViewModel = DictionarySearchViewModel(resultState: .searching)
     @State private var suggestionViewModel = WebSearchSuggestionViewModel()
     @State private var isEditingAddress = false
     @State private var addressSnapshot = ""
@@ -103,7 +102,6 @@ public struct WebViewerView: View {
         .onChange(of: viewModel.addressBarText, handleAddressBarTextChange)
         .sheet(item: $selectedLookup) { selection in
             WebViewerDictionarySheetView(
-                searchViewModel: searchSheetViewModel,
                 searchText: selection.cluster.transcript,
                 contextValues: selection.contextValues,
                 accessibilityIdentifier: "web.dictionarySheet",
@@ -112,7 +110,6 @@ public struct WebViewerView: View {
         }
         .sheet(item: editMenuSelectionBinding) { selection in
             WebViewerDictionarySheetView(
-                searchViewModel: searchSheetViewModel,
                 searchText: selection.text,
                 contextValues: selection.contextValues,
                 accessibilityIdentifier: "web.editMenuDictionarySheet",

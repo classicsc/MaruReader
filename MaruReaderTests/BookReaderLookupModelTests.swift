@@ -19,6 +19,7 @@ import CoreGraphics
 import Foundation
 import MaruDictionaryUICommon
 @testable import MaruReader
+import MaruReaderCore
 import Testing
 
 @MainActor
@@ -57,5 +58,30 @@ struct BookReaderLookupModelTests {
 
         #expect(!lookup.showPopup)
         #expect(lookup.popupAnchorPosition == .zero)
+    }
+
+    @Test func searchServiceFactory_IsLazyAtInitialization() throws {
+        var factoryInvocationCount = 0
+        let persistenceController = makeBookPersistenceController()
+        let context = persistenceController.container.viewContext
+        let book = Book(context: context)
+        book.id = UUID()
+        book.language = "ja"
+        try context.save()
+
+        let repository = BookReaderRepository(persistenceController: persistenceController)
+        let session = BookReaderSessionModel(bookID: book.objectID, repository: repository, loadPublicationOnInit: false)
+        let preferences = ReaderPreferences(bookID: book.objectID, persistenceController: persistenceController, context: context)
+
+        _ = BookReaderLookupModel(
+            session: session,
+            readerPreferences: preferences,
+            searchServiceFactory: {
+                factoryInvocationCount += 1
+                return DictionarySearchService()
+            }
+        )
+
+        #expect(factoryInvocationCount == 0)
     }
 }

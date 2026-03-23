@@ -40,12 +40,12 @@ struct SettingsView: View {
             Form {
                 Section("Data") {
                     NavigationLink {
-                        DictionaryManagementView()
+                        DictionaryManagementRootView()
                     } label: {
                         Label("Dictionaries", systemImage: "book.closed")
                     }
                     NavigationLink {
-                        AudioSourceSettingsView()
+                        AudioSourceSettingsRootView()
                     } label: {
                         Label("Pronunciation Audio", systemImage: "speaker.wave.2")
                     }

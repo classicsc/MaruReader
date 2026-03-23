@@ -27,6 +27,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 struct DictionaryManagementView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
@@ -136,7 +138,10 @@ struct DictionaryManagementView: View {
                 }
             }
             ToolbarItem(placement: .secondaryAction) {
-                NavigationLink(destination: DictionaryPriorityView()) {
+                NavigationLink(
+                    destination: DictionaryPriorityView()
+                        .environment(\.managedObjectContext, viewContext)
+                ) {
                     Label("Priorities", systemImage: "arrow.up.arrow.down")
                 }
             }
