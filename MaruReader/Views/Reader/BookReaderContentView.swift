@@ -167,6 +167,8 @@ struct BookReaderContentView: View {
             .task {
                 guard MaruReaderApp.isScreenshotMode else { return }
                 try? await Task.sleep(for: .seconds(3))
+                session.goLeft()
+                try? await Task.sleep(for: .seconds(3))
                 lookup.triggerScreenshotTextLookup()
             }
     }

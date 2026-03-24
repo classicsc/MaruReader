@@ -66,7 +66,7 @@ enum ReaderAppearancePreferences {
     static let fontFamilyOptionKey = "readerAppearance.fontFamilyOption"
     static let appearanceModeKey = "readerAppearance.appearanceMode"
 
-    static let fontScaleDefault = 100.0
+    static let fontScaleDefault = 150.0
     static let fontFamilyOptionDefault = ReaderFontFamilyOption.mincho
     static let appearanceModeDefault = ReaderAppearanceMode.followSystem
 
