@@ -67,7 +67,7 @@ final class ScreenshotTests: XCTestCase {
         sleep(3)
 
         // In screenshot mode, dictionary mode is auto-enabled and a lookup
-        // for "自然" is auto-triggered.
+        // for "常に" is auto-triggered.
         // Wait for the popover to appear.
         let dictionaryPopover = app.otherElements["bookReader.dictionaryPopover"].firstMatch
         if !dictionaryPopover.waitForExistence(timeout: 15) {

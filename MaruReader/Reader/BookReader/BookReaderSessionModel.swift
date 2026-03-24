@@ -37,6 +37,10 @@ final class BookReaderSessionModel {
     private(set) var coverImage: UIImage?
     private(set) var chapterTitleByHref: [String: String] = [:]
 
+    /// Set when the navigator fires its first `locationDidChange`, indicating the
+    /// spread has loaded and content is rendered.
+    private(set) var hasReceivedLocationUpdate = false
+
     @ObservationIgnored
     weak var navigator: EPUBNavigatorViewController?
 
@@ -89,6 +93,7 @@ final class BookReaderSessionModel {
 
     func handleLocationDidChange(_ locator: Locator) {
         currentLocator = locator
+        hasReceivedLocationUpdate = true
 
         do {
             try repository.saveReadingProgress(

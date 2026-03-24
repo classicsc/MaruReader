@@ -166,9 +166,23 @@ struct BookReaderContentView: View {
             }
             .task {
                 guard MaruReaderApp.isScreenshotMode else { return }
-                try? await Task.sleep(for: .seconds(3))
-                session.goLeft()
-                try? await Task.sleep(for: .seconds(3))
+
+                // Wait for the navigator's first locationDidChange, which fires
+                // after the spread loads and content is rendered (up to ~30s).
+                for _ in 0 ..< 60 {
+                    if session.hasReceivedLocationUpdate { break }
+                    try? await Task.sleep(for: .milliseconds(500))
+                }
+                guard session.hasReceivedLocationUpdate else { return }
+
+                // Turn the page only if the target text isn't already visible.
+                // On larger screens (iPad) the text is on the initial page;
+                // on smaller screens (iPhone) we need to advance one page.
+                if await !lookup.isScreenshotTextVisible() {
+                    session.goLeft()
+                    try? await Task.sleep(for: .seconds(2))
+                }
+
                 lookup.triggerScreenshotTextLookup()
             }
     }

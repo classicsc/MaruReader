@@ -289,7 +289,37 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         }
     }
 
-    static let screenshotLookupSearchText = "自然"
+    static let screenshotLookupSearchText = "常に"
+
+    /// Checks whether the screenshot lookup text is visible in the current viewport
+    /// (not just present in the DOM, which may include off-screen paginated columns).
+    func isScreenshotTextVisible() async -> Bool {
+        let text = Self.screenshotLookupSearchText
+        let script = """
+        (function() {
+            var text = '\(text)';
+            var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+                var idx = walker.currentNode.textContent.indexOf(text);
+                if (idx !== -1) {
+                    var range = document.createRange();
+                    range.setStart(walker.currentNode, idx);
+                    range.setEnd(walker.currentNode, idx + text.length);
+                    var rect = range.getBoundingClientRect();
+                    return rect.left >= 0 && rect.right <= window.innerWidth
+                        && rect.top >= 0 && rect.bottom <= window.innerHeight;
+                }
+            }
+            return false;
+        })()
+        """
+        switch await session.navigator?.evaluateJavaScript(script) {
+        case let .success(value)?:
+            return value as? Bool ?? false
+        default:
+            return false
+        }
+    }
 
     func triggerScreenshotTextLookup() {
         guard let webView = currentNavigatorWebView() else {
