@@ -53,6 +53,7 @@ struct MaruReaderApp: App {
         WindowGroup {
             if shouldShowContentView {
                 ContentView()
+                    .environment(\.dictionaryFeatureAvailability, startupPreparationCoordinator.dictionaryFeatureAvailability)
             } else {
                 WelcomeView(
                     phaseDescription: startupPreparationCoordinator.phaseDescription,

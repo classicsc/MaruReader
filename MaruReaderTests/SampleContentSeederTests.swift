@@ -17,6 +17,7 @@
 
 import CoreData
 import Foundation
+import MaruDictionaryUICommon
 @testable import MaruManga
 @testable import MaruReader
 import ReadiumShared
@@ -294,6 +295,101 @@ struct SampleContentSeederTests {
         await coordinator.waitUntilComplete()
         let events = await recorder.snapshot()
         #expect(events == ["anki", "cleanup", "sample", "updates"])
+    }
+
+    @Test func requiresWelcomeScreen_OnlyDictionarySeeding_ReturnsFalse() async {
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: true,
+                sampleContentAvailable: false,
+                operations: .init(
+                    seedDictionaryIfNeeded: {},
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {}
+                ),
+                autoStart: false
+            )
+        }
+        let requires = await coordinator.requiresWelcomeScreen
+        #expect(requires == false)
+    }
+
+    @Test func requiresWelcomeScreen_SampleContentAvailable_ReturnsTrue() async {
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: false,
+                sampleContentAvailable: true,
+                operations: .init(
+                    seedDictionaryIfNeeded: {},
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {}
+                ),
+                autoStart: false
+            )
+        }
+        let requires = await coordinator.requiresWelcomeScreen
+        #expect(requires == true)
+    }
+
+    @Test func dictionaryFeatureAvailability_DuringSeeding_IsPreparing() async {
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: true,
+                sampleContentAvailable: false,
+                operations: .init(
+                    seedDictionaryIfNeeded: {},
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {}
+                ),
+                autoStart: false
+            )
+        }
+        let availability = await coordinator.dictionaryFeatureAvailability
+        #expect(availability == .preparing(description: "Preparing dictionary..."))
+    }
+
+    @Test func dictionaryFeatureAvailability_NoSeedingNeeded_IsReady() async {
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: false,
+                sampleContentAvailable: false,
+                operations: .init(
+                    seedDictionaryIfNeeded: {},
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {}
+                ),
+                autoStart: false
+            )
+        }
+        let availability = await coordinator.dictionaryFeatureAvailability
+        #expect(availability == .ready)
+    }
+
+    @Test func dictionaryFeatureAvailability_AfterSeedingCompletes_IsReady() async {
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: true,
+                sampleContentAvailable: false,
+                operations: .init(
+                    seedDictionaryIfNeeded: {},
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {}
+                )
+            )
+        }
+        await coordinator.waitUntilComplete()
+        let availability = await coordinator.dictionaryFeatureAvailability
+        #expect(availability == .ready)
     }
 
     private func makeSampleContentFixture(

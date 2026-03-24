@@ -52,6 +52,17 @@ struct DictionarySearchRootView: View {
                     systemImage: "character.book.closed.ja",
                     description: Text(message)
                 )
+            @unknown default:
+                if let searchViewModel {
+                    DictionarySearchView()
+                        .environment(searchViewModel)
+                } else {
+                    ProgressView("Preparing dictionary...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .task {
+                            activateSearchIfNeeded()
+                        }
+                }
             }
         }
         .searchable(text: $query, placement: .automatic, prompt: "Search Dictionary")

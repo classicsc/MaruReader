@@ -30,6 +30,7 @@ public struct MangaReaderView: View {
     @State private var pageJumpInput: String = ""
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @Environment(\.dismiss) private var dismiss
 
     public init(mangaID: NSManagedObjectID, persistenceController: MangaDataPersistenceController = .shared) {
@@ -79,26 +80,45 @@ public struct MangaReaderView: View {
         .toolbar(.hidden, for: .tabBar)
         .sheet(isPresented: $viewModel.showingDictionarySheet) {
             NavigationStack {
-                if let sheetViewModel = searchSheetViewModel {
-                    DictionarySearchView()
-                        .environment(sheetViewModel)
-                        .navigationTitle(MangaLocalization.string("Dictionary"))
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button(MangaLocalization.string("Done")) {
-                                    viewModel.showingDictionarySheet = false
-                                }
-                            }
+                Group {
+                    switch dictionaryAvailability {
+                    case .ready:
+                        if let sheetViewModel = searchSheetViewModel {
+                            DictionarySearchView()
+                                .environment(sheetViewModel)
                         }
+                    case let .preparing(description):
+                        ProgressView(description)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    case let .failed(message):
+                        ContentUnavailableView(
+                            "Dictionary Unavailable",
+                            systemImage: "character.book.closed.ja",
+                            description: Text(message)
+                        )
+                    @unknown default:
+                        if let sheetViewModel = searchSheetViewModel {
+                            DictionarySearchView()
+                                .environment(sheetViewModel)
+                        }
+                    }
+                }
+                .navigationTitle(MangaLocalization.string("Dictionary"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(MangaLocalization.string("Done")) {
+                            viewModel.showingDictionarySheet = false
+                        }
+                    }
                 }
             }
             .onAppear {
-                if let text = viewModel.pendingSearchText {
-                    let vm = DictionarySearchViewModel(resultState: .searching)
-                    vm.performSearch(text, contextValues: viewModel.pendingContextValues)
-                    searchSheetViewModel = vm
-                    viewModel.clearPendingSearch()
+                performMangaSearchIfReady()
+            }
+            .onChange(of: dictionaryAvailability) { _, newValue in
+                if case .ready = newValue {
+                    performMangaSearchIfReady()
                 }
             }
             .onDisappear {
@@ -144,6 +164,17 @@ public struct MangaReaderView: View {
                 viewModel.overlayState = .showingToolbars
             }
         }
+    }
+
+    private func performMangaSearchIfReady() {
+        guard case .ready = dictionaryAvailability,
+              searchSheetViewModel == nil,
+              let text = viewModel.pendingSearchText
+        else { return }
+        let vm = DictionarySearchViewModel(resultState: .searching)
+        vm.performSearch(text, contextValues: viewModel.pendingContextValues)
+        searchSheetViewModel = vm
+        viewModel.clearPendingSearch()
     }
 
     // MARK: - Page Container

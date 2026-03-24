@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
 import Observation
@@ -91,7 +92,10 @@ final class StartupPreparationCoordinator {
 
     let needsDictionarySeeding: Bool
     let sampleContentAvailable: Bool
-    let requiresWelcomeScreen: Bool
+
+    var requiresWelcomeScreen: Bool {
+        sampleContentAvailable
+    }
 
     var phaseDescription: String {
         phase.description
@@ -115,7 +119,6 @@ final class StartupPreparationCoordinator {
 
         self.needsDictionarySeeding = resolvedNeedsDictionarySeeding
         self.sampleContentAvailable = resolvedSampleContentAvailable
-        requiresWelcomeScreen = resolvedNeedsDictionarySeeding || resolvedSampleContentAvailable
         phase = resolvedNeedsDictionarySeeding ? .preparingDictionary : .cleaningUp
         isPreparationComplete = false
         self.operations = operations
@@ -123,6 +126,13 @@ final class StartupPreparationCoordinator {
         if autoStart {
             start()
         }
+    }
+
+    var dictionaryFeatureAvailability: DictionaryFeatureAvailability {
+        if needsDictionarySeeding, phase == .preparingDictionary {
+            return .preparing(description: phase.description)
+        }
+        return .ready
     }
 
     var canContinue: Bool {

@@ -24,30 +24,68 @@ struct WebViewerDictionarySheetView: View {
     let contextValues: LookupContextValues
     let accessibilityIdentifier: String
     let onDismiss: () -> Void
-    @State private var searchViewModel = DictionarySearchViewModel(resultState: .searching)
+
+    @Environment(\.dictionaryFeatureAvailability) private var availability
+    @State private var searchViewModel: DictionarySearchViewModel?
+    @State private var didPerformSearch = false
 
     var body: some View {
         NavigationStack {
-            DictionarySearchView()
-                .environment(searchViewModel)
-                .navigationTitle("Dictionary")
-                .navigationBarTitleDisplayMode(.inline)
-                .navigationBarBackButtonHidden(true)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Done", action: onDismiss)
+            Group {
+                switch availability {
+                case .ready:
+                    if let searchViewModel {
+                        DictionarySearchView()
+                            .environment(searchViewModel)
+                    } else {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                case let .preparing(description):
+                    ProgressView(description)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                case let .failed(message):
+                    ContentUnavailableView(
+                        "Dictionary Unavailable",
+                        systemImage: "character.book.closed.ja",
+                        description: Text(message)
+                    )
+                @unknown default:
+                    if let searchViewModel {
+                        DictionarySearchView()
+                            .environment(searchViewModel)
+                    } else {
+                        ProgressView()
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 }
+            }
+            .navigationTitle("Dictionary")
+            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Done", action: onDismiss)
+                }
+            }
         }
-        .onAppear(perform: performSearch)
+        .onAppear {
+            performSearchIfReady()
+        }
+        .onChange(of: availability) { _, newValue in
+            if case .ready = newValue {
+                performSearchIfReady()
+            }
+        }
         .presentationDetents([.medium, .large])
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 
-    private func performSearch() {
-        searchViewModel.performSearch(
-            searchText,
-            contextValues: contextValues
-        )
+    private func performSearchIfReady() {
+        guard case .ready = availability, !didPerformSearch else { return }
+        didPerformSearch = true
+        let viewModel = DictionarySearchViewModel(resultState: .searching)
+        viewModel.performSearch(searchText, contextValues: contextValues)
+        searchViewModel = viewModel
     }
 }

@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import CoreData
+import MaruDictionaryUICommon
 import MaruReaderCore
 import SwiftUI
 
@@ -45,6 +46,9 @@ struct DictionaryManagedContextRoot<Content: View>: View {
                 systemImage: "character.book.closed.ja",
                 description: Text(message)
             )
+        @unknown default:
+            content()
+                .environment(\.managedObjectContext, DictionaryPersistenceController.shared.container.viewContext)
         }
     }
 }

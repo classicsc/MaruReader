@@ -22,6 +22,8 @@ import MaruWeb
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
+
     var body: some View {
         TabView {
             Tab("Read", systemImage: "books.vertical") {
@@ -39,7 +41,7 @@ struct ContentView: View {
                 SettingsView()
             }
             Tab(role: .search) {
-                DictionarySearchRootView()
+                DictionarySearchRootView(availability: dictionaryAvailability)
             }
         }
         .tabViewStyle(.sidebarAdaptable)

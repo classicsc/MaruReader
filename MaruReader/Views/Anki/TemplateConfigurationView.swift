@@ -17,11 +17,13 @@
 
 import CoreData
 import MaruAnki
+import MaruDictionaryUICommon
 import MaruReaderCore
 import SwiftUI
 
 struct TemplateConfigurationView: View {
     @Bindable var viewModel: AnkiConfigurationViewModel
+    @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @State private var availableDictionaries: [DictionaryPickerInfo] = []
     @State private var isLoadingDictionaries = true
 
@@ -51,7 +53,14 @@ struct TemplateConfigurationView: View {
             }
         }
         .task {
-            await loadAvailableDictionaries()
+            if case .ready = dictionaryAvailability {
+                await loadAvailableDictionaries()
+            }
+        }
+        .onChange(of: dictionaryAvailability) { _, newValue in
+            if case .ready = newValue, availableDictionaries.isEmpty {
+                Task { await loadAvailableDictionaries() }
+            }
         }
     }
 
@@ -68,7 +77,16 @@ struct TemplateConfigurationView: View {
 
     private var dictionarySection: some View {
         Section {
-            if isLoadingDictionaries {
+            if case let .preparing(description) = dictionaryAvailability {
+                HStack {
+                    ProgressView()
+                    Text(description)
+                        .foregroundStyle(.secondary)
+                }
+            } else if case let .failed(message) = dictionaryAvailability {
+                Text(message)
+                    .foregroundStyle(.red)
+            } else if isLoadingDictionaries {
                 HStack {
                     ProgressView()
                     Text("Loading dictionaries...")

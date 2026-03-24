@@ -42,6 +42,9 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     var popupPage: WebPage = .init()
     var popupAnchorPosition: CGRect = .zero
     var dictionarySheetPresentation: BookReaderDictionarySheetPresentation?
+    var isDictionaryReady: Bool = true
+    private(set) var pendingSheetSearchText: String?
+    private(set) var pendingSheetContextValues: LookupContextValues?
 
     private var popupSearchTask: Task<Void, Error>?
     private weak var activeNavigatorWebView: WKWebView?
@@ -92,6 +95,17 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
 
     func dismissDictionarySheet() {
         dictionarySheetPresentation = nil
+        pendingSheetSearchText = nil
+        pendingSheetContextValues = nil
+    }
+
+    func replayPendingSheetSearch() {
+        guard let searchText = pendingSheetSearchText,
+              let presentation = dictionarySheetPresentation
+        else { return }
+        presentation.viewModel.performSearch(searchText, contextValues: pendingSheetContextValues)
+        pendingSheetSearchText = nil
+        pendingSheetContextValues = nil
     }
 
     func searchInDictionarySheet(session lookupSession: TextLookupSession) {
@@ -129,6 +143,16 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     func searchInPopup(offset: Int, context: String, contextStartOffset: Int, cssSelector: String) {
         if showPopup {
             hidePopup()
+            return
+        }
+
+        guard isDictionaryReady else {
+            let searchText = String(context.dropFirst(offset).prefix(20))
+            pendingSheetSearchText = searchText
+            Task {
+                pendingSheetContextValues = await session.makeLookupContextValues()
+            }
+            presentDictionarySheet(with: DictionarySearchViewModel(resultState: .searching))
             return
         }
 

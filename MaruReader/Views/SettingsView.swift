@@ -26,6 +26,7 @@ import MaruManga
 import SwiftUI
 
 struct SettingsView: View {
+    @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @State private var pendingCount = 0
     @State private var showingResetToursConfirmation = false
     @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
@@ -40,12 +41,12 @@ struct SettingsView: View {
             Form {
                 Section("Data") {
                     NavigationLink {
-                        DictionaryManagementRootView()
+                        DictionaryManagementRootView(availability: dictionaryAvailability)
                     } label: {
                         Label("Dictionaries", systemImage: "book.closed")
                     }
                     NavigationLink {
-                        AudioSourceSettingsRootView()
+                        AudioSourceSettingsRootView(availability: dictionaryAvailability)
                     } label: {
                         Label("Pronunciation Audio", systemImage: "speaker.wave.2")
                     }

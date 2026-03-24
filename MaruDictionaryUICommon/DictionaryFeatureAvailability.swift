@@ -15,8 +15,14 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-enum DictionaryFeatureAvailability {
+import SwiftUI
+
+public enum DictionaryFeatureAvailability: Equatable, Sendable {
     case ready
     case preparing(description: String)
     case failed(message: String)
+}
+
+public extension EnvironmentValues {
+    @Entry var dictionaryFeatureAvailability: DictionaryFeatureAvailability = .ready
 }

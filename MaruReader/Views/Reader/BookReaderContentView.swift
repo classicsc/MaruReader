@@ -33,6 +33,7 @@ struct BookReaderContentView: View {
 
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
 
     var body: some View {
         readerContent
@@ -43,20 +44,43 @@ struct BookReaderContentView: View {
                 lookup.dismissDictionarySheet()
             }) { presentation in
                 NavigationStack {
-                    DictionarySearchView()
-                        .environment(presentation.viewModel)
-                        .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
-                        .navigationTitle("Dictionary")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .navigationBarBackButtonHidden(true)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Done") {
-                                    lookup.dismissDictionarySheet()
-                                }
-                                .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
-                            }
+                    Group {
+                        switch dictionaryAvailability {
+                        case .ready:
+                            DictionarySearchView()
+                                .environment(presentation.viewModel)
+                                .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
+                        case let .preparing(description):
+                            ProgressView(description)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        case let .failed(message):
+                            ContentUnavailableView(
+                                "Dictionary Unavailable",
+                                systemImage: "character.book.closed.ja",
+                                description: Text(message)
+                            )
+                        @unknown default:
+                            DictionarySearchView()
+                                .environment(presentation.viewModel)
+                                .environment(\.dictionaryPresentationTheme, readerDictionaryPresentationTheme)
                         }
+                    }
+                    .navigationTitle("Dictionary")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .navigationBarBackButtonHidden(true)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Done") {
+                                lookup.dismissDictionarySheet()
+                            }
+                            .foregroundStyle(readerDictionaryPresentationTheme.foregroundColor)
+                        }
+                    }
+                }
+                .onChange(of: dictionaryAvailability) { _, newValue in
+                    if case .ready = newValue {
+                        lookup.replayPendingSheetSearch()
+                    }
                 }
                 .background(dictionarySheetBackgroundColor)
                 .applyLocalColorScheme(readerOverlayForcedColorScheme)
@@ -130,11 +154,15 @@ struct BookReaderContentView: View {
             .onAppear {
                 readerPreferences.systemColorScheme = colorScheme
                 applyReaderDictionaryTheme()
+                lookup.isDictionaryReady = dictionaryAvailability == .ready
                 if MaruReaderApp.isScreenshotMode {
                     chrome.isDictionaryActive = true
                 } else if tourManager.startIfNeeded(BookReaderTour.self) {
                     chrome.route = .showingToolbars
                 }
+            }
+            .onChange(of: dictionaryAvailability) { _, newValue in
+                lookup.isDictionaryReady = newValue == .ready
             }
             .task {
                 guard MaruReaderApp.isScreenshotMode else { return }
