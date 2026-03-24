@@ -140,12 +140,10 @@ final class ScreenshotTests: XCTestCase {
             searchTab.tap()
         }
 
-        // Type a search query
+        // In screenshot mode, the search screen auto-populates a query and
+        // dismisses focus so the screenshot does not depend on keyboard state.
         let searchField = app.searchFields.firstMatch
-        if searchField.waitForExistence(timeout: 5) {
-            searchField.tap()
-            searchField.typeText("読む")
-        }
+        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
         sleep(2)
         takeScreenshot(named: "06-DictionarySearch")
     }

@@ -105,6 +105,10 @@ for simulator in "${simulators[@]}"; do
     xcrun simctl erase "$simulator_udid"
     xcrun simctl boot "$simulator_udid"
     xcrun simctl bootstatus "$simulator_udid" -b
+    xcrun simctl spawn "$simulator_udid" defaults write \
+      com.apple.keyboard.preferences \
+      DidShowContinuousPathIntroduction \
+      -bool true
     xcrun simctl ui "$simulator_udid" appearance "$appearance"
     xcrun simctl status_bar "$simulator_udid" override \
       --time 9:41 \

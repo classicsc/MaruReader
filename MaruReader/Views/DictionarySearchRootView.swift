@@ -19,10 +19,13 @@ import MaruDictionaryUICommon
 import SwiftUI
 
 struct DictionarySearchRootView: View {
+    private static let screenshotQuery = "読む"
+
     let availability: DictionaryFeatureAvailability
 
     @State private var searchViewModel: DictionarySearchViewModel?
     @State private var query: String = ""
+    @State private var didConfigureScreenshotState = false
     @FocusState private var isSearchFieldFocused: Bool
 
     init(availability: DictionaryFeatureAvailability = .ready) {
@@ -70,6 +73,9 @@ struct DictionarySearchRootView: View {
         .onChange(of: query) { _, newValue in
             searchViewModel?.performSearch(newValue)
         }
+        .task {
+            configureScreenshotStateIfNeeded()
+        }
         .onChange(of: isSearchFieldFocused) { _, isFocused in
             if isFocused {
                 activateSearchIfNeeded()
@@ -85,6 +91,20 @@ struct DictionarySearchRootView: View {
         searchViewModel = DictionarySearchViewModel()
         if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             searchViewModel?.performSearch(query)
+        }
+    }
+
+    private func configureScreenshotStateIfNeeded() {
+        guard MaruReaderApp.isScreenshotMode, !didConfigureScreenshotState else { return }
+        didConfigureScreenshotState = true
+        query = Self.screenshotQuery
+        activateSearchIfNeeded()
+
+        // The search tab auto-focuses its searchable field; blur it again so
+        // screenshot capture is deterministic even on freshly erased simulators.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            isSearchFieldFocused = false
         }
     }
 }
