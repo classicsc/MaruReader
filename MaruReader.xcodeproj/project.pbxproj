@@ -464,6 +464,9 @@
 		};
 		DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			assetTagsByRelativePath = {
+				StarterDictionary = (StarterDict, );
+			};
 			membershipExceptions = (
 				Info.plist,
 				SampleContent,
@@ -1344,6 +1347,9 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
+				KnownAssetTags = (
+					StarterDict,
+				);
 				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
@@ -2214,6 +2220,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
+				EMBED_ASSET_PACKS_IN_PRODUCT_BUNDLE = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = MaruReader/Info.plist;
@@ -2232,6 +2239,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS = StarterDict;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2267,6 +2275,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS = StarterDict;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;

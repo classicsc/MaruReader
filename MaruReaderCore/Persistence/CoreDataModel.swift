@@ -188,6 +188,20 @@ public final class DictionaryPersistenceController: Sendable {
             // Skip if database already exists
             guard !FileManager.default.fileExists(atPath: destinationDB.path) else { return }
 
+            // Set up the resource request for the bundled dictionary (should be configured for initial install availability)
+            let resourceRequest = NSBundleResourceRequest(
+                tags: ["StarterDict"],
+                bundle: Bundle.main
+            )
+
+            do {
+                try await resourceRequest.beginAccessingResources()
+            } catch {
+                // Log the error but proceed to attempt copying, as the resource might still be available (e.g. on simulator or if already accessed before)
+                Self.logger.warning("Failed to begin accessing resources for 'starterdict' tag: \(error.localizedDescription, privacy: .public)")
+            }
+            defer { resourceRequest.endAccessingResources() }
+
             // Find bundled starter dictionary in main app bundle (not framework bundle,
             // to avoid duplicating the large database across dependent frameworks)
             guard let bundleDB = Bundle.main.url(
