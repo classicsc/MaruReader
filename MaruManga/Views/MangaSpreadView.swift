@@ -23,7 +23,6 @@ import SwiftUI
 struct MangaSpreadView: View {
     let spreadItem: SpreadLayout.SpreadItem
     @Bindable var viewModel: MangaReaderViewModel
-    @Environment(\.layoutDirection) private var layoutDirection
 
     // MARK: - Configuration
 
@@ -86,27 +85,27 @@ struct MangaSpreadView: View {
 
         case let .double(leftPageIndex, rightPageIndex):
             // Two pages split the width
+            let pageContainerSize = CGSize(
+                width: containerSize.width / 2,
+                height: containerSize.height
+            )
+
             HStack(spacing: 0) {
-                MangaPageContentView(
+                MangaSpreadSlotView(
                     pageIndex: leftPageIndex,
                     viewModel: viewModel,
-                    containerSize: CGSize(
-                        width: containerSize.width / 2,
-                        height: containerSize.height
-                    )
+                    containerSize: pageContainerSize,
+                    horizontalPlacement: .trailing
                 )
-                .frame(width: containerSize.width / 2)
 
-                MangaPageContentView(
+                MangaSpreadSlotView(
                     pageIndex: rightPageIndex,
                     viewModel: viewModel,
-                    containerSize: CGSize(
-                        width: containerSize.width / 2,
-                        height: containerSize.height
-                    )
+                    containerSize: pageContainerSize,
+                    horizontalPlacement: .leading
                 )
-                .frame(width: containerSize.width / 2)
             }
+            .environment(\.layoutDirection, .leftToRight)
         }
     }
 
@@ -145,7 +144,10 @@ struct MangaSpreadView: View {
                     // At base zoom, drag is tracked for potential swipe
                 } else {
                     // When zoomed, drag pans the spread
-                    let horizontalTranslation = adjustedHorizontalTranslation(value.translation.width)
+                    let horizontalTranslation = Self.adjustedHorizontalTranslation(
+                        value.translation.width,
+                        readingDirection: viewModel.readingDirection
+                    )
                     let newOffset = CGSize(
                         width: spreadLastOffset.width + horizontalTranslation,
                         height: spreadLastOffset.height + value.translation.height
@@ -188,12 +190,18 @@ struct MangaSpreadView: View {
         return SimultaneousGesture(magnificationGesture, dragGesture)
     }
 
-    private func adjustedHorizontalTranslation(_ translation: CGFloat) -> CGFloat {
-        layoutDirection == .rightToLeft ? -translation : translation
+    nonisolated static func adjustedHorizontalTranslation(
+        _ translation: CGFloat,
+        readingDirection: MangaReadingDirection
+    ) -> CGFloat {
+        readingDirection == .rightToLeft ? -translation : translation
     }
 
-    private func adjustedOffsetForHitTesting(_ offset: CGSize) -> CGSize {
-        layoutDirection == .rightToLeft
+    nonisolated static func adjustedOffsetForHitTesting(
+        _ offset: CGSize,
+        readingDirection: MangaReadingDirection
+    ) -> CGSize {
+        readingDirection == .rightToLeft
             ? CGSize(width: -offset.width, height: offset.height)
             : offset
     }
@@ -234,7 +242,10 @@ struct MangaSpreadView: View {
     // MARK: - Hit Testing
 
     private func handleSpreadTap(at tapPoint: CGPoint, containerSize: CGSize) {
-        let hitTestOffset = adjustedOffsetForHitTesting(spreadOffset)
+        let hitTestOffset = Self.adjustedOffsetForHitTesting(
+            spreadOffset,
+            readingDirection: viewModel.readingDirection
+        )
 
         // Apply inverse transform to get the untransformed tap point
         let center = CGPoint(x: containerSize.width / 2, y: containerSize.height / 2)
@@ -244,12 +255,13 @@ struct MangaSpreadView: View {
         )
 
         // Determine which page was tapped and get its local coordinates
-        let (targetPageIndex, pageContainerSize, pageLocalPoint) = resolvePageTap(
+        let resolvedTap = MangaSpreadPageResolver.resolvePageTap(
+            spreadItem: spreadItem,
             untransformedPoint: untransformed,
             containerSize: containerSize
         )
 
-        guard let pageIndex = targetPageIndex else {
+        guard let pageIndex = resolvedTap.pageIndex else {
             viewModel.toggleToolbars()
             return
         }
@@ -261,17 +273,21 @@ struct MangaSpreadView: View {
             return
         }
 
-        let imageRect = MangaPageContentView.calculateImageRect(image: renderedPage.image, in: pageContainerSize)
+        let imageRect = MangaPageContentView.calculateImageRect(
+            image: renderedPage.image,
+            in: resolvedTap.pageContainerSize,
+            horizontalPlacement: resolvedTap.pagePlacement
+        )
 
         // Check if tap is within the image rect
-        guard imageRect.contains(pageLocalPoint) else {
+        guard imageRect.contains(resolvedTap.pageLocalPoint) else {
             viewModel.toggleToolbars()
             return
         }
 
         // Convert to normalized image coordinates
-        let normalizedX = (pageLocalPoint.x - imageRect.minX) / imageRect.width
-        let normalizedY = 1.0 - (pageLocalPoint.y - imageRect.minY) / imageRect.height
+        let normalizedX = (resolvedTap.pageLocalPoint.x - imageRect.minX) / imageRect.width
+        let normalizedY = 1.0 - (resolvedTap.pageLocalPoint.y - imageRect.minY) / imageRect.height
 
         // Find matching cluster
         var bestMatch: TextCluster?
@@ -294,42 +310,6 @@ struct MangaSpreadView: View {
             viewModel.handleClusterTap(match, pageIndex: pageIndex)
         } else {
             viewModel.toggleToolbars()
-        }
-    }
-
-    /// Resolves which page was tapped and returns the page index, container size, and local point.
-    private func resolvePageTap(
-        untransformedPoint: CGPoint,
-        containerSize: CGSize
-    ) -> (pageIndex: Int?, pageContainerSize: CGSize, pageLocalPoint: CGPoint) {
-        switch spreadItem {
-        case let .single(pageIndex):
-            return (pageIndex, containerSize, untransformedPoint)
-
-        case let .double(leftPageIndex, rightPageIndex):
-            let halfWidth = containerSize.width / 2
-            let pageContainerSize = CGSize(width: halfWidth, height: containerSize.height)
-
-            // In RTL layout, the HStack flips the visual order:
-            // - leftPageIndex appears on the VISUAL RIGHT
-            // - rightPageIndex appears on the VISUAL LEFT
-            let isRTL = layoutDirection == .rightToLeft
-
-            let tappedVisualLeftSide = untransformedPoint.x < halfWidth
-
-            if tappedVisualLeftSide {
-                // Tapped visual left side
-                let pageIndex = isRTL ? rightPageIndex : leftPageIndex
-                return (pageIndex, pageContainerSize, untransformedPoint)
-            } else {
-                // Tapped visual right side - adjust X to be relative to that page
-                let adjustedPoint = CGPoint(
-                    x: untransformedPoint.x - halfWidth,
-                    y: untransformedPoint.y
-                )
-                let pageIndex = isRTL ? leftPageIndex : rightPageIndex
-                return (pageIndex, pageContainerSize, adjustedPoint)
-            }
         }
     }
 }

@@ -198,7 +198,8 @@ public struct MangaReaderView: View {
 
     private var spreadPagedView: some View {
         TabView(selection: $viewModel.currentSpreadIndex) {
-            ForEach(Array(viewModel.spreadLayout.items.enumerated()), id: \.offset) { index, item in
+            ForEach(viewModel.spreadLayout.items.indices, id: \.self) { index in
+                let item = viewModel.spreadLayout.items[index]
                 MangaSpreadView(spreadItem: item, viewModel: viewModel)
                     .tag(index)
             }

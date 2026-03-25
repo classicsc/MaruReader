@@ -71,6 +71,45 @@ struct MangaReaderViewModelTests {
         #expect(cachedPages == [0, 1, 2])
     }
 
+    @Test func updateOrientation_PreservesCurrentPageContextInSpreadMode() async throws {
+        let (viewModel, _) = try await makeViewModel(pageCount: 8)
+
+        await viewModel.loadArchive()
+        await MainActor.run {
+            viewModel.currentPageIndex = 4
+            viewModel.updateOrientation(true)
+        }
+        await viewModel.waitForPendingPageLoads()
+
+        let currentPageIndex = await MainActor.run { viewModel.currentPageIndex }
+        let spreadPages = await MainActor.run {
+            viewModel.spreadLayout.pages(atSpreadIndex: viewModel.currentSpreadIndex)
+        }
+
+        #expect(currentPageIndex == 4)
+        #expect(spreadPages == [4, 3])
+    }
+
+    @Test func readingDirectionChange_PreservesCurrentPageContextInLandscape() async throws {
+        let (viewModel, _) = try await makeViewModel(pageCount: 8)
+
+        await viewModel.loadArchive()
+        await MainActor.run {
+            viewModel.currentPageIndex = 4
+            viewModel.updateOrientation(true)
+            viewModel.readingDirection = .leftToRight
+        }
+        await viewModel.waitForPendingPageLoads()
+
+        let currentPageIndex = await MainActor.run { viewModel.currentPageIndex }
+        let spreadPages = await MainActor.run {
+            viewModel.spreadLayout.pages(atSpreadIndex: viewModel.currentSpreadIndex)
+        }
+
+        #expect(currentPageIndex == 4)
+        #expect(spreadPages == [3, 4])
+    }
+
     @Test func currentPageChange_EvictsPagesOutsideWorkingSet() async throws {
         let (viewModel, _) = try await makeViewModel(pageCount: 5)
 

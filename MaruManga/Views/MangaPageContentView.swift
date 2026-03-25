@@ -25,8 +25,21 @@ struct MangaPageContentView: View {
     let pageIndex: Int
     @Bindable var viewModel: MangaReaderViewModel
     let containerSize: CGSize
+    let horizontalPlacement: MangaPageHorizontalPlacement
 
     @Environment(\.accessibilityDifferentiateWithoutColor) private var differentiateWithoutColor
+
+    init(
+        pageIndex: Int,
+        viewModel: MangaReaderViewModel,
+        containerSize: CGSize,
+        horizontalPlacement: MangaPageHorizontalPlacement = .centered
+    ) {
+        self.pageIndex = pageIndex
+        self.viewModel = viewModel
+        self.containerSize = containerSize
+        self.horizontalPlacement = horizontalPlacement
+    }
 
     var body: some View {
         let renderedPage = viewModel.renderedPageCache[pageIndex]
@@ -40,7 +53,11 @@ struct MangaPageContentView: View {
 
             case .loaded:
                 if let renderedPage {
-                    let imageRect = Self.calculateImageRect(image: renderedPage.image, in: containerSize)
+                    let imageRect = Self.calculateImageRect(
+                        image: renderedPage.image,
+                        in: containerSize,
+                        horizontalPlacement: horizontalPlacement
+                    )
 
                     pageContent(
                         image: renderedPage.image,
@@ -69,7 +86,11 @@ struct MangaPageContentView: View {
             Image(uiImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: containerSize.width, height: containerSize.height)
+                .frame(
+                    width: containerSize.width,
+                    height: containerSize.height,
+                    alignment: horizontalPlacement.frameAlignment
+                )
 
             // Bounding box overlay (always show highlighted cluster, optionally show all boxes)
             if viewModel.showBoundingBoxes || viewModel.highlightedCluster != nil, !clusters.isEmpty {
@@ -126,7 +147,11 @@ struct MangaPageContentView: View {
     // MARK: - Coordinate Calculations
 
     /// Calculate the actual rect where the image is displayed within the container
-    nonisolated static func calculateImageRect(image: UIImage, in containerSize: CGSize) -> CGRect {
+    nonisolated static func calculateImageRect(
+        image: UIImage,
+        in containerSize: CGSize,
+        horizontalPlacement: MangaPageHorizontalPlacement = .centered
+    ) -> CGRect {
         let imageAspect = image.size.width / image.size.height
         let containerAspect = containerSize.width / containerSize.height
 
@@ -140,7 +165,10 @@ struct MangaPageContentView: View {
             // Image is taller - fit to height
             let height = containerSize.height
             let width = height * imageAspect
-            let xOffset = (containerSize.width - width) / 2
+            let xOffset = horizontalPlacement.originX(
+                containerWidth: containerSize.width,
+                contentWidth: width
+            )
             return CGRect(x: xOffset, y: 0, width: width, height: height)
         }
     }
