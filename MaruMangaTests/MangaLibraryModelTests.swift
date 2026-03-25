@@ -26,7 +26,7 @@ struct MangaLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_800_000_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertManga(
                 into: viewContext,
                 title: String(format: "Manga %02d", index),
@@ -51,7 +51,7 @@ struct MangaLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_800_100_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertManga(
                 into: viewContext,
                 title: String(format: "Manga %02d", index),
@@ -75,7 +75,7 @@ struct MangaLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_800_200_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertManga(
                 into: viewContext,
                 title: String(format: "%02d", 59 - index),
@@ -376,7 +376,7 @@ struct MangaLibraryModelTests {
         let baseDate = Date(timeIntervalSince1970: 1_800_300_000)
 
         var firstLoadedID: NSManagedObjectID?
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             let objectID = try await insertManga(
                 into: viewContext,
                 title: String(format: "Manga %02d", index),
@@ -474,7 +474,7 @@ struct MangaLibraryModelTests {
         interval: Duration = .milliseconds(20),
         condition: @escaping () async -> Bool
     ) async {
-        for _ in 0 ..< attempts {
+        for _ in 0..<attempts {
             if await condition() {
                 return
             }

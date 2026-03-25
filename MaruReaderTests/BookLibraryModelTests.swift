@@ -26,7 +26,7 @@ struct BookLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_700_000_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertBook(
                 into: viewContext,
                 title: String(format: "Book %02d", index),
@@ -52,7 +52,7 @@ struct BookLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_700_100_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertBook(
                 into: viewContext,
                 title: String(format: "Book %02d", index),
@@ -77,7 +77,7 @@ struct BookLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_700_200_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertBook(
                 into: viewContext,
                 title: String(format: "%02d", 59 - index),
@@ -383,7 +383,7 @@ struct BookLibraryModelTests {
         let viewContext = persistence.container.viewContext
         let baseDate = Date(timeIntervalSince1970: 1_700_300_000)
 
-        for index in 0 ..< 60 {
+        for index in 0..<60 {
             _ = try await insertBook(
                 into: viewContext,
                 title: String(format: "Book %02d", index),
@@ -401,7 +401,7 @@ struct BookLibraryModelTests {
             into: viewContext,
             title: "Newest Book",
             originalFileName: nil,
-            added: baseDate.addingTimeInterval(1000)
+            added: baseDate.addingTimeInterval(1_000)
         )
 
         await waitUntil {
@@ -477,7 +477,7 @@ struct BookLibraryModelTests {
         interval: Duration = .milliseconds(20),
         condition: @escaping () async -> Bool
     ) async {
-        for _ in 0 ..< attempts {
+        for _ in 0..<attempts {
             if await condition() {
                 return
             }

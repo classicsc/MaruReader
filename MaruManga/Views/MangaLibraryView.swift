@@ -151,7 +151,7 @@ public struct MangaArchiveLibraryView: View {
                 .frame(height: 0)
                 .id(Self.scrollAnchor)
 
-            if model.hasLoadedInitialPage == false, model.snapshots.isEmpty {
+            if model.hasLoadedInitialPage == false && model.snapshots.isEmpty {
                 ProgressView(MangaLocalization.string("Loading manga..."))
                     .frame(maxWidth: .infinity, minHeight: 240)
                     .padding()
