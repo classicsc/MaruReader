@@ -70,8 +70,8 @@ struct ReaderPreferencesTests {
 
             preferences.increaseFontSize()
 
-            #expect(ReaderAppearancePreferences.fontScale == 110.0)
-            #expect(preferences.effectiveFontSize == 110.0)
+            #expect(ReaderAppearancePreferences.fontScale == 160.0)
+            #expect(preferences.effectiveFontSize == 160.0)
         }
     }
 
@@ -82,8 +82,8 @@ struct ReaderPreferencesTests {
 
             preferences.decreaseFontSize()
 
-            #expect(ReaderAppearancePreferences.fontScale == 90.0)
-            #expect(preferences.effectiveFontSize == 90.0)
+            #expect(ReaderAppearancePreferences.fontScale == 140.0)
+            #expect(preferences.effectiveFontSize == 140.0)
         }
     }
 
