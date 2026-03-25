@@ -68,3 +68,4 @@ buildServer.json
 MaruReader/StarterDictionary/MaruDictionary.sqlite
 MaruReader/StarterDictionary/AudioMedia
 MaruReader/StarterDictionary/Media
+.derived-data-log-*
