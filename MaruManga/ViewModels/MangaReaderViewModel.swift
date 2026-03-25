@@ -187,25 +187,6 @@ final class MangaReaderViewModel {
         loadPersistedState()
     }
 
-    convenience init(
-        mangaID: NSManagedObjectID,
-        persistenceController: MangaDataPersistenceController = .shared,
-        archiveReaderFactory: @escaping @Sendable (URL) async throws -> any MangaPageProviding = { url in
-            try await MangaArchiveReader(url: url)
-        }
-    ) {
-        let viewContext = persistenceController.container.viewContext
-        guard let manga = try? viewContext.existingObject(with: mangaID) as? MangaArchive else {
-            fatalError("Failed to resolve MangaArchive for object ID \(mangaID)")
-        }
-
-        self.init(
-            manga: manga,
-            persistenceController: persistenceController,
-            archiveReaderFactory: archiveReaderFactory
-        )
-    }
-
     // MARK: - Lifecycle
 
     /// Loads the archive reader asynchronously. Call this when the view appears.

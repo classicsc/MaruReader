@@ -21,20 +21,91 @@
 //  Book library view with import progress and book grid display.
 //
 import CoreData
-import Observation
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum BookSortOption: String, CaseIterable, Identifiable {
+    case title = "Title"
+    case author = "Author"
+    case dateAdded = "Date Added"
+
+    var id: String {
+        rawValue
+    }
+
+    var localizedName: String {
+        switch self {
+        case .title:
+            String(localized: "Title")
+        case .author:
+            String(localized: "Author")
+        case .dateAdded:
+            String(localized: "Date Added")
+        }
+    }
+
+    var nsSortDescriptors: [NSSortDescriptor] {
+        switch self {
+        case .title:
+            [
+                NSSortDescriptor(keyPath: \Book.title, ascending: true),
+                NSSortDescriptor(keyPath: \Book.author, ascending: true),
+            ]
+        case .author:
+            [
+                NSSortDescriptor(keyPath: \Book.author, ascending: true),
+                NSSortDescriptor(keyPath: \Book.title, ascending: true),
+            ]
+        case .dateAdded:
+            [
+                NSSortDescriptor(keyPath: \Book.added, ascending: false),
+            ]
+        }
+    }
+
+    var sortDescriptors: [SortDescriptor<Book>] {
+        switch self {
+        case .title:
+            [
+                SortDescriptor(\Book.title, order: .forward),
+                SortDescriptor(\Book.author, order: .forward),
+            ]
+        case .author:
+            [
+                SortDescriptor(\Book.author, order: .forward),
+                SortDescriptor(\Book.title, order: .forward),
+            ]
+        case .dateAdded:
+            [
+                SortDescriptor(\Book.added, order: .reverse),
+            ]
+        }
+    }
+}
+
 struct BookLibraryView: View {
-    private static let scrollAnchor = "book-library-top"
+    @Environment(\.managedObjectContext) private var viewContext
 
     @AppStorage("selectedLibraryType") private var selectedLibraryType = LibraryType.books.rawValue
-    @Environment(\.managedObjectContext) private var viewContext
-    @State private var coverImageLoader = BookLibraryCoverImageLoader()
-    @State private var model = BookLibraryModel()
+    @State private var sortOption: BookSortOption = .dateAdded
     @State private var showingFilePicker = false
     @State private var importError: Error?
     @State private var showingError = false
+    @State private var bookToDelete: Book?
+    @State private var showingDeleteConfirmation = false
+    @State private var selectedBookID: NSManagedObjectID?
+
+    private var books: FetchRequest<Book>
+
+    init() {
+        let initialSortOption = BookSortOption.dateAdded
+        books = FetchRequest<Book>(
+            entity: Book.entity(),
+            sortDescriptors: initialSortOption.nsSortDescriptors,
+            predicate: NSPredicate(format: "pendingDeletion == NO"),
+            animation: .default
+        )
+    }
 
     private var libraryTypeBinding: Binding<LibraryType> {
         Binding(
@@ -43,100 +114,85 @@ struct BookLibraryView: View {
         )
     }
 
+    private var isShowingReader: Binding<Bool> {
+        Binding(
+            get: { selectedBookID != nil },
+            set: { if !$0 { selectedBookID = nil } }
+        )
+    }
+
     var body: some View {
-        @Bindable var model = model
-
         NavigationStack {
-            ScrollViewReader { proxy in
-                contentView
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .principal) {
-                            Picker("Library", selection: libraryTypeBinding) {
-                                ForEach(LibraryType.allCases, id: \.self) { type in
-                                    Text(type.localizedName).tag(type)
+            contentView
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .principal) {
+                        Picker("Library", selection: libraryTypeBinding) {
+                            ForEach(LibraryType.allCases, id: \.self) { type in
+                                Text(type.localizedName).tag(type)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .fixedSize()
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
+                        Button(action: { showingFilePicker = true }) {
+                            Image(systemName: "plus")
+                        }
+                    }
+
+                    ToolbarItem(placement: .secondaryAction) {
+                        Menu {
+                            Picker("Sort By", selection: $sortOption) {
+                                ForEach(BookSortOption.allCases) { option in
+                                    Text(option.localizedName).tag(option)
                                 }
                             }
-                            .pickerStyle(.segmented)
-                            .fixedSize()
-                        }
-
-                        ToolbarItem(placement: .primaryAction) {
-                            Button(action: showFilePicker) {
-                                Image(systemName: "plus")
-                            }
-                        }
-
-                        ToolbarItem(placement: .secondaryAction) {
-                            Menu {
-                                Picker("Sort By", selection: $model.sortOption) {
-                                    ForEach(BookSortOption.allCases) { option in
-                                        Text(option.localizedName).tag(option)
-                                    }
-                                }
-                            } label: {
-                                Label("Sort", systemImage: "arrow.up.arrow.down")
-                            }
+                        } label: {
+                            Label("Sort", systemImage: "arrow.up.arrow.down")
                         }
                     }
-                    .fileImporter(
-                        isPresented: $showingFilePicker,
-                        allowedContentTypes: [.epub],
-                        allowsMultipleSelection: false,
-                        onCompletion: handleFileImport
-                    )
-                    .alert("Import Error", isPresented: $showingError) {} message: {
-                        if let error = importError {
-                            Text(error.localizedDescription)
-                        }
+                }
+                .fileImporter(
+                    isPresented: $showingFilePicker,
+                    allowedContentTypes: [.epub],
+                    allowsMultipleSelection: false
+                ) { result in
+                    handleFileImport(result: result)
+                }
+                .alert("Import Error", isPresented: $showingError) {
+                    Button("OK") {
+                        showingError = false
+                        importError = nil
                     }
-                    .fullScreenCover(
-                        isPresented: isShowingReaderBinding,
-                        onDismiss: dismissSelectedBook
-                    ) {
-                        if let selectedBookID = model.selectedBookID {
-                            BookReaderView(
-                                bookID: selectedBookID,
-                                onDismiss: dismissSelectedBook
-                            )
-                        }
+                } message: {
+                    if let error = importError {
+                        Text(error.localizedDescription)
                     }
-                    .task {
-                        await model.configureIfNeeded(viewContext: viewContext)
+                }
+                .fullScreenCover(isPresented: isShowingReader) {
+                    if let selectedBookID {
+                        BookReaderView(
+                            bookID: selectedBookID,
+                            onDismiss: { self.selectedBookID = nil }
+                        )
                     }
-                    .onChange(of: model.sortOption) {
-                        withAnimation {
-                            proxy.scrollTo(Self.scrollAnchor, anchor: .top)
-                        }
-                        Task {
-                            await model.reloadForCurrentSort()
-                        }
-                    }
-            }
+                }
+                .onChange(of: sortOption) { _, newValue in
+                    books.wrappedValue.sortDescriptors = newValue.sortDescriptors
+                }
         }
     }
 
     private var contentView: some View {
         ScrollView {
-            Color.clear
-                .frame(height: 0)
-                .id(Self.scrollAnchor)
-
-            if model.hasLoadedInitialPage == false && model.snapshots.isEmpty {
-                ProgressView("Loading books...")
-                    .frame(maxWidth: .infinity, minHeight: 240)
-                    .padding()
-            } else if model.snapshots.isEmpty {
-                emptyStateView
-            } else {
-                BookLibraryGrid(
-                    model: model,
-                    coverImageLoader: coverImageLoader,
-                    onOpen: openBook,
-                    onCancelImport: cancelImport,
-                    onRemove: removeBook,
-                    onDelete: model.showDeleteConfirmation(for:)
-                )
+            VStack(spacing: 20) {
+                if books.wrappedValue.isEmpty {
+                    emptyStateView
+                } else {
+                    booksGridView
+                }
             }
         }
     }
@@ -150,19 +206,63 @@ struct BookLibraryView: View {
         .frame(maxHeight: .infinity)
     }
 
-    private var isShowingReaderBinding: Binding<Bool> {
-        Binding(
-            get: { model.selectedBookID != nil },
-            set: { isPresented in
-                if !isPresented {
-                    dismissSelectedBook()
+    private var booksGridView: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.adaptive(minimum: 120, maximum: 160), spacing: 16),
+            ],
+            spacing: 20
+        ) {
+            ForEach(books.wrappedValue, id: \.objectID) { book in
+                let state = BookImportState(book: book)
+                Group {
+                    if state.isComplete {
+                        Button {
+                            selectedBookID = book.objectID
+                        } label: {
+                            BookGridItem(book: book, state: state, onCancel: {}, onRemove: {})
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                bookToDelete = book
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
+                        .confirmationDialog(
+                            "Delete Book",
+                            isPresented: deleteConfirmationBinding(for: book)
+                        ) {
+                            Button("Delete", role: .destructive) {
+                                deleteBook(book)
+                            }
+                            Button("Cancel", role: .cancel) {}
+                        } message: {
+                            Text(AppLocalization.deleteConfirmationActionCannotBeUndone(
+                                name: book.title ?? AppLocalization.unknownBook
+                            ))
+                        }
+                    } else {
+                        BookGridItem(
+                            book: book,
+                            state: state,
+                            onCancel: { cancelImport(book) },
+                            onRemove: { removeBook(book) }
+                        )
+                    }
                 }
             }
-        )
+        }
+        .padding()
     }
 
-    private func showFilePicker() {
-        showingFilePicker = true
+    private func deleteConfirmationBinding(for book: Book) -> Binding<Bool> {
+        Binding(
+            get: { showingDeleteConfirmation && bookToDelete?.objectID == book.objectID },
+            set: { if !$0 { showingDeleteConfirmation = false; bookToDelete = nil } }
+        )
     }
 
     private func handleFileImport(result: Result<[URL], Error>) {
@@ -187,28 +287,190 @@ struct BookLibraryView: View {
         }
     }
 
-    private func openBook(_ bookID: NSManagedObjectID) {
-        model.selectedBookID = bookID
-    }
-
-    private func dismissSelectedBook() {
-        model.selectedBookID = nil
-    }
-
-    private func cancelImport(_ bookID: NSManagedObjectID) {
+    private func cancelImport(_ book: Book) {
         Task {
-            await BookImportManager.shared.cancelImport(jobID: bookID)
+            await BookImportManager.shared.cancelImport(jobID: book.objectID)
         }
     }
 
-    private func deleteBook(_ bookID: NSManagedObjectID) {
+    private func deleteBook(_ book: Book) {
         Task {
-            await BookImportManager.shared.deleteBook(bookID: bookID)
+            await BookImportManager.shared.deleteBook(bookID: book.objectID)
         }
     }
 
-    private func removeBook(_ bookID: NSManagedObjectID) {
-        model.dismissDeleteConfirmation()
-        deleteBook(bookID)
+    private func removeBook(_ book: Book) {
+        deleteBook(book)
+    }
+}
+
+struct BookGridItem: View {
+    @ObservedObject var book: Book
+    let state: BookImportState
+    let onCancel: () -> Void
+    let onRemove: () -> Void
+
+    private var coverImage: UIImage? {
+        guard let coverFileName = book.coverFileName else { return nil }
+
+        guard let appSupportDir = try? FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: false
+        ) else { return nil }
+
+        let coverURL = appSupportDir
+            .appendingPathComponent("Covers")
+            .appendingPathComponent(coverFileName)
+
+        guard let data = try? Data(contentsOf: coverURL) else { return nil }
+        return UIImage(data: data)
+    }
+
+    private var displayTitle: String {
+        if let title = book.title, !title.isEmpty {
+            return title
+        }
+        if let originalName = book.originalFileName, !originalName.isEmpty {
+            return originalName
+        }
+        return String(localized: "Untitled Book")
+    }
+
+    private var displayAuthor: String? {
+        if let author = book.author, !author.isEmpty {
+            return author
+        }
+        return nil
+    }
+
+    private var displayProgress: String? {
+        if let progressPercent = book.progressPercent, !progressPercent.isEmpty {
+            return progressPercent
+        }
+        return nil
+    }
+
+    private var statusMessage: String? {
+        switch state.status {
+        case .complete:
+            nil
+        case .inProgress:
+            book.displayProgressMessage ?? String(localized: "Importing...")
+        case .failed:
+            book.errorMessage ?? book.displayProgressMessage ?? String(localized: "Import failed.")
+        case .cancelled:
+            book.displayProgressMessage ?? String(localized: "Import cancelled.")
+        }
+    }
+
+    private var actionLabel: String? {
+        switch state.status {
+        case .complete:
+            nil
+        case .inProgress:
+            "Cancel"
+        case .failed, .cancelled:
+            "Remove"
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 8) {
+            // Cover Image
+            Group {
+                if let coverImage {
+                    Image(uiImage: coverImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "book.closed")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .foregroundStyle(.secondary)
+                        .padding(30)
+                }
+            }
+            .frame(width: 120, height: 180)
+            .background(Color(.systemGray5))
+            .cornerRadius(8)
+            .shadow(radius: 2)
+
+            // Book Info
+            VStack(alignment: .center, spacing: 2) {
+                Text(displayTitle)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+
+                if let author = displayAuthor {
+                    Text(author)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                if let progressPercent = displayProgress {
+                    Text(AppLocalization.percentRead(progressPercent))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+
+                if let statusMessage {
+                    Text(statusMessage)
+                        .font(.caption2)
+                        .foregroundStyle(state.status == .failed ? .red : .secondary)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
+            }
+            .frame(width: 120)
+
+            if let actionLabel {
+                Button(actionLabel) {
+                    switch state.status {
+                    case .inProgress:
+                        onCancel()
+                    case .failed, .cancelled:
+                        onRemove()
+                    case .complete:
+                        break
+                    }
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+        .contentShape(Rectangle())
+    }
+}
+
+struct BookImportState {
+    enum Status {
+        case complete
+        case inProgress
+        case failed
+        case cancelled
+    }
+
+    let status: Status
+
+    init(book: Book) {
+        if book.isComplete {
+            status = .complete
+        } else if book.isCancelled {
+            status = .cancelled
+        } else if let errorMessage = book.errorMessage, !errorMessage.isEmpty {
+            status = .failed
+        } else {
+            status = .inProgress
+        }
+    }
+
+    var isComplete: Bool {
+        status == .complete
     }
 }

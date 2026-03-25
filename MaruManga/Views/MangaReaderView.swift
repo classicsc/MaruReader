@@ -16,7 +16,6 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import MaruDictionaryUICommon
-import CoreData
 import SwiftUI
 
 /// The main manga reader view with paging, toolbars, and dictionary integration.
@@ -32,13 +31,6 @@ public struct MangaReaderView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @Environment(\.dismiss) private var dismiss
-
-    public init(mangaID: NSManagedObjectID, persistenceController: MangaDataPersistenceController = .shared) {
-        _viewModel = State(wrappedValue: MangaReaderViewModel(
-            mangaID: mangaID,
-            persistenceController: persistenceController
-        ))
-    }
 
     public init(manga: MangaArchive) {
         _viewModel = State(wrappedValue: MangaReaderViewModel(manga: manga))
