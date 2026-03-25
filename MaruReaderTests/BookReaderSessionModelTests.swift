@@ -117,6 +117,49 @@ struct BookReaderSessionModelTests {
         #expect(index["chapter-2.xhtml"] == "Chapter 2")
     }
 
+    @Test func locatorForPosition_PrefersExactPositionMatch() {
+        let exactMatch = makeLocator(href: "chapter-2.xhtml", position: 7)
+        let positions = [
+            makeLocator(href: "chapter-1.xhtml", position: 1),
+            exactMatch,
+            makeLocator(href: "chapter-3.xhtml", position: 3),
+        ]
+
+        let locator = BookReaderSessionModel.locator(forPosition: 7, in: positions)
+
+        #expect(locator == exactMatch)
+    }
+
+    @Test func locatorForPosition_FallsBackToArrayIndex() {
+        let fallback = makeLocator(href: "chapter-2.xhtml", position: 20)
+        let positions = [
+            makeLocator(href: "chapter-1.xhtml", position: 10),
+            fallback,
+            makeLocator(href: "chapter-3.xhtml", position: 30),
+        ]
+
+        let locator = BookReaderSessionModel.locator(forPosition: 2, in: positions)
+
+        #expect(locator == fallback)
+    }
+
+    @Test func locatorForPosition_ReturnsNilForEmptyPositions() {
+        let locator = BookReaderSessionModel.locator(forPosition: 1, in: [])
+
+        #expect(locator == nil)
+    }
+
+    @Test func locatorForPosition_ReturnsNilWhenPositionIsOutOfRange() {
+        let positions = [
+            makeLocator(href: "chapter-1.xhtml", position: 1),
+            makeLocator(href: "chapter-2.xhtml", position: 2),
+        ]
+
+        let locator = BookReaderSessionModel.locator(forPosition: 3, in: positions)
+
+        #expect(locator == nil)
+    }
+
     @Test func loadCoverImageIfNeeded_CachesLoadedImage() async throws {
         let appSupportURL = try FileManager.default.url(
             for: .applicationSupportDirectory,

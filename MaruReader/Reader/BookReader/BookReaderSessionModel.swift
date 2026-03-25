@@ -49,6 +49,7 @@ final class BookReaderSessionModel {
     @ObservationIgnored private var cachedCoverImage: UIImage?
     @ObservationIgnored private var hasLoadedCoverImage = false
     @ObservationIgnored private var hasStarted = false
+    @ObservationIgnored private var publicationPositions: [Locator] = []
     private let logger = Logger.maru(category: "BookReaderSessionModel")
 
     init(
@@ -176,6 +177,7 @@ final class BookReaderSessionModel {
                 return
             }
 
+            publicationPositions = await publication.positions().getOrNil() ?? []
             self.publication = publication
             chapterTitleByHref = Self.makeChapterTitleIndex(for: publication)
 
@@ -192,17 +194,15 @@ final class BookReaderSessionModel {
     }
 
     func navigateToLink(_ link: ReadiumShared.Link, onSuccess: @escaping @MainActor () -> Void = {}) {
-        guard let publication, let navigator else {
-            logger.warning("Cannot navigate: publication or navigator not ready")
+        guard let navigator else {
+            logger.warning("Cannot navigate: navigator not ready")
             return
         }
 
-        Task {
-            if let locator = await publication.locate(link) {
-                _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
-                await MainActor.run {
-                    onSuccess()
-                }
+        Task { @MainActor in
+            let didNavigate = await navigator.go(to: link, options: NavigatorGoOptions(animated: true))
+            if didNavigate {
+                onSuccess()
             } else {
                 logger.warning("Could not locate link: \(link.href)")
             }
@@ -214,30 +214,25 @@ final class BookReaderSessionModel {
             logger.warning("Cannot navigate: invalid position \(position)")
             return
         }
-        guard let publication, let navigator else {
-            logger.warning("Cannot navigate: publication or navigator not ready")
+        guard let navigator else {
+            logger.warning("Cannot navigate: navigator not ready")
             return
         }
 
-        Task {
-            let positions = await publication.positions().getOrNil() ?? []
-            guard !positions.isEmpty else {
+        Task { @MainActor in
+            guard !publicationPositions.isEmpty else {
                 self.logger.warning("Cannot navigate: positions list unavailable")
                 return
             }
 
-            let locator = positions.first(where: { $0.locations.position == position })
-                ?? positions.getOrNil(position - 1)
-
+            let locator = Self.locator(forPosition: position, in: publicationPositions)
             guard let locator else {
                 self.logger.warning("Cannot navigate: position \(position) out of range")
                 return
             }
 
             _ = await navigator.go(to: locator, options: NavigatorGoOptions(animated: true))
-            await MainActor.run {
-                onSuccess()
-            }
+            onSuccess()
         }
     }
 
@@ -298,6 +293,11 @@ final class BookReaderSessionModel {
         var index: [String: String] = [:]
         collectChapterTitles(from: links, into: &index)
         return index
+    }
+
+    static func locator(forPosition position: Int, in positions: [Locator]) -> Locator? {
+        positions.first(where: { $0.locations.position == position })
+            ?? positions.getOrNil(position - 1)
     }
 
     private var bookCoverURL: URL? {
