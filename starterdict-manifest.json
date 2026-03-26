@@ -1,0 +1,19 @@
+{
+	"assetPackID": "StarterDict",
+	"downloadPolicy": {
+		"essential": {
+			"installationEventTypes": [
+				"firstInstallation"
+			]
+		}
+	},
+	"fileSelectors": [
+		{
+			"directory": "build/StarterDictionary"
+		}
+	],
+	"platforms": [
+		"iOS",
+		"macOS"
+	]
+}

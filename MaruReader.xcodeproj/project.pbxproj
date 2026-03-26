@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		228BCC422F29D77D003C173D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		228BCC432F29D77D003C173D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB03767F2F7560850077F3BA /* MaruAssetDownloader.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB1C342C2EB8578200315E79 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 		DB1C342D2EB8578200315E79 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB1C34312EB857B000315E79 /* MaruVision.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBEBB2B92EB58E88005C3BFC /* MaruVision.framework */; };
@@ -79,6 +80,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = DBCFB15F2EAAAE8B00B4F27D;
 			remoteInfo = MaruReaderCore;
+		};
+		DB03767D2F7560850077F3BA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DB2B69842E660F8B00EDA656 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DB0376762F7560850077F3BA;
+			remoteInfo = MaruAssetDownloader;
 		};
 		DB1C342A2EB8578200315E79 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -367,6 +375,17 @@
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DB0376802F7560850077F3BA /* Embed ExtensionKit Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
+			dstSubfolderSpec = 16;
+			files = (
+				DB03767F2F7560850077F3BA /* MaruAssetDownloader.appex in Embed ExtensionKit Extensions */,
+			);
+			name = "Embed ExtensionKit Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB58C8F82EAB134800CE59FD /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -421,6 +440,7 @@
 
 /* Begin PBXFileReference section */
 		228BCC362F29D2A9003C173D /* DictionarySeeder */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DictionarySeeder; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = MaruAssetDownloader.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruVisionUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB2B698C2E660F8B00EDA656 /* MaruReader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MaruReader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB2B699E2E660F8D00EDA656 /* MaruReaderTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MaruReaderTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -448,6 +468,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		DB0376842F7560850077F3BA /* Exceptions for "MaruAssetDownloader" folder in "MaruAssetDownloader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = DB0376762F7560850077F3BA /* MaruAssetDownloader */;
+		};
 		DB6FDFC42EAB54C6005DF219 /* Exceptions for "MaruShareExtension" folder in "MaruShareExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -464,9 +491,6 @@
 		};
 		DBDF15F42F089A3A00E54FF3 /* Exceptions for "MaruReader" folder in "MaruReader" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			assetTagsByRelativePath = {
-				StarterDictionary = (StarterDict, );
-			};
 			membershipExceptions = (
 				Info.plist,
 				SampleContent,
@@ -479,6 +503,14 @@
 		228BCC372F29D2A9003C173D /* DictionarySeeder */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = DictionarySeeder;
+			sourceTree = "<group>";
+		};
+		DB0376782F7560850077F3BA /* MaruAssetDownloader */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				DB0376842F7560850077F3BA /* Exceptions for "MaruAssetDownloader" folder in "MaruAssetDownloader" target */,
+			);
+			path = MaruAssetDownloader;
 			sourceTree = "<group>";
 		};
 		DB1C34272EB8578200315E79 /* MaruVisionUICommon */ = {
@@ -494,7 +526,6 @@
 			);
 			explicitFolders = (
 				SampleContent,
-				StarterDictionary,
 			);
 			path = MaruReader;
 			sourceTree = "<group>";
@@ -580,6 +611,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				228BCC422F29D77D003C173D /* MaruReaderCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DB0376742F7560850077F3BA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -781,6 +819,7 @@
 				DBDCEC032F0F65AF00B42F93 /* MaruWeb */,
 				DBDCEC102F0F65AF00B42F93 /* MaruWebTests */,
 				228BCC372F29D2A9003C173D /* DictionarySeeder */,
+				DB0376782F7560850077F3BA /* MaruAssetDownloader */,
 				DBC9FEAF2E6C9B7800F1E920 /* Frameworks */,
 				DB2B698D2E660F8B00EDA656 /* Products */,
 				DB3379E52F3D8FBD0062E31B /* marureader-v1.icon */,
@@ -808,6 +847,7 @@
 				DBDCEC022F0F65AF00B42F93 /* MaruWeb.framework */,
 				DBDCEC0A2F0F65AF00B42F93 /* MaruWebTests.xctest */,
 				228BCC362F29D2A9003C173D /* DictionarySeeder */,
+				DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -897,6 +937,28 @@
 			productReference = 228BCC362F29D2A9003C173D /* DictionarySeeder */;
 			productType = "com.apple.product-type.tool";
 		};
+		DB0376762F7560850077F3BA /* MaruAssetDownloader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB0376832F7560850077F3BA /* Build configuration list for PBXNativeTarget "MaruAssetDownloader" */;
+			buildPhases = (
+				DB0376732F7560850077F3BA /* Sources */,
+				DB0376742F7560850077F3BA /* Frameworks */,
+				DB0376752F7560850077F3BA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DB0376782F7560850077F3BA /* MaruAssetDownloader */,
+			);
+			name = MaruAssetDownloader;
+			packageProductDependencies = (
+			);
+			productName = MaruAssetDownloader;
+			productReference = DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */;
+			productType = "com.apple.product-type.extensionkit-extension";
+		};
 		DB1C34252EB8578200315E79 /* MaruVisionUICommon */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = DB1C342E2EB8578200315E79 /* Build configuration list for PBXNativeTarget "MaruVisionUICommon" */;
@@ -932,6 +994,7 @@
 				DBA1B0012F5A0A0100A1B001 /* Copy Debug Sample Content */,
 				DBCFB17A2EAAAE8B00B4F27D /* Embed Frameworks */,
 				DB6FDFC82EAB54C6005DF219 /* Embed Foundation Extensions */,
+				DB0376802F7560850077F3BA /* Embed ExtensionKit Extensions */,
 			);
 			buildRules = (
 			);
@@ -944,6 +1007,7 @@
 				DBEF7A122EEF9423002DBFFC /* PBXTargetDependency */,
 				DBDCE11A2F0C98CC00B42F93 /* PBXTargetDependency */,
 				DBDCEC142F0F65AF00B42F93 /* PBXTargetDependency */,
+				DB03767E2F7560850077F3BA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				DB2B698E2E660F8B00EDA656 /* MaruReader */,
@@ -1347,14 +1411,14 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				KnownAssetTags = (
-					StarterDict,
-				);
-				LastSwiftUpdateCheck = 2620;
+				LastSwiftUpdateCheck = 2640;
 				LastUpgradeCheck = 2630;
 				TargetAttributes = {
 					228BCC352F29D2A9003C173D = {
 						CreatedOnToolsVersion = 26.2;
+					};
+					DB0376762F7560850077F3BA = {
+						CreatedOnToolsVersion = 26.4;
 					};
 					DB1C34252EB8578200315E79 = {
 						CreatedOnToolsVersion = 26.0.1;
@@ -1459,11 +1523,19 @@
 				DBDCEC012F0F65AF00B42F93 /* MaruWeb */,
 				DBDCEC092F0F65AF00B42F93 /* MaruWebTests */,
 				228BCC352F29D2A9003C173D /* DictionarySeeder */,
+				DB0376762F7560850077F3BA /* MaruAssetDownloader */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		DB0376752F7560850077F3BA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB1C34242EB8578200315E79 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1639,6 +1711,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		DB0376732F7560850077F3BA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DB1C34222EB8578200315E79 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1765,6 +1844,11 @@
 			isa = PBXTargetDependency;
 			target = DBCFB15F2EAAAE8B00B4F27D /* MaruReaderCore */;
 			targetProxy = 228BCC442F29D77D003C173D /* PBXContainerItemProxy */;
+		};
+		DB03767E2F7560850077F3BA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DB0376762F7560850077F3BA /* MaruAssetDownloader */;
+			targetProxy = DB03767D2F7560850077F3BA /* PBXContainerItemProxy */;
 		};
 		DB1C342B2EB8578200315E79 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -1995,6 +2079,68 @@
 				SWIFT_APPROACHABLE_CONCURRENCY = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		DB0376812F7560850077F3BA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MaruAssetDownloader/MaruAssetDownloader.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H4RNAHR5B8;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruAssetDownloader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MaruAssetDownloader;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruAssetDownloader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DB0376822F7560850077F3BA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MaruAssetDownloader/MaruAssetDownloader.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H4RNAHR5B8;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MaruAssetDownloader/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MaruAssetDownloader;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruAssetDownloader;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
 		};
@@ -2239,7 +2385,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS = StarterDict;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -2275,7 +2420,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				ON_DEMAND_RESOURCES_INITIAL_INSTALL_TAGS = StarterDict;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -3214,6 +3358,15 @@
 			buildConfigurations = (
 				228BCC3A2F29D2A9003C173D /* Debug */,
 				228BCC3B2F29D2A9003C173D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DB0376832F7560850077F3BA /* Build configuration list for PBXNativeTarget "MaruAssetDownloader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DB0376812F7560850077F3BA /* Debug */,
+				DB0376822F7560850077F3BA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

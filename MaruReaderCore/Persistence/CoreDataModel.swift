@@ -15,8 +15,10 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import BackgroundAssets
 import CoreData
 import os
+import System
 
 // MARK: - PersistenceController
 
@@ -184,40 +186,44 @@ public final class DictionaryPersistenceController: Sendable {
             guard let baseDirectory else { return }
 
             let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+            let fileManager = FileManager.default
 
             // Skip if database already exists
-            guard !FileManager.default.fileExists(atPath: destinationDB.path) else { return }
+            guard !fileManager.fileExists(atPath: destinationDB.path) else { return }
 
-            // Set up the resource request for the bundled dictionary (should be configured for initial install availability)
-            let resourceRequest = NSBundleResourceRequest(
-                tags: ["StarterDict"],
-                bundle: Bundle.main
-            )
+            let starterDictionaryDirectory: URL
 
             do {
-                try await resourceRequest.beginAccessingResources()
+                let assetPackManager = AssetPackManager.shared
+                let assetPack = try await assetPackManager.assetPack(withID: "StarterDict")
+                try await assetPackManager.ensureLocalAvailability(of: assetPack)
+                starterDictionaryDirectory = try assetPackManager.url(for: System.FilePath("build/StarterDictionary"))
             } catch {
-                // Log the error but proceed to attempt copying, as the resource might still be available (e.g. on simulator or if already accessed before)
-                Self.logger.warning("Failed to begin accessing resources for 'starterdict' tag: \(error.localizedDescription, privacy: .public)")
+                Self.logger.warning("Failed to prepare StarterDict asset contents: \(error.localizedDescription, privacy: .public)")
+                return
             }
-            defer { resourceRequest.endAccessingResources() }
+            defer {
+                Task {
+                    do {
+                        try await AssetPackManager.shared.remove(assetPackWithID: "StarterDict")
+                    } catch {
+                        Self.logger.warning("Failed to clean StarterDict asset: \(error.localizedDescription, privacy: .public)")
+                    }
+                }
+            }
 
-            // Find bundled starter dictionary in main app bundle (not framework bundle,
-            // to avoid duplicating the large database across dependent frameworks)
-            guard let bundleDB = Bundle.main.url(
-                forResource: "MaruDictionary",
-                withExtension: "sqlite",
-                subdirectory: "StarterDictionary"
-            ) else { return }
-
-            let fileManager = FileManager.default
+            let assetPackDB = starterDictionaryDirectory.appendingPathComponent("MaruDictionary.sqlite")
+            guard fileManager.fileExists(atPath: assetPackDB.path) else {
+                Self.logger.warning("StarterDict asset is missing MaruDictionary.sqlite at \(assetPackDB.path, privacy: .public)")
+                return
+            }
 
             do {
                 // Copy database file
-                try fileManager.copyItem(at: bundleDB, to: destinationDB)
+                try fileManager.copyItem(at: assetPackDB, to: destinationDB)
 
                 // Copy media directory if present (dictionary media)
-                let bundleMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("Media")
+                let bundleMediaDir = starterDictionaryDirectory.appendingPathComponent("Media")
                 let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
 
                 if fileManager.fileExists(atPath: bundleMediaDir.path) {
@@ -225,7 +231,7 @@ public final class DictionaryPersistenceController: Sendable {
                 }
 
                 // Copy audio media directory if present (audio source media)
-                let bundleAudioMediaDir = bundleDB.deletingLastPathComponent().appendingPathComponent("AudioMedia")
+                let bundleAudioMediaDir = starterDictionaryDirectory.appendingPathComponent("AudioMedia")
                 let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
 
                 if fileManager.fileExists(atPath: bundleAudioMediaDir.path) {

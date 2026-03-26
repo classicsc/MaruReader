@@ -3,9 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LOG_DIR="$ROOT_DIR/build/logs"
-DOWNLOAD_DIR="$ROOT_DIR/build/starterdict/downloads"
+DOWNLOAD_DIR="$ROOT_DIR/build/downloads"
 DERIVED_DATA_PATH="$ROOT_DIR/DerivedData/DictionarySeeder"
-STARTER_OUTPUT_DIR="$ROOT_DIR/MaruReader/StarterDictionary"
+STARTER_OUTPUT_DIR="$ROOT_DIR/build/StarterDictionary"
+MANIFEST_PATH="$ROOT_DIR/starterdict-manifest.json"
+ASSET_OUTPUT_PATH="$ROOT_DIR/build/starterdict.aar"
 
 JITENDEX_URL="https://github.com/stephenmk/stephenmk.github.io/releases/latest/download/jitendex-yomitan.zip"
 KANJI_ALIVE_URL="https://github.com/classicsc/kanji-alive-indexer/releases/latest/download/kanji-alive-mp3-indexed.zip"
@@ -38,6 +40,7 @@ seed_log_path="$LOG_DIR/${timestamp}-starterdict-seed.log"
 latest_seed_log_path="$LOG_DIR/latest-starterdict-seed.log"
 
 echo "Seeding starter dictionary output to $STARTER_OUTPUT_DIR..."
+rm -rf "$STARTER_OUTPUT_DIR"
 set +e
 "$SEEDER_BINARY_PATH" "$STARTER_OUTPUT_DIR" "$JITENDEX_ZIP_PATH" --audio "$KANJI_ALIVE_ZIP_PATH" 2>&1 | tee "$seed_log_path"
 seed_exit_code=${PIPESTATUS[0]}
@@ -47,5 +50,15 @@ cp "$seed_log_path" "$latest_seed_log_path"
 
 echo "Seeder log: $seed_log_path"
 echo "Latest seeder log: $latest_seed_log_path"
+
+ba_package_log_path="$LOG_DIR/${timestamp}-starterdict-archive.log"
+latest_ba_package_log_path="$LOG_DIR/latest-starterdict-archive.log"
+
+echo "Creating background asset archive..."
+rm -f "$ASSET_OUTPUT_PATH"
+xcrun ba-package "$MANIFEST_PATH" -o "$ASSET_OUTPUT_PATH" 2>&1 | tee "$ba_package_log_path"
+
+echo "ba-package log: $ba_package_log_path"
+echo "Latest ba-package log: $latest_ba_package_log_path"
 
 exit "$seed_exit_code"
