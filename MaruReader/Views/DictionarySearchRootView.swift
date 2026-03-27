@@ -71,12 +71,23 @@ struct DictionarySearchRootView: View {
         .searchable(text: $query, placement: .automatic, prompt: "Search Dictionary")
         .searchFocused($isSearchFieldFocused)
         .onChange(of: query) { _, newValue in
+            guard case .ready = availability else { return }
+            activateSearchIfNeeded()
             searchViewModel?.performSearch(newValue)
         }
         .task {
             configureScreenshotStateIfNeeded()
         }
+        .onChange(of: availability) { _, newValue in
+            guard case .ready = newValue else { return }
+            activateSearchIfNeeded()
+            searchViewModel?.performSearch(query)
+            if isSearchFieldFocused {
+                searchViewModel?.textFieldFocused()
+            }
+        }
         .onChange(of: isSearchFieldFocused) { _, isFocused in
+            guard case .ready = availability else { return }
             if isFocused {
                 activateSearchIfNeeded()
                 searchViewModel?.textFieldFocused()
@@ -87,18 +98,14 @@ struct DictionarySearchRootView: View {
     }
 
     private func activateSearchIfNeeded() {
-        guard searchViewModel == nil else { return }
+        guard case .ready = availability, searchViewModel == nil else { return }
         searchViewModel = DictionarySearchViewModel()
-        if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            searchViewModel?.performSearch(query)
-        }
     }
 
     private func configureScreenshotStateIfNeeded() {
         guard MaruReaderApp.isScreenshotMode, !didConfigureScreenshotState else { return }
         didConfigureScreenshotState = true
         query = Self.screenshotQuery
-        activateSearchIfNeeded()
 
         // The search tab auto-focuses its searchable field; blur it again so
         // screenshot capture is deterministic even on freshly erased simulators.
