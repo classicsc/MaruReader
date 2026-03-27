@@ -21,14 +21,48 @@ import UniformTypeIdentifiers
 import WebKit
 
 public struct AudioURLSchemeHandler: URLSchemeHandler, Sendable {
-    private let lookupService: AudioLookupService
+    private let lookupServiceHolder: LookupServiceHolder
+
+    private actor LookupServiceHolder {
+        private enum Storage {
+            case factory(@Sendable () -> AudioLookupService)
+            case service(AudioLookupService)
+        }
+
+        private var storage: Storage
+
+        init(factory: @escaping @Sendable () -> AudioLookupService) {
+            storage = .factory(factory)
+        }
+
+        init(service: AudioLookupService) {
+            storage = .service(service)
+        }
+
+        func service() -> AudioLookupService {
+            switch storage {
+            case let .service(service):
+                return service
+            case let .factory(factory):
+                let service = factory()
+                storage = .service(service)
+                return service
+            }
+        }
+    }
 
     public init() {
-        self.lookupService = AudioLookupService(persistenceController: .shared)
+        lookupServiceHolder = LookupServiceHolder {
+            AudioLookupService(persistenceController: .shared)
+        }
     }
 
     init(lookupService: AudioLookupService) {
-        self.lookupService = lookupService
+        lookupServiceHolder = LookupServiceHolder(service: lookupService)
+    }
+
+    init(lookupServiceFactory: @escaping @Sendable () -> AudioLookupService) {
+        lookupServiceHolder = LookupServiceHolder(factory: lookupServiceFactory)
     }
 
     private static let logger = Logger.maru(category: "AudioURLSchemeHandler")
@@ -138,6 +172,7 @@ public struct AudioURLSchemeHandler: URLSchemeHandler, Sendable {
         let reading = readingValue?.isEmpty == true ? nil : readingValue
         let languageValue = queryItems.first(where: { $0.name == "language" })?.value
         let language = languageValue?.isEmpty == false ? languageValue! : "ja"
+        let lookupService = await lookupServiceHolder.service()
 
         try await lookupService.ensureLoaded()
 

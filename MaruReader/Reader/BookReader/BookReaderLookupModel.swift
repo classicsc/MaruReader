@@ -42,7 +42,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     var popupPage: WebPage = .init()
     var popupAnchorPosition: CGRect = .zero
     var dictionarySheetPresentation: BookReaderDictionarySheetPresentation?
-    var isDictionaryReady: Bool = true
+    var isDictionaryReady: Bool = false
     private(set) var pendingSheetSearchText: String?
     private(set) var pendingSheetContextValues: LookupContextValues?
 

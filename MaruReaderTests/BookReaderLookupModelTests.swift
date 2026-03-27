@@ -24,7 +24,9 @@ import Testing
 
 @MainActor
 struct BookReaderLookupModelTests {
-    private func makeLookupModel() throws -> BookReaderLookupModel {
+    private func makeLookupModel(
+        searchServiceFactory: @escaping () -> DictionarySearchService = { DictionarySearchService() }
+    ) throws -> BookReaderLookupModel {
         let persistenceController = makeBookPersistenceController()
         let context = persistenceController.container.viewContext
         let book = Book(context: context)
@@ -35,7 +37,11 @@ struct BookReaderLookupModelTests {
         let repository = BookReaderRepository(persistenceController: persistenceController)
         let session = BookReaderSessionModel(bookID: book.objectID, repository: repository, loadPublicationOnInit: false)
         let preferences = ReaderPreferences(bookID: book.objectID, persistenceController: persistenceController, context: context)
-        return BookReaderLookupModel(session: session, readerPreferences: preferences)
+        return BookReaderLookupModel(
+            session: session,
+            readerPreferences: preferences,
+            searchServiceFactory: searchServiceFactory
+        )
     }
 
     @Test func presentAndDismissDictionarySheet_ManagePresentation() throws {
@@ -58,6 +64,12 @@ struct BookReaderLookupModelTests {
 
         #expect(!lookup.showPopup)
         #expect(lookup.popupAnchorPosition == .zero)
+    }
+
+    @Test func lookupModel_StartsWithDictionaryUnavailableUntilViewMarksReady() throws {
+        let lookup = try makeLookupModel()
+
+        #expect(!lookup.isDictionaryReady)
     }
 
     @Test func searchServiceFactory_IsLazyAtInitialization() throws {
@@ -83,5 +95,19 @@ struct BookReaderLookupModelTests {
         )
 
         #expect(factoryInvocationCount == 0)
+    }
+
+    @Test func searchInPopup_WhenDictionaryUnavailable_DoesNotResolveSearchService() throws {
+        var factoryInvocationCount = 0
+        let lookup = try makeLookupModel(searchServiceFactory: {
+            factoryInvocationCount += 1
+            return DictionarySearchService()
+        })
+
+        lookup.searchInPopup(offset: 0, context: "日本語", contextStartOffset: 0, cssSelector: "p")
+
+        #expect(factoryInvocationCount == 0)
+        #expect(lookup.pendingSheetSearchText == "日本語")
+        #expect(lookup.dictionarySheetPresentation != nil)
     }
 }

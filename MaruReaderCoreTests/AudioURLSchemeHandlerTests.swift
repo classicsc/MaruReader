@@ -32,6 +32,23 @@ private struct AudioLookupSourcePayload: Decodable {
     let pitch: String?
 }
 
+private final class InvocationCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    func increment() {
+        lock.lock()
+        count += 1
+        lock.unlock()
+    }
+
+    var value: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+}
+
 private final class MockAudioLookupNetworkProvider: NetworkProviding, @unchecked Sendable {
     var responseQueue: [(Data, URLResponse)] = []
 
@@ -164,5 +181,44 @@ struct AudioURLSchemeHandlerTests {
 
         let payload = try JSONDecoder().decode(AudioLookupResponsePayload.self, from: #require(data))
         #expect(payload.sources.isEmpty)
+    }
+
+    @Test func lookupServiceFactory_IsLazyUntilLookupRequest() async throws {
+        let counter = InvocationCounter()
+        let persistenceController = makeDictionaryPersistenceController()
+        let service = AudioLookupService(
+            persistenceController: persistenceController,
+            networkProvider: MockAudioLookupNetworkProvider()
+        )
+        let handler = AudioURLSchemeHandler(lookupServiceFactory: {
+            counter.increment()
+            return service
+        })
+
+        #expect(counter.value == 0)
+
+        let request = try URLRequest(url: #require(URL(string: "marureader-audio://lookup?term=日本語")))
+        _ = try await handler.handleRequest(request)
+
+        #expect(counter.value == 1)
+    }
+
+    @Test func lookupRequests_ReuseResolvedLookupService() async throws {
+        let counter = InvocationCounter()
+        let persistenceController = makeDictionaryPersistenceController()
+        let service = AudioLookupService(
+            persistenceController: persistenceController,
+            networkProvider: MockAudioLookupNetworkProvider()
+        )
+        let handler = AudioURLSchemeHandler(lookupServiceFactory: {
+            counter.increment()
+            return service
+        })
+        let request = try URLRequest(url: #require(URL(string: "marureader-audio://lookup?term=日本語")))
+
+        _ = try await handler.handleRequest(request)
+        _ = try await handler.handleRequest(request)
+
+        #expect(counter.value == 1)
     }
 }
