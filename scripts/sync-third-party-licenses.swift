@@ -141,6 +141,7 @@ private let requiredManualComponentIDs: Set<String> = [
     "manual-adguard-filters",
     "manual-jitendex",
     "manual-kanji-alive",
+    "manual-ipadic",
     "manual-material-symbols-outlined",
 ]
 

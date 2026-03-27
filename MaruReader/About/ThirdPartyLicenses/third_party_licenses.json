@@ -43,6 +43,23 @@
       "sourceURL" : "https:\/\/github.com\/easylist\/easylist"
     },
     {
+      "attribution" : "Nara Institute of Science and Technology and ICOT",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/taku910.github.io\/mecab\/",
+      "id" : "manual-ipadic",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-ipadic-license.txt",
+          "referenceURL" : "https:\/\/github.com\/taku910\/mecab\/blob\/2fd29256c6d5e1b10211cac838069ee9ede8c77a\/mecab-ipadic\/COPYING",
+          "title" : "IPADic License"
+        }
+      ],
+      "name" : "IPADic",
+      "notes" : "Compiled into MaruReaderCore framework resources for furigana generation.",
+      "revision" : "2fd29256c6d5e1b10211cac838069ee9ede8c77a",
+      "sourceURL" : "https:\/\/github.com\/taku910\/mecab"
+    },
+    {
       "attribution" : "Stephen Kraus",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/jitendex.org\/",
@@ -506,6 +523,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-03-19T02:21:22.772Z",
+  "generatedAt" : "2026-03-27T18:06:42.481Z",
   "schemaVersion" : 1
 }

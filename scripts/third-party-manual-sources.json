@@ -135,6 +135,25 @@
       ]
     },
     {
+      "id": "manual-ipadic",
+      "name": "IPADic",
+      "category": "dictionaryData",
+      "homepageURL": "https://taku910.github.io/mecab/",
+      "sourceURL": "https://github.com/taku910/mecab",
+      "revision": "2fd29256c6d5e1b10211cac838069ee9ede8c77a",
+      "attribution": "Nara Institute of Science and Technology and ICOT",
+      "notes": "Compiled into MaruReaderCore framework resources for furigana generation.",
+      "licenses": [
+        {
+          "title": "IPADic License",
+          "outputPath": "manual/manual-ipadic-license.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/ipadic/COPYING.txt",
+          "referenceURL": "https://github.com/taku910/mecab/blob/2fd29256c6d5e1b10211cac838069ee9ede8c77a/mecab-ipadic/COPYING",
+          "refreshURL": "https://raw.githubusercontent.com/taku910/mecab/2fd29256c6d5e1b10211cac838069ee9ede8c77a/mecab-ipadic/COPYING"
+        }
+      ]
+    },
+    {
       "id": "manual-material-symbols-outlined",
       "name": "Material Symbols Outlined",
       "category": "dictionaryData",

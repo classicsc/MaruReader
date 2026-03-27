@@ -15,7 +15,6 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-internal import IPADic
 internal import Mecab_Swift
 internal import StringTools
 import Foundation
@@ -51,7 +50,9 @@ public enum FuriganaGenerator {
     public static func generateSegments(from text: String) -> [FuriganaSegment] {
         guard !text.isEmpty else { return [] }
 
-        guard let tokenizer = try? Tokenizer(dictionary: IPADic()) else {
+        guard let dictionary = try? MecabIPADicDictionary(),
+              let tokenizer = try? Tokenizer(dictionary: dictionary)
+        else {
             // Fallback: return the entire text as a single segment without reading
             return [FuriganaSegment(base: text, reading: nil, baseRange: text.startIndex ..< text.endIndex)]
         }

@@ -11,6 +11,7 @@ Before sending a PR, make sure it passes the unit tests, and if possible, includ
 For development, these tools are required:
 
 - [Xcode 26+](https://developer.apple.com/xcode/)
+- [mecab](https://taku910.github.io/mecab/) (`mecab-dict-index` must be available in `PATH` or under Homebrew's `libexec/mecab/`)
 - [swiftformat](https://github.com/nicklockwood/SwiftFormat)
 - [just](https://github.com/casey/just)
 - [xcbeautify](https://github.com/cpisciotta/xcbeautify)

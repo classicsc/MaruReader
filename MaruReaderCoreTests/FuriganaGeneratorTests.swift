@@ -22,6 +22,15 @@ import Testing
 struct FuriganaGeneratorTests {
     // MARK: - Basic Functionality
 
+    @Test func bundledIPADic_isPresentInFrameworkBundle() throws {
+        let dictionary = try MecabIPADicDictionary()
+        let dicrcURL = dictionary.url.appendingPathComponent("dicrc")
+        let systemDictionaryURL = dictionary.url.appendingPathComponent("sys.dic")
+
+        #expect(FileManager.default.fileExists(atPath: dicrcURL.path))
+        #expect(FileManager.default.fileExists(atPath: systemDictionaryURL.path))
+    }
+
     @Test func emptyString_returnsEmpty() {
         let result = FuriganaGenerator.generateSegments(from: "")
         #expect(result.isEmpty)

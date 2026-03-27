@@ -45,7 +45,6 @@
 		DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C72EAAC56800B4F27D /* JsonStream */; };
 		DBCFB1CA2EAAC56C00B4F27D /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */; };
 		DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755662F120EF3000AFED1 /* Mecab-Swift */; };
-		DBD755692F120EF8000AFED1 /* IPADic in Frameworks */ = {isa = PBXBuildFile; productRef = DBD755682F120EF8000AFED1 /* IPADic */; };
 		DBD76D322F1446A0000AFED1 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */; };
 		DBD76F0F2F145641000AFED1 /* ReadiumZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = DBD76F0E2F145641000AFED1 /* ReadiumZIPFoundation */; };
 		DBD776702F148E36000AFED1 /* MaruDictionaryUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB58C9022EAB173700CE59FD /* MaruDictionaryUICommon.framework */; };
@@ -697,7 +696,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				DBD755692F120EF8000AFED1 /* IPADic in Frameworks */,
 				DBD755672F120EF3000AFED1 /* Mecab-Swift in Frameworks */,
 				DBCFB1C82EAAC56800B4F27D /* JsonStream in Frameworks */,
 				DB35EE8A2F61024200A6BBC6 /* LRUCache in Frameworks */,
@@ -1152,6 +1150,7 @@
 				DBCFB15B2EAAAE8B00B4F27D /* Headers */,
 				DBCFB15C2EAAAE8B00B4F27D /* Sources */,
 				DBCFB15D2EAAAE8B00B4F27D /* Frameworks */,
+				E1A1B0013A20000100A1B001 /* Build Bundled IPADic */,
 				DBCFB15E2EAAAE8B00B4F27D /* Resources */,
 			);
 			buildRules = (
@@ -1166,7 +1165,6 @@
 				DBCFB1C72EAAC56800B4F27D /* JsonStream */,
 				DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */,
 				DBD755662F120EF3000AFED1 /* Mecab-Swift */,
-				DBD755682F120EF8000AFED1 /* IPADic */,
 				DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */,
 				DB35EE892F61024200A6BBC6 /* LRUCache */,
 			);
@@ -1700,6 +1698,35 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/copy-optional-ubolite.sh\"\n";
+		};
+		E1A1B0013A20000100A1B001 /* Build Bundled IPADic */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/build-bundled-ipadic.sh",
+				"$(SRCROOT)/build/downloads/mecab-2fd29256c6d5e1b10211cac838069ee9ede8c77a.tar.gz",
+			);
+			name = "Build Bundled IPADic";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/char.bin",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/dicrc",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/left-id.def",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/matrix.bin",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/pos-id.def",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/rewrite.def",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/right-id.def",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/sys.dic",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/ipadic dictionary/unk.dic",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/build-bundled-ipadic.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -3663,11 +3690,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
 			productName = "Mecab-Swift";
-		};
-		DBD755682F120EF8000AFED1 /* IPADic */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */;
-			productName = IPADic;
 		};
 		DBD76D312F1446A0000AFED1 /* ReadiumZIPFoundation */ = {
 			isa = XCSwiftPackageProductDependency;
