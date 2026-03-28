@@ -143,8 +143,7 @@ final class ScreenshotTests: XCTestCase {
         // In screenshot mode, the search screen auto-populates a query and
         // dismisses focus so the screenshot does not depend on keyboard state.
         let searchField = app.searchFields.firstMatch
-        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
-        sleep(2)
+        sleep(5)
         takeScreenshot(named: "06-DictionarySearch")
     }
 

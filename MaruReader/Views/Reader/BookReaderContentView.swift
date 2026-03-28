@@ -179,8 +179,10 @@ struct BookReaderContentView: View {
                 // On larger screens (iPad) the text is on the initial page;
                 // on smaller screens (iPhone) we need to advance one page.
                 if await !lookup.isScreenshotTextVisible() {
+                    // Another wait is needed on a fresh sim due to webkit
+                    // startup slowness on debug
+                    try? await Task.sleep(for: .seconds(5))
                     session.goLeft()
-                    try? await Task.sleep(for: .seconds(2))
                 }
 
                 lookup.triggerScreenshotTextLookup()
