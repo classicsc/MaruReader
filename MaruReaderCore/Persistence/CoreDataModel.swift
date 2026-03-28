@@ -26,6 +26,9 @@ import System
 public final class DictionaryPersistenceController: Sendable {
     public static let shared = DictionaryPersistenceController()
     private static let logger = Logger.maru(category: "DictionaryPersistenceController")
+    #if DEBUG
+        private static let suppressBundledStarterDictionaryLaunchArgument = "--disableBundledStarterDictionaryFallback"
+    #endif
 
     // MARK: - App Group Configuration
 
@@ -185,58 +188,57 @@ public final class DictionaryPersistenceController: Sendable {
         await Task.detached(priority: .utility) {
             guard let baseDirectory else { return }
 
-            let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
             let fileManager = FileManager.default
 
             // Skip if database already exists
+            let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
             guard !fileManager.fileExists(atPath: destinationDB.path) else { return }
 
             let starterDictionaryDirectory: URL
+            var shouldRemoveAssetPack = false
 
-            do {
-                let assetPackManager = AssetPackManager.shared
-                let assetPack = try await assetPackManager.assetPack(withID: "StarterDict")
-                try await assetPackManager.ensureLocalAvailability(of: assetPack)
-                starterDictionaryDirectory = try assetPackManager.url(for: System.FilePath("build/StarterDictionary"))
-            } catch {
-                Self.logger.warning("Failed to prepare StarterDict asset contents: \(error.localizedDescription, privacy: .public)")
-                return
-            }
-            defer {
-                Task {
+            #if DEBUG
+                if let bundledStarterDictionaryDirectory = bundledStarterDictionaryDirectory() {
+                    starterDictionaryDirectory = bundledStarterDictionaryDirectory
+                } else {
                     do {
-                        try await AssetPackManager.shared.remove(assetPackWithID: "StarterDict")
+                        let assetPackManager = AssetPackManager.shared
+                        let assetPack = try await assetPackManager.assetPack(withID: "StarterDict")
+                        try await assetPackManager.ensureLocalAvailability(of: assetPack)
+                        starterDictionaryDirectory = try assetPackManager.url(for: System.FilePath("build/StarterDictionary"))
+                        shouldRemoveAssetPack = true
                     } catch {
-                        Self.logger.warning("Failed to clean StarterDict asset: \(error.localizedDescription, privacy: .public)")
+                        Self.logger.warning("Failed to prepare StarterDict asset contents: \(error.localizedDescription, privacy: .public)")
+                        return
+                    }
+                }
+            #else
+                do {
+                    let assetPackManager = AssetPackManager.shared
+                    let assetPack = try await assetPackManager.assetPack(withID: "StarterDict")
+                    try await assetPackManager.ensureLocalAvailability(of: assetPack)
+                    starterDictionaryDirectory = try assetPackManager.url(for: System.FilePath("build/StarterDictionary"))
+                    shouldRemoveAssetPack = true
+                } catch {
+                    Self.logger.warning("Failed to prepare StarterDict asset contents: \(error.localizedDescription, privacy: .public)")
+                    return
+                }
+            #endif
+
+            defer {
+                if shouldRemoveAssetPack {
+                    Task {
+                        do {
+                            try await AssetPackManager.shared.remove(assetPackWithID: "StarterDict")
+                        } catch {
+                            Self.logger.warning("Failed to clean StarterDict asset: \(error.localizedDescription, privacy: .public)")
+                        }
                     }
                 }
             }
 
-            let assetPackDB = starterDictionaryDirectory.appendingPathComponent("MaruDictionary.sqlite")
-            guard fileManager.fileExists(atPath: assetPackDB.path) else {
-                Self.logger.warning("StarterDict asset is missing MaruDictionary.sqlite at \(assetPackDB.path, privacy: .public)")
-                return
-            }
-
             do {
-                // Copy database file
-                try fileManager.copyItem(at: assetPackDB, to: destinationDB)
-
-                // Copy media directory if present (dictionary media)
-                let bundleMediaDir = starterDictionaryDirectory.appendingPathComponent("Media")
-                let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
-
-                if fileManager.fileExists(atPath: bundleMediaDir.path) {
-                    try fileManager.copyItem(at: bundleMediaDir, to: destinationMediaDir)
-                }
-
-                // Copy audio media directory if present (audio source media)
-                let bundleAudioMediaDir = starterDictionaryDirectory.appendingPathComponent("AudioMedia")
-                let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
-
-                if fileManager.fileExists(atPath: bundleAudioMediaDir.path) {
-                    try fileManager.copyItem(at: bundleAudioMediaDir, to: destinationAudioMediaDir)
-                }
+                try copyStarterDictionaryContents(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
             } catch {
                 // Seeding is best-effort; log but don't crash
                 Self.logger.warning("Failed to seed bundled dictionary: \(error.localizedDescription, privacy: .public)")
@@ -245,6 +247,40 @@ public final class DictionaryPersistenceController: Sendable {
             }
         }.value
     }
+
+    static func copyStarterDictionaryContents(from starterDictionaryDirectory: URL, to baseDirectory: URL, fileManager: FileManager = .default) throws {
+        let sourceDB = starterDictionaryDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        guard fileManager.fileExists(atPath: sourceDB.path) else {
+            throw CocoaError(.fileNoSuchFile, userInfo: [NSFilePathErrorKey: sourceDB.path])
+        }
+
+        let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        try fileManager.copyItem(at: sourceDB, to: destinationDB)
+
+        let sourceMediaDir = starterDictionaryDirectory.appendingPathComponent("Media")
+        let destinationMediaDir = baseDirectory.appendingPathComponent("Media")
+        if fileManager.fileExists(atPath: sourceMediaDir.path) {
+            try fileManager.copyItem(at: sourceMediaDir, to: destinationMediaDir)
+        }
+
+        let sourceAudioMediaDir = starterDictionaryDirectory.appendingPathComponent("AudioMedia")
+        let destinationAudioMediaDir = baseDirectory.appendingPathComponent("AudioMedia")
+        if fileManager.fileExists(atPath: sourceAudioMediaDir.path) {
+            try fileManager.copyItem(at: sourceAudioMediaDir, to: destinationAudioMediaDir)
+        }
+    }
+
+    #if DEBUG
+        private static func bundledStarterDictionaryDirectory(
+            processArguments: [String] = ProcessInfo.processInfo.arguments,
+            mainBundle: Bundle = .main
+        ) -> URL? {
+            guard !processArguments.contains(suppressBundledStarterDictionaryLaunchArgument) else {
+                return nil
+            }
+            return mainBundle.url(forResource: "StarterDictionary", withExtension: nil)
+        }
+    #endif
 }
 
 // MARK: - Preview Support

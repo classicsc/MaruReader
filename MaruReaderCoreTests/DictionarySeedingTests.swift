@@ -37,6 +37,37 @@ struct DictionarySeedingTests {
         #expect(!DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
+    @Test func copyStarterDictionaryContents_copiesDatabaseAndMedia() throws {
+        let starterDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(starterDirectory) }
+
+        let destinationDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(destinationDirectory) }
+
+        let databaseURL = starterDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        #expect(FileManager.default.createFile(atPath: databaseURL.path, contents: Data("db".utf8)))
+
+        let mediaDirectory = starterDirectory.appendingPathComponent("Media")
+        try FileManager.default.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
+        let mediaFileURL = mediaDirectory.appendingPathComponent("entry.txt")
+        #expect(FileManager.default.createFile(atPath: mediaFileURL.path, contents: Data("media".utf8)))
+
+        let audioMediaDirectory = starterDirectory.appendingPathComponent("AudioMedia")
+        try FileManager.default.createDirectory(at: audioMediaDirectory, withIntermediateDirectories: true)
+        let audioFileURL = audioMediaDirectory.appendingPathComponent("audio.txt")
+        #expect(FileManager.default.createFile(atPath: audioFileURL.path, contents: Data("audio".utf8)))
+
+        try DictionaryPersistenceController.copyStarterDictionaryContents(from: starterDirectory, to: destinationDirectory)
+
+        let copiedDatabaseURL = destinationDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        let copiedMediaURL = destinationDirectory.appendingPathComponent("Media/entry.txt")
+        let copiedAudioURL = destinationDirectory.appendingPathComponent("AudioMedia/audio.txt")
+
+        #expect(FileManager.default.fileExists(atPath: copiedDatabaseURL.path))
+        #expect(FileManager.default.fileExists(atPath: copiedMediaURL.path))
+        #expect(FileManager.default.fileExists(atPath: copiedAudioURL.path))
+    }
+
     // MARK: - removeStoreFiles
 
     @Test func removeStoreFiles_deletesAllRelatedFiles() throws {
