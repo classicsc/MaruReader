@@ -112,6 +112,7 @@ actor MangaFilenameMetadataExtractor {
         do {
             var options = GenerationOptions()
             options.sampling = .greedy
+            options.maximumResponseTokens = maximumResponseTokens(for: promptInput)
             let response = try await takeSession().respond(
                 to: Prompt(promptPrefix + promptInput),
                 options: options
@@ -148,6 +149,12 @@ actor MangaFilenameMetadataExtractor {
         let baseName = (trimmedFilename as NSString).deletingPathExtension
         let promptInput = baseName.isEmpty ? trimmedFilename : baseName
         return promptInput.collapsingWhitespace().trimmed
+    }
+
+    nonisolated func maximumResponseTokens(for promptInput: String) -> Int {
+        let inputLength = promptInput.count
+        // The extractor only needs two short labeled lines, plus some headroom
+        return min(128, max(32, (inputLength * 2) + 16))
     }
 
     private static func makeModel() -> SystemLanguageModel {
