@@ -90,6 +90,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
         let termTagsString = String(data: termTagsData, encoding: .utf8) ?? "[]"
 
         return (.termEntry, [
+            "definitionCount": Int64(self.glossary.count),
             "expression": self.expression,
             "reading": self.reading,
             "definitionTags": definitionTagsString,

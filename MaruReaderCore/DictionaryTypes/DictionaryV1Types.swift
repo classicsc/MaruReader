@@ -276,6 +276,7 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"
 
         return (.termEntry, [
+            "definitionCount": Int64(glossary.count),
             "expression": expression,
             "reading": reading,
             "definitionTags": definitionTagsString,

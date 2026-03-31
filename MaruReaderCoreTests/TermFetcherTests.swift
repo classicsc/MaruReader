@@ -37,6 +37,7 @@ struct TermFetcherTests {
             termEntry.rules = "[]"
             termEntry.score = 100
             termEntry.sequence = 1
+            termEntry.definitionCount = 1
 
             let glossaryJSON = try JSONEncoder().encode([Definition.text("to eat")])
             termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSON)
@@ -378,6 +379,7 @@ struct TermFetcherTests {
         termEntry.rules = try String(data: JSONEncoder().encode(rules), encoding: .utf8)
         termEntry.score = 100
         termEntry.sequence = sequence
+        termEntry.definitionCount = 1
 
         let glossaryJSON = try JSONEncoder().encode([Definition.text(definition)])
         termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSON)

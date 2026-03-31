@@ -469,6 +469,7 @@ struct DictionaryPersistenceTests {
         #expect(termEntry?.reading == "たべる")
         #expect(termEntry?.score == 100)
         #expect(termEntry?.sequence == 1)
+        #expect(termEntry?.definitionCount == 1)
         #expect(termEntry?.dictionaryID == dictionaryID)
 
         // Test glossary (definitions) from compressed payload
@@ -732,6 +733,7 @@ struct DictionaryPersistenceTests {
         #expect(termEntry?.reading == "ねこ")
         #expect(termEntry?.score == 100)
         #expect(termEntry?.sequence == 0) // V1 doesn't have sequence, defaults to 0
+        #expect(termEntry?.definitionCount == 2)
         #expect(termEntry?.dictionaryID == dictionaryID)
 
         // Test glossary (V1 uses remaining elements as string definitions) - now stored as compressed payload
