@@ -128,7 +128,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             await session.resetRenderCursor()
             let request = await session.request
             _ = try? await session.prepareInitialResults()
-            let snapshot = await session.snapshot()
+            let snapshot = try? await session.snapshot()
 
             self.currentRequest = request
             self.currentSession = session
@@ -306,7 +306,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
                 self.currentRequest = lookupRequest
                 self.currentSession = session
-                self.currentResponse = await session.snapshot()
+                self.currentResponse = try? await session.snapshot()
                 // Push to navigation history
                 self.history.push(request: lookupRequest, session: session)
                 await self.ankiSchemeHandler.setSession(session)
@@ -508,7 +508,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             }
 
             let hasResults = try await session.prepareInitialResults()
-            guard hasResults, let snapshot = await session.snapshot() else {
+            guard hasResults, let snapshot = try? await session.snapshot() else {
                 return
             }
 
@@ -689,7 +689,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         Task {
             let session = entry.session
             await session.resetRenderCursor()
-            let snapshot = await session.snapshot()
+            let snapshot = try? await session.snapshot()
 
             self.currentRequest = entry.request
             self.currentSession = session
@@ -724,7 +724,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         Task {
             let session = entry.session
             await session.resetRenderCursor()
-            let snapshot = await session.snapshot()
+            let snapshot = try? await session.snapshot()
 
             self.currentRequest = entry.request
             self.currentSession = session
@@ -772,7 +772,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         let termFound = await session.updateEditedContext(editedText)
 
-        if let response = await session.snapshot() {
+        if let response = try? await session.snapshot() {
             if !termFound {
                 logger.info("Primary result '\(response.primaryResult)' not found in edited context")
             }

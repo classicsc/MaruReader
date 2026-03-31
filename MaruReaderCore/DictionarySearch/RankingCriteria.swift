@@ -57,7 +57,7 @@ public struct RankingCriteria: Comparable, Sendable {
         validatedDeinflectionChains: [[String]],
         term: String,
         termScore: Double,
-        definitions: [Definition],
+        definitionCount: Int,
         frequency: (value: Double?, mode: String?),
         dictionaryTitle: String,
         dictionaryPriority: Int
@@ -90,7 +90,7 @@ public struct RankingCriteria: Comparable, Sendable {
         self.dictionaryTitle = dictionaryTitle
 
         // 8. Definition count
-        self.definitionCount = definitions.count
+        self.definitionCount = definitionCount
 
         // 9. Term for lexicographic comparison
         self.term = term
@@ -100,7 +100,7 @@ public struct RankingCriteria: Comparable, Sendable {
         candidate: LookupCandidate,
         term: String,
         termScore: Double,
-        definitions: [Definition],
+        definitionCount: Int,
         frequency: (value: Double?, mode: String?),
         dictionaryTitle: String,
         dictionaryPriority: Int
@@ -110,7 +110,7 @@ public struct RankingCriteria: Comparable, Sendable {
             validatedDeinflectionChains: candidate.deinflectionInputRules,
             term: term,
             termScore: termScore,
-            definitions: definitions,
+            definitionCount: definitionCount,
             frequency: frequency,
             dictionaryTitle: dictionaryTitle,
             dictionaryPriority: dictionaryPriority

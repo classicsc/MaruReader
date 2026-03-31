@@ -26,18 +26,14 @@ enum TermFetcher {
 
     // MARK: - Public Methods
 
-    /// Perform the actual Core Data fetch within the background context
-    /// - Parameters:
-    ///   - candidates: Array of LookupCandidate objects
-    ///   - dictionaryMetadata: Dictionary metadata for filtering and ranking
-    ///   - context: NSManagedObjectContext to perform the fetch in
-    /// - Returns: Array of SearchResult structs
-    static func performFetch(
+    /// Lightweight match phase: fetches term entries and ranking frequencies, validates
+    /// deinflection chains, and returns sorted TermMatch objects without decompressing
+    /// glossaries or fetching pitch accent/tag data.
+    static func fetchMatches(
         candidates: [LookupCandidate],
         dictionaryMetadata: [UUID: DictionaryMetadata],
-        context: NSManagedObjectContext,
-        decodeDefinitions: @escaping @Sendable (Data?) -> [Definition]? = GlossaryCompressionCodec.decodeDefinitions
-    ) async throws -> [SearchResult] {
+        context: NSManagedObjectContext
+    ) async throws -> [TermMatch] {
         let logger = Self.logger
 
         // Extract unique candidate texts for batch lookup
@@ -63,9 +59,110 @@ enum TermFetcher {
 
         logger.debug("Found \(termEntries.count) term entries")
 
-        // Build lookup maps for related data
+        // Fetch only ranking-relevant frequencies (termFrequencyEnabled dictionaries)
         let termReadingKeys = Set(termEntries.map { Self.termReadingKey(expression: $0.expression, reading: $0.reading) })
 
+        let frequencyMapValue = try await fetchFrequencyMap(
+            termReadingKeys: termReadingKeys,
+            dictionaryMetadata: dictionaryMetadata,
+            context: context,
+            logger: logger
+        )
+
+        // Build TermMatch objects — no glossary decompression, no pitch/tag fetches
+        var matches: [TermMatch] = []
+
+        for entry in termEntries {
+            let expression = entry.expression
+            let reading = entry.reading
+            let dictionaryID = entry.dictionaryID
+
+            let matchingCandidates = candidates.filter {
+                $0.text == expression || $0.text == reading
+            }
+
+            for candidate in matchingCandidates {
+                guard let dictMetadata = dictionaryMetadata[dictionaryID] else {
+                    continue
+                }
+
+                guard let validatedChains = Self.validateDeinflectionChains(
+                    candidate: candidate,
+                    entryRulesRaw: entry.rules,
+                    logger: logger,
+                    expression: expression
+                ) else {
+                    continue
+                }
+
+                let key = Self.termReadingKey(expression: expression, reading: reading)
+                let frequencies = frequencyMapValue[key] ?? []
+                let rankFrequency = rankingFrequency(
+                    from: frequencies,
+                    dictionaryMetadata: dictionaryMetadata
+                )
+
+                let rankingCriteria = RankingCriteria(
+                    candidate: candidate,
+                    validatedDeinflectionChains: validatedChains,
+                    term: expression,
+                    termScore: entry.score,
+                    definitionCount: entry.definitionCount,
+                    frequency: (rankFrequency?.value, rankFrequency?.mode),
+                    dictionaryTitle: dictMetadata.title,
+                    dictionaryPriority: dictMetadata.termDisplayPriority
+                )
+
+                matches.append(TermMatch(
+                    candidate: candidate,
+                    term: expression,
+                    reading: reading.isEmpty ? nil : reading,
+                    glossaryData: entry.glossary,
+                    definitionCount: entry.definitionCount,
+                    rankingFrequency: rankFrequency,
+                    dictionaryTitle: dictMetadata.title,
+                    dictionaryUUID: dictionaryID,
+                    displayPriority: dictMetadata.termDisplayPriority,
+                    rankingCriteria: rankingCriteria,
+                    termTagsRaw: entry.termTags,
+                    definitionTagsRaw: entry.definitionTags,
+                    deinflectionRules: validatedChains,
+                    sequence: entry.sequence,
+                    score: entry.score
+                ))
+            }
+        }
+
+        return matches.sorted { $0 > $1 }
+    }
+
+    static func rankingFrequency(
+        from frequencies: [FrequencyInfo],
+        dictionaryMetadata: [UUID: DictionaryMetadata]
+    ) -> FrequencyInfo? {
+        frequencies.first { frequency in
+            dictionaryMetadata[frequency.dictionaryID]?.termFrequencyEnabled == true
+        }
+    }
+
+    // MARK: - Materialization
+
+    /// Materializes TermMatch objects into full SearchResult objects by decompressing
+    /// glossaries and fetching pitch accent, tag, and full frequency data.
+    static func materializeMatches(
+        _ matches: [TermMatch],
+        dictionaryMetadata: [UUID: DictionaryMetadata],
+        context: NSManagedObjectContext,
+        tagMetadataMap: [String: TagMetaData]? = nil
+    ) async throws -> [SearchResult] {
+        let logger = Self.logger
+
+        guard !matches.isEmpty else { return [] }
+
+        let enabledDictionaryIDs = Array(dictionaryMetadata.filter(\.value.termResultsEnabled).keys)
+        let termReadingKeys = Set(matches.map { Self.termReadingKey(expression: $0.term, reading: $0.reading ?? "") })
+
+        // Fetch auxiliary data in parallel
         async let frequencyMap = try fetchFrequencyMap(
             termReadingKeys: termReadingKeys,
             dictionaryMetadata: dictionaryMetadata,
@@ -81,165 +178,96 @@ enum TermFetcher {
             logger: logger
         )
 
-        async let tagMetadataMap = try fetchTagMetadataMap(
-            enabledDictionaryIDs: enabledDictionaryIDs,
-            context: context,
-            logger: logger
-        )
+        // Use cached tag metadata if provided, otherwise fetch
+        async let fetchedTagMetadataMap = try {
+            if let tagMetadataMap {
+                return tagMetadataMap
+            }
+            return try await fetchTagMetadataMap(
+                enabledDictionaryIDs: enabledDictionaryIDs,
+                context: context,
+                logger: logger
+            )
+        }()
 
         let frequencyMapValue = try await frequencyMap
         let pitchAccentMapValue = try await pitchAccentMap
-        let tagMetadataMapValue = try await tagMetadataMap
+        let tagMetadataMapValue = try await fetchedTagMetadataMap
 
-        // Convert to SearchResult structs concurrently per entry
-        let searchResults = await withTaskGroup(of: [SearchResult].self) { group in
-            for entry in termEntries {
+        // Decompress glossaries and build SearchResults concurrently
+        return await withTaskGroup(of: SearchResult?.self) { group in
+            for match in matches {
                 group.addTask {
-                    let expression = entry.expression
-                    let reading = entry.reading
-                    let dictionaryID = entry.dictionaryID
-
-                    guard let definitions = decodeDefinitions(entry.glossary) else {
-                        logger.debug("Failed to decode glossary for term '\(expression, privacy: .public)'")
-                        return []
+                    guard let definitions = GlossaryCompressionCodec.decodeDefinitions(from: match.glossaryData) else {
+                        logger.debug("Failed to decode glossary for term '\(match.term, privacy: .public)'")
+                        return nil
                     }
 
-                    // Find matching candidates for this entry
-                    let matchingCandidates = candidates.filter {
-                        $0.text == expression || $0.text == reading
-                    }
-                    logger.debug("Entry '\(expression, privacy: .public)' matches candidates: \(matchingCandidates.map(\.text), privacy: .public)")
+                    let key = Self.termReadingKey(expression: match.term, reading: match.reading ?? "")
+                    let frequencies = frequencyMapValue[key] ?? []
+                    let pitchAccents = pitchAccentMapValue[key] ?? []
 
-                    var entryResults: [SearchResult] = []
+                    let termTags = buildTags(
+                        tagNames: decodeStringArray(from: match.termTagsRaw) ?? [],
+                        dictionaryID: match.dictionaryUUID,
+                        tagMetadataMap: tagMetadataMapValue
+                    )
+                    let definitionTags = buildTags(
+                        tagNames: decodeStringArray(from: match.definitionTagsRaw) ?? [],
+                        dictionaryID: match.dictionaryUUID,
+                        tagMetadataMap: tagMetadataMapValue
+                    )
 
-                    for candidate in matchingCandidates {
-                        // Get dictionary metadata
-                        guard let dictMetadata = dictionaryMetadata[dictionaryID] else {
-                            logger.debug("No metadata found for dictionary ID \(dictionaryID)")
-                            continue
-                        }
-
-                        // Check if deinflection rules match (per-chain validation)
-                        let entryRules = decodeStringArray(from: entry.rules) ?? []
-
-                        // Filter deinflection chains: only include chains whose output
-                        // conditions match the dictionary entry's POS rules.
-                        let validatedChains: [[String]]
-                        if entryRules.isEmpty {
-                            // No entry rules to filter against — keep all chains
-                            validatedChains = candidate.deinflectionInputRules
-                        } else {
-                            let inputRules = candidate.deinflectionInputRules
-                            let outputRulesPerChain = candidate.deinflectionOutputRulesPerChain
-                            validatedChains = zip(inputRules, outputRulesPerChain).compactMap { inputChain, outputConditions in
-                                // Identity chains (empty output conditions) always match
-                                if outputConditions.isEmpty { return inputChain }
-                                // Match condition hierarchies like Yomitan, e.g. v5 matches v5d.
-                                if JapaneseDeinflector.conditionsMatch(
-                                    currentConditionStrings: outputConditions,
-                                    requiredConditionStrings: entryRules
-                                ) {
-                                    return inputChain
-                                }
-                                return nil
-                            }
-                        }
-
-                        // Skip entry entirely if no chains matched
-                        if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
-                            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap(\.self)
-                            if !allOutputRules.isEmpty {
-                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRules, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
-                                continue
-                            }
-                        }
-
-                        // Get frequencies for this term
-                        let key = Self.termReadingKey(expression: expression, reading: reading)
-                        let frequencies = frequencyMapValue[key] ?? []
-                        let rankingFrequency = rankingFrequency(
-                            from: frequencies,
-                            dictionaryMetadata: dictionaryMetadata
-                        )
-
-                        // Get pitch accents for this term
-                        let pitchAccents = pitchAccentMapValue[key] ?? []
-
-                        // Build term tags
-                        let termTagNames = decodeStringArray(from: entry.termTags) ?? []
-                        let termTags = buildTags(
-                            tagNames: termTagNames,
-                            dictionaryID: dictionaryID,
-                            tagMetadataMap: tagMetadataMapValue
-                        )
-
-                        // Build definition tags
-                        let definitionTagNames = decodeStringArray(from: entry.definitionTags) ?? []
-                        let definitionTags = buildTags(
-                            tagNames: definitionTagNames,
-                            dictionaryID: dictionaryID,
-                            tagMetadataMap: tagMetadataMapValue
-                        )
-
-                        // Create ranking criteria using the selected ranking dictionary frequency.
-                        let rankingCriteria = RankingCriteria(
-                            candidate: candidate,
-                            validatedDeinflectionChains: validatedChains,
-                            term: expression,
-                            termScore: entry.score,
-                            definitions: definitions,
-                            frequency: (rankingFrequency?.value, rankingFrequency?.mode),
-                            dictionaryTitle: dictMetadata.title,
-                            dictionaryPriority: dictMetadata.termDisplayPriority
-                        )
-
-                        logger.debug("Created SearchResult: term='\(expression, privacy: .public)', candidate='\(candidate.text, privacy: .public)', deinflectionChains=\(candidate.deinflectionInputRules.count), sourceLength=\(candidate.originalSubstring.count), termTags=\(termTags.count), defTags=\(definitionTags.count), frequencies=\(frequencies.count), sequence=\(entry.sequence)")
-
-                        // Create SearchResult
-                        let searchResult = SearchResult(
-                            candidate: candidate,
-                            term: expression,
-                            reading: reading.isEmpty ? nil : reading,
-                            definitions: definitions,
-                            frequency: rankingFrequency?.value,
-                            frequencies: frequencies,
-                            pitchAccents: pitchAccents,
-                            dictionaryTitle: dictMetadata.title,
-                            dictionaryUUID: dictionaryID,
-                            displayPriority: dictMetadata.termDisplayPriority,
-                            rankingCriteria: rankingCriteria,
-                            termTags: termTags,
-                            definitionTags: definitionTags,
-                            deinflectionRules: validatedChains,
-                            sequence: entry.sequence,
-                            score: entry.score
-                        )
-
-                        entryResults.append(searchResult)
-                    }
-
-                    return entryResults
+                    return SearchResult(
+                        candidate: match.candidate,
+                        term: match.term,
+                        reading: match.reading,
+                        definitions: definitions,
+                        frequency: match.rankingFrequency?.value,
+                        frequencies: frequencies,
+                        pitchAccents: pitchAccents,
+                        dictionaryTitle: match.dictionaryTitle,
+                        dictionaryUUID: match.dictionaryUUID,
+                        displayPriority: match.displayPriority,
+                        rankingCriteria: match.rankingCriteria,
+                        termTags: termTags,
+                        definitionTags: definitionTags,
+                        deinflectionRules: match.deinflectionRules,
+                        sequence: match.sequence,
+                        score: match.score
+                    )
                 }
             }
 
             var results: [SearchResult] = []
-            for await entryResults in group {
-                results.append(contentsOf: entryResults)
+            for await result in group {
+                if let result {
+                    results.append(result)
+                }
             }
-            return results
+            // Preserve the original sort order
+            return results.sorted { $0 > $1 }
         }
-
-        // Sort by ranking criteria (best ranks first - reverse sort since we want higher ranking first)
-        return searchResults.sorted { $0 > $1 }
     }
 
-    static func rankingFrequency(
-        from frequencies: [FrequencyInfo],
-        dictionaryMetadata: [UUID: DictionaryMetadata]
-    ) -> FrequencyInfo? {
-        frequencies.first { frequency in
-            dictionaryMetadata[frequency.dictionaryID]?.termFrequencyEnabled == true
-        }
+    /// Materializes grouped term matches into full GroupedSearchResults.
+    static func materializeGroupedMatches(
+        _ groups: [GroupedTermMatches],
+        dictionaryMetadata: [UUID: DictionaryMetadata],
+        context: NSManagedObjectContext,
+        deinflectionLanguage: DeinflectionLanguage = .en,
+        tagMetadataMap: [String: TagMetaData]? = nil
+    ) async throws -> [GroupedSearchResults] {
+        let allMatches = groups.flatMap { $0.dictionaryMatches.flatMap(\.matches) }
+
+        let searchResults = try await materializeMatches(
+            allMatches,
+            dictionaryMetadata: dictionaryMetadata,
+            context: context,
+            tagMetadataMap: tagMetadataMap
+        )
+
+        return DictionarySearchService.groupResults(searchResults, deinflectionLanguage: deinflectionLanguage)
     }
 
     // MARK: Intermediate result types
@@ -249,6 +277,7 @@ enum TermFetcher {
         let reading: String
         let dictionaryID: UUID
         let glossary: Data
+        let definitionCount: Int
         let rules: String?
         let termTags: String?
         let definitionTags: String?
@@ -269,6 +298,43 @@ enum TermFetcher {
     }
 
     // MARK: - Helper Methods
+
+    /// Validates deinflection chains for a candidate against the dictionary entry's POS rules.
+    /// Returns validated chains, or `nil` if the entry should be skipped entirely.
+    static func validateDeinflectionChains(
+        candidate: LookupCandidate,
+        entryRulesRaw: String?,
+        logger: Logger,
+        expression: String
+    ) -> [[String]]? {
+        let entryRules = decodeStringArray(from: entryRulesRaw) ?? []
+
+        let validatedChains: [[String]] = if entryRules.isEmpty {
+            candidate.deinflectionInputRules
+        } else {
+            zip(candidate.deinflectionInputRules, candidate.deinflectionOutputRulesPerChain)
+                .compactMap { inputChain, outputConditions in
+                    if outputConditions.isEmpty { return inputChain }
+                    if JapaneseDeinflector.conditionsMatch(
+                        currentConditionStrings: outputConditions,
+                        requiredConditionStrings: entryRules
+                    ) {
+                        return inputChain
+                    }
+                    return nil
+                }
+        }
+
+        if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
+            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap(\.self)
+            if !allOutputRules.isEmpty {
+                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRules, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
+                return nil
+            }
+        }
+
+        return validatedChains
+    }
 
     /// Fetch TermEntry entities matching the candidate texts
     private static func fetchTermEntries(
@@ -306,6 +372,7 @@ enum TermFetcher {
                     reading: reading,
                     dictionaryID: dictionaryID,
                     glossary: glossary,
+                    definitionCount: Int(entry.definitionCount),
                     rules: entry.rules,
                     termTags: entry.termTags,
                     definitionTags: entry.definitionTags,
@@ -437,12 +504,13 @@ enum TermFetcher {
     }
 
     /// Fetch tag metadata and build a lookup map
-    private static func fetchTagMetadataMap(
+    static func fetchTagMetadataMap(
         enabledDictionaryIDs: [UUID],
         context: NSManagedObjectContext,
-        logger: Logger
+        logger: Logger? = nil
     ) async throws -> [String: TagMetaData] {
-        try await context.perform {
+        let logger = logger ?? Self.logger
+        return try await context.perform {
             let fetchRequest: NSFetchRequest<DictionaryTagMeta> = DictionaryTagMeta.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "dictionaryID IN %@", enabledDictionaryIDs)
 

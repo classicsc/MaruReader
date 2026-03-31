@@ -51,7 +51,12 @@ public actor TextLookupSession {
     private let renderer: DictionaryResultsHTMLRenderer
 
     private var nextCandidateGroupIndex: Int = 0
-    private var results: [GroupedSearchResults] = []
+    /// Lightweight grouped matches — no glossary decompression has occurred
+    private var matchGroups: [GroupedTermMatches] = []
+    /// Materialized results cache, keyed by termKey
+    private var materializedCache: [String: GroupedSearchResults] = [:]
+    /// Tag metadata cache, fetched once and reused across batches
+    private var cachedTagMetadata: [String: TermFetcher.TagMetaData]?
     private var seenTermKeys: Set<String> = []
     private var renderCursor: Int = 0
     private var primaryResult: String?
@@ -93,14 +98,14 @@ public actor TextLookupSession {
             return hasAnyResults()
         }
 
-        while results.count < minimumResults, nextCandidateGroupIndex < candidateGroups.count {
+        while matchGroups.count < minimumResults, nextCandidateGroupIndex < candidateGroups.count {
             _ = try await fetchNextCandidateGroup()
-            if !results.isEmpty {
+            if !matchGroups.isEmpty {
                 break
             }
         }
 
-        return !results.isEmpty
+        return !matchGroups.isEmpty
     }
 
     public func renderNextBatch(maxGroups: Int, mode: DictionaryResultsHTMLRenderer.Mode) async throws -> TextLookupResultsBatch {
@@ -108,28 +113,34 @@ public actor TextLookupSession {
             return TextLookupResultsBatch(html: "", nextCursor: renderCursor, hasMore: hasMoreResults())
         }
 
-        while results.count - renderCursor < maxGroups, nextCandidateGroupIndex < candidateGroups.count {
+        while matchGroups.count - renderCursor < maxGroups, nextCandidateGroupIndex < candidateGroups.count {
             _ = try await fetchNextCandidateGroup()
         }
 
-        let endIndex = min(results.count, renderCursor + maxGroups)
-        let batch = Array(results[renderCursor ..< endIndex])
+        let endIndex = min(matchGroups.count, renderCursor + maxGroups)
+        let batchMatchGroups = Array(matchGroups[renderCursor ..< endIndex])
         renderCursor = endIndex
 
-        let html = await renderer.render(groups: batch, mode: mode)
+        // Materialize only this batch
+        let materializedGroups = try await materializeBatch(batchMatchGroups)
+
+        let html = await renderer.render(groups: materializedGroups, mode: mode)
         return TextLookupResultsBatch(html: html, nextCursor: renderCursor, hasMore: hasMoreResults())
     }
 
-    public func snapshot() -> TextLookupResponse? {
+    public func snapshot() async throws -> TextLookupResponse? {
         guard let primaryResult,
               let primaryRange = primaryResultSourceRange
         else {
             return nil
         }
 
+        // Materialize all fetched groups for the snapshot
+        let allMaterialized = try await materializeBatch(matchGroups)
+
         var response = TextLookupResponse(
             request: request,
-            results: results,
+            results: allMaterialized,
             primaryResult: primaryResult,
             primaryResultSourceRange: primaryRange,
             styles: styles
@@ -139,8 +150,15 @@ public actor TextLookupSession {
         return response
     }
 
-    public func termGroup(for termKey: String) -> GroupedSearchResults? {
-        results.first { $0.termKey == termKey }
+    public func termGroup(for termKey: String) async throws -> GroupedSearchResults? {
+        if let cached = materializedCache[termKey] {
+            return cached
+        }
+        guard let matchGroup = matchGroups.first(where: { $0.termKey == termKey }) else {
+            return nil
+        }
+        let materialized = try await materializeBatch([matchGroup])
+        return materialized.first
     }
 
     public func updateEditedContext(_ newContext: String) -> Bool {
@@ -195,34 +213,33 @@ public actor TextLookupSession {
     }
 
     private func hasAnyResults() -> Bool {
-        !results.isEmpty
+        !matchGroups.isEmpty
     }
 
     private func hasMoreResults() -> Bool {
-        renderCursor < results.count || nextCandidateGroupIndex < candidateGroups.count
+        renderCursor < matchGroups.count || nextCandidateGroupIndex < candidateGroups.count
     }
 
-    private func fetchNextCandidateGroup() async throws -> [GroupedSearchResults] {
+    private func fetchNextCandidateGroup() async throws -> [GroupedTermMatches] {
         guard nextCandidateGroupIndex < candidateGroups.count else { return [] }
 
         let group = candidateGroups[nextCandidateGroupIndex]
         nextCandidateGroupIndex += 1
 
         let context = persistenceController.newBackgroundContext()
-        let searchResults = try await TermFetcher.performFetch(
+        let termMatches = try await TermFetcher.fetchMatches(
             candidates: group.candidates,
             dictionaryMetadata: dictionaryMetadata,
             context: context
         )
-        let deinflectionLanguage = DeinflectionLanguage(rawValue: styles.deinflectionDescriptionLanguage) ?? .followSystem
-        let groupedResults = DictionarySearchService.groupResults(searchResults, deinflectionLanguage: deinflectionLanguage)
+        let groupedMatches = DictionarySearchService.groupMatches(termMatches)
 
-        let newGroups = groupedResults.filter { group in
+        let newGroups = groupedMatches.filter { group in
             seenTermKeys.insert(group.termKey).inserted
         }
 
         if !newGroups.isEmpty {
-            results.append(contentsOf: newGroups)
+            matchGroups.append(contentsOf: newGroups)
             if primaryResult == nil {
                 updatePrimaryResult(from: newGroups)
             }
@@ -231,21 +248,72 @@ public actor TextLookupSession {
         return newGroups
     }
 
-    private func updatePrimaryResult(from groups: [GroupedSearchResults]) {
+    private func updatePrimaryResult(from groups: [GroupedTermMatches]) {
         guard primaryResult == nil,
               let topGroup = groups.first,
-              let topResult = topGroup.dictionariesResults.first?.results.first
+              let topMatch = topGroup.dictionaryMatches.first?.matches.first
         else {
             return
         }
 
-        primaryResult = topResult.term
-        let substringLength = topResult.candidate.originalSubstring.count
+        primaryResult = topMatch.term
+        let substringLength = topMatch.candidate.originalSubstring.count
         let endIndex = request.context.index(
             queryStartIndex,
             offsetBy: substringLength,
             limitedBy: request.context.endIndex
         ) ?? request.context.endIndex
         primaryResultSourceRange = queryStartIndex ..< endIndex
+    }
+
+    // MARK: - Materialization
+
+    /// Materializes a batch of GroupedTermMatches into GroupedSearchResults,
+    /// caching the results for later access.
+    private func materializeBatch(_ groups: [GroupedTermMatches]) async throws -> [GroupedSearchResults] {
+        // Separate cached from uncached groups
+        var result: [GroupedSearchResults] = []
+        var toMaterialize: [GroupedTermMatches] = []
+
+        for group in groups {
+            if let cached = materializedCache[group.termKey] {
+                result.append(cached)
+            } else {
+                toMaterialize.append(group)
+            }
+        }
+
+        if !toMaterialize.isEmpty {
+            let context = persistenceController.newBackgroundContext()
+            let deinflectionLanguage = DeinflectionLanguage(rawValue: styles.deinflectionDescriptionLanguage) ?? .followSystem
+
+            // Fetch and cache tag metadata before materialization to avoid a redundant fetch
+            if cachedTagMetadata == nil {
+                let enabledDictionaryIDs = Array(dictionaryMetadata.filter(\.value.termResultsEnabled).keys)
+                cachedTagMetadata = try await TermFetcher.fetchTagMetadataMap(
+                    enabledDictionaryIDs: enabledDictionaryIDs,
+                    context: context
+                )
+            }
+
+            let materialized = try await TermFetcher.materializeGroupedMatches(
+                toMaterialize,
+                dictionaryMetadata: dictionaryMetadata,
+                context: context,
+                deinflectionLanguage: deinflectionLanguage,
+                tagMetadataMap: cachedTagMetadata
+            )
+
+            for group in materialized {
+                materializedCache[group.termKey] = group
+            }
+            result.append(contentsOf: materialized)
+        }
+
+        // Preserve original group ordering
+        let ordering = Swift.Dictionary(uniqueKeysWithValues: groups.enumerated().map { ($1.termKey, $0) })
+        result.sort { (ordering[$0.termKey] ?? 0) < (ordering[$1.termKey] ?? 0) }
+
+        return result
     }
 }

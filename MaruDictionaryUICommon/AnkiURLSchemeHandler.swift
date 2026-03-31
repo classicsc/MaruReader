@@ -52,8 +52,8 @@ extension AnkiNoteService: AnkiNoteServicing {}
 
 protocol TextLookupSnapshotProviding: Sendable {
     func requestId() async -> String?
-    func snapshot() async -> TextLookupResponse?
-    func termGroup(for termKey: String) async -> GroupedSearchResults?
+    func snapshot() async throws -> TextLookupResponse?
+    func termGroup(for termKey: String) async throws -> GroupedSearchResults?
 }
 
 extension TextLookupSession: TextLookupSnapshotProviding {
@@ -190,8 +190,8 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
         }
 
         guard let provider = currentProvider,
-              let termGroup = await provider.termGroup(for: decoded.termKey),
-              let response = await provider.snapshot()
+              let termGroup = try? await provider.termGroup(for: decoded.termKey),
+              let response = try? await provider.snapshot()
         else {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }

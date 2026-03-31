@@ -169,11 +169,11 @@ private actor MockLookupProvider: TextLookupSnapshotProviding {
         response.requestID.uuidString
     }
 
-    func snapshot() async -> TextLookupResponse? {
+    func snapshot() async throws -> TextLookupResponse? {
         response
     }
 
-    func termGroup(for termKey: String) async -> GroupedSearchResults? {
+    func termGroup(for termKey: String) async throws -> GroupedSearchResults? {
         response.results.first { $0.termKey == termKey }
     }
 }

@@ -21,7 +21,7 @@ import Foundation
 import Testing
 
 struct TermFetcherTests {
-    @Test func performFetch_multipleMatchingCandidates_decodesGlossaryOncePerEntry() async throws {
+    @Test func fetchMatches_doesNotDecodeGlossary() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -64,24 +64,21 @@ struct TermFetcherTests {
             LookupCandidate(from: "たべる"),
         ]
 
-        let decodeCounter = DecodeCounter()
         let fetchContext = persistenceController.newBackgroundContext()
-        let results = try await TermFetcher.performFetch(
+        let matches = try await TermFetcher.fetchMatches(
             candidates: candidates,
             dictionaryMetadata: dictionaryMetadata,
-            context: fetchContext,
-            decodeDefinitions: { payload in
-                decodeCounter.increment()
-                return GlossaryCompressionCodec.decodeDefinitions(from: payload)
-            }
+            context: fetchContext
         )
 
-        #expect(decodeCounter.value == 1)
-        #expect(results.count == 2)
-        #expect(results.allSatisfy { $0.term == "食べる" })
+        // fetchMatches returns lightweight TermMatch objects without decompressing glossaries
+        #expect(matches.count == 2)
+        #expect(matches.allSatisfy { $0.term == "食べる" })
+        #expect(matches.allSatisfy { !$0.glossaryData.isEmpty })
+        #expect(matches.allSatisfy { $0.definitionCount == 1 })
     }
 
-    @Test func performFetch_usesExactTermReadingPairsForFrequencyAndPitchAccentMetadata() async throws {
+    @Test func materialize_usesExactTermReadingPairsForFrequencyAndPitchAccent() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -169,12 +166,20 @@ struct TermFetcherTests {
             LookupCandidate(from: "A"),
             LookupCandidate(from: "B"),
         ]
+        let metadata = makeDictionaryMetadata(dictionaryID: dictionaryID)
 
         let fetchContext = persistenceController.newBackgroundContext()
-        let results = try await TermFetcher.performFetch(
+        let matches = try await TermFetcher.fetchMatches(
             candidates: candidates,
-            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            dictionaryMetadata: metadata,
             context: fetchContext
+        )
+
+        let materializeContext = persistenceController.newBackgroundContext()
+        let results = try await TermFetcher.materializeMatches(
+            matches,
+            dictionaryMetadata: metadata,
+            context: materializeContext
         )
 
         #expect(results.count == 2)
@@ -210,7 +215,7 @@ struct TermFetcherTests {
         }
     }
 
-    @Test func performFetch_dedupedPairBatchingPreservesDuplicateTermEntries() async throws {
+    @Test func materialize_dedupedPairBatchingPreservesDuplicateTermEntries() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -250,11 +255,19 @@ struct TermFetcherTests {
             try context.save()
         }
 
+        let metadata = makeDictionaryMetadata(dictionaryID: dictionaryID)
         let fetchContext = persistenceController.newBackgroundContext()
-        let results = try await TermFetcher.performFetch(
+        let matches = try await TermFetcher.fetchMatches(
             candidates: [LookupCandidate(from: "重複")],
-            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            dictionaryMetadata: metadata,
             context: fetchContext
+        )
+
+        let materializeContext = persistenceController.newBackgroundContext()
+        let results = try await TermFetcher.materializeMatches(
+            matches,
+            dictionaryMetadata: metadata,
+            context: materializeContext
         )
 
         #expect(results.count == 2)
@@ -267,7 +280,7 @@ struct TermFetcherTests {
         #expect(results.allSatisfy { $0.pitchAccents.first?.pitches.count == 1 })
     }
 
-    @Test func performFetch_matchesHierarchicalRulesAndRanksUsingValidatedChains() async throws {
+    @Test func fetchMatches_matchesHierarchicalRulesAndRanksUsingValidatedChains() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -294,21 +307,21 @@ struct TermFetcherTests {
         )
 
         let fetchContext = persistenceController.newBackgroundContext()
-        let results = try await TermFetcher.performFetch(
+        let matches = try await TermFetcher.fetchMatches(
             candidates: [candidate],
             dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
             context: fetchContext
         )
 
-        #expect(results.count == 1)
+        #expect(matches.count == 1)
 
-        let result = try #require(results.first)
-        #expect(result.deinflectionRules == [["volitional", "-ます"]])
-        #expect(result.rankingCriteria.inflectionChainLength == 2)
-        #expect(result.rankingCriteria.deinflectionChainCount == 1)
+        let match = try #require(matches.first)
+        #expect(match.deinflectionRules == [["volitional", "-ます"]])
+        #expect(match.rankingCriteria.inflectionChainLength == 2)
+        #expect(match.rankingCriteria.deinflectionChainCount == 1)
     }
 
-    @Test func performFetch_prefersLongerSourceChainForGroupedDeinflectionDisplay() async throws {
+    @Test func materializeGrouped_prefersLongerSourceChainForDeinflectionDisplay() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -328,18 +341,25 @@ struct TermFetcherTests {
 
         let generator = DictionaryCandidateGenerator()
         let candidates = generator.generateCandidates(from: "行きましょう")
+        let metadata = makeDictionaryMetadata(dictionaryID: dictionaryID)
 
         let fetchContext = persistenceController.newBackgroundContext()
-        let results = try await TermFetcher.performFetch(
+        let matches = try await TermFetcher.fetchMatches(
             candidates: candidates,
-            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            dictionaryMetadata: metadata,
             context: fetchContext
         )
 
-        let grouped = DictionarySearchService.groupResults(results)
+        let grouped = DictionarySearchService.groupMatches(matches)
+        let materializeContext = persistenceController.newBackgroundContext()
+        let materializedGroups = try await TermFetcher.materializeGroupedMatches(
+            grouped,
+            dictionaryMetadata: metadata,
+            context: materializeContext
+        )
 
-        #expect(grouped.count == 1)
-        let firstGroup = try #require(grouped.first)
+        #expect(materializedGroups.count == 1)
+        let firstGroup = try #require(materializedGroups.first)
         #expect(firstGroup.expression == "行く")
         #expect(firstGroup.deinflectionInfo == "volitional → -ます")
     }
@@ -417,22 +437,5 @@ struct TermFetcherTests {
             data: JSONEncoder().encode(positions.map { PitchAccent(position: .mora($0)) }),
             encoding: .utf8
         )
-    }
-}
-
-private final class DecodeCounter: @unchecked Sendable {
-    private let lock = NSLock()
-    private var storedValue = 0
-
-    var value: Int {
-        lock.lock()
-        defer { lock.unlock() }
-        return storedValue
-    }
-
-    func increment() {
-        lock.lock()
-        storedValue += 1
-        lock.unlock()
     }
 }

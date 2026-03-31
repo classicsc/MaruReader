@@ -47,13 +47,28 @@ public struct DictionarySearchService: Sendable {
         self.candidateGenerator = DictionaryCandidateGenerator()
     }
 
-    public func performSearch(query: String) async throws -> [SearchResult] {
+    public func performSearch(query: String) async throws -> [GroupedSearchResults] {
         guard !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return []
         }
 
         let candidates = candidateGenerator.generateCandidates(from: query)
-        return try await fetchTerms(for: candidates)
+        guard !candidates.isEmpty else { return [] }
+
+        let metadata = try await getDictionaryMetadata()
+        let context = persistenceController.newBackgroundContext()
+
+        let matches = try await TermFetcher.fetchMatches(
+            candidates: candidates,
+            dictionaryMetadata: metadata,
+            context: context
+        )
+        let grouped = DictionarySearchService.groupMatches(matches)
+        return try await TermFetcher.materializeGroupedMatches(
+            grouped,
+            dictionaryMetadata: metadata,
+            context: context
+        )
     }
 
     /// Get dictionary metadata cache from Core Data
@@ -199,17 +214,51 @@ public struct DictionarySearchService: Sendable {
         }
     }
 
-    private func fetchTerms(for candidates: [LookupCandidate]) async throws -> [SearchResult] {
-        guard !candidates.isEmpty else { return [] }
+    /// Groups lightweight TermMatch results by term|reading, then by dictionary.
+    /// Uses raw tag strings for sub-grouping (no tag metadata resolution needed).
+    static func groupMatches(_ matches: [TermMatch]) -> [GroupedTermMatches] {
+        let grouped = Swift.Dictionary(grouping: matches) { match in
+            "\(match.term)|\(match.reading ?? "")"
+        }
 
-        let metadata = try await getDictionaryMetadata()
+        return grouped.map { termKey, termMatches in
+            let firstMatch = termMatches.first!
 
-        let context = persistenceController.newBackgroundContext()
-        return try await TermFetcher.performFetch(
-            candidates: candidates,
-            dictionaryMetadata: metadata,
-            context: context
-        )
+            let dictionaryGroups = Swift.Dictionary(grouping: termMatches) {
+                "\($0.dictionaryUUID)|\($0.sequence)|\($0.definitionTagsRaw ?? "")|\($0.score)"
+            }
+
+            let dictionaryMatchesList = dictionaryGroups.map { _, dictMatches in
+                let first = dictMatches.first!
+                return DictionaryTermMatches(
+                    dictionaryTitle: first.dictionaryTitle,
+                    dictionaryUUID: first.dictionaryUUID,
+                    displayPriority: first.displayPriority,
+                    sequence: first.sequence,
+                    score: first.score,
+                    matches: dictMatches
+                )
+            }.sorted { (lhs: DictionaryTermMatches, rhs: DictionaryTermMatches) in
+                if lhs.displayPriority != rhs.displayPriority {
+                    return lhs.displayPriority < rhs.displayPriority
+                }
+                if lhs.score != rhs.score {
+                    return lhs.score > rhs.score
+                }
+                return lhs.sequence < rhs.sequence
+            }
+
+            return GroupedTermMatches(
+                termKey: termKey,
+                expression: firstMatch.term,
+                reading: firstMatch.reading,
+                dictionaryMatches: dictionaryMatchesList,
+                topRankingCriteria: firstMatch.rankingCriteria,
+                deinflectionRules: firstMatch.deinflectionRules
+            )
+        }.sorted { lhs, rhs in
+            lhs.topRankingCriteria > rhs.topRankingCriteria
+        }
     }
 
     private static func extractQueryInfo(from request: TextLookupRequest) -> (text: String, startIndex: String.Index)? {

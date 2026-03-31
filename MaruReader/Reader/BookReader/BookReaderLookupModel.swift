@@ -172,7 +172,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
             }
 
             let hasResults = try await lookupSession.prepareInitialResults()
-            guard hasResults, let snapshot = await lookupSession.snapshot() else {
+            guard hasResults, let snapshot = try? await lookupSession.snapshot() else {
                 logger.debug("No search results found for lookup")
                 return
             }
