@@ -240,6 +240,23 @@ enum JapaneseDeinflector {
         }
     }
 
+    /// Helper for validating serialized condition strings, falling back to
+    /// string overlap when either side contains unsupported condition names.
+    static func conditionsMatch(currentConditionStrings: [String], requiredConditionStrings: [String]) -> Bool {
+        let currentConditions = Set(currentConditionStrings.compactMap(Condition.init(rawValue:)))
+        let requiredConditions = Set(requiredConditionStrings.compactMap(Condition.init(rawValue:)))
+
+        if !currentConditions.isEmpty, !requiredConditions.isEmpty {
+            return conditionsMatch(current: currentConditions, required: requiredConditions) ||
+                conditionsMatch(current: requiredConditions, required: currentConditions)
+        }
+
+        if requiredConditionStrings.isEmpty { return true }
+        if currentConditionStrings.isEmpty { return true }
+
+        return !Set(currentConditionStrings).isDisjoint(with: requiredConditionStrings)
+    }
+
     /// Helper function to check if ancestor condition contains descendant condition in its subcondition hierarchy
     private static func isAncestorCondition(ancestor: Condition, descendant: Condition) -> Bool {
         guard let subConditions = JapaneseDeinflector.conditionDetails[ancestor]?.subConditions else {

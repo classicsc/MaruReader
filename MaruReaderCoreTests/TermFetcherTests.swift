@@ -266,6 +266,83 @@ struct TermFetcherTests {
         #expect(results.allSatisfy { $0.pitchAccents.first?.pitches.count == 1 })
     }
 
+    @Test func performFetch_matchesHierarchicalRulesAndRanksUsingValidatedChains() async throws {
+        let persistenceController = makeDictionaryPersistenceController()
+        let dictionaryID = UUID()
+        let context = persistenceController.newBackgroundContext()
+
+        try await context.perform {
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "行く",
+                reading: "いく",
+                definition: "to go",
+                sequence: 1,
+                rules: ["v5"]
+            )
+            try context.save()
+        }
+
+        let candidate = LookupCandidate(
+            text: "行く",
+            originalSubstring: "行きましょう",
+            preprocessorRules: [[]],
+            deinflectionInputRules: [["continuative"], ["volitional", "-ます"]],
+            deinflectionOutputRulesPerChain: [["v1d"], ["v5d"]]
+        )
+
+        let fetchContext = persistenceController.newBackgroundContext()
+        let results = try await TermFetcher.performFetch(
+            candidates: [candidate],
+            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            context: fetchContext
+        )
+
+        #expect(results.count == 1)
+
+        let result = try #require(results.first)
+        #expect(result.deinflectionRules == [["volitional", "-ます"]])
+        #expect(result.rankingCriteria.inflectionChainLength == 2)
+        #expect(result.rankingCriteria.deinflectionChainCount == 1)
+    }
+
+    @Test func performFetch_prefersLongerSourceChainForGroupedDeinflectionDisplay() async throws {
+        let persistenceController = makeDictionaryPersistenceController()
+        let dictionaryID = UUID()
+        let context = persistenceController.newBackgroundContext()
+
+        try await context.perform {
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "行く",
+                reading: "いく",
+                definition: "to go",
+                sequence: 1,
+                rules: ["v5"]
+            )
+            try context.save()
+        }
+
+        let generator = DictionaryCandidateGenerator()
+        let candidates = generator.generateCandidates(from: "行きましょう")
+
+        let fetchContext = persistenceController.newBackgroundContext()
+        let results = try await TermFetcher.performFetch(
+            candidates: candidates,
+            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            context: fetchContext
+        )
+
+        let grouped = DictionarySearchService.groupResults(results)
+
+        #expect(grouped.count == 1)
+        let firstGroup = try #require(grouped.first)
+        #expect(firstGroup.expression == "行く")
+        #expect(firstGroup.deinflectionInfo == "volitional → -ます")
+    }
+
     private func makeDictionaryMetadata(dictionaryID: UUID) -> [UUID: DictionaryMetadata] {
         [
             dictionaryID: DictionaryMetadata(
@@ -288,7 +365,8 @@ struct TermFetcherTests {
         expression: String,
         reading: String,
         definition: String,
-        sequence: Int64
+        sequence: Int64,
+        rules: [String] = []
     ) throws {
         let termEntry = TermEntry(context: context)
         termEntry.id = UUID()
@@ -297,7 +375,7 @@ struct TermFetcherTests {
         termEntry.reading = reading
         termEntry.definitionTags = "[]"
         termEntry.termTags = "[]"
-        termEntry.rules = "[]"
+        termEntry.rules = try String(data: JSONEncoder().encode(rules), encoding: .utf8)
         termEntry.score = 100
         termEntry.sequence = sequence
 

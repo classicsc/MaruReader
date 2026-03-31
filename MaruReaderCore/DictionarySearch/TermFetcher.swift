@@ -121,12 +121,11 @@ enum TermFetcher {
 
                         // Check if deinflection rules match (per-chain validation)
                         let entryRules = decodeStringArray(from: entry.rules) ?? []
-                        let entryRulesSet = Set(entryRules)
 
                         // Filter deinflection chains: only include chains whose output
                         // conditions match the dictionary entry's POS rules.
                         let validatedChains: [[String]]
-                        if entryRulesSet.isEmpty {
+                        if entryRules.isEmpty {
                             // No entry rules to filter against — keep all chains
                             validatedChains = candidate.deinflectionInputRules
                         } else {
@@ -135,8 +134,13 @@ enum TermFetcher {
                             validatedChains = zip(inputRules, outputRulesPerChain).compactMap { inputChain, outputConditions in
                                 // Identity chains (empty output conditions) always match
                                 if outputConditions.isEmpty { return inputChain }
-                                // Check if this chain's output conditions overlap with entry POS
-                                if !entryRulesSet.isDisjoint(with: outputConditions) { return inputChain }
+                                // Match condition hierarchies like Yomitan, e.g. v5 matches v5d.
+                                if JapaneseDeinflector.conditionsMatch(
+                                    currentConditionStrings: outputConditions,
+                                    requiredConditionStrings: entryRules
+                                ) {
+                                    return inputChain
+                                }
                                 return nil
                             }
                         }
@@ -145,7 +149,7 @@ enum TermFetcher {
                         if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
                             let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap(\.self)
                             if !allOutputRules.isEmpty {
-                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRulesSet, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
+                                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRules, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
                                 continue
                             }
                         }
@@ -180,6 +184,7 @@ enum TermFetcher {
                         // Create ranking criteria using the selected ranking dictionary frequency.
                         let rankingCriteria = RankingCriteria(
                             candidate: candidate,
+                            validatedDeinflectionChains: validatedChains,
                             term: expression,
                             termScore: entry.score,
                             definitions: definitions,

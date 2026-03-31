@@ -54,6 +54,7 @@ public struct RankingCriteria: Comparable, Sendable {
 
     init(
         candidate: LookupCandidate,
+        validatedDeinflectionChains: [[String]],
         term: String,
         termScore: Double,
         definitions: [Definition],
@@ -70,12 +71,12 @@ public struct RankingCriteria: Comparable, Sendable {
             : candidate.preprocessorRules.map(\.count).min() ?? 0
 
         // 3. Inflection chain length (minimum of all chain lengths)
-        self.inflectionChainLength = candidate.deinflectionInputRules.isEmpty
+        self.inflectionChainLength = validatedDeinflectionChains.isEmpty
             ? 0
-            : candidate.deinflectionInputRules.map(\.count).min() ?? 0
+            : validatedDeinflectionChains.map(\.count).min() ?? 0
 
         // 4. Deinflection chain count
-        self.deinflectionChainCount = candidate.deinflectionInputRules.count
+        self.deinflectionChainCount = validatedDeinflectionChains.count
 
         // 5. Frequency
         self.frequencyValue = frequency.value
@@ -93,6 +94,27 @@ public struct RankingCriteria: Comparable, Sendable {
 
         // 9. Term for lexicographic comparison
         self.term = term
+    }
+
+    init(
+        candidate: LookupCandidate,
+        term: String,
+        termScore: Double,
+        definitions: [Definition],
+        frequency: (value: Double?, mode: String?),
+        dictionaryTitle: String,
+        dictionaryPriority: Int
+    ) {
+        self.init(
+            candidate: candidate,
+            validatedDeinflectionChains: candidate.deinflectionInputRules,
+            term: term,
+            termScore: termScore,
+            definitions: definitions,
+            frequency: frequency,
+            dictionaryTitle: dictionaryTitle,
+            dictionaryPriority: dictionaryPriority
+        )
     }
 
     /// Direct initializer for testing purposes

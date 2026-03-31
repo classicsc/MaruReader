@@ -49,7 +49,8 @@ struct DictionaryCandidateGenerator {
     func generateCandidates(from query: String) -> [LookupCandidate] {
         guard !query.isEmpty else { return [] }
 
-        var candidatesByText: [String: CandidateAccumulator] = [:]
+        var candidates: [LookupCandidate] = []
+        var seenCandidateKeys: Set<String> = []
         let candidatesPerSubstring = maxCandidates / 10 // Limit candidates per substring
 
         // Generate substrings from longest to shortest for relevance
@@ -73,16 +74,9 @@ struct DictionaryCandidateGenerator {
                     // Skip empty candidates
                     guard !candidate.text.isEmpty else { continue }
 
-                    let isDeinflected = candidate.deinflectionOutputRulesPerChain.contains { !$0.isEmpty }
-                    let candidateKey = candidate.text + "|" + (isDeinflected ? "deinflected" : "exact")
-
-                    if var accumulator = candidatesByText[candidateKey] {
-                        // Merge transformation chains only for candidates of the same type
-                        accumulator.addCandidate(candidate)
-                        candidatesByText[candidateKey] = accumulator
-                    } else {
-                        // First occurrence of this text+type combination
-                        candidatesByText[candidateKey] = CandidateAccumulator(candidate)
+                    let candidateKey = makeCandidateKey(for: candidate)
+                    if seenCandidateKeys.insert(candidateKey).inserted {
+                        candidates.append(candidate)
                         substringCandidateCount += 1
                     }
 
@@ -98,12 +92,12 @@ struct DictionaryCandidateGenerator {
             }
 
             // Global limit check
-            if candidatesByText.count >= maxCandidates {
+            if candidates.count >= maxCandidates {
                 break
             }
         }
 
-        return candidatesByText.values.map { $0.toLookupCandidate() }
+        return candidates
     }
 
     // MARK: - Private Methods
@@ -151,40 +145,16 @@ struct DictionaryCandidateGenerator {
     private func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
         JapaneseDeinflector.deinflect(candidate)
     }
-}
 
-// MARK: - Supporting Types
-
-/// Accumulates multiple candidates with the same text but different transformation chains
-private struct CandidateAccumulator {
-    let text: String
-    let originalSubstring: String
-    var preprocessorRules: [[String]]
-    var deinflectionInputRules: [[String]]
-    var deinflectionOutputRulesPerChain: [[String]]
-
-    init(_ candidate: LookupCandidate) {
-        self.text = candidate.text
-        self.originalSubstring = candidate.originalSubstring
-        self.preprocessorRules = candidate.preprocessorRules
-        self.deinflectionInputRules = candidate.deinflectionInputRules
-        self.deinflectionOutputRulesPerChain = candidate.deinflectionOutputRulesPerChain
-    }
-
-    mutating func addCandidate(_ candidate: LookupCandidate) {
-        // Merge all transformation chains (keeping per-chain output rules parallel)
-        preprocessorRules.append(contentsOf: candidate.preprocessorRules)
-        deinflectionInputRules.append(contentsOf: candidate.deinflectionInputRules)
-        deinflectionOutputRulesPerChain.append(contentsOf: candidate.deinflectionOutputRulesPerChain)
-    }
-
-    func toLookupCandidate() -> LookupCandidate {
-        LookupCandidate(
-            text: text,
-            originalSubstring: originalSubstring,
-            preprocessorRules: preprocessorRules,
-            deinflectionInputRules: deinflectionInputRules,
-            deinflectionOutputRulesPerChain: deinflectionOutputRulesPerChain
-        )
+    /// Preserve separate source/trace combinations while still deduplicating
+    /// exact provenance duplicates generated through equivalent processing paths.
+    private func makeCandidateKey(for candidate: LookupCandidate) -> String {
+        [
+            candidate.text,
+            candidate.originalSubstring,
+            candidate.preprocessorRules.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
+            candidate.deinflectionInputRules.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
+            candidate.deinflectionOutputRulesPerChain.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
+        ].joined(separator: "\u{1D}")
     }
 }
