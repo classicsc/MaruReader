@@ -26,6 +26,9 @@ import WebKit
 @MainActor
 @Observable
 public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
+    typealias ResultsPageLoadHandler = @MainActor (WebPage, URLRequest) async throws -> Void
+    typealias ResultsPageJavaScriptHandler = @MainActor (WebPage, String) async throws -> Any?
+
     var resultState: ResultDisplayState
     private var showingPopup: Bool = false
     var showPopup: Bool {
@@ -52,6 +55,8 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var searchTask: Task<Void, Never>?
     private var popupSearchTask: Task<Void, Error>?
     private var dictionaryWebTheme: DictionaryWebTheme?
+    @ObservationIgnored
+    private(set) var isResultsPageBootstrapped: Bool = false
 
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
@@ -89,6 +94,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var popupResultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
     private var popupAnkiSchemeHandler: AnkiURLSchemeHandler = .init()
+    @ObservationIgnored
+    var resultsPageLoadHandler: ResultsPageLoadHandler?
+    @ObservationIgnored
+    var resultsPageJavaScriptHandler: ResultsPageJavaScriptHandler?
 
     let highlightStyles = [
         "background-color": "inherit",
@@ -125,29 +134,83 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         applyDictionaryWebTheme()
 
         Task {
-            await session.resetRenderCursor()
-            let request = await session.request
-            _ = try? await session.prepareInitialResults()
-            let snapshot = try? await session.snapshot()
+            do {
+                await session.resetRenderCursor()
+                let request = await session.request
+                _ = try? await session.prepareInitialResults()
+                let snapshot = try? await session.snapshot()
 
-            self.currentRequest = request
-            self.currentSession = session
-            self.currentResponse = snapshot
+                self.currentRequest = request
+                self.currentSession = session
+                self.currentResponse = snapshot
 
-            await ankiSchemeHandler.setSession(session)
-            await resultsSchemeHandler.setSession(session)
+                await ankiSchemeHandler.setSession(session)
+                await resultsSchemeHandler.setSession(session)
+                try await self.showResultsPage(for: request.id)
 
-            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(request.id.uuidString)"
-            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
-            for try await value in loadSequence {
-                if value == WebPage.NavigationEvent.finished {
-                    self.history.push(request: request, session: session)
-                    self.resultState = .ready
-                    self.updateLinksActiveState()
-                    return
-                }
+                self.history.push(request: request, session: session)
+                self.resultState = .ready
+                self.updateLinksActiveState()
+            } catch {
+                self.resultState = .error(error)
+                self.logger.error("Failed to display existing dictionary session: \(error.localizedDescription)")
+                return
             }
         }
+    }
+
+    private enum ResultsPageMode: String {
+        case results
+        case popup
+    }
+
+    private enum ResultsPageError: Error {
+        case navigationDidNotFinish
+    }
+
+    private func resultsPageURLRequest(requestID: UUID, mode: ResultsPageMode) -> URLRequest {
+        let urlString = "marureader-resource://dictionary.html?mode=\(mode.rawValue)&requestId=\(requestID.uuidString)"
+        return URLRequest(url: URL(string: urlString)!)
+    }
+
+    private func loadResultsPage(_ request: URLRequest) async throws {
+        if let resultsPageLoadHandler {
+            try await resultsPageLoadHandler(page, request)
+            return
+        }
+
+        let loadSequence = page.load(request)
+        for try await value in loadSequence {
+            if value == WebPage.NavigationEvent.finished {
+                return
+            }
+        }
+
+        throw ResultsPageError.navigationDidNotFinish
+    }
+
+    private func evaluateResultsPageJavaScript(_ script: String) async throws -> Any? {
+        if let resultsPageJavaScriptHandler {
+            return try await resultsPageJavaScriptHandler(page, script)
+        }
+
+        return try await page.callJavaScript(script)
+    }
+
+    func showResultsPage(for requestID: UUID) async throws {
+        if isResultsPageBootstrapped {
+            do {
+                let script = "window.MaruReader.dictionaryResults.replaceRequest('\(requestID.uuidString)', 'results');"
+                _ = try await evaluateResultsPageJavaScript(script)
+                return
+            } catch {
+                logger.error("Falling back to a full results page reload after JS replacement failed: \(error.localizedDescription)")
+                isResultsPageBootstrapped = false
+            }
+        }
+
+        try await loadResultsPage(resultsPageURLRequest(requestID: requestID, mode: .results))
+        isResultsPageBootstrapped = true
     }
 
     public func setDictionaryWebTheme(_ theme: DictionaryWebTheme?) {
@@ -179,16 +242,12 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         Task {
             await currentSession.resetRenderCursor()
-            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(currentRequest.id.uuidString)"
-            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
 
             do {
-                for try await value in loadSequence {
-                    if value == WebPage.NavigationEvent.finished {
-                        self.updateLinksActiveState()
-                        return
-                    }
-                }
+                try await loadResultsPage(resultsPageURLRequest(requestID: currentRequest.id, mode: .results))
+                self.isResultsPageBootstrapped = true
+                self.updateLinksActiveState()
+                return
             } catch {
                 self.logger.error("Failed to reload dictionary results page for theme update: \(error.localizedDescription)")
             }
@@ -311,17 +370,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 self.history.push(request: lookupRequest, session: session)
                 await self.ankiSchemeHandler.setSession(session)
                 await self.resultsSchemeHandler.setSession(session)
-
-                let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(lookupRequest.id.uuidString)"
-                let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
-                for try await value in loadSequence {
-                    if Task.isCancelled { return }
-                    if value == WebPage.NavigationEvent.finished {
-                        self.resultState = .ready
-                        self.updateLinksActiveState()
-                        return
-                    }
-                }
+                try await self.showResultsPage(for: lookupRequest.id)
+                if Task.isCancelled { return }
+                self.resultState = .ready
+                self.updateLinksActiveState()
+                return
             } catch {
                 self.currentRequest = lookupRequest
                 self.currentResponse = nil
@@ -687,24 +740,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Load the HTML and update result state
         Task {
-            let session = entry.session
-            await session.resetRenderCursor()
-            let snapshot = try? await session.snapshot()
+            do {
+                let session = entry.session
+                await session.resetRenderCursor()
+                let snapshot = try? await session.snapshot()
 
-            self.currentRequest = entry.request
-            self.currentSession = session
-            self.currentResponse = snapshot
-            await ankiSchemeHandler.setSession(session)
-            await resultsSchemeHandler.setSession(session)
-
-            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(entry.request.id.uuidString)"
-            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
-            for try await value in loadSequence {
-                if value == WebPage.NavigationEvent.finished {
-                    self.resultState = .ready
-                    self.updateLinksActiveState()
-                    return
-                }
+                self.currentRequest = entry.request
+                self.currentSession = session
+                self.currentResponse = snapshot
+                await ankiSchemeHandler.setSession(session)
+                await resultsSchemeHandler.setSession(session)
+                try await self.showResultsPage(for: entry.request.id)
+                self.resultState = .ready
+                self.updateLinksActiveState()
+            } catch {
+                self.resultState = .error(error)
+                self.logger.error("Failed to navigate dictionary history backwards: \(error.localizedDescription)")
             }
         }
     }
@@ -722,24 +773,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
         // Load the HTML and update result state
         Task {
-            let session = entry.session
-            await session.resetRenderCursor()
-            let snapshot = try? await session.snapshot()
+            do {
+                let session = entry.session
+                await session.resetRenderCursor()
+                let snapshot = try? await session.snapshot()
 
-            self.currentRequest = entry.request
-            self.currentSession = session
-            self.currentResponse = snapshot
-            await ankiSchemeHandler.setSession(session)
-            await resultsSchemeHandler.setSession(session)
-
-            let urlString = "marureader-resource://dictionary.html?mode=results&requestId=\(entry.request.id.uuidString)"
-            let loadSequence = page.load(URLRequest(url: URL(string: urlString)!))
-            for try await value in loadSequence {
-                if value == WebPage.NavigationEvent.finished {
-                    self.resultState = .ready
-                    self.updateLinksActiveState()
-                    return
-                }
+                self.currentRequest = entry.request
+                self.currentSession = session
+                self.currentResponse = snapshot
+                await ankiSchemeHandler.setSession(session)
+                await resultsSchemeHandler.setSession(session)
+                try await self.showResultsPage(for: entry.request.id)
+                self.resultState = .ready
+                self.updateLinksActiveState()
+            } catch {
+                self.resultState = .error(error)
+                self.logger.error("Failed to navigate dictionary history forwards: \(error.localizedDescription)")
             }
         }
     }
@@ -755,7 +804,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private func updateLinksActiveState() {
         let js = "window.MaruReader.linkDisplay?.setLinksActive(\(linksActiveEnabled));"
         Task {
-            _ = try? await page.callJavaScript(js)
+            _ = try? await evaluateResultsPageJavaScript(js)
         }
     }
 

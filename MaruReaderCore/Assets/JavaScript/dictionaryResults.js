@@ -31,6 +31,8 @@ window.MaruReader.dictionaryResults = {
     errorEl: null,
     sentinel: null,
     observer: null,
+    modulesInitialized: false,
+    requestGeneration: 0,
 
     init: function() {
         this.root = document.getElementById('dictionary-results-root');
@@ -45,14 +47,8 @@ window.MaruReader.dictionaryResults = {
         this.errorEl.textContent = strings.unableToLoadResults;
 
         this.parseConfig();
-        this.applyModeClass();
         this.initializeModules();
-        this.fetchState()
-            .then(this.loadMore.bind(this))
-            .catch(function() {
-                this.showError();
-            }.bind(this));
-
+        this.activateRequest(this.requestId, this.mode);
         this.setupObserver();
     },
 
@@ -74,6 +70,11 @@ window.MaruReader.dictionaryResults = {
     },
 
     initializeModules: function() {
+        if (this.modulesInitialized) {
+            return;
+        }
+        this.modulesInitialized = true;
+
         if (this.mode === 'results') {
             if (window.MaruReader.textScanning) {
                 window.MaruReader.textScanning.initialize();
@@ -99,6 +100,42 @@ window.MaruReader.dictionaryResults = {
         }
     },
 
+    replaceRequest: function(requestId, mode) {
+        return this.activateRequest(requestId || '', mode === 'popup' ? 'popup' : 'results');
+    },
+
+    activateRequest: function(requestId, mode) {
+        this.requestGeneration += 1;
+        var generation = this.requestGeneration;
+
+        this.requestId = requestId;
+        this.mode = mode === 'popup' ? 'popup' : 'results';
+        this.batchSize = this.mode === 'popup' ? 4 : 10;
+        this.cursor = 0;
+        this.isLoading = false;
+        this.hasMore = true;
+        this.hasError = false;
+
+        if (this.root) {
+            this.root.innerHTML = '';
+        }
+
+        this.applyModeClass();
+        this.updateStatus();
+
+        return this.fetchState(generation)
+            .then(function() {
+                return this.loadMore(generation);
+            }.bind(this))
+            .catch(function(error) {
+                if (generation !== this.requestGeneration) {
+                    return;
+                }
+                this.showError();
+                throw error;
+            }.bind(this));
+    },
+
     initializePopupNavigation: function() {
         document.addEventListener('click', function(event) {
             var group = event.target.closest('.popup-term-group');
@@ -122,7 +159,7 @@ window.MaruReader.dictionaryResults = {
         }, true);
     },
 
-    fetchState: function() {
+    fetchState: function(generation) {
         var url = 'marureader-lookup://state?requestId=' + encodeURIComponent(this.requestId);
         return fetch(url)
             .then(function(response) {
@@ -134,6 +171,9 @@ window.MaruReader.dictionaryResults = {
             .then(function(data) {
                 if (!data) {
                     throw new Error('Invalid state response');
+                }
+                if (generation !== this.requestGeneration) {
+                    return data;
                 }
                 this.applyState(data);
                 return data;
@@ -230,10 +270,11 @@ window.MaruReader.dictionaryResults = {
         }
     },
 
-    loadMore: function() {
+    loadMore: function(generation) {
+        var activeGeneration = typeof generation === 'number' ? generation : this.requestGeneration;
         if (this.isLoading || !this.hasMore || this.hasError) {
             this.updateStatus();
-            return;
+            return Promise.resolve();
         }
 
         this.isLoading = true;
@@ -255,6 +296,9 @@ window.MaruReader.dictionaryResults = {
                 if (!data) {
                     throw new Error('Invalid results response');
                 }
+                if (activeGeneration !== this.requestGeneration) {
+                    return;
+                }
                 this.appendHTML(data.html || '');
                 this.cursor = typeof data.nextCursor === 'number' ? data.nextCursor : this.cursor;
                 this.hasMore = data.hasMore !== false;
@@ -263,6 +307,9 @@ window.MaruReader.dictionaryResults = {
                 this.postAppend();
             }.bind(this))
             .catch(function() {
+                if (activeGeneration !== this.requestGeneration) {
+                    return;
+                }
                 this.isLoading = false;
                 this.showError();
             }.bind(this));
