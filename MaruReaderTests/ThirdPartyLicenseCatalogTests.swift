@@ -33,8 +33,6 @@ struct ThirdPartyLicenseCatalogTests {
         "manual-uassets-filters",
         "manual-easylist-easyprivacy",
         "manual-adguard-filters",
-        "manual-jitendex",
-        "manual-kanji-alive",
         "manual-material-symbols-outlined",
     ]
 

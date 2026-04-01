@@ -1,8 +1,0 @@
-Source: https://github.com/kanjialive/kanji-data-media
-Retrieved: 2026-02-07
-
-Kanji alive statement (from repository README):
-"This work by Kanji alive is licensed under a Creative Commons
-Attribution 4.0 International License."
-
-Refer to the source URL above for the complete repository notice.

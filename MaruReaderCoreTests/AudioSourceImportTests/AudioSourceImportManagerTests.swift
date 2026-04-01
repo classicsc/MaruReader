@@ -194,6 +194,7 @@ struct AudioSourceImportManagerTests {
         {
             "meta": {
                 "name": "Test Audio Source",
+                "attribution": "Harumi Hibino Lory and Arno Bosse",
                 "year": 2024,
                 "version": 3,
                 "media_dir": "media"
@@ -263,6 +264,7 @@ struct AudioSourceImportManagerTests {
 
         let source = sources.first
         #expect(source?.name == "Test Audio Source")
+        #expect(source?.attribution == "Harumi Hibino Lory and Arno Bosse")
         #expect(source?.year == 2024)
         #expect(source?.version == 3)
         #expect(source?.isLocal == true)
@@ -358,6 +360,7 @@ struct AudioSourceImportManagerTests {
         {
             "meta": {
                 "name": "Online Audio Source",
+                "attribution": "Example attribution",
                 "year": 2025,
                 "version": 1,
                 "media_dir_abs": "https://example.com/audio/"
@@ -407,6 +410,7 @@ struct AudioSourceImportManagerTests {
 
         let source = sources.first
         #expect(source?.name == "Online Audio Source")
+        #expect(source?.attribution == "Example attribution")
         #expect(source?.year == 2025)
         #expect(source?.version == 1)
         #expect(source?.isLocal == false)

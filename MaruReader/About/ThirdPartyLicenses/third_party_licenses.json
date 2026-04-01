@@ -60,48 +60,6 @@
       "sourceURL" : "https:\/\/github.com\/taku910\/mecab"
     },
     {
-      "attribution" : "Stephen Kraus",
-      "category" : "dictionaryData",
-      "homepageURL" : "https:\/\/jitendex.org\/",
-      "id" : "manual-jitendex",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-jitendex-legal-statement.txt",
-          "referenceURL" : "https:\/\/jitendex.org\/pages\/legal.html",
-          "title" : "Jitendex Legal Statement"
-        },
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-sa-4.0.txt",
-          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by-sa\/4.0\/legalcode.txt",
-          "title" : "Creative Commons BY-SA 4.0 Legalcode"
-        }
-      ],
-      "name" : "Jitendex",
-      "notes" : "Dictionary content seeded into StarterDictionary for initial distribution.",
-      "sourceURL" : "https:\/\/github.com\/Jitendex\/Jitendex"
-    },
-    {
-      "attribution" : "Harumi Hibino Lory and Arno Bosse",
-      "category" : "dictionaryData",
-      "homepageURL" : "https:\/\/kanjialive.com\/",
-      "id" : "manual-kanji-alive",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-kanji-alive-license-statement.txt",
-          "referenceURL" : "https:\/\/github.com\/kanjialive\/kanji-data-media",
-          "title" : "Kanji alive License Statement"
-        },
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-4.0.txt",
-          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by\/4.0\/legalcode.txt",
-          "title" : "Creative Commons BY 4.0 Legalcode"
-        }
-      ],
-      "name" : "Kanji alive",
-      "notes" : "Audio and media content used for seeded pronunciation data.",
-      "sourceURL" : "https:\/\/github.com\/kanjialive\/kanji-data-media"
-    },
-    {
       "attribution" : "Google LLC",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/fonts.google.com\/icons",
@@ -523,6 +481,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-03-27T18:06:42.481Z",
+  "generatedAt" : "2026-04-01T03:15:03.525Z",
   "schemaVersion" : 1
 }

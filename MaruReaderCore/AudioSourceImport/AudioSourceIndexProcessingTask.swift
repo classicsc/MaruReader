@@ -126,6 +126,7 @@ struct AudioSourceIndexProcessingTask {
                 job.id = UUID()
             }
             job.name = meta.name
+            job.attribution = meta.attribution
             job.year = Int64(meta.year ?? 0)
             job.version = Int64(meta.version ?? 0)
             job.isLocal = isLocal

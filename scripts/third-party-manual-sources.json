@@ -87,54 +87,6 @@
       ]
     },
     {
-      "id": "manual-jitendex",
-      "name": "Jitendex",
-      "category": "dictionaryData",
-      "homepageURL": "https://jitendex.org/",
-      "sourceURL": "https://github.com/Jitendex/Jitendex",
-      "attribution": "Stephen Kraus",
-      "notes": "Dictionary content seeded into StarterDictionary for initial distribution.",
-      "licenses": [
-        {
-          "title": "Jitendex Legal Statement",
-          "outputPath": "manual/manual-jitendex-legal-statement.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/jitendex/legal-statement.txt",
-          "referenceURL": "https://jitendex.org/pages/legal.html"
-        },
-        {
-          "title": "Creative Commons BY-SA 4.0 Legalcode",
-          "outputPath": "manual/manual-common-cc-by-sa-4.0.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/creativecommons/cc-by-sa-4.0.txt",
-          "referenceURL": "https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt",
-          "refreshURL": "https://creativecommons.org/licenses/by-sa/4.0/legalcode.txt"
-        }
-      ]
-    },
-    {
-      "id": "manual-kanji-alive",
-      "name": "Kanji alive",
-      "category": "dictionaryData",
-      "homepageURL": "https://kanjialive.com/",
-      "sourceURL": "https://github.com/kanjialive/kanji-data-media",
-      "attribution": "Harumi Hibino Lory and Arno Bosse",
-      "notes": "Audio and media content used for seeded pronunciation data.",
-      "licenses": [
-        {
-          "title": "Kanji alive License Statement",
-          "outputPath": "manual/manual-kanji-alive-license-statement.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/kanji-alive/license-statement.txt",
-          "referenceURL": "https://github.com/kanjialive/kanji-data-media"
-        },
-        {
-          "title": "Creative Commons BY 4.0 Legalcode",
-          "outputPath": "manual/manual-common-cc-by-4.0.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/creativecommons/cc-by-4.0.txt",
-          "referenceURL": "https://creativecommons.org/licenses/by/4.0/legalcode.txt",
-          "refreshURL": "https://creativecommons.org/licenses/by/4.0/legalcode.txt"
-        }
-      ]
-    },
-    {
       "id": "manual-ipadic",
       "name": "IPADic",
       "category": "dictionaryData",

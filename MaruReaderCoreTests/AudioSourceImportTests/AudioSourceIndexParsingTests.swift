@@ -25,6 +25,7 @@ struct AudioSourceIndexParsingTests {
         {
             "meta": {
                 "name": "Test Audio Source",
+                "attribution": "Example attribution",
                 "year": 2025,
                 "version": 2,
                 "media_dir": "media",
@@ -60,6 +61,7 @@ struct AudioSourceIndexParsingTests {
 
         // Verify meta
         #expect(index.meta.name == "Test Audio Source")
+        #expect(index.meta.attribution == "Example attribution")
         #expect(index.meta.year == 2025)
         #expect(index.meta.version == 2)
         #expect(index.meta.mediaDir == "media")
@@ -103,6 +105,7 @@ struct AudioSourceIndexParsingTests {
         let index = try decoder.decode(AudioSourceIndex.self, from: data)
 
         #expect(index.meta.name == "Local Audio")
+        #expect(index.meta.attribution == nil)
         #expect(index.meta.mediaDir == "audio_files")
         #expect(index.meta.mediaDirAbs == nil)
         #expect(index.meta.year == nil)
@@ -126,6 +129,7 @@ struct AudioSourceIndexParsingTests {
         let index = try decoder.decode(AudioSourceIndex.self, from: data)
 
         #expect(index.meta.name == "Online Audio")
+        #expect(index.meta.attribution == nil)
         #expect(index.meta.mediaDir == nil)
         #expect(index.meta.mediaDirAbs == "https://cdn.example.com/audio/")
     }

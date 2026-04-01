@@ -409,6 +409,11 @@ private struct CompletedAudioSourceRow: View {
 
             if showExpandedMetadata {
                 VStack(alignment: .leading, spacing: 4) {
+                    if let attribution = source.attribution, !attribution.isEmpty {
+                        LabeledContent("Attribution", value: attribution)
+                            .font(.caption)
+                    }
+
                     if let pattern = source.urlPattern, !pattern.isEmpty {
                         LabeledContent("URL Pattern", value: pattern)
                             .font(.caption)

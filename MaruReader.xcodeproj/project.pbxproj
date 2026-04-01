@@ -1679,27 +1679,6 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/copy-debug-sample-content.sh\"\n";
 		};
-		E1A1B1013A20000200A1B001 /* Copy Debug Starter Dictionary */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/scripts/copy-debug-starter-dictionary.sh",
-				"$(SRCROOT)/build/StarterDictionary",
-			);
-			name = "Copy Debug Starter Dictionary";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/StarterDictionary",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${SRCROOT}/scripts/copy-debug-starter-dictionary.sh\"\n";
-		};
 		DBC0A1012F5D111100A1B001 /* Copy Optional uBOLite */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -1749,6 +1728,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "\"${SRCROOT}/scripts/build-bundled-ipadic.sh\"\n";
+		};
+		E1A1B1013A20000200A1B001 /* Copy Debug Starter Dictionary */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/scripts/copy-debug-starter-dictionary.sh",
+				"$(SRCROOT)/build/StarterDictionary",
+			);
+			name = "Copy Debug Starter Dictionary";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/StarterDictionary",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/copy-debug-starter-dictionary.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

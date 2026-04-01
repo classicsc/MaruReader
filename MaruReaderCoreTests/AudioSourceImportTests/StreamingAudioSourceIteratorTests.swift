@@ -176,6 +176,7 @@ struct StreamingAudioSourceIteratorTests {
         {
             "meta": {
                 "name": "Test Source",
+                "attribution": "Example attribution",
                 "year": 2024,
                 "version": 3,
                 "media_dir": "audio",
@@ -199,6 +200,7 @@ struct StreamingAudioSourceIteratorTests {
         let meta = try AudioSourceMetaParser.parse(from: tempURL)
 
         #expect(meta.name == "Test Source")
+        #expect(meta.attribution == "Example attribution")
         #expect(meta.year == 2024)
         #expect(meta.version == 3)
         #expect(meta.mediaDir == "audio")
@@ -223,6 +225,7 @@ struct StreamingAudioSourceIteratorTests {
         let meta = try AudioSourceMetaParser.parse(from: tempURL)
 
         #expect(meta.name == "Minimal")
+        #expect(meta.attribution == nil)
         #expect(meta.year == nil)
         #expect(meta.version == nil)
         #expect(meta.mediaDir == nil)

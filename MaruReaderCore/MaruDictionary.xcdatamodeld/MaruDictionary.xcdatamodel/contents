@@ -29,6 +29,7 @@
         </fetchIndex>
     </entity>
     <entity name="AudioSource" representedClassName="AudioSource" syncable="YES" codeGenerationType="class">
+        <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="audioFileExtensions" attributeType="String"/>
         <attribute name="baseRemoteURL" optional="YES" attributeType="String"/>
         <attribute name="dateAdded" attributeType="Date" usesScalarValueType="NO"/>

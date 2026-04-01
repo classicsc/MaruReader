@@ -27,6 +27,7 @@ import Foundation
 /// {
 ///   "meta": {
 ///     "name": "Source name",
+///     "attribution": "Source attribution",
 ///     "year": 2025,
 ///     "version": 2,
 ///     "media_dir": "media",
@@ -52,6 +53,7 @@ struct AudioSourceIndex: Codable {
 /// Metadata for an audio source.
 struct AudioSourceMeta: Codable {
     let name: String
+    let attribution: String?
     let year: Int?
     let version: Int?
     /// Relative directory for media files within the ZIP (for local sources).
@@ -61,6 +63,7 @@ struct AudioSourceMeta: Codable {
 
     enum CodingKeys: String, CodingKey {
         case name
+        case attribution
         case year
         case version
         case mediaDir = "media_dir"

@@ -13,11 +13,46 @@ JITENDEX_URL="https://github.com/stephenmk/stephenmk.github.io/releases/latest/d
 KANJI_ALIVE_URL="https://github.com/classicsc/kanji-alive-indexer/releases/latest/download/kanji-alive-mp3-indexed.zip"
 BCCWJ_URL="https://github.com/Kuuuube/yomitan-dictionaries/releases/download/yomitan-permalink/BCCWJ_SUW_LUW_combined.zip"
 WADOKU_URL="https://github.com/classicsc/wadoku-pitch-dictionary-for-yomitan/releases/latest/download/wadoku-pitch.zip"
+KANJI_ALIVE_ATTRIBUTION="Harumi Hibino Lory and Arno Bosse"
 JITENDEX_ZIP_PATH="$DOWNLOAD_DIR/jitendex-yomitan.zip"
 KANJI_ALIVE_ZIP_PATH="$DOWNLOAD_DIR/kanji-alive-mp3-indexed.zip"
 BCCWJ_ZIP_PATH="$DOWNLOAD_DIR/BCCWJ_SUW_LUW_combined.zip"
 WADOKU_ZIP_PATH="$DOWNLOAD_DIR/wadoku-pitch.zip"
 SEEDER_BINARY_PATH="$DERIVED_DATA_PATH/Build/Products/Debug/DictionarySeeder"
+
+add_audio_source_attribution() {
+  local zip_path="$1"
+  local attribution="$2"
+  local temp_dir extracted_dir index_path json_files_count
+
+  temp_dir="$(mktemp -d "$ROOT_DIR/build/audio-source-attribution.XXXXXX")"
+  extracted_dir="$temp_dir/extracted"
+  mkdir -p "$extracted_dir"
+
+  ditto -x -k "$zip_path" "$extracted_dir"
+
+  index_path="$(find "$extracted_dir" -type f -name 'index.json' | head -n 1)"
+  if [[ -z "$index_path" ]]; then
+    json_files_count="$(find "$extracted_dir" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')"
+    if [[ "$json_files_count" == "1" ]]; then
+      index_path="$(find "$extracted_dir" -maxdepth 1 -type f -name '*.json' | head -n 1)"
+    else
+      echo "Could not locate a unique audio source index JSON in $zip_path" >&2
+      rm -rf "$temp_dir"
+      exit 1
+    fi
+  fi
+
+  /usr/bin/plutil -replace meta.attribution -string "$attribution" "$index_path"
+
+  rm -f "$zip_path"
+  (
+    cd "$extracted_dir"
+    zip -qr "$zip_path" .
+  )
+
+  rm -rf "$temp_dir"
+}
 
 mkdir -p "$LOG_DIR" "$DOWNLOAD_DIR"
 
@@ -26,6 +61,9 @@ curl --fail --location --output "$JITENDEX_ZIP_PATH" "$JITENDEX_URL"
 curl --fail --location --output "$KANJI_ALIVE_ZIP_PATH" "$KANJI_ALIVE_URL"
 curl --fail --location --output "$BCCWJ_ZIP_PATH" "$BCCWJ_URL"
 curl --fail --location --output "$WADOKU_ZIP_PATH" "$WADOKU_URL"
+
+echo "Adding attribution metadata to Kanji Alive audio source..."
+add_audio_source_attribution "$KANJI_ALIVE_ZIP_PATH" "$KANJI_ALIVE_ATTRIBUTION"
 
 echo "Building DictionarySeeder..."
 "$ROOT_DIR/scripts/run-xcodebuild-with-logs.sh" "build-dictionaryseeder-debug" \
