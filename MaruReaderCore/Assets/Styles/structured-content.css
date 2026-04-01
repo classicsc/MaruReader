@@ -90,9 +90,8 @@
 
 /* Frequency display styles */
 .frequency-display {
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
-    gap: 6px;
     margin-bottom: 6px;
 }
 
@@ -109,11 +108,24 @@
     font-weight: 500;
     line-height: 1;
     white-space: nowrap;
-    display: inline-flex;
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 4px;
     transition: all 0.15s ease;
     box-shadow: var(--glass-shadow);
+    text-decoration: none;
+}
+
+/* Frequency indicator icon */
+.freq-button::before {
+    content: 'bar_chart';
+    font-family: 'Material Symbols Outlined';
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--frequency-color);
 }
 
 .freq-button:hover {
@@ -135,6 +147,11 @@
     transform: none;
 }
 
+/* When expanded, flatten bottom corners to connect with expanded area */
+.freq-button[aria-expanded="true"] {
+    border-radius: 14px 14px 0 0;
+}
+
 /* Expand indicator icon */
 .freq-button:not(:disabled)::after {
     content: 'expand_more';
@@ -152,29 +169,33 @@
 
 .freq-expanded {
     display: none;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    gap: 4px;
     padding: 8px 12px;
-    background: var(--background-color-dark1);
-    border-radius: 8px;
+    background: color-mix(in srgb, var(--frequency-color) 8%, var(--background-color));
+    border: 1px solid color-mix(in srgb, var(--frequency-color) 15%, transparent);
+    border-top: none;
+    border-radius: 0 0 14px 14px;
 }
 
 .freq-expanded.visible {
     display: flex;
 }
 
-.freq-item {
-    background: transparent;
-    color: var(--text-color);
-    padding: 1px 4px;
-    border-radius: 4px;
+.freq-dict-group {
     font-size: 0.75em;
-    font-weight: 500;
+    line-height: 1.4;
 }
 
-.freq-separator {
-    color: var(--text-color-light2);
-    font-weight: normal;
+.freq-dict-name {
+    font-weight: 600;
+    color: var(--text-color);
+    margin-right: 0.3em;
+}
+
+.freq-dict-values {
+    color: var(--text-color-light1);
+    font-weight: 500;
 }
 
 /* Dark mode frequency button */
@@ -194,6 +215,11 @@
 
     .freq-button:disabled:hover {
         background: var(--glass-bg-dark);
+    }
+
+    .freq-expanded {
+        background: color-mix(in srgb, var(--frequency-color) 10%, var(--background-color));
+        border-color: color-mix(in srgb, var(--frequency-color) 20%, transparent);
     }
 }
 
@@ -761,7 +787,7 @@ body:not([data-links-active="true"]) .gloss-link {
 }
 
 /* Title attribute tooltip indicators */
-[title]:not([title=""]):not(.gloss-image-link):not(.gloss-image-container) {
+[title]:not([title=""]):not(.gloss-image-link):not(.gloss-image-container):not(.frequency-display):not(.freq-button) {
     cursor: help;
     text-decoration-line: underline;
     text-decoration-style: dotted;

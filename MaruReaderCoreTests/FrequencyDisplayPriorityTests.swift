@@ -174,11 +174,13 @@ struct FrequencyDisplayPriorityTests {
         let html = renderer.termGroupHTML(group)
         #expect(html.contains("title=\"High Priority Dict: rank-based\""))
         #expect(html.contains(">100</button>"))
-        #expect(html.contains("High Priority Dict: 100"))
-        #expect(html.contains("Low Priority Dict: 999"))
+        #expect(html.contains("freq-dict-name\">High Priority Dict:</span>"))
+        #expect(html.contains("freq-dict-values\">100</span>"))
+        #expect(html.contains("freq-dict-name\">Low Priority Dict:</span>"))
+        #expect(html.contains("freq-dict-values\">999</span>"))
 
-        guard let highIndex = html.range(of: "High Priority Dict: 100")?.lowerBound,
-              let lowIndex = html.range(of: "Low Priority Dict: 999")?.lowerBound
+        guard let highIndex = html.range(of: "freq-dict-name\">High Priority Dict:</span>")?.lowerBound,
+              let lowIndex = html.range(of: "freq-dict-name\">Low Priority Dict:</span>")?.lowerBound
         else {
             Issue.record("Expected frequency labels were not found in rendered HTML")
             return
@@ -272,6 +274,7 @@ struct FrequencyDisplayPriorityTests {
         )
 
         #expect(html.contains("title=\"Fallback Dict: \(fallbackMode)\""))
-        #expect(html.contains("Fallback Dict: 42"))
+        #expect(html.contains("freq-dict-name\">Fallback Dict:</span>"))
+        #expect(html.contains("freq-dict-values\">42</span>"))
     }
 }

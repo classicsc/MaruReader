@@ -301,16 +301,34 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
             """
         }
 
-        // Full: expandable with all frequency details
-        let freqItemsHTML = sortedFrequencies.map { freq in
-            let itemTitle = freq.dictionaryTitle.escapeHTML()
-            let itemMode = freq.mode ?? FrameworkLocalization.string(
+        // Group frequencies by dictionary, preserving order of first appearance
+        var dictOrder: [String] = []
+        var dictGroups: [String: (title: String, mode: String?, values: [String])] = [:]
+        for freq in sortedFrequencies {
+            let key = freq.dictionaryTitle
+            if var group = dictGroups[key] {
+                group.values.append(freq.displayString.escapeHTML())
+                dictGroups[key] = group
+            } else {
+                dictOrder.append(key)
+                dictGroups[key] = (
+                    title: freq.dictionaryTitle.escapeHTML(),
+                    mode: freq.mode,
+                    values: [freq.displayString.escapeHTML()]
+                )
+            }
+        }
+
+        let freqItemsHTML = dictOrder.compactMap { key -> String? in
+            guard let group = dictGroups[key] else { return nil }
+            let itemMode = group.mode ?? FrameworkLocalization.string(
                 "dictionary.frequency.mode.rankAuto",
                 defaultValue: "rank-based (auto)"
             )
-            let itemTitleWithMode = itemTitle + ": \(itemMode.escapeHTML())"
-            return "<span class=\"freq-item\" title=\"\(itemTitleWithMode)\">\(itemTitle): \(freq.displayString.escapeHTML())</span>"
-        }.joined(separator: "<span class=\"freq-separator\">·</span>")
+            let titleAttr = group.title + ": \(itemMode.escapeHTML())"
+            let valuesStr = group.values.joined(separator: ", ")
+            return "<div class=\"freq-dict-group\" title=\"\(titleAttr)\"><span class=\"freq-dict-name\">\(group.title):</span> <span class=\"freq-dict-values\">\(valuesStr)</span></div>"
+        }.joined(separator: "\n        ")
 
         return """
         <div class=\"frequency-display\">
