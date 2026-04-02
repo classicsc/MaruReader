@@ -122,11 +122,17 @@ enum ThirdPartyLicenseCatalogLoader {
             throw ThirdPartyLicenseCatalogError.documentNotFound(path: path)
         }
 
-        guard let content = try? String(contentsOf: documentURL, encoding: .utf8) else {
-            throw ThirdPartyLicenseCatalogError.unreadableDocument(path: path)
+        let data = try Data(contentsOf: documentURL)
+
+        if let content = String(data: data, encoding: .utf8) {
+            return content
+        }
+        // Some upstream license files use Latin-1 encoding (e.g. IPADic).
+        if let content = String(data: data, encoding: .isoLatin1) {
+            return content
         }
 
-        return content
+        throw ThirdPartyLicenseCatalogError.unreadableDocument(path: path)
     }
 
     static func documentURL(for path: String, in bundle: Bundle = .main) -> URL? {
