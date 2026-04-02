@@ -10,15 +10,15 @@ MaruReader is a free, open source dictionary and reading application for learnin
 
 ### 1. Fast, customizable dictionary
 
-The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches. A comprehensive Japanese-English dictionary and more than 10,000 pronunciation audio clips are included. Add custom Yomitan dictionaries to enable more features like word frequency and pitch accent.
+The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches.
 
 https://github.com/user-attachments/assets/c24f36d0-7a5e-42f2-8bcf-62a650116df7
 
-The MaruReader dictionary system automatically converts verbs to dictionary form, converts between hiragana, katakana, and romaji, and performs other normalizations to make searching faster. The built-in dictionary provides comprehensive definitions with disambiguation for alternate and irregular forms.
+The MaruReader dictionary system automatically converts verbs to dictionary form, converts between hiragana, katakana, and romaji, and performs other normalizations to make searching faster.
 
 ### 2. Read manga with text recognition
 
-Text in manga is OCR'd on your device as you read so you can look up words with no pre-processing or online services required. Works great for horizontal and vertical text alike. Import your own ZIP or CBZ files, or read online in the web browser.
+Text in manga is OCR'd on your device as you read so you can look up words with no pre-processing or online services required.
 
 https://github.com/user-attachments/assets/686f138b-bed7-4292-811d-21e9f5f89ace
 
@@ -52,8 +52,8 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
 
 ### Dictionary System
 
-- **Built-in Japanese-English dictionary** The included Jitendex dictionary features clear definitions, examples, and variant form tables.
-- **Pronunciation Audio** Over 10,000 audio clips included. See the [Pronunciation Audio guide](doc/Audio.md) for instructions on adding additional audio or network sources.
+- **Deinflection** Inflected forms are automatically converted to dictionary form to make searching more convenient. Just enter text as you found it.
+- **Sentence Furigana** To aid with reading sentences, the dictionary displays Mecab-generated readings. While this isn't 100% accurate, it can he a helpful reference.
 - **Yomitan Dictionary Format Support**
   - MaruReader uses the same dictionary format as [Yomitan](https://yomitan.wiki/). Term, frequency, and pitch accent dictionaries are supported.
   - Add as many custom dictionaries as you like, search is fast even with many large dictionaries.
@@ -91,9 +91,14 @@ See the [FAQ](doc/FAQ.md), or open a thread in the Discussions tab.
 
 ## Acknowledgements
 
-The MaruReader dictionary system is based on [Yomitan](https://yomitan.wiki/). Third-party libraries and content are listed in the About section of the app.
+The MaruReader dictionary system is based on [Yomitan](https://yomitan.wiki/). Third-party libraries are listed in the About section of the app.
 
-The included dictionaries are [Jitendex](https://jitendex.org/) and [Kanji alive](https://github.com/kanjialive/kanji-data-media).
+If you download MaruReader from the App Store, you'll also get a package of the best freely licensed dictionaries and audio available, listed below:
+
+- [Jitendex Japanese-English Dictionary](https://jitendex.org) by Stephen Kraus
+- [BCCWJ Frequency Dictionary](https://github.com/Kuuuube/yomitan-dictionaries?tab=readme-ov-file#bccwj-suw-luw-combined) by National Institute for Japanese Language and Linguistics
+- [Wadoku Pitch Accent Dictionary](https://github.com/classicsc/wadoku-pitch-dictionary-for-yomitan) by Wadoku.de
+- [Kanji alive Audio](https://github.com/classicsc/kanji-alive-indexer) by Harumi Hibino Lory and Arno Bosse
 
 The manga shown in the screenshots is used under the terms listed on [the author's website](https://densho810.com/free/).
 

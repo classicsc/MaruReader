@@ -2,8 +2,6 @@
 
 MaruReader uses the Yomitan dictionary format. For schemas and tools for making custom dictionaries, see [Making Yomitan Dictionaries](https://github.com/yomidevs/yomitan/blob/master/docs/making-yomitan-dictionaries.md) from upstream.
 
-The Yomitan version of Jitendex is included. It's recommended to add more dictionaries. Read on for guidance and multi-dictionary usage instructions.
-
 ## Adding Dictionaries
 
 1. Open MaruReader **Settings → Dictionaries**
@@ -12,14 +10,6 @@ The Yomitan version of Jitendex is included. It's recommended to add more dictio
 
 > Adding dictionaries directly from third-party cloud drive apps and network drives is unreliable because of the large file size. If you're having trouble with the file picker not responding when you select a file, copy the file to an On My iPhone/On My iPad folder first, and try importing from there.
 
-## Recommended Dictionaries
-
-These dictionaries are highly recommended for everyone, only skip adding them if you're low on storage space.
-
-* [**BCCWJ SUW LUW Combined**](https://github.com/Kuuuube/yomitan-dictionaries?tab=readme-ov-file#bccwj-suw-luw-combined), a frequency dictionary based on a diverse sampling of text, created using data compiled by the National Institute for Japanese Language and Linguistics. This or another high quality frequency dictionary is essential if you are using multiple dictionaries.
-* [**JMnedict**](https://github.com/yomidevs/jmdict-yomitan#jmnedict-for-yomitan) provides person/place/organization names and other proper nouns.
-
-Search the web or consult a Yomitan setup guide for more dictionaries that fit your needs. All dictionaries made for Yomitan work in MaruReader.
 
 ## Dictionary Order
 

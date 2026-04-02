@@ -1,6 +1,6 @@
 # Pronunciation Audio Guide
 
-MaruReader supports pronunciation audio so that you can hear a native speaker pronounce a word. The built-in "Kanji alive" audio source contains about 10,000 clips. This guide describes how to work with additional sources.
+MaruReader supports pronunciation audio so that you can hear a native speaker pronounce a word.
 
 ## How to use multiple audio clips
 
@@ -29,7 +29,7 @@ Like Yomitan, MaruReader supports URL patterns to connect to audio servers like 
 
 ### Pitch Accent Details
 
-If you have a pitch accent dictionary added, MaruReader will try to match results with bracketed downstep positions from the `name` field in audio JSON responses. For example, if `name` is `日本語 [0]`, then this clip would receive a higher display priority for a result group where the top pitch accent result is heiban. This also works for compound forms written like `向き不向き [1-1]`.
+If you have a pitch accent dictionary, MaruReader will try to match results with bracketed downstep positions from the `name` field in audio JSON responses. For example, if `name` is `日本語 [0]`, then this clip would receive a higher display priority for a result group where the top pitch accent result is heiban. This also works for compound forms written like `向き不向き [1-1]`.
 
 ## Audio ZIPs
 

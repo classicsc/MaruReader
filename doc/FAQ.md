@@ -2,11 +2,18 @@
 
 ## How do I learn Japanese?
 
-It's too big a question to answer here, consult a dedicated guide on the topic. To get better at reading specifically, getting lots of practice with reading real books usually yields better results than studying individual kanji or textbook examples. MaruReader is meant to make this practice more efficient by putting a high quality learning dictionary system at your fingertips while reading, and automating the process of creating flashcards with the Anki integration.
+It's too big a question to answer here, consult a [dedicated guide](https://learnjapanese.moe/guide/) on the topic. To get better at reading specifically, getting lots of practice with reading real books usually yields better results than studying individual kanji or textbook examples. MaruReader is meant to make this practice more efficient by putting a high quality learning dictionary system at your fingertips while reading, and automating the process of creating flashcards with the Anki integration.
 
 ## What dictionaries should I use?
 
-In addition to the included Jiten
+These are the recommended dictionaries. You will get them automatically from the App Store:
+
+- [Jitendex Japanese-English Dictionary](https://jitendex.org) by Stephen Kraus
+- [BCCWJ Frequency Dictionary](https://github.com/Kuuuube/yomitan-dictionaries?tab=readme-ov-file#bccwj-suw-luw-combined) by National Institute for Japanese Language and Linguistics
+- [Wadoku Pitch Accent Dictionary](https://github.com/classicsc/wadoku-pitch-dictionary-for-yomitan) by Wadoku Jiten
+- [Kanji alive Audio](https://github.com/classicsc/kanji-alive-indexer) by Harumi Hibino Lory and Arno Bosse
+
+A good add-on dictionary is [JMnedict](https://github.com/yomidevs/jmdict-yomitan?tab=readme-ov-file#jmnedict-for-yomitan), which provides proper nouns such as readings for Japanese names. Otherwise, the best dictionaries to use depend on your needs, which is why custom dictionaries are supported. Search the web for Yomitan dictionaries that align with your learning goals.
 
 ## What should I read?
 
