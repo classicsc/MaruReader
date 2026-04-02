@@ -8,11 +8,15 @@ MaruReader is a free, open source dictionary and reading application for learnin
 
 The dictionary works across the book reader, manga reader, web browser, and photo scanner, or direct one-off searches. A comprehensive Japanese-English dictionary and more than 10,000 pronunciation audio clips are included. Add custom Yomitan dictionaries to enable more features like word frequency and pitch accent.
 
+https://github.com/user-attachments/assets/c24f36d0-7a5e-42f2-8bcf-62a650116df7
+
 The MaruReader dictionary system automatically converts verbs to dictionary form, converts between hiragana, katakana, and romaji, and performs other normalizations to make searching faster. The built-in dictionary provides comprehensive definitions with disambiguation for alternate and irregular forms.
 
 ### 2. Read manga with text recognition
 
 Text in manga is OCR'd on your device as you read so you can look up words with no pre-processing or online services required. Works great for horizontal and vertical text alike. Import your own ZIP or CBZ files, or read online in the web browser.
+
+https://github.com/user-attachments/assets/686f138b-bed7-4292-811d-21e9f5f89ace
 
 Text recognition is designed to be easy to use. Instead of trying to highlight text from imprecise character bounds on an image, just tap on the area of the image you're interested in and choose a word from the Context area.
 
@@ -22,13 +26,19 @@ Text recognition is designed to be easy to use. Instead of trying to highlight t
 
 The MaruReader browser is great for reading Japanese websites and web novels with a dictionary at your fingertips. Ad blocker included to reduce distractions. Just select some text and choose "Dictionary" to look it up.
 
+https://github.com/user-attachments/assets/6051c6f3-323a-4313-947d-e692c115b9e5
+
 #### OCR in the MaruReader Browser
 
 To look up any text on screen, use the tap icon in the toolbar and tap the text you want to look up. Great for manga.
 
+https://github.com/user-attachments/assets/7f279f5f-9661-40f6-aace-f07ea67cabef
+
 #### Text and OCR from the Share Menu
 
 Share text or images from any other app for a quick lookup. Great for text in Japanese apps and games, just take a screenshot and share it to MaruReader.
+
+https://github.com/user-attachments/assets/0572a207-dc9b-49fc-8ba6-13dcbd45534e
 
 ### 4. Anki Integration
 
