@@ -106,6 +106,24 @@
       ]
     },
     {
+      "id": "manual-kanji-processor",
+      "name": "kanji-processor",
+      "category": "dictionaryData",
+      "homepageURL": "https://www.npmjs.com/package/kanji-processor",
+      "sourceURL": "https://github.com/Lyroxide/kanji-processor",
+      "attribution": "Lyroxide",
+      "notes": "Source of the kanji list files used in text preprocessors.",
+      "licenses": [
+        {
+          "title": "kanji-processor License (MIT)",
+          "outputPath": "manual/manual-kanji-processor-license.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/kanji-processor/LICENSE.txt",
+          "referenceURL": "https://github.com/Lyroxide/kanji-processor/blob/main/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/Lyroxide/kanji-processor/main/LICENSE"
+        }
+      ]
+    },
+    {
       "id": "manual-material-symbols-outlined",
       "name": "Material Symbols Outlined",
       "category": "dictionaryData",

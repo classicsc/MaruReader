@@ -60,6 +60,22 @@
       "sourceURL" : "https:\/\/github.com\/taku910\/mecab"
     },
     {
+      "attribution" : "Lyroxide",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/www.npmjs.com\/package\/kanji-processor",
+      "id" : "manual-kanji-processor",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-kanji-processor-license.txt",
+          "referenceURL" : "https:\/\/github.com\/Lyroxide\/kanji-processor\/blob\/main\/LICENSE",
+          "title" : "kanji-processor License (MIT)"
+        }
+      ],
+      "name" : "kanji-processor",
+      "notes" : "Source of the kanji list files used in text preprocessors.",
+      "sourceURL" : "https:\/\/github.com\/Lyroxide\/kanji-processor"
+    },
+    {
       "attribution" : "Google LLC",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/fonts.google.com\/icons",
@@ -481,6 +497,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-01T03:15:03.525Z",
+  "generatedAt" : "2026-04-02T02:57:17.099Z",
   "schemaVersion" : 1
 }
