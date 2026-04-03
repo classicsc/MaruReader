@@ -19,7 +19,7 @@ import CoreData
 import Foundation
 import os
 
-public actor DictionaryImportManager {
+public actor DictionaryImportManager: BackgroundAwareImporting {
     public static let shared = DictionaryImportManager(
         container: DictionaryPersistenceController.shared.container,
         baseDirectory: DictionaryPersistenceController.shared.baseDirectory
@@ -123,6 +123,22 @@ public actor DictionaryImportManager {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
         }
+    }
+
+    // MARK: - BackgroundAwareImporting
+
+    public var hasActiveImport: Bool {
+        currentTask != nil
+    }
+
+    public func cancelForBackgrounding() async {
+        // Remove only queued (not-yet-started) items. The running job at
+        // queue[0] is removed by the task's own completion block.
+        if queue.count > 1 {
+            queue.removeSubrange(1...)
+        }
+        currentTask?.cancel()
+        await currentTask?.value
     }
 
     /// Mark interrupted jobs as failed and clean any partially imported data.
