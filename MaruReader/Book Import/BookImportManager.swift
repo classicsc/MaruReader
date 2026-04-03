@@ -20,7 +20,7 @@ import Foundation
 import MaruReaderCore
 import os
 
-actor BookImportManager: BackgroundAwareImporting {
+actor BookImportManager {
     static let shared = BookImportManager(container: BookDataPersistenceController.shared.container)
 
     private var queue: [NSManagedObjectID] = []
@@ -101,20 +101,6 @@ actor BookImportManager: BackgroundAwareImporting {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
         }
-    }
-
-    // MARK: - BackgroundAwareImporting
-
-    var hasActiveImport: Bool {
-        currentTask != nil
-    }
-
-    func cancelForBackgrounding() async {
-        if queue.count > 1 {
-            queue.removeSubrange(1...)
-        }
-        currentTask?.cancel()
-        await currentTask?.value
     }
 
     /// Mark interrupted jobs as failed and clean any partially imported files.

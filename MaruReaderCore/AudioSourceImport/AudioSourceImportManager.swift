@@ -29,7 +29,7 @@ import os
 /// let jobID = try await AudioSourceImportManager.shared.enqueueImport(from: zipURL)
 /// await AudioSourceImportManager.shared.waitForCompletion(jobID: jobID)
 /// ```
-public actor AudioSourceImportManager: BackgroundAwareImporting {
+public actor AudioSourceImportManager {
     public static let shared = AudioSourceImportManager(
         container: DictionaryPersistenceController.shared.container,
         baseDirectory: DictionaryPersistenceController.shared.baseDirectory
@@ -127,20 +127,6 @@ public actor AudioSourceImportManager: BackgroundAwareImporting {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
         }
-    }
-
-    // MARK: - BackgroundAwareImporting
-
-    public var hasActiveImport: Bool {
-        currentTask != nil
-    }
-
-    public func cancelForBackgrounding() async {
-        if queue.count > 1 {
-            queue.removeSubrange(1...)
-        }
-        currentTask?.cancel()
-        await currentTask?.value
     }
 
     /// Mark interrupted jobs as failed and clean any partially imported data.

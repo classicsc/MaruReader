@@ -30,7 +30,6 @@ struct MaruReaderApp: App {
 
     @State private var startupPreparationCoordinator: StartupPreparationCoordinator
     @State private var didContinueFromWelcome = false
-    @State private var importBackgroundTaskCoordinator = ImportBackgroundTaskCoordinator()
     @Environment(\.scenePhase) private var scenePhase
 
     init() {
@@ -75,14 +74,8 @@ struct MaruReaderApp: App {
             }
         }
         .onChange(of: scenePhase) { _, newPhase in
-            switch newPhase {
-            case .background:
+            if newPhase == .background {
                 savePersistentStoresForBackgrounding()
-                importBackgroundTaskCoordinator.handleBackgrounding()
-            case .active:
-                importBackgroundTaskCoordinator.handleForegroundReturn()
-            default:
-                break
             }
         }
     }

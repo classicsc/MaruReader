@@ -22,7 +22,7 @@ import MaruReaderCore
 import os
 import UIKit
 
-public actor MangaImportManager: BackgroundAwareImporting {
+public actor MangaImportManager {
     public static let shared = MangaImportManager(container: MangaDataPersistenceController.shared.container)
     public static var isMetadataExtractorAvailable: Bool {
         MangaFilenameMetadataExtractor.isModelAvailable
@@ -118,20 +118,6 @@ public actor MangaImportManager: BackgroundAwareImporting {
                 try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
             }
         }
-    }
-
-    // MARK: - BackgroundAwareImporting
-
-    public var hasActiveImport: Bool {
-        currentTask != nil
-    }
-
-    public func cancelForBackgrounding() async {
-        if queue.count > 1 {
-            queue.removeSubrange(1...)
-        }
-        currentTask?.cancel()
-        await currentTask?.value
     }
 
     /// Mark interrupted jobs as failed and clean any partially imported files.
