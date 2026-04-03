@@ -17,19 +17,12 @@
 
 import CoreData
 import MaruReaderCore
-import os
 
 // MARK: - PersistenceController
 
-/// Manages the Core Data stack with support for app groups and extensions
+/// Manages the app-only Core Data stack for book content.
 final class BookDataPersistenceController: Sendable {
     static let shared = BookDataPersistenceController()
-    private static let logger = Logger.maru(category: "BookDataPersistenceController")
-
-    // MARK: - App Group Configuration
-
-    /// App group identifier for sharing data between app and extensions
-    static let appGroupIdentifier = "group.net.undefinedstar.MaruReader"
 
     // MARK: - Properties
 
@@ -45,7 +38,7 @@ final class BookDataPersistenceController: Sendable {
 
     /// Initialize persistence controller
     /// - Parameters:
-    ///   - storeURL: Custom store URL (if nil, uses app group default)
+    ///   - storeURL: Custom store URL (if nil, uses the app container default)
     init(
         storeURL: URL? = nil
     ) {
@@ -72,16 +65,7 @@ final class BookDataPersistenceController: Sendable {
             // Custom URL provided
             container.persistentStoreDescriptions.first?.url = customURL
         } else {
-            // Use app group container (default)
-            if let appGroupURL = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier
-            ) {
-                let storeURL = appGroupURL.appendingPathComponent("MaruBookData.sqlite")
-                container.persistentStoreDescriptions.first?.url = storeURL
-            } else {
-                // Fallback to default location if app group not configured
-                Self.logger.warning("App group '\(Self.appGroupIdentifier, privacy: .public)' not found. Using default location.")
-            }
+            container.persistentStoreDescriptions.first?.url = Self.defaultStoreURL()
         }
 
         // Load persistent stores
@@ -110,6 +94,20 @@ final class BookDataPersistenceController: Sendable {
     private static func configureViewContext(_ context: NSManagedObjectContext) {
         context.automaticallyMergesChangesFromParent = true
         context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+    }
+
+    private static func defaultStoreURL() -> URL {
+        do {
+            let appSupportDir = try FileManager.default.url(
+                for: .applicationSupportDirectory,
+                in: .userDomainMask,
+                appropriateFor: nil,
+                create: true
+            )
+            return appSupportDir.appendingPathComponent("MaruBookData.sqlite")
+        } catch {
+            fatalError("Failed to resolve Application Support directory for MaruBookData: \(error.localizedDescription)")
+        }
     }
 }
 
