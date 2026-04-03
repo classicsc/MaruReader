@@ -20,6 +20,14 @@
       "parallelizable" : false,
       "target" : {
         "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DB216E6B2F801219002C06A5",
+        "name" : "MaruDictionaryManagementTests"
+      }
+    },
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
         "identifier" : "DBCFB1692EAAAE8B00B4F27D",
         "name" : "MaruReaderCoreTests"
       }

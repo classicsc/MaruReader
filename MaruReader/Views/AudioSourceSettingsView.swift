@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import CoreData
+import MaruDictionaryManagement
 import MaruReaderCore
 import SwiftUI
 import UniformTypeIdentifiers

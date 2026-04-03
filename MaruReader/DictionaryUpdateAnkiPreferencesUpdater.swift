@@ -17,6 +17,7 @@
 
 import CoreData
 import MaruAnki
+import MaruDictionaryManagement
 import MaruReaderCore
 
 actor DictionaryUpdateAnkiPreferencesUpdater: DictionaryUpdateAnkiPreferencesUpdating {

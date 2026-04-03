@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "2630"
+   LastUpgradeVersion = "2640"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -135,6 +135,17 @@
                BlueprintIdentifier = "DBDCEC092F0F65AF00B42F93"
                BuildableName = "MaruWebTests.xctest"
                BlueprintName = "MaruWebTests"
+               ReferencedContainer = "container:MaruReader.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DB216E6B2F801219002C06A5"
+               BuildableName = "MaruDictionaryManagementTests.xctest"
+               BlueprintName = "MaruDictionaryManagementTests"
                ReferencedContainer = "container:MaruReader.xcodeproj">
             </BuildableReference>
          </TestableReference>

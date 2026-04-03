@@ -17,6 +17,7 @@
 
 import CoreData
 import Foundation
+import MaruDictionaryManagement
 import MaruReaderCore
 
 enum SeederError: Error, LocalizedError {

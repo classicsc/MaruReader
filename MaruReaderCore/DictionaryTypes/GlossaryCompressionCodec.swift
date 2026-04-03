@@ -17,12 +17,12 @@
 
 import Foundation
 
-enum GlossaryCompressionCodec {
+public enum GlossaryCompressionCodec {
     private static let compressedMagic = Data("MRG1".utf8)
     private static let uncompressedMagic = Data("MRG0".utf8)
     private static let jsonDecoder = JSONDecoder()
 
-    static func encodeGlossaryJSON(_ jsonData: Data) -> Data {
+    public static func encodeGlossaryJSON(_ jsonData: Data) -> Data {
         if let compressed = try? (jsonData as NSData).compressed(using: .lzfse) as Data {
             var payload = Data()
             payload.reserveCapacity(compressedMagic.count + compressed.count)
@@ -38,7 +38,7 @@ enum GlossaryCompressionCodec {
         return payload
     }
 
-    static func decodeGlossaryJSON(_ payload: Data?) -> Data? {
+    public static func decodeGlossaryJSON(_ payload: Data?) -> Data? {
         guard let payload else {
             return nil
         }
@@ -59,7 +59,7 @@ enum GlossaryCompressionCodec {
         return nil
     }
 
-    static func decodeDefinitions(from payload: Data?) -> [Definition]? {
+    public static func decodeDefinitions(from payload: Data?) -> [Definition]? {
         guard let glossaryJSON = decodeGlossaryJSON(payload) else {
             return nil
         }

@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruDictionaryManagement
 import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
