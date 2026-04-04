@@ -33,8 +33,10 @@ public actor DictionaryImportManager {
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
+    private var deletionTasks: [NSManagedObjectID: Task<Void, Never>] = [:]
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
+    private var backgroundTaskRunner = ApplicationBackgroundTaskRunner.live
     private let logger = Logger.maru(category: "DictionaryImport")
 
     // Test hooks for controlled testing
@@ -200,14 +202,33 @@ public actor DictionaryImportManager {
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
 
+        let runner = backgroundTaskRunner
         currentTask = Task {
-            await runImport(for: nextJob)
-            queue.removeFirst()
-            currentTask = nil
-            currentJobID = nil
-            processNextIfIdle() // Move on to next
+            await runner.run("Dictionary Import", {
+                Task {
+                    await self.handleImportExpiration(for: nextJob)
+                }
+            }, {
+                await self.runImport(for: nextJob)
+            })
+            finishImportTask(for: nextJob)
         }
         currentJobID = nextJob
+    }
+
+    private func finishImportTask(for jobID: NSManagedObjectID) {
+        if let index = queue.firstIndex(of: jobID) {
+            queue.remove(at: index)
+        }
+        currentTask = nil
+        currentJobID = nil
+        processNextIfIdle()
+    }
+
+    private func handleImportExpiration(for jobID: NSManagedObjectID) {
+        guard currentJobID == jobID else { return }
+        logger.error("Background time expired for dictionary import \(jobID)")
+        currentTask?.cancel()
     }
 
     private func runImport(for jobID: NSManagedObjectID) async {
@@ -423,6 +444,10 @@ public actor DictionaryImportManager {
         testErrorInjection = injection
     }
 
+    func setBackgroundTaskRunner(_ runner: ApplicationBackgroundTaskRunner) {
+        backgroundTaskRunner = runner
+    }
+
     /// Clean up dictionaries marked for deletion but not yet removed.
     public func cleanupPendingDeletions(batchSize: Int = 10000) async {
         let context = container.newBackgroundContext()
@@ -449,7 +474,9 @@ public actor DictionaryImportManager {
     /// - Parameter dictionaryID: The NSManagedObjectID of the Dictionary to delete.
     /// - Parameter batchSize: The number of entities to delete in each batch (default: 1000).
     public func deleteDictionary(dictionaryID: NSManagedObjectID, batchSize: Int = 10000) async {
-        logger.debug("Starting dictionary deletion for \\(dictionaryID) with batch size \\(batchSize)")
+        logger.debug("Starting dictionary deletion for \(dictionaryID) with batch size \(batchSize)")
+
+        guard deletionTasks[dictionaryID] == nil else { return }
 
         // First, mark as pending deletion for immediate UI feedback
         let taskContext = container.newBackgroundContext()
@@ -463,59 +490,93 @@ public actor DictionaryImportManager {
                 try taskContext.save()
             }
         } catch {
-            logger.error("Failed to mark dictionary for deletion \\(dictionaryID): \\(error.localizedDescription)")
+            logger.error("Failed to mark dictionary for deletion \(dictionaryID): \(error.localizedDescription)")
             return
         }
 
-        // Perform the actual deletion in a background task
-        Task {
-            do {
-                // Get dictionary UUID for media cleanup
-                let dictionaryUUID = try await taskContext.perform {
-                    guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    return dictionary.id
+        let runner = backgroundTaskRunner
+        let task = Task {
+            await runner.run("Dictionary Delete", {
+                Task {
+                    await self.handleDeletionExpiration(for: dictionaryID)
                 }
+            }, {
+                await self.runDictionaryDeletion(
+                    dictionaryID: dictionaryID,
+                    batchSize: batchSize,
+                    taskContext: taskContext
+                )
+            })
+            finishDeletionTask(for: dictionaryID)
+        }
+        deletionTasks[dictionaryID] = task
+    }
 
-                // Clean up media directory first
-                if let uuid = dictionaryUUID {
-                    cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
-                }
+    private func handleDeletionExpiration(for dictionaryID: NSManagedObjectID) {
+        guard let task = deletionTasks[dictionaryID] else { return }
+        logger.error("Background time expired for dictionary deletion \(dictionaryID)")
+        task.cancel()
+    }
 
-                // Delete entry entities in batches
-                if let uuid = dictionaryUUID {
-                    try await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: batchSize)
-                } else {
+    private func finishDeletionTask(for dictionaryID: NSManagedObjectID) {
+        deletionTasks[dictionaryID] = nil
+    }
+
+    private func runDictionaryDeletion(
+        dictionaryID: NSManagedObjectID,
+        batchSize: Int,
+        taskContext: NSManagedObjectContext
+    ) async {
+        do {
+            try Task.checkCancellation()
+
+            let dictionaryUUID = try await taskContext.perform {
+                guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
+                return dictionary.id
+            }
 
-                // Finally delete the dictionary itself
-                let finalContext = container.newBackgroundContext()
-                finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-                finalContext.undoManager = nil
+            try Task.checkCancellation()
 
-                try await finalContext.perform {
-                    guard let dictionary = try? finalContext.existingObject(with: dictionaryID) as? Dictionary else {
-                        throw DictionaryImportError.databaseError
-                    }
-                    finalContext.delete(dictionary)
-                    try finalContext.save()
+            if let uuid = dictionaryUUID {
+                cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+            }
+
+            try Task.checkCancellation()
+
+            if let uuid = dictionaryUUID {
+                try await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: batchSize)
+            } else {
+                throw DictionaryImportError.databaseError
+            }
+
+            try Task.checkCancellation()
+
+            let finalContext = container.newBackgroundContext()
+            finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            finalContext.undoManager = nil
+
+            try await finalContext.perform {
+                guard let dictionary = try? finalContext.existingObject(with: dictionaryID) as? Dictionary else {
+                    throw DictionaryImportError.databaseError
                 }
+                finalContext.delete(dictionary)
+                try finalContext.save()
+            }
 
-                logger.debug("Dictionary deletion completed for \\(dictionaryID)")
-
-            } catch {
-                logger.error("Dictionary deletion failed for \\(dictionaryID): \\(error.localizedDescription)")
-                // Update the dictionary with error information
-                await taskContext.perform {
-                    guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
-                        return
-                    }
-                    dictionary.pendingDeletion = false
-                    dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
-                    try? taskContext.save()
+            logger.debug("Dictionary deletion completed for \(dictionaryID)")
+        } catch is CancellationError {
+            logger.error("Dictionary deletion cancelled for \(dictionaryID); cleanup will resume later")
+        } catch {
+            logger.error("Dictionary deletion failed for \(dictionaryID): \(error.localizedDescription)")
+            await taskContext.perform {
+                guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
+                    return
                 }
+                dictionary.pendingDeletion = false
+                dictionary.errorMessage = DictionaryImportError.deletionFailed.localizedDescription
+                try? taskContext.save()
             }
         }
     }
@@ -533,7 +594,8 @@ public actor DictionaryImportManager {
         ]
 
         for entityName in entityNames {
-            logger.debug("Deleting \\(entityName) entities for dictionary \\(dictionaryUUID)")
+            try Task.checkCancellation()
+            logger.debug("Deleting \(entityName) entities for dictionary \(dictionaryUUID)")
             try await deleteBatchesForEntity(entityName: entityName, dictionaryUUID: dictionaryUUID, batchSize: batchSize)
         }
     }
@@ -541,6 +603,7 @@ public actor DictionaryImportManager {
     /// Delete entities of a specific type in batches.
     private func deleteBatchesForEntity(entityName: String, dictionaryUUID: UUID, batchSize: Int) async throws {
         while true {
+            try Task.checkCancellation()
             let moreToDelete = try await deleteEntityBatch(entityName: entityName, dictionaryUUID: dictionaryUUID, batchSize: batchSize)
             if !moreToDelete {
                 break
@@ -549,6 +612,7 @@ public actor DictionaryImportManager {
     }
 
     private func deleteEntityBatch(entityName: String, dictionaryUUID: UUID, batchSize: Int) async throws -> Bool {
+        try Task.checkCancellation()
         // Create a fresh context for each batch to manage memory
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)

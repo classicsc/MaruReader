@@ -72,6 +72,20 @@ struct DictionaryPersistenceTests {
         }
     }
 
+    private var nonExpiringBackgroundTaskRunner: ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, _, operation in
+            await operation()
+        }
+    }
+
+    private var expiringBackgroundTaskRunner: ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, expirationHandler, operation in
+            expirationHandler()
+            await Task.yield()
+            await operation()
+        }
+    }
+
     // Helper: Create a mock ZIP file with given JSON contents
     private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -270,6 +284,22 @@ struct DictionaryPersistenceTests {
         return (try? context.fetch(request)) ?? []
     }
 
+    @MainActor
+    private func waitForDictionaryDeletion(
+        in context: NSManagedObjectContext,
+        importID: NSManagedObjectID,
+        timeout: TimeInterval = 5.0
+    ) async {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if !fetchDictionaries(from: context).contains(where: { $0.objectID == importID }) {
+                return
+            }
+            context.refreshAllObjects()
+            try? await Task.sleep(nanoseconds: 50_000_000)
+        }
+    }
+
     // Helper: Fetch dictionary tag metas safely
     @MainActor
     private func fetchDictionaryTagMetas(from context: NSManagedObjectContext) -> [DictionaryTagMeta] {
@@ -323,6 +353,95 @@ struct DictionaryPersistenceTests {
     private func verifyDirectoryCleanup(importManager: DictionaryImportManager, importID: NSManagedObjectID) async {
         let mediaDirectoryExists = try? await importManager.mediaDirectoryExists(for: importID)
         #expect(mediaDirectoryExists == false)
+    }
+
+    @Test @MainActor func importDictionary_BackgroundTaskExpires_CancelsGracefully() async throws {
+        let indexJSON = """
+        {
+            "title": "Expiring Dictionary",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["期限", "きげん", "", "", 0, ["deadline"], 1, ""]
+        ]
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let viewContext = persistenceController.container.viewContext
+        let dictionary = getDictionary(from: viewContext, importID: importID)
+        verifyDictionaryCancelled(dictionary)
+        #expect(fetchTermEntries(from: viewContext).isEmpty)
+        #expect(dictionary?.termCount == 0)
+        await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+    }
+
+    @Test @MainActor func deleteDictionary_BackgroundTaskExpires_LeavesPendingDeletionForCleanup() async throws {
+        let indexJSON = """
+        {
+            "title": "Delete Retry Dictionary",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["削除", "さくじょ", "", "", 0, ["delete"], 1, ""]
+        ]
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(container: persistenceController.container)
+        await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let viewContext = persistenceController.container.viewContext
+        #expect(getDictionary(from: viewContext, importID: importID)?.isComplete == true)
+        #expect(!fetchTermEntries(from: viewContext).isEmpty)
+
+        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+        await importManager.deleteDictionary(dictionaryID: importID)
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        let pendingDictionary = getDictionary(from: viewContext, importID: importID)
+        #expect(pendingDictionary != nil)
+        #expect(pendingDictionary?.pendingDeletion == true)
+        #expect(!fetchTermEntries(from: viewContext).isEmpty)
+
+        await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
+        await importManager.cleanupPendingDeletions()
+        await waitForDictionaryDeletion(in: viewContext, importID: importID)
+
+        #expect(fetchDictionaries(from: viewContext).isEmpty)
+        #expect(fetchTermEntries(from: viewContext).isEmpty)
     }
 
     @Test @MainActor func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {

@@ -30,6 +30,20 @@ struct AudioSourceImportManagerTests {
         case fileNotFound(URL)
     }
 
+    private var nonExpiringBackgroundTaskRunner: ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, _, operation in
+            await operation()
+        }
+    }
+
+    private var expiringBackgroundTaskRunner: ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, expirationHandler, operation in
+            expirationHandler()
+            await Task.yield()
+            await operation()
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// Create a mock audio source ZIP file with the given JSON index and optional audio files.
@@ -188,6 +202,36 @@ struct AudioSourceImportManagerTests {
     }
 
     // MARK: - Success Tests
+
+    @Test @MainActor func importAudioSource_BackgroundTaskExpires_CancelsGracefully() async throws {
+        let indexJSON = """
+        {
+            "meta": { "name": "Expiring Audio Source" },
+            "headwords": {
+                "期限": ["kigen.ogg"]
+            },
+            "files": {
+                "kigen.ogg": { "kana_reading": "きげん" }
+            }
+        }
+        """
+
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["kigen.ogg"])
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = AudioSourceImportManager(container: persistenceController.container)
+        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let viewContext = persistenceController.container.viewContext
+        let job = getJob(from: viewContext, importID: importID)
+        verifyJobCancelled(job)
+        #expect(fetchAudioHeadwords(from: viewContext).isEmpty)
+        #expect(fetchAudioFiles(from: viewContext).isEmpty)
+    }
 
     @Test @MainActor func importAudioSource_ValidLocalSource_ImportsSuccessfully() async throws {
         // Test: Local source with audio files
@@ -899,6 +943,58 @@ struct AudioSourceImportManagerTests {
 
         // Verify media directory is deleted
         #expect(!fileManager.fileExists(atPath: mediaDir.path))
+    }
+
+    @Test @MainActor func deleteAudioSource_BackgroundTaskExpires_LeavesPendingDeletionForCleanup() async throws {
+        let indexJSON = """
+        {
+            "meta": { "name": "Delete Retry Audio Source" },
+            "headwords": {
+                "削除": ["sakujo.ogg"]
+            },
+            "files": {
+                "sakujo.ogg": { "kana_reading": "さくじょ" }
+            }
+        }
+        """
+
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON, audioFiles: ["sakujo.ogg"])
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = AudioSourceImportManager(container: persistenceController.container)
+        await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let context = persistenceController.container.viewContext
+        let sources = fetchAudioSources(from: context)
+        guard let source = sources.first else {
+            Issue.record("Source not found")
+            return
+        }
+
+        #expect(fetchAudioHeadwords(from: context).count == 1)
+        #expect(fetchAudioFiles(from: context).count == 1)
+
+        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+        await importManager.deleteAudioSource(sourceID: source.objectID)
+        try? await Task.sleep(nanoseconds: 200_000_000)
+
+        let pendingSource = getJob(from: context, importID: source.objectID)
+        #expect(pendingSource != nil)
+        #expect(pendingSource?.pendingDeletion == true)
+        #expect(fetchAudioHeadwords(from: context).count == 1)
+        #expect(fetchAudioFiles(from: context).count == 1)
+
+        await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
+        await importManager.cleanupPendingDeletions()
+        await waitForSourceDeletion(in: context)
+
+        #expect(fetchAudioSources(from: context).isEmpty)
+        #expect(fetchAudioHeadwords(from: context).isEmpty)
+        #expect(fetchAudioFiles(from: context).isEmpty)
     }
 
     @Test @MainActor func cleanupInterruptedAudioSourceImports_MarksFailedAndCleansEntries() async throws {

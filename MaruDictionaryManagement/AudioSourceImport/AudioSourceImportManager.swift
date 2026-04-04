@@ -39,8 +39,10 @@ public actor AudioSourceImportManager {
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
+    private var deletionTasks: [NSManagedObjectID: Task<Void, Never>] = [:]
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
+    private var backgroundTaskRunner = ApplicationBackgroundTaskRunner.live
     private let logger = Logger.maru(category: "AudioSourceImport")
 
     // Test hooks for controlled testing
@@ -177,14 +179,33 @@ public actor AudioSourceImportManager {
     private func processNextIfIdle() {
         guard currentTask == nil, let nextJob = queue.first else { return }
 
+        let runner = backgroundTaskRunner
         currentTask = Task {
-            await runImport(for: nextJob)
-            queue.removeFirst()
-            currentTask = nil
-            currentJobID = nil
-            processNextIfIdle()
+            await runner.run("Audio Source Import", {
+                Task {
+                    await self.handleImportExpiration(for: nextJob)
+                }
+            }, {
+                await self.runImport(for: nextJob)
+            })
+            finishImportTask(for: nextJob)
         }
         currentJobID = nextJob
+    }
+
+    private func finishImportTask(for jobID: NSManagedObjectID) {
+        if let index = queue.firstIndex(of: jobID) {
+            queue.remove(at: index)
+        }
+        currentTask = nil
+        currentJobID = nil
+        processNextIfIdle()
+    }
+
+    private func handleImportExpiration(for jobID: NSManagedObjectID) {
+        guard currentJobID == jobID else { return }
+        logger.error("Background time expired for audio source import \(jobID)")
+        currentTask?.cancel()
     }
 
     private func runImport(for jobID: NSManagedObjectID) async {
@@ -360,6 +381,10 @@ public actor AudioSourceImportManager {
         testErrorInjection = injection
     }
 
+    func setBackgroundTaskRunner(_ runner: ApplicationBackgroundTaskRunner) {
+        backgroundTaskRunner = runner
+    }
+
     /// Clean up audio sources marked for deletion but not yet removed.
     public func cleanupPendingDeletions(batchSize: Int = 10000) async {
         let context = container.newBackgroundContext()
@@ -390,6 +415,8 @@ public actor AudioSourceImportManager {
     public func deleteAudioSource(sourceID: NSManagedObjectID, batchSize: Int = 10000) async {
         logger.debug("Starting audio source deletion for \(sourceID)")
 
+        guard deletionTasks[sourceID] == nil else { return }
+
         let taskContext = container.newBackgroundContext()
         taskContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         taskContext.undoManager = nil
@@ -408,58 +435,100 @@ public actor AudioSourceImportManager {
             return
         }
 
-        Task {
-            do {
-                let audioSourceUUID = try await taskContext.perform {
-                    guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
-                        throw AudioSourceImportError.databaseError
-                    }
-                    return audioSource.id
+        let runner = backgroundTaskRunner
+        let task = Task {
+            await runner.run("Audio Source Delete", {
+                Task {
+                    await self.handleDeletionExpiration(for: sourceID)
                 }
+            }, {
+                await self.runAudioSourceDeletion(
+                    sourceID: sourceID,
+                    batchSize: batchSize,
+                    taskContext: taskContext
+                )
+            })
+            finishDeletionTask(for: sourceID)
+        }
+        deletionTasks[sourceID] = task
+    }
 
-                if let uuid = audioSourceUUID {
-                    AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid, baseDirectory: baseDirectory)
-                    try await deleteEntitiesInBatches(
-                        entityName: "AudioHeadword",
-                        sourceID: uuid,
-                        batchSize: batchSize
-                    )
-                    try await deleteEntitiesInBatches(
-                        entityName: "AudioFile",
-                        sourceID: uuid,
-                        batchSize: batchSize
-                    )
+    private func handleDeletionExpiration(for sourceID: NSManagedObjectID) {
+        guard let task = deletionTasks[sourceID] else { return }
+        logger.error("Background time expired for audio source deletion \(sourceID)")
+        task.cancel()
+    }
+
+    private func finishDeletionTask(for sourceID: NSManagedObjectID) {
+        deletionTasks[sourceID] = nil
+    }
+
+    private func runAudioSourceDeletion(
+        sourceID: NSManagedObjectID,
+        batchSize: Int,
+        taskContext: NSManagedObjectContext
+    ) async {
+        do {
+            try Task.checkCancellation()
+
+            let audioSourceUUID = try await taskContext.perform {
+                guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
+                    throw AudioSourceImportError.databaseError
                 }
+                return audioSource.id
+            }
 
-                let finalContext = container.newBackgroundContext()
-                finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
-                finalContext.undoManager = nil
+            try Task.checkCancellation()
 
-                try await finalContext.perform {
-                    guard let audioSource = try? finalContext.existingObject(with: sourceID) as? AudioSource else {
-                        throw AudioSourceImportError.databaseError
-                    }
-                    finalContext.delete(audioSource)
-                    try finalContext.save()
+            if let uuid = audioSourceUUID {
+                AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid, baseDirectory: baseDirectory)
+                try Task.checkCancellation()
+                try await deleteEntitiesInBatches(
+                    entityName: "AudioHeadword",
+                    sourceID: uuid,
+                    batchSize: batchSize
+                )
+                try Task.checkCancellation()
+                try await deleteEntitiesInBatches(
+                    entityName: "AudioFile",
+                    sourceID: uuid,
+                    batchSize: batchSize
+                )
+            }
+
+            try Task.checkCancellation()
+
+            let finalContext = container.newBackgroundContext()
+            finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            finalContext.undoManager = nil
+
+            try await finalContext.perform {
+                guard let audioSource = try? finalContext.existingObject(with: sourceID) as? AudioSource else {
+                    throw AudioSourceImportError.databaseError
                 }
+                finalContext.delete(audioSource)
+                try finalContext.save()
+            }
 
-                logger.debug("Audio source deletion completed for \(sourceID)")
-            } catch {
-                logger.error("Audio source deletion failed for \(sourceID): \(error.localizedDescription)")
-                await taskContext.perform {
-                    guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
-                        return
-                    }
-                    audioSource.pendingDeletion = false
-                    audioSource.displayProgressMessage = AudioSourceImportError.deletionFailed.localizedDescription
-                    try? taskContext.save()
+            logger.debug("Audio source deletion completed for \(sourceID)")
+        } catch is CancellationError {
+            logger.error("Audio source deletion cancelled for \(sourceID); cleanup will resume later")
+        } catch {
+            logger.error("Audio source deletion failed for \(sourceID): \(error.localizedDescription)")
+            await taskContext.perform {
+                guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
+                    return
                 }
+                audioSource.pendingDeletion = false
+                audioSource.displayProgressMessage = AudioSourceImportError.deletionFailed.localizedDescription
+                try? taskContext.save()
             }
         }
     }
 
     private func deleteEntitiesInBatches(entityName: String, sourceID: UUID, batchSize: Int) async throws {
         while true {
+            try Task.checkCancellation()
             let moreToDelete = try await deleteEntityBatch(entityName: entityName, sourceID: sourceID, batchSize: batchSize)
             if !moreToDelete {
                 break
@@ -468,6 +537,7 @@ public actor AudioSourceImportManager {
     }
 
     private func deleteEntityBatch(entityName: String, sourceID: UUID, batchSize: Int) async throws -> Bool {
+        try Task.checkCancellation()
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
