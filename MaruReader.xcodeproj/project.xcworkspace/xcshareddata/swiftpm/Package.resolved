@@ -1,5 +1,5 @@
 {
-  "originHash" : "5022f0f4b7fd6cacce25163a7aedb42fb520a365fd7f7105ddb250c7e4eb1831",
+  "originHash" : "078093e3946998d6b5b4fdadcf83b45110311e40d28be86b7718e1b38d609f35",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -115,7 +115,7 @@
       "location" : "https://github.com/aperedera/SwiftZSTD",
       "state" : {
         "branch" : "master",
-        "revision" : "04cfb0d98ee6c3b245220a80daa99a17a68f95b6"
+        "revision" : "1c9fdce21e3552ba6aa867cbcd1a4c2e29563cf3"
       }
     },
     {
