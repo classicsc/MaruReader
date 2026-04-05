@@ -44,6 +44,17 @@ struct AudioSourceImportManagerTests {
         }
     }
 
+    private func delayedExpiringBackgroundTaskRunner(
+        delayNanoseconds: UInt64 = 200_000_000
+    ) -> ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, expirationHandler, operation in
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            expirationHandler()
+            await Task.yield()
+            await operation()
+        }
+    }
+
     // MARK: - Helper Methods
 
     /// Create a mock audio source ZIP file with the given JSON index and optional audio files.
@@ -221,14 +232,20 @@ struct AudioSourceImportManagerTests {
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let importManager = AudioSourceImportManager(container: persistenceController.container)
-        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+        await importManager.setBackgroundTaskRunner(delayedExpiringBackgroundTaskRunner())
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let queuedImportID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)
+        await importManager.waitForCompletion(jobID: queuedImportID)
 
         let viewContext = persistenceController.container.viewContext
+        viewContext.refreshAllObjects()
         let job = getJob(from: viewContext, importID: importID)
+        let queuedJob = getJob(from: viewContext, importID: queuedImportID)
         verifyJobCancelled(job)
+        verifyJobCancelled(queuedJob)
+        #expect(fetchAudioSources(from: viewContext).count == 2)
         #expect(fetchAudioHeadwords(from: viewContext).isEmpty)
         #expect(fetchAudioFiles(from: viewContext).isEmpty)
     }

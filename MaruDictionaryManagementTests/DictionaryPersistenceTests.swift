@@ -94,6 +94,17 @@ struct DictionaryPersistenceTests {
         }
     }
 
+    private func delayedExpiringBackgroundTaskRunner(
+        delayNanoseconds: UInt64 = 200_000_000
+    ) -> ApplicationBackgroundTaskRunner {
+        ApplicationBackgroundTaskRunner { _, expirationHandler, operation in
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            expirationHandler()
+            await Task.yield()
+            await operation()
+        }
+    }
+
     // Helper: Create a mock ZIP file with given JSON contents
     private func createMockZIP(indexJSON: String, tagJSON: String?, termJSON: String?, termMetaJSON: String?, kanjiJSON: String?, kanjiMetaJSON: String?, mediaFiles: [String]? = nil) async throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -439,17 +450,25 @@ struct DictionaryPersistenceTests {
             container: persistenceController.container,
             glossaryCompressionVersion: .zstdV1
         )
-        await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
+        await importManager.setBackgroundTaskRunner(delayedExpiringBackgroundTaskRunner())
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let queuedImportID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)
+        await importManager.waitForCompletion(jobID: queuedImportID)
 
         let viewContext = persistenceController.container.viewContext
+        viewContext.refreshAllObjects()
         let dictionary = getDictionary(from: viewContext, importID: importID)
+        let queuedDictionary = getDictionary(from: viewContext, importID: queuedImportID)
         verifyDictionaryCancelled(dictionary)
+        verifyDictionaryCancelled(queuedDictionary)
         #expect(fetchTermEntries(from: viewContext).isEmpty)
         #expect(dictionary?.termCount == 0)
+        #expect(queuedDictionary?.termCount == 0)
+        #expect(fetchDictionaries(from: viewContext).count == 2)
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+        await verifyDirectoryCleanup(importManager: importManager, importID: queuedImportID)
     }
 
     @Test @MainActor func deleteDictionary_BackgroundTaskExpires_LeavesPendingDeletionForCleanup() async throws {

@@ -39,6 +39,7 @@ public actor AudioSourceImportManager {
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
+    private var backgroundExpired = false
     private var deletionTasks: [NSManagedObjectID: Task<Void, Never>] = [:]
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
@@ -60,6 +61,7 @@ public actor AudioSourceImportManager {
     /// - Parameter zipURL: The file URL of the ZIP archive to import.
     /// - Returns: The NSManagedObjectID of the created AudioSource import job.
     public func enqueueImport(from zipURL: URL) async throws -> NSManagedObjectID {
+        backgroundExpired = false
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
             let job = AudioSource(context: context)
@@ -102,18 +104,7 @@ public actor AudioSourceImportManager {
             currentTask?.cancel()
         } else {
             queue.removeAll { $0 == jobID }
-            // Also mark as cancelled in Core Data
-            let viewContext = container.viewContext
-            await viewContext.perform {
-                if let job = try? viewContext.existingObject(with: jobID) as? AudioSource {
-                    job.isCancelled = true
-                    job.isFailed = false
-                    job.isComplete = false
-                    job.timeCancelled = Date()
-                    job.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
-                    try? viewContext.save()
-                }
-            }
+            await markQueuedImportsCancelled([jobID])
         }
     }
 
@@ -177,7 +168,7 @@ public actor AudioSourceImportManager {
     }
 
     private func processNextIfIdle() {
-        guard currentTask == nil, let nextJob = queue.first else { return }
+        guard !backgroundExpired, currentTask == nil, let nextJob = queue.first else { return }
 
         let runner = backgroundTaskRunner
         currentTask = Task {
@@ -202,10 +193,44 @@ public actor AudioSourceImportManager {
         processNextIfIdle()
     }
 
-    private func handleImportExpiration(for jobID: NSManagedObjectID) {
+    private func handleImportExpiration(for jobID: NSManagedObjectID) async {
         guard currentJobID == jobID else { return }
+        backgroundExpired = true
         logger.error("Background time expired for audio source import \(jobID)")
+        let queuedJobIDs = queue.filter { $0 != jobID }
+        queue.removeAll { $0 != jobID }
+        if !queuedJobIDs.isEmpty {
+            await markQueuedImportsCancelled(queuedJobIDs)
+        }
         currentTask?.cancel()
+    }
+
+    private func markQueuedImportsCancelled(_ jobIDs: [NSManagedObjectID]) async {
+        guard !jobIDs.isEmpty else { return }
+
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        await context.perform {
+            let cancelledAt = Date()
+            for jobID in jobIDs {
+                guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
+                    continue
+                }
+                job.isCancelled = true
+                job.isFailed = false
+                job.isComplete = false
+                job.isStarted = false
+                job.timeCancelled = cancelledAt
+                job.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
+                job.indexProcessed = false
+                job.entriesProcessed = false
+                job.mediaImported = false
+            }
+            try? context.save()
+        }
     }
 
     private func runImport(for jobID: NSManagedObjectID) async {

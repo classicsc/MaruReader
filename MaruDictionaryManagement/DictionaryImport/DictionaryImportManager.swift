@@ -64,6 +64,7 @@ public actor DictionaryImportManager {
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
     private var currentJobID: NSManagedObjectID?
+    private var backgroundExpired = false
     private var deletionTasks: [NSManagedObjectID: Task<Void, Never>] = [:]
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
@@ -103,6 +104,7 @@ public actor DictionaryImportManager {
     ///   - zipURL: The file URL of the ZIP archive to import.
     ///   - updateTaskID: The update task UUID, if this import is part of an update.
     func enqueueImport(from zipURL: URL, updateTaskID: UUID?) async throws -> NSManagedObjectID {
+        backgroundExpired = false
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
             let dictionary = Dictionary(context: context)
@@ -135,19 +137,7 @@ public actor DictionaryImportManager {
             currentTask?.cancel()
         } else {
             queue.removeAll { $0 == jobID }
-            // Also mark as cancelled in Core Data
-            let viewContext = container.viewContext
-            await viewContext.perform {
-                if let dictionary = try? viewContext.existingObject(with: jobID) as? Dictionary {
-                    dictionary.isCancelled = true
-                    dictionary.isFailed = false
-                    dictionary.isComplete = false
-                    dictionary.timeCancelled = Date()
-                    dictionary.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
-                    dictionary.errorMessage = nil
-                    try? viewContext.save()
-                }
-            }
+            await markQueuedImportsCancelled([jobID])
         }
     }
 
@@ -242,7 +232,7 @@ public actor DictionaryImportManager {
     }
 
     private func processNextIfIdle() {
-        guard currentTask == nil, let nextJob = queue.first else { return }
+        guard !backgroundExpired, currentTask == nil, let nextJob = queue.first else { return }
 
         let runner = backgroundTaskRunner
         currentTask = Task {
@@ -267,10 +257,52 @@ public actor DictionaryImportManager {
         processNextIfIdle()
     }
 
-    private func handleImportExpiration(for jobID: NSManagedObjectID) {
+    private func handleImportExpiration(for jobID: NSManagedObjectID) async {
         guard currentJobID == jobID else { return }
+        backgroundExpired = true
         logger.error("Background time expired for dictionary import \(jobID)")
+        let queuedJobIDs = queue.filter { $0 != jobID }
+        queue.removeAll { $0 != jobID }
+        if !queuedJobIDs.isEmpty {
+            await markQueuedImportsCancelled(queuedJobIDs)
+        }
         currentTask?.cancel()
+    }
+
+    private func markQueuedImportsCancelled(_ jobIDs: [NSManagedObjectID]) async {
+        guard !jobIDs.isEmpty else { return }
+
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        await context.perform {
+            let cancelledAt = Date()
+            for jobID in jobIDs {
+                guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
+                    continue
+                }
+                dictionary.isCancelled = true
+                dictionary.isFailed = false
+                dictionary.isComplete = false
+                dictionary.isStarted = false
+                dictionary.timeCancelled = cancelledAt
+                dictionary.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
+                dictionary.errorMessage = nil
+                dictionary.termCount = 0
+                dictionary.kanjiCount = 0
+                dictionary.termFrequencyCount = 0
+                dictionary.kanjiFrequencyCount = 0
+                dictionary.pitchesCount = 0
+                dictionary.ipaCount = 0
+                dictionary.tagCount = 0
+                dictionary.indexProcessed = false
+                dictionary.banksProcessed = false
+                dictionary.mediaImported = false
+            }
+            try? context.save()
+        }
     }
 
     private func runImport(for jobID: NSManagedObjectID) async {
