@@ -21,80 +21,9 @@ import Foundation
 enum JSONTokenSerializer {
     static func serialize(_ tokens: [JsonToken]) throws -> Data {
         var json = ""
-        var containerStack: [ContainerType] = []
-
-        for token in tokens {
-            switch token {
-            case let .startObject(key):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                json.append("{")
-                containerStack.append(.object)
-
-            case .endObject:
-                if json.last == "," {
-                    json.removeLast()
-                }
-                json.append("}")
-                _ = containerStack.popLast()
-                if !containerStack.isEmpty {
-                    json.append(",")
-                }
-
-            case let .startArray(key):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                json.append("[")
-                containerStack.append(.array)
-
-            case .endArray:
-                if json.last == "," {
-                    json.removeLast()
-                }
-                json.append("]")
-                _ = containerStack.popLast()
-                if !containerStack.isEmpty {
-                    json.append(",")
-                }
-
-            case let .string(key, value):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                json.append("\"\(escapeString(value))\",")
-
-            case let .number(key, value):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                switch value {
-                case let .int(number):
-                    json.append("\(number),")
-                case let .double(number):
-                    json.append("\(number),")
-                case let .decimal(number):
-                    json.append("\(number),")
-                }
-
-            case let .bool(key, value):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                json.append("\(value),")
-
-            case let .null(key):
-                if case .object = containerStack.last, let key {
-                    json.append("\"\(escapeString(keyDescription(key)))\":")
-                }
-                json.append("null,")
-            }
-        }
-
-        if json.last == "," {
-            json.removeLast()
-        }
+        var serializer = ValueSerializer()
+        try serializer.append(tokens, to: &json)
+        try serializer.finish(json: &json)
 
         guard let data = json.data(using: .utf8) else {
             throw DictionaryImportError.invalidData
@@ -103,25 +32,172 @@ enum JSONTokenSerializer {
         return data
     }
 
+    static func appendValue(from stream: JsonInputStream, firstToken: JsonToken, to json: inout String) throws {
+        var serializer = ValueSerializer()
+        try serializer.append(firstToken, to: &json)
+
+        while !serializer.isComplete {
+            guard let token = try stream.read() else {
+                throw DictionaryImportError.invalidData
+            }
+
+            try serializer.append(token, to: &json)
+        }
+
+        try serializer.finish(json: &json)
+    }
+
     static func serializeArray(from elements: [Data]) -> Data? {
         guard !elements.isEmpty else {
             return nil
         }
 
-        var data = Data("[".utf8)
+        let totalElementBytes = elements.reduce(into: 0) { total, element in
+            total += element.count
+        }
+
+        var data = Data()
+        data.reserveCapacity(totalElementBytes + elements.count + 1)
+        data.append(contentsOf: "[".utf8)
         for (index, element) in elements.enumerated() {
             if index > 0 {
-                data.append(Data(",".utf8))
+                data.append(contentsOf: ",".utf8)
             }
             data.append(element)
         }
-        data.append(Data("]".utf8))
+        data.append(contentsOf: "]".utf8)
         return data
     }
 
     private enum ContainerType {
         case array
         case object
+    }
+
+    private struct ValueSerializer {
+        private(set) var isComplete = false
+        private var hasWrittenToken = false
+        private var containerStack: [ContainerType] = []
+
+        mutating func append(_ tokens: [JsonToken], to json: inout String) throws {
+            for token in tokens {
+                try append(token, to: &json)
+            }
+        }
+
+        mutating func append(_ token: JsonToken, to json: inout String) throws {
+            guard !isComplete else {
+                throw DictionaryImportError.invalidData
+            }
+
+            hasWrittenToken = true
+
+            switch token {
+            case let .startObject(key):
+                appendKeyIfNeeded(key, to: &json)
+                json.append("{")
+                containerStack.append(.object)
+
+            case .endObject:
+                guard containerStack.popLast() == .object else {
+                    throw DictionaryImportError.invalidData
+                }
+                removeTrailingCommaIfNeeded(from: &json)
+                json.append("}")
+                finishCurrentValueIfNeeded(in: &json)
+
+            case let .startArray(key):
+                appendKeyIfNeeded(key, to: &json)
+                json.append("[")
+                containerStack.append(.array)
+
+            case .endArray:
+                guard containerStack.popLast() == .array else {
+                    throw DictionaryImportError.invalidData
+                }
+                removeTrailingCommaIfNeeded(from: &json)
+                json.append("]")
+                finishCurrentValueIfNeeded(in: &json)
+
+            case let .string(key, value):
+                appendKeyIfNeeded(key, to: &json)
+                appendQuotedString(value, to: &json)
+                finishScalarValue(in: &json)
+
+            case let .number(key, value):
+                appendKeyIfNeeded(key, to: &json)
+                switch value {
+                case let .int(number):
+                    json.append("\(number)")
+                case let .double(number):
+                    json.append("\(number)")
+                case let .decimal(number):
+                    json.append("\(number)")
+                }
+                finishScalarValue(in: &json)
+
+            case let .bool(key, value):
+                appendKeyIfNeeded(key, to: &json)
+                if value {
+                    json.append("true")
+                } else {
+                    json.append("false")
+                }
+                finishScalarValue(in: &json)
+
+            case let .null(key):
+                appendKeyIfNeeded(key, to: &json)
+                json.append("null")
+                finishScalarValue(in: &json)
+            }
+        }
+
+        mutating func finish(json: inout String) throws {
+            guard hasWrittenToken, isComplete else {
+                throw DictionaryImportError.invalidData
+            }
+
+            removeTrailingCommaIfNeeded(from: &json)
+        }
+
+        private func appendKeyIfNeeded(_ key: JsonKey?, to json: inout String) {
+            guard case .object = containerStack.last, let key else {
+                return
+            }
+
+            appendQuotedString(JSONTokenSerializer.keyDescription(key), to: &json)
+            json.append(":")
+        }
+
+        private func appendQuotedString(_ value: String, to json: inout String) {
+            json.append("\"")
+            json.append(JSONTokenSerializer.escapeString(value))
+            json.append("\"")
+        }
+
+        private mutating func finishScalarValue(in json: inout String) {
+            if containerStack.isEmpty {
+                isComplete = true
+                return
+            }
+
+            json.append(",")
+        }
+
+        private mutating func finishCurrentValueIfNeeded(in json: inout String) {
+            if containerStack.isEmpty {
+                isComplete = true
+                return
+            }
+
+            json.append(",")
+        }
+
+        private func removeTrailingCommaIfNeeded(from json: inout String) {
+            if json.last == "," {
+                json.removeLast()
+            }
+        }
     }
 
     private static func keyDescription(_ key: JsonKey) -> String {

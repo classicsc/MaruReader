@@ -99,26 +99,31 @@ private struct EntryTokenArrayReader {
             throw DictionaryImportError.invalidData
         }
 
-        var serializedDefinitions: [Data] = []
+        var json = "["
+        var definitionCount = 0
 
         while let token = try stream.read() {
             switch token {
             case .endArray:
-                return (
-                    JSONTokenSerializer.serializeArray(from: serializedDefinitions) ?? Data("[]".utf8),
-                    serializedDefinitions.count
-                )
+                json.append("]")
+                return (Data(json.utf8), definitionCount)
 
             case .string:
-                try serializedDefinitions.append(JSONTokenSerializer.serialize([token]))
+                if definitionCount > 0 {
+                    json.append(",")
+                }
+                try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
+                definitionCount += 1
 
             case .number, .bool, .null:
                 throw DictionaryImportError.invalidData
 
             case .startArray, .startObject:
-                let definitionTokens = try captureJSONValueTokens(from: stream, firstToken: token)
-                let definitionJSON = try JSONTokenSerializer.serialize(definitionTokens)
-                serializedDefinitions.append(definitionJSON)
+                if definitionCount > 0 {
+                    json.append(",")
+                }
+                try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
+                definitionCount += 1
 
             case .endObject:
                 throw DictionaryImportError.invalidData
@@ -129,20 +134,23 @@ private struct EntryTokenArrayReader {
     }
 
     mutating func readRemainingStringGlossaryJSON() throws -> (jsonData: Data, definitionCount: Int) {
-        var serializedDefinitions: [Data] = []
+        var json = "["
+        var definitionCount = 0
 
         while let token = try nextValueToken() {
             guard case .string = token else {
                 throw DictionaryImportError.invalidData
             }
 
-            try serializedDefinitions.append(JSONTokenSerializer.serialize([token]))
+            if definitionCount > 0 {
+                json.append(",")
+            }
+            try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
+            definitionCount += 1
         }
 
-        return (
-            JSONTokenSerializer.serializeArray(from: serializedDefinitions) ?? Data("[]".utf8),
-            serializedDefinitions.count
-        )
+        json.append("]")
+        return (Data(json.utf8), definitionCount)
     }
 
     mutating func nextValueToken() throws -> JsonToken? {
@@ -175,30 +183,6 @@ private struct EntryTokenArrayReader {
 
         return token
     }
-}
-
-private func captureJSONValueTokens(from stream: JsonInputStream, firstToken: JsonToken) throws -> [JsonToken] {
-    var tokens = [firstToken]
-    var nestingDepth = 1
-
-    while nestingDepth > 0 {
-        guard let token = try stream.read() else {
-            throw DictionaryImportError.invalidData
-        }
-
-        tokens.append(token)
-
-        switch token {
-        case .startArray, .startObject:
-            nestingDepth += 1
-        case .endArray, .endObject:
-            nestingDepth -= 1
-        case .string, .number, .bool, .null:
-            break
-        }
-    }
-
-    return tokens
 }
 
 private enum StreamingJSONValue {
