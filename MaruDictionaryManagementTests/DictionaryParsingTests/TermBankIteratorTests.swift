@@ -181,6 +181,36 @@ struct TermBankIteratorTests {
         #expect(terms[2].glossary.count == 2)
     }
 
+    @Test func termBankIterator_V3Format_ParsesNullDefinitionTagsAndDeinflectionGlossary() async throws {
+        let jsonString = """
+        [
+            ["見た", "みた", null, "", 42, [["見る", ["v1", "past"]]], 9, ""]
+        ]
+        """
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v3_null_tags.json")
+        try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let iterator = StreamingBankIterator<TermBankV3Entry>(
+            bankURLs: [tempURL]
+        )
+
+        let terms = try await Array(iterator)
+        let term = try #require(terms.first)
+
+        #expect(term.definitionTags == nil)
+        #expect(term.rules.isEmpty)
+        #expect(term.termTags.isEmpty)
+        #expect(term.sequence == 9)
+        #expect(term.score == 42)
+        let glossaryData = try JSONEncoder().encode(term.glossary[0])
+        let glossaryJSONObject = try #require(try JSONSerialization.jsonObject(with: glossaryData) as? [Any])
+        #expect(glossaryJSONObject.count == 2)
+        #expect(glossaryJSONObject[0] as? String == "見る")
+        #expect(glossaryJSONObject[1] as? [String] == ["v1", "past"])
+    }
+
     @Test func termBankIterator_MultipleFiles_StreamsAllTerms() async throws {
         // Create multiple temporary test files
         let jsonString1 = """
