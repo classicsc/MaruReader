@@ -18,6 +18,7 @@
 internal import AsyncAlgorithms
 import Foundation
 @testable import MaruDictionaryManagement
+import MaruReaderCore
 import Testing
 
 struct TermBankIteratorTests {
@@ -209,6 +210,68 @@ struct TermBankIteratorTests {
         #expect(glossaryJSONObject.count == 2)
         #expect(glossaryJSONObject[0] as? String == "見る")
         #expect(glossaryJSONObject[1] as? [String] == ["v1", "past"])
+    }
+
+    @Test func termBankIterator_V3Format_ToDataDictionaryCompressesStreamedGlossaryJSON() async throws {
+        let jsonString = """
+        [
+            ["説明", "せつめい", "n", "", 80, ["plain text", {"type":"structured-content","content":"Detailed def"}], 7, "info"]
+        ]
+        """
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v3_passthrough.json")
+        try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [tempURL])
+        let term = try #require(try await Array(iterator).first)
+
+        let (_, dataDictionary) = try term.toDataDictionary(
+            dictionaryID: UUID(),
+            glossaryCompressionVersion: .uncompressedV1,
+            glossaryCompressionBaseDirectory: nil
+        )
+
+        #expect(dataDictionary["definitionCount"] as? Int64 == 2)
+
+        let glossaryPayload = try #require(dataDictionary["glossary"] as? Data)
+        let glossaryJSON = try #require(GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload, dictionaryID: nil))
+        let glossaryArray = try #require(try JSONSerialization.jsonObject(with: glossaryJSON) as? [Any])
+
+        #expect(glossaryArray.count == 2)
+        #expect(glossaryArray[0] as? String == "plain text")
+        let structuredDefinition = try #require(glossaryArray[1] as? [String: Any])
+        #expect(structuredDefinition["type"] as? String == "structured-content")
+        #expect(structuredDefinition["content"] as? String == "Detailed def")
+    }
+
+    @Test func termBankIterator_V1Format_ToDataDictionaryCompressesStreamedGlossaryJSON() async throws {
+        let jsonString = """
+        [
+            ["食べる", "たべる", "v1", "A", 100, "to eat", "consume"]
+        ]
+        """
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v1_passthrough.json")
+        try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [tempURL])
+        let term = try #require(try await Array(iterator).first)
+
+        let (_, dataDictionary) = try term.toDataDictionary(
+            dictionaryID: UUID(),
+            glossaryCompressionVersion: .uncompressedV1,
+            glossaryCompressionBaseDirectory: nil
+        )
+
+        #expect(dataDictionary["definitionCount"] as? Int64 == 2)
+
+        let glossaryPayload = try #require(dataDictionary["glossary"] as? Data)
+        let glossaryJSON = try #require(GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload, dictionaryID: nil))
+        let glossaryArray = try #require(try JSONSerialization.jsonObject(with: glossaryJSON) as? [String])
+
+        #expect(glossaryArray == ["to eat", "consume"])
     }
 
     @Test func termBankIterator_MultipleFiles_StreamsAllTerms() async throws {

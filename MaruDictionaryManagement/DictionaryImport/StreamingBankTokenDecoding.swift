@@ -94,6 +94,57 @@ private struct EntryTokenArrayReader {
         try StreamingJSONValue.read(from: stream, firstToken: requireToken())
     }
 
+    mutating func readStreamingGlossaryJSON() throws -> (jsonData: Data, definitionCount: Int) {
+        guard case .startArray = try requireToken() else {
+            throw DictionaryImportError.invalidData
+        }
+
+        var serializedDefinitions: [Data] = []
+
+        while let token = try stream.read() {
+            switch token {
+            case .endArray:
+                return (
+                    JSONTokenSerializer.serializeArray(from: serializedDefinitions) ?? Data("[]".utf8),
+                    serializedDefinitions.count
+                )
+
+            case .string:
+                try serializedDefinitions.append(JSONTokenSerializer.serialize([token]))
+
+            case .number, .bool, .null:
+                throw DictionaryImportError.invalidData
+
+            case .startArray, .startObject:
+                let definitionTokens = try captureJSONValueTokens(from: stream, firstToken: token)
+                let definitionJSON = try JSONTokenSerializer.serialize(definitionTokens)
+                serializedDefinitions.append(definitionJSON)
+
+            case .endObject:
+                throw DictionaryImportError.invalidData
+            }
+        }
+
+        throw DictionaryImportError.invalidData
+    }
+
+    mutating func readRemainingStringGlossaryJSON() throws -> (jsonData: Data, definitionCount: Int) {
+        var serializedDefinitions: [Data] = []
+
+        while let token = try nextValueToken() {
+            guard case .string = token else {
+                throw DictionaryImportError.invalidData
+            }
+
+            try serializedDefinitions.append(JSONTokenSerializer.serialize([token]))
+        }
+
+        return (
+            JSONTokenSerializer.serializeArray(from: serializedDefinitions) ?? Data("[]".utf8),
+            serializedDefinitions.count
+        )
+    }
+
     mutating func nextValueToken() throws -> JsonToken? {
         guard !reachedEnd else {
             return nil
@@ -126,6 +177,30 @@ private struct EntryTokenArrayReader {
     }
 }
 
+private func captureJSONValueTokens(from stream: JsonInputStream, firstToken: JsonToken) throws -> [JsonToken] {
+    var tokens = [firstToken]
+    var nestingDepth = 1
+
+    while nestingDepth > 0 {
+        guard let token = try stream.read() else {
+            throw DictionaryImportError.invalidData
+        }
+
+        tokens.append(token)
+
+        switch token {
+        case .startArray, .startObject:
+            nestingDepth += 1
+        case .endArray, .endObject:
+            nestingDepth -= 1
+        case .string, .number, .bool, .null:
+            break
+        }
+    }
+
+    return tokens
+}
+
 private enum StreamingJSONValue {
     case object([String: StreamingJSONValue])
     case array([StreamingJSONValue])
@@ -151,6 +226,11 @@ private enum StreamingJSONValue {
         case .endArray, .endObject:
             throw DictionaryImportError.invalidData
         }
+    }
+
+    static func read(fromJSONData jsonData: Data) throws -> StreamingJSONValue {
+        let foundationObject = try JSONSerialization.jsonObject(with: jsonData, options: .fragmentsAllowed)
+        return try fromFoundationObject(foundationObject)
     }
 
     private static func readObject(from stream: JsonInputStream) throws -> [String: StreamingJSONValue] {
@@ -193,6 +273,35 @@ private enum StreamingJSONValue {
         }
 
         throw DictionaryImportError.invalidData
+    }
+
+    private static func fromFoundationObject(_ foundationObject: Any) throws -> StreamingJSONValue {
+        switch foundationObject {
+        case let value as [String: Any]:
+            return try .object(value.mapValues { try fromFoundationObject($0) })
+        case let value as [Any]:
+            return try .array(value.map { try fromFoundationObject($0) })
+        case let value as String:
+            return .string(value)
+        case let value as NSNumber:
+            if CFGetTypeID(value) == CFBooleanGetTypeID() {
+                return .bool(value.boolValue)
+            }
+
+            return .number(jsonNumber(from: value))
+        case _ as NSNull:
+            return .null
+        default:
+            throw DictionaryImportError.invalidData
+        }
+    }
+
+    private static func jsonNumber(from number: NSNumber) -> JsonNumber {
+        if CFNumberIsFloatType(number) {
+            return .double(number.doubleValue)
+        }
+
+        return .int(number.int64Value)
     }
 }
 
@@ -586,7 +695,24 @@ extension TermBankV1Entry: StreamingBankTokenDecodable {
         self.definitionTags = definitionTags
         self.rules = rules
         self.score = score
-        self.glossary = glossary
+        self.glossaryStorage = TermGlossaryStorage(definitions: glossary)
+    }
+
+    init(
+        expression: String,
+        reading: String,
+        definitionTags: [String],
+        rules: [String],
+        score: Double,
+        glossaryJSON: Data,
+        definitionCount: Int
+    ) {
+        self.expression = expression
+        self.reading = reading
+        self.definitionTags = definitionTags
+        self.rules = rules
+        self.score = score
+        self.glossaryStorage = TermGlossaryStorage(glossaryJSON: glossaryJSON, definitionCount: definitionCount)
     }
 
     static func decodeStreaming(from stream: JsonInputStream, firstToken: JsonToken) throws -> TermBankV1Entry {
@@ -598,14 +724,7 @@ extension TermBankV1Entry: StreamingBankTokenDecodable {
         let rulesRaw = try reader.readRequiredString()
         let score = try reader.readRequiredDouble()
 
-        var glossary: [Definition] = []
-        while let token = try reader.nextValueToken() {
-            guard case let .string(_, meaning) = token else {
-                throw DictionaryImportError.invalidData
-            }
-
-            glossary.append(.text(meaning))
-        }
+        let glossary = try reader.readRemainingStringGlossaryJSON()
 
         return TermBankV1Entry(
             expression: expression,
@@ -613,7 +732,8 @@ extension TermBankV1Entry: StreamingBankTokenDecodable {
             definitionTags: splitSpaceSeparated(definitionTagsRaw),
             rules: splitSpaceSeparated(rulesRaw),
             score: score,
-            glossary: glossary
+            glossaryJSON: glossary.jsonData,
+            definitionCount: glossary.definitionCount
         )
     }
 }
@@ -625,7 +745,28 @@ extension TermBankV3Entry: StreamingBankTokenDecodable {
         self.definitionTags = definitionTags
         self.rules = rules
         self.score = score
-        self.glossary = glossary
+        self.glossaryStorage = TermGlossaryStorage(definitions: glossary)
+        self.sequence = sequence
+        self.termTags = termTags
+    }
+
+    init(
+        expression: String,
+        reading: String,
+        definitionTags: [String]?,
+        rules: [String],
+        score: Double,
+        glossaryJSON: Data,
+        definitionCount: Int,
+        sequence: Int,
+        termTags: [String]
+    ) {
+        self.expression = expression
+        self.reading = reading
+        self.definitionTags = definitionTags
+        self.rules = rules
+        self.score = score
+        self.glossaryStorage = TermGlossaryStorage(glossaryJSON: glossaryJSON, definitionCount: definitionCount)
         self.sequence = sequence
         self.termTags = termTags
     }
@@ -639,12 +780,7 @@ extension TermBankV3Entry: StreamingBankTokenDecodable {
         let rulesRaw = try reader.readRequiredString()
         let score = try reader.readRequiredDouble()
 
-        let glossaryValue = try reader.readJSONValue()
-        guard let glossaryValues = glossaryValue.arrayValue else {
-            throw DictionaryImportError.invalidData
-        }
-
-        let glossary = try glossaryValues.map { try Definition.decodeStreaming(from: $0) }
+        let glossary = try reader.readStreamingGlossaryJSON()
         let sequence = try reader.readRequiredInt()
         let termTagsRaw = try reader.readRequiredString()
         try reader.finish()
@@ -657,7 +793,8 @@ extension TermBankV3Entry: StreamingBankTokenDecodable {
             definitionTags: definitionTags,
             rules: rulesRaw.isEmpty ? [] : splitWhitespace(rulesRaw),
             score: score,
-            glossary: glossary,
+            glossaryJSON: glossary.jsonData,
+            definitionCount: glossary.definitionCount,
             sequence: sequence,
             termTags: termTagsRaw.isEmpty ? [] : splitWhitespace(termTagsRaw)
         )

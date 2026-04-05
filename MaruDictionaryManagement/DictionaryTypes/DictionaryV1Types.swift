@@ -243,7 +243,11 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
     let definitionTags: [String]
     let rules: [String]
     let score: Double
-    let glossary: [Definition]
+    let glossaryStorage: TermGlossaryStorage
+
+    var glossary: [Definition] {
+        glossaryStorage.glossary
+    }
 
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
@@ -265,7 +269,20 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         }
         self.definitionTags = TermBankV1Entry.splitSpaceSeparated(definitionTagsRaw)
         self.rules = TermBankV1Entry.splitSpaceSeparated(rulesRaw)
-        self.glossary = glossary
+        self.glossaryStorage = TermGlossaryStorage(definitions: glossary)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        try container.encode(expression)
+        try container.encode(reading)
+        try container.encode(definitionTags.joined(separator: " "))
+        try container.encode(rules.joined(separator: " "))
+        try container.encode(score)
+
+        for definition in glossary {
+            try container.encode(definition)
+        }
     }
 
     func toDataDictionary(
@@ -278,7 +295,7 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         let definitionTagsData = (try? encoder.encode(definitionTags)) ?? Data()
         let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
 
-        let glossaryJSONData = (try? encoder.encode(glossary)) ?? Data("[]".utf8)
+        let glossaryJSONData = glossaryStorage.glossaryJSONData()
         let compressedGlossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
             glossaryJSONData,
             using: glossaryCompressionVersion,
@@ -290,7 +307,7 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"
 
         return (.termEntry, [
-            "definitionCount": Int64(glossary.count),
+            "definitionCount": Int64(glossaryStorage.definitionCount),
             "expression": expression,
             "reading": reading,
             "definitionTags": definitionTagsString,

@@ -109,8 +109,3 @@ struct StreamingBankIterator<Entry: StreamingBankTokenDecodable>: AsyncSequence 
         }
     }
 }
-
-enum ContainerType {
-    case array
-    case object
-}

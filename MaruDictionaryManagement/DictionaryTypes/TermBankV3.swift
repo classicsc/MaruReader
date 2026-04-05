@@ -25,9 +25,13 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     let definitionTags: [String]? // null | space‑separated string
     let rules: [String] // space‑separated string
     let score: Double
-    let glossary: [Definition]
+    let glossaryStorage: TermGlossaryStorage
     let sequence: Int
     let termTags: [String] // space‑separated string
+
+    var glossary: [Definition] {
+        glossaryStorage.glossary
+    }
 
     init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
@@ -45,7 +49,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
 
         let rawRules = try container.decode(String.self)
         score = try container.decode(Double.self)
-        glossary = try container.decode([Definition].self)
+        let glossary = try container.decode([Definition].self)
         sequence = try container.decode(Int.self)
         let rawTermTags = try container.decode(String.self)
 
@@ -54,6 +58,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
         }
 
         rules = rawRules.isEmpty ? [] : Self.split(rawRules)
+        glossaryStorage = TermGlossaryStorage(definitions: glossary)
         termTags = rawTermTags.isEmpty ? [] : Self.split(rawTermTags)
     }
 
@@ -82,7 +87,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
-        let glossaryJSONData = (try? encoder.encode(self.glossary)) ?? Data("[]".utf8)
+        let glossaryJSONData = glossaryStorage.glossaryJSONData()
         let compressedGlossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
             glossaryJSONData,
             using: glossaryCompressionVersion,
@@ -100,7 +105,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
         let termTagsString = String(data: termTagsData, encoding: .utf8) ?? "[]"
 
         return (.termEntry, [
-            "definitionCount": Int64(self.glossary.count),
+            "definitionCount": Int64(glossaryStorage.definitionCount),
             "expression": self.expression,
             "reading": self.reading,
             "definitionTags": definitionTagsString,
