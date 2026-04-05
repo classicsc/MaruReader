@@ -412,6 +412,19 @@ struct DictionaryPersistenceTests {
         #expect(mediaDirectoryExists == false)
     }
 
+    private func createDictionaryScratchDirectory(dictionaryID: UUID) throws -> URL {
+        let scratchSpace = ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryID)
+        try scratchSpace.ensureExists()
+        let markerURL = scratchSpace.rootURL.appendingPathComponent("marker.txt")
+        try "marker".write(to: markerURL, atomically: true, encoding: .utf8)
+        return scratchSpace.rootURL
+    }
+
+    private func expectDictionaryScratchDirectoryRemoved(dictionaryID: UUID) {
+        let scratchURL = ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryID).rootURL
+        #expect(!FileManager.default.fileExists(atPath: scratchURL.path), "Dictionary scratch directory should be deleted")
+    }
+
     private func runtimeCompressionDictionaryURL(for dictionaryID: UUID) -> URL? {
         guard let baseDirectory = FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
@@ -1078,6 +1091,7 @@ struct DictionaryPersistenceTests {
             Issue.record("Failed to resolve imported dictionary or runtime compression dictionary path")
             return
         }
+        _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryID)
 
         #expect(dictionary.isComplete == true)
         #expect(FileManager.default.fileExists(atPath: compressionDictionaryURL.path))
@@ -1094,6 +1108,7 @@ struct DictionaryPersistenceTests {
         await waitForDictionaryDeletion(in: context, importID: importID)
 
         #expect(!FileManager.default.fileExists(atPath: compressionDictionaryURL.path))
+        expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryID)
         #expect(
             GlossaryCompressionCodec.decodeGlossaryJSON(
                 glossaryPayload,
@@ -1276,6 +1291,12 @@ struct DictionaryPersistenceTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let dictionaryUUID = await MainActor.run {
+            getDictionary(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let dictionaryUUID {
+            _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryUUID)
+        }
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
@@ -1295,6 +1316,9 @@ struct DictionaryPersistenceTests {
         }
 
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+        if let dictionaryUUID {
+            expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
+        }
     }
 
     @Test func importDictionary_CancelAfterDataProcessing_CleansUpProperly() async throws {
@@ -1331,6 +1355,12 @@ struct DictionaryPersistenceTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let dictionaryUUID = await MainActor.run {
+            getDictionary(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let dictionaryUUID {
+            _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryUUID)
+        }
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
@@ -1347,6 +1377,9 @@ struct DictionaryPersistenceTests {
         }
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+        if let dictionaryUUID {
+            expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
+        }
     }
 
     @Test func importDictionary_CancelAfterMediaCopy_CleansUpProperly() async throws {
@@ -1384,6 +1417,12 @@ struct DictionaryPersistenceTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let dictionaryUUID = await MainActor.run {
+            getDictionary(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let dictionaryUUID {
+            _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryUUID)
+        }
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
@@ -1399,6 +1438,9 @@ struct DictionaryPersistenceTests {
         }
         // Verify cleanup (media directory should be removed despite being created)
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+        if let dictionaryUUID {
+            expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
+        }
     }
 
     @Test @MainActor func importDictionary_CancelQueuedJob_CleansUpProperly() async throws {
@@ -1621,6 +1663,12 @@ struct DictionaryPersistenceTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let dictionaryUUID = await MainActor.run {
+            getDictionary(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let dictionaryUUID {
+            _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryUUID)
+        }
 
         // Wait for completion
         await importManager.waitForCompletion(jobID: importID)
@@ -1638,6 +1686,9 @@ struct DictionaryPersistenceTests {
 
         // Verify cleanup
         await verifyDirectoryCleanup(importManager: importManager, importID: importID)
+        if let dictionaryUUID {
+            expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
+        }
     }
 
     @Test @MainActor func importDictionary_NoBankFiles_FailsAndCleansUp() async throws {
@@ -1732,6 +1783,7 @@ struct DictionaryPersistenceTests {
             try? "marker".write(to: marker, atomically: true, encoding: .utf8)
             mediaDir = dir
         }
+        _ = try createDictionaryScratchDirectory(dictionaryID: dictionaryUUID)
 
         await importManager.cleanupInterruptedImports()
 
@@ -1747,6 +1799,7 @@ struct DictionaryPersistenceTests {
         if let mediaDir {
             #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Media directory should be deleted")
         }
+        expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
     }
 
     @Test @MainActor func checkForUpdates_MarksUpdateReadyAndStoresDownloadURL() async throws {

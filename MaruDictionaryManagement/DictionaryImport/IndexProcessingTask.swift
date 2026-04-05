@@ -110,19 +110,15 @@ struct IndexProcessingTask {
             throw DictionaryImportError.notADictionary
         }
 
-        let tempIndexURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer {
-            try? FileManager.default.removeItem(at: tempIndexURL)
-        }
+        let indexData: Data
         do {
-            _ = try await archive.extract(indexEntry, to: tempIndexURL, skipCRC32: true)
+            indexData = try await archive.extractData(indexEntry, skipCRC32: true)
         } catch {
             throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
 
         // Decode index.json to type DictionaryIndex
         let decoder = JSONDecoder()
-        let indexData = try Data(contentsOf: tempIndexURL)
         let index = try decoder.decode(DictionaryIndex.self, from: indexData)
 
         // Ensure format is supported

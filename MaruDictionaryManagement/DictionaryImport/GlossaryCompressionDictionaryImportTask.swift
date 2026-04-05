@@ -92,7 +92,8 @@ struct GlossaryCompressionDictionaryImportTask {
                 fromArchive: archiveURL,
                 format: format,
                 termBankPaths: bankPaths.termBanks,
-                profile: glossaryCompressionTrainingProfile
+                profile: glossaryCompressionTrainingProfile,
+                scratchSpace: ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryID)
             )
 
             try Task.checkCancellation()

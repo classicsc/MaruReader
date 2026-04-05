@@ -212,6 +212,19 @@ struct AudioSourceImportManagerTests {
         }
     }
 
+    private func createAudioScratchDirectory(sourceID: UUID) throws -> URL {
+        let scratchSpace = ImportScratchSpace(kind: .audio, jobUUID: sourceID)
+        try scratchSpace.ensureExists()
+        let markerURL = scratchSpace.rootURL.appendingPathComponent("marker.txt")
+        try "marker".write(to: markerURL, atomically: true, encoding: .utf8)
+        return scratchSpace.rootURL
+    }
+
+    private func expectAudioScratchDirectoryRemoved(sourceID: UUID) {
+        let scratchURL = ImportScratchSpace(kind: .audio, jobUUID: sourceID).rootURL
+        #expect(!FileManager.default.fileExists(atPath: scratchURL.path), "Audio source scratch directory should be deleted")
+    }
+
     // MARK: - Success Tests
 
     @Test @MainActor func importAudioSource_BackgroundTaskExpires_CancelsGracefully() async throws {
@@ -579,6 +592,12 @@ struct AudioSourceImportManagerTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let sourceID = await MainActor.run {
+            getJob(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let sourceID {
+            _ = try createAudioScratchDirectory(sourceID: sourceID)
+        }
         await importManager.waitForCompletion(jobID: importID)
 
         let context = persistenceController.container.viewContext
@@ -595,6 +614,9 @@ struct AudioSourceImportManagerTests {
 
             let files = fetchAudioFiles(from: context)
             #expect(files.isEmpty)
+        }
+        if let sourceID {
+            expectAudioScratchDirectoryRemoved(sourceID: sourceID)
         }
     }
 
@@ -868,6 +890,12 @@ struct AudioSourceImportManagerTests {
         }
 
         let importID = try await importManager.enqueueImport(from: zipURL)
+        let sourceID = await MainActor.run {
+            getJob(from: persistenceController.container.viewContext, importID: importID)?.id
+        }
+        if let sourceID {
+            _ = try createAudioScratchDirectory(sourceID: sourceID)
+        }
         await importManager.waitForCompletion(jobID: importID)
 
         await MainActor.run {
@@ -883,6 +911,9 @@ struct AudioSourceImportManagerTests {
 
             let files = fetchAudioFiles(from: context)
             #expect(files.isEmpty)
+        }
+        if let sourceID {
+            expectAudioScratchDirectoryRemoved(sourceID: sourceID)
         }
     }
 
@@ -939,6 +970,7 @@ struct AudioSourceImportManagerTests {
             Issue.record("App group or source ID not found")
             return
         }
+        _ = try createAudioScratchDirectory(sourceID: sourceID)
 
         let mediaDir = appGroupDir.appendingPathComponent("AudioMedia").appendingPathComponent(sourceID.uuidString)
         #expect(fileManager.fileExists(atPath: mediaDir.path))
@@ -960,6 +992,7 @@ struct AudioSourceImportManagerTests {
 
         // Verify media directory is deleted
         #expect(!fileManager.fileExists(atPath: mediaDir.path))
+        expectAudioScratchDirectoryRemoved(sourceID: sourceID)
     }
 
     @Test @MainActor func deleteAudioSource_BackgroundTaskExpires_LeavesPendingDeletionForCleanup() async throws {
@@ -1068,6 +1101,7 @@ struct AudioSourceImportManagerTests {
             try? "marker".write(to: marker, atomically: true, encoding: .utf8)
             mediaDir = dir
         }
+        _ = try createAudioScratchDirectory(sourceID: sourceID)
 
         await importManager.cleanupInterruptedImports()
 
@@ -1083,6 +1117,7 @@ struct AudioSourceImportManagerTests {
         if let mediaDir {
             #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Audio media directory should be deleted")
         }
+        expectAudioScratchDirectoryRemoved(sourceID: sourceID)
     }
 
     // MARK: - Large Data Tests

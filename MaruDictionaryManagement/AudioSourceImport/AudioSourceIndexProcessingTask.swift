@@ -50,17 +50,23 @@ struct AudioSourceIndexProcessingTask {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let jobURL = try await context.perform {
+        let (jobURL, sourceID) = try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
             guard let jobURL = job.file else {
                 throw AudioSourceImportError.missingFile
             }
+            if job.id == nil {
+                job.id = UUID()
+            }
+            guard let sourceID = job.id else {
+                throw AudioSourceImportError.databaseError
+            }
 
             job.displayProgressMessage = FrameworkLocalization.string("Processing audio source index...")
             try context.save()
-            return jobURL
+            return (jobURL, sourceID)
         }
 
         // Access security scoped resource if needed (returns false for in-sandbox files)
@@ -91,16 +97,10 @@ struct AudioSourceIndexProcessingTask {
         let indexEntry = try findIndexEntry(in: entries)
         let indexEntryPath = indexEntry.path
 
-        let indexURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("json")
-        var shouldCleanupIndex = true
-        defer {
-            if shouldCleanupIndex {
-                try? FileManager.default.removeItem(at: indexURL)
-            }
-        }
+        let scratchSpace = ImportScratchSpace(kind: .audio, jobUUID: sourceID)
+        let indexURL: URL
         do {
+            indexURL = try scratchSpace.makeUniqueFileURL(pathExtension: "json")
             _ = try await archive.extract(indexEntry, to: indexURL, skipCRC32: false)
         } catch {
             throw AudioSourceImportError.unzipFailed(underlyingError: error)
@@ -118,14 +118,11 @@ struct AudioSourceIndexProcessingTask {
         // Detect file extensions from the files section (we'll scan a sample)
         let fileExtensions = try detectFileExtensions(from: indexURL)
 
-        let sourceID = try await context.perform {
+        try await context.perform {
             guard let job = try context.existingObject(with: jobID) as? AudioSource else {
                 throw AudioSourceImportError.importNotFound
             }
 
-            if job.id == nil {
-                job.id = UUID()
-            }
             job.name = meta.name
             job.attribution = meta.attribution
             job.year = Int64(meta.year ?? 0)
@@ -139,13 +136,8 @@ struct AudioSourceIndexProcessingTask {
             job.displayProgressMessage = FrameworkLocalization.string("Processed audio source index.")
 
             try context.save()
-            guard let id = job.id else {
-                throw AudioSourceImportError.databaseError
-            }
-            return id
         }
 
-        shouldCleanupIndex = false
         return AudioSourceIndexResult(
             sourceID: sourceID,
             indexURL: indexURL,

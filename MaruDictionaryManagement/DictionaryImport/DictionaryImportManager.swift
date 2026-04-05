@@ -222,6 +222,7 @@ public actor DictionaryImportManager {
             try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
             cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
             cleanCompressionDictionaryByUUID(dictionaryUUID: dictionaryID)
+            cleanScratchDirectoryByUUID(dictionaryUUID: dictionaryID)
         }
 
         guard !retryJobIDs.isEmpty else { return }
@@ -312,6 +313,10 @@ public actor DictionaryImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
         var dictionaryUUID: UUID?
+        var scratchSpace: ImportScratchSpace?
+        defer {
+            scratchSpace?.cleanupBestEffort()
+        }
         do {
             dictionaryUUID = try await context.perform {
                 guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
@@ -329,6 +334,9 @@ public actor DictionaryImportManager {
                 dictionary.errorMessage = nil
                 try context.save()
                 return dictionary.id
+            }
+            if let dictionaryUUID {
+                scratchSpace = ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryUUID)
             }
             try Task.checkCancellation()
             try testErrorInjection?()
@@ -708,6 +716,10 @@ public actor DictionaryImportManager {
         } catch {}
     }
 
+    private func cleanScratchDirectoryByUUID(dictionaryUUID: UUID) {
+        ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryUUID).cleanupBestEffort()
+    }
+
     // MARK: - Test Helper Methods
 
     /// Set test cancellation hook for controlled testing
@@ -822,6 +834,7 @@ public actor DictionaryImportManager {
             if let uuid = dictionaryUUID {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
+                cleanScratchDirectoryByUUID(dictionaryUUID: uuid)
             }
 
             try Task.checkCancellation()

@@ -164,6 +164,7 @@ public actor AudioSourceImportManager {
             try? await deleteEntitiesInBatches(entityName: "AudioHeadword", sourceID: sourceID, batchSize: 10000)
             try? await deleteEntitiesInBatches(entityName: "AudioFile", sourceID: sourceID, batchSize: 10000)
             AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: sourceID, baseDirectory: baseDirectory)
+            cleanScratchDirectory(sourceID: sourceID)
         }
     }
 
@@ -241,12 +242,9 @@ public actor AudioSourceImportManager {
         context.shouldDeleteInaccessibleFaults = true
 
         var sourceID: UUID?
-        var indexURL: URL?
-
+        var scratchSpace: ImportScratchSpace?
         defer {
-            if let indexURL {
-                try? FileManager.default.removeItem(at: indexURL)
-            }
+            scratchSpace?.cleanupBestEffort()
         }
 
         do {
@@ -269,6 +267,9 @@ public actor AudioSourceImportManager {
                 }
                 return id
             }
+            if let sourceID {
+                scratchSpace = ImportScratchSpace(kind: .audio, jobUUID: sourceID)
+            }
 
             try Task.checkCancellation()
             try testErrorInjection?()
@@ -276,7 +277,6 @@ public actor AudioSourceImportManager {
             // Stage 1: Process index
             let indexTask = AudioSourceIndexProcessingTask(jobID: jobID, container: container)
             let indexResult = try await indexTask.start()
-            indexURL = indexResult.indexURL
             let importedSourceID = indexResult.sourceID
             let isLocal = indexResult.isLocal
             logger.debug("Audio source job \(jobID) index processed")
@@ -488,6 +488,10 @@ public actor AudioSourceImportManager {
         deletionTasks[sourceID] = nil
     }
 
+    private func cleanScratchDirectory(sourceID: UUID) {
+        ImportScratchSpace(kind: .audio, jobUUID: sourceID).cleanupBestEffort()
+    }
+
     private func runAudioSourceDeletion(
         sourceID: NSManagedObjectID,
         batchSize: Int,
@@ -507,6 +511,7 @@ public actor AudioSourceImportManager {
 
             if let uuid = audioSourceUUID {
                 AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: uuid, baseDirectory: baseDirectory)
+                cleanScratchDirectory(sourceID: uuid)
                 try Task.checkCancellation()
                 try await deleteEntitiesInBatches(
                     entityName: "AudioHeadword",

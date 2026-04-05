@@ -108,7 +108,8 @@ public enum GlossaryCompressionDictionaryBuilder {
         fromArchive archiveURL: URL,
         format: DictionaryFormat,
         termBankPaths: [String],
-        profile: GlossaryCompressionTrainingProfile = .runtime
+        profile: GlossaryCompressionTrainingProfile = .runtime,
+        scratchSpace: ImportScratchSpace? = nil
     ) async throws -> GlossaryCompressionDictionaryBuildResult {
         let sampledCorpus = try await windowedGlossaryJSONSamples(
             fromArchive: archiveURL,
@@ -116,7 +117,8 @@ public enum GlossaryCompressionDictionaryBuilder {
             termBankPaths: termBankPaths,
             targetTrainingCorpusBytes: profile.targetTrainingCorpusBytes,
             windowStride: profile.windowStride,
-            windowLength: profile.windowLength
+            windowLength: profile.windowLength,
+            scratchSpace: scratchSpace
         )
         return try buildZSTDDictionary(named: identifier, trainingCorpus: sampledCorpus)
     }
@@ -199,7 +201,8 @@ public enum GlossaryCompressionDictionaryBuilder {
         termBankPaths: [String],
         targetTrainingCorpusBytes: Int,
         windowStride: Int,
-        windowLength: Int
+        windowLength: Int,
+        scratchSpace: ImportScratchSpace? = nil
     ) async throws -> (samples: [Data], sampleCount: Int, totalSampleBytes: Int) {
         let archive = try await openArchive(at: archiveURL)
         var glossarySamples: [Data] = []
@@ -207,7 +210,12 @@ public enum GlossaryCompressionDictionaryBuilder {
         var totalSampleBytes = 0
 
         for path in termBankPaths {
-            try await withExtractedEntry(archive: archive, archiveURL: archiveURL, entryPath: path) { fileURL in
+            try await withExtractedEntry(
+                archive: archive,
+                archiveURL: archiveURL,
+                entryPath: path,
+                scratchSpace: scratchSpace
+            ) { fileURL in
                 let extractedSamples = try GlossaryJSONWindowedSampler.collectGlossarySamples(
                     from: fileURL,
                     format: format,
@@ -262,14 +270,8 @@ public enum GlossaryCompressionDictionaryBuilder {
             throw DictionaryImportError.notADictionary
         }
 
-        let tempIndexURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        defer {
-            try? FileManager.default.removeItem(at: tempIndexURL)
-        }
-
         do {
-            _ = try await archive.extract(indexEntry, to: tempIndexURL, skipCRC32: true)
-            let indexData = try Data(contentsOf: tempIndexURL)
+            let indexData = try await archive.extractData(indexEntry, skipCRC32: true)
             let index = try JSONDecoder().decode(DictionaryIndex.self, from: indexData)
             guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
                 throw DictionaryImportError.unsupportedFormat
@@ -309,6 +311,7 @@ public enum GlossaryCompressionDictionaryBuilder {
         archive: Archive,
         archiveURL: URL,
         entryPath: String,
+        scratchSpace: ImportScratchSpace? = nil,
         skipCRC32: Bool = true,
         body: (URL) async throws -> T
     ) async throws -> T {
@@ -331,7 +334,16 @@ public enum GlossaryCompressionDictionaryBuilder {
             throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
 
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempURL: URL
+        if let scratchSpace {
+            do {
+                tempURL = try scratchSpace.makeUniqueFileURL(pathExtension: "json")
+            } catch {
+                throw DictionaryImportError.unzipFailed(underlyingError: error)
+            }
+        } else {
+            tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        }
         defer {
             try? FileManager.default.removeItem(at: tempURL)
         }

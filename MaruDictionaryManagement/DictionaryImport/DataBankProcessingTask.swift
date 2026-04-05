@@ -34,6 +34,10 @@ struct DataBankProcessingTask {
     let persistentContainer: NSPersistentContainer
     private let logger = Logger.maru(category: "TermBankProcessingTask")
 
+    private var scratchSpace: ImportScratchSpace {
+        ImportScratchSpace(kind: .dictionary, jobUUID: dictionaryID)
+    }
+
     /// Thread-safe counter for tracking total entries processed across concurrent channels.
     private actor ProgressCounter {
         private var value = 0
@@ -452,7 +456,12 @@ struct DataBankProcessingTask {
             throw DictionaryImportError.unzipFailed(underlyingError: error)
         }
 
-        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let tempURL: URL
+        do {
+            tempURL = try scratchSpace.makeUniqueFileURL(pathExtension: "json")
+        } catch {
+            throw DictionaryImportError.unzipFailed(underlyingError: error)
+        }
         defer {
             try? FileManager.default.removeItem(at: tempURL)
         }
