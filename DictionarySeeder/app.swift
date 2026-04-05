@@ -21,23 +21,36 @@ import MaruDictionaryManagement
 import MaruReaderCore
 
 enum SeederError: Error, LocalizedError {
+    case invalidArguments(String)
+    case invalidGlossaryCodec(String)
+    case invalidGlossaryTrainingProfile(String)
     case modelNotFound
     case storeLoadFailed(Error)
     case importFailed(String)
+    case missingCompressionDictionary(String)
 
     var errorDescription: String? {
         switch self {
+        case let .invalidArguments(message):
+            message
+        case let .invalidGlossaryCodec(message):
+            "Invalid glossary codec: \(message)"
+        case let .invalidGlossaryTrainingProfile(message):
+            "Invalid glossary training profile: \(message)"
         case .modelNotFound:
             "Failed to locate MaruDictionary model in framework bundle"
         case let .storeLoadFailed(error):
             "Failed to load persistent store: \(error.localizedDescription)"
         case let .importFailed(message):
             "Import failed: \(message)"
+        case let .missingCompressionDictionary(message):
+            "Missing compression dictionary: \(message)"
         }
     }
 }
 
 struct ImportResult {
+    let id: UUID?
     let name: String
     let terms: Int64
     let kanji: Int64
@@ -49,139 +62,254 @@ struct AudioSourceResult {
     let status: String
 }
 
+enum PendingSeedArgument {
+    case audio
+    case glossaryCodec
+    case glossaryTrainingProfile
+
+    var flagName: String {
+        switch self {
+        case .audio:
+            "--audio"
+        case .glossaryCodec:
+            "--glossary-codec"
+        case .glossaryTrainingProfile:
+            "--glossary-training-profile"
+        }
+    }
+}
+
+struct SeedArguments {
+    let outputDir: URL
+    let dictionaryPaths: [URL]
+    let audioSourcePaths: [URL]
+    let glossaryCompressionVersion: GlossaryCompressionCodecVersion
+    let glossaryCompressionTrainingProfile: GlossaryCompressionTrainingProfile
+}
+
 @main
 struct DictionarySeeder {
     static func main() async {
         let args = Array(CommandLine.arguments.dropFirst())
 
-        guard args.count >= 2 else {
+        guard !args.isEmpty else {
             printUsage()
             exit(1)
         }
 
-        let outputDir = URL(fileURLWithPath: args[0], isDirectory: true)
-
-        // Parse remaining arguments, separating dictionaries from audio sources
-        var dictionaryPaths: [URL] = []
-        var audioSourcePaths: [URL] = []
-        var expectAudio = false
-
-        for arg in args.dropFirst() {
-            if arg == "--audio" {
-                expectAudio = true
-            } else {
-                let url = URL(fileURLWithPath: arg)
-                if expectAudio {
-                    audioSourcePaths.append(url)
-                    expectAudio = false
-                } else {
-                    dictionaryPaths.append(url)
-                }
-            }
-        }
-
-        // Validate input files exist
-        for zipURL in dictionaryPaths + audioSourcePaths {
-            guard FileManager.default.fileExists(atPath: zipURL.path) else {
-                print("Error: File not found: \(zipURL.path)")
-                exit(1)
-            }
-        }
-
         do {
-            // Create output directory structure
-            try FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true)
-
-            let storeURL = outputDir.appendingPathComponent("MaruDictionary.sqlite")
-
-            // Remove existing database if present
-            for suffix in ["", "-wal", "-shm"] {
-                let fileURL = storeURL.deletingLastPathComponent()
-                    .appendingPathComponent(storeURL.lastPathComponent + suffix)
-                if FileManager.default.fileExists(atPath: fileURL.path) {
-                    try FileManager.default.removeItem(at: fileURL)
-                }
-            }
-
-            // Create container with WAL disabled
-            let container = try createContainer(storeURL: storeURL)
-
-            var dictionaryResults: [ImportResult] = []
-            var audioResults: [AudioSourceResult] = []
-
-            // Import dictionaries
-            if !dictionaryPaths.isEmpty {
-                let importManager = DictionaryImportManager(
-                    container: container,
-                    baseDirectory: outputDir
-                )
-
-                for zipURL in dictionaryPaths {
-                    print("Importing dictionary: \(zipURL.lastPathComponent)...")
-
-                    let jobID = try await importManager.enqueueImport(from: zipURL)
-                    await importManager.waitForCompletion(jobID: jobID)
-
-                    let result = try await getDictionaryResult(container: container, jobID: jobID)
-                    dictionaryResults.append(result)
-                    print("  \(result.status): \(result.name) (\(result.terms) terms, \(result.kanji) kanji)")
-                }
-            }
-
-            // Import audio sources
-            if !audioSourcePaths.isEmpty {
-                let audioImportManager = AudioSourceImportManager(
-                    container: container,
-                    baseDirectory: outputDir
-                )
-
-                for zipURL in audioSourcePaths {
-                    print("Importing audio source: \(zipURL.lastPathComponent)...")
-
-                    let jobID = try await audioImportManager.enqueueImport(from: zipURL)
-                    await audioImportManager.waitForCompletion(jobID: jobID)
-
-                    let result = try await getAudioSourceResult(container: container, jobID: jobID)
-                    audioResults.append(result)
-                    print("  \(result.status): \(result.name)")
-                }
-            }
-
-            printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults)
-            try verifyNoWAL(at: storeURL)
-
-            print("\nOutput written to: \(outputDir.path)")
-
+            let arguments = try parseArguments(args)
+            try await runSeedCommand(arguments)
         } catch {
-            print("Error: \(error.localizedDescription)")
+            print("Error: \(describe(error))")
             exit(1)
         }
     }
 
+    static func describe(_ error: Error) -> String {
+        if let localizedError = error as? LocalizedError,
+           let description = localizedError.errorDescription,
+           !description.isEmpty
+        {
+            return description
+        }
+
+        return String(reflecting: error)
+    }
+
     static func printUsage() {
-        print("""
-        Usage: DictionarySeeder <output-dir> <dictionary1.zip> [dictionary2.zip ...] [--audio <audio.zip>] ...
+        let supportedCodecs = GlossaryCompressionCodecVersion.allCases.map(\.rawValue).joined(separator: ", ")
 
-        Imports Yomitan dictionaries and audio sources into a SQLite database suitable for bundling.
+        print(
+            """
+            Usage:
+              DictionarySeeder <output-dir> <dictionary1.zip> [dictionary2.zip ...] [options]
 
-        Arguments:
-          output-dir       Directory to write the database and media files
-          dictionary.zip   One or more Yomitan dictionary ZIP files to import
-          --audio <file>   Specify the next ZIP file as an indexed audio source
+            Imports Yomitan dictionaries and audio sources into a SQLite database suitable for bundling.
 
-        Output structure:
-          output-dir/
-            MaruDictionary.sqlite
-            Media/
-              {dictionaryUUID}/
-                [media files...]
-            AudioMedia/
-              {audioSourceUUID}/
-                [audio files...]
+            Seed mode arguments:
+              output-dir                    Directory to write the database and media files
+              dictionary.zip                One or more Yomitan dictionary ZIP files to import
+              --audio <file>                Specify the next ZIP file as an indexed audio source
+              --glossary-codec <version>    Supported codecs: \(supportedCodecs)
+                                            Default: \(GlossaryCompressionCodec.defaultImportVersion.rawValue)
+              --glossary-training-profile   Supported profiles: \(GlossaryCompressionTrainingProfile.allCases.map(\.rawValue).joined(separator: ", "))
+                                            Default: \(GlossaryCompressionTrainingProfile.runtime.rawValue)
 
-        Example:
-          DictionarySeeder ./StarterDictionary jmdict.zip --audio kanjialive.zip
-        """)
+            Seed output structure:
+              output-dir/
+                MaruDictionary.sqlite
+                CompressionDictionaries/
+                  <dictionary>.zdict
+                Media/
+                  {dictionaryUUID}/
+                    [media files...]
+                AudioMedia/
+                  {audioSourceUUID}/
+                    [audio files...]
+
+            Examples:
+              DictionarySeeder ./StarterDictionary jitendex.zip --audio kanjialive.zip --glossary-codec zstd-runtime-v1 --glossary-training-profile starterdict
+            """
+        )
+    }
+
+    static func parseArguments(_ args: [String]) throws -> SeedArguments {
+        guard args.count >= 2 else {
+            throw SeederError.invalidArguments(
+                "Seed mode requires an output directory and at least one dictionary ZIP."
+            )
+        }
+
+        let outputDir = URL(fileURLWithPath: args[0], isDirectory: true)
+
+        var dictionaryPaths: [URL] = []
+        var audioSourcePaths: [URL] = []
+        var glossaryCompressionVersion = GlossaryCompressionCodec.defaultImportVersion
+        var glossaryCompressionTrainingProfile = GlossaryCompressionTrainingProfile.runtime
+        var pendingArgument: PendingSeedArgument?
+
+        for arg in args.dropFirst() {
+            if let activePendingArgument = pendingArgument {
+                switch activePendingArgument {
+                case .audio:
+                    audioSourcePaths.append(URL(fileURLWithPath: arg))
+                case .glossaryCodec:
+                    glossaryCompressionVersion = try parseGlossaryCompressionVersion(arg)
+                case .glossaryTrainingProfile:
+                    glossaryCompressionTrainingProfile = try parseGlossaryCompressionTrainingProfile(arg)
+                }
+                pendingArgument = nil
+                continue
+            }
+
+            switch arg {
+            case "--audio":
+                pendingArgument = .audio
+            case "--glossary-codec":
+                pendingArgument = .glossaryCodec
+            case "--glossary-training-profile":
+                pendingArgument = .glossaryTrainingProfile
+            default:
+                if arg.hasPrefix("--") {
+                    throw SeederError.invalidArguments("Unknown option: \(arg)")
+                }
+                dictionaryPaths.append(URL(fileURLWithPath: arg))
+            }
+        }
+
+        if let pendingArgument {
+            throw SeederError.invalidArguments("Missing value for \(pendingArgument.flagName)")
+        }
+
+        if dictionaryPaths.isEmpty {
+            throw SeederError.invalidArguments("At least one dictionary ZIP is required.")
+        }
+
+        return SeedArguments(
+            outputDir: outputDir,
+            dictionaryPaths: dictionaryPaths,
+            audioSourcePaths: audioSourcePaths,
+            glossaryCompressionVersion: glossaryCompressionVersion,
+            glossaryCompressionTrainingProfile: glossaryCompressionTrainingProfile
+        )
+    }
+
+    static func parseGlossaryCompressionVersion(_ rawValue: String) throws -> GlossaryCompressionCodecVersion {
+        let normalizedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let version = GlossaryCompressionCodecVersion(rawValue: normalizedValue) else {
+            throw SeederError.invalidGlossaryCodec(rawValue)
+        }
+        return version
+    }
+
+    static func parseGlossaryCompressionTrainingProfile(_ rawValue: String) throws -> GlossaryCompressionTrainingProfile {
+        let normalizedValue = rawValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let profile = GlossaryCompressionTrainingProfile(rawValue: normalizedValue) else {
+            throw SeederError.invalidGlossaryTrainingProfile(rawValue)
+        }
+        return profile
+    }
+
+    static func runSeedCommand(_ arguments: SeedArguments) async throws {
+        try validateInputFiles(arguments.dictionaryPaths + arguments.audioSourcePaths)
+
+        try FileManager.default.createDirectory(at: arguments.outputDir, withIntermediateDirectories: true)
+
+        let storeURL = arguments.outputDir.appendingPathComponent("MaruDictionary.sqlite")
+
+        for suffix in ["", "-wal", "-shm"] {
+            let fileURL = storeURL.deletingLastPathComponent()
+                .appendingPathComponent(storeURL.lastPathComponent + suffix)
+            if FileManager.default.fileExists(atPath: fileURL.path) {
+                try FileManager.default.removeItem(at: fileURL)
+            }
+        }
+
+        let container = try createContainer(storeURL: storeURL)
+        var dictionaryResults: [ImportResult] = []
+        var audioResults: [AudioSourceResult] = []
+
+        print("Glossary codec: \(arguments.glossaryCompressionVersion.rawValue)")
+        print("Glossary training profile: \(arguments.glossaryCompressionTrainingProfile.rawValue)")
+
+        if !arguments.dictionaryPaths.isEmpty {
+            let importManager = DictionaryImportManager(
+                container: container,
+                baseDirectory: arguments.outputDir,
+                glossaryCompressionVersion: arguments.glossaryCompressionVersion,
+                glossaryCompressionTrainingProfile: arguments.glossaryCompressionTrainingProfile
+            )
+
+            for zipURL in arguments.dictionaryPaths {
+                print("Importing dictionary: \(zipURL.lastPathComponent)...")
+
+                let jobID = try await importManager.enqueueImport(from: zipURL)
+                await importManager.waitForCompletion(jobID: jobID)
+
+                let result = try await getDictionaryResult(container: container, jobID: jobID)
+                dictionaryResults.append(result)
+                print("  \(result.status): \(result.name) (\(result.terms) terms, \(result.kanji) kanji)")
+
+                if result.status != "Completed" {
+                    throw SeederError.importFailed("\(result.name): \(result.status)")
+                }
+            }
+        }
+
+        if !arguments.audioSourcePaths.isEmpty {
+            let audioImportManager = AudioSourceImportManager(
+                container: container,
+                baseDirectory: arguments.outputDir
+            )
+
+            for zipURL in arguments.audioSourcePaths {
+                print("Importing audio source: \(zipURL.lastPathComponent)...")
+
+                let jobID = try await audioImportManager.enqueueImport(from: zipURL)
+                await audioImportManager.waitForCompletion(jobID: jobID)
+
+                let result = try await getAudioSourceResult(container: container, jobID: jobID)
+                audioResults.append(result)
+                print("  \(result.status): \(result.name)")
+            }
+        }
+
+        if arguments.glossaryCompressionVersion == .zstdRuntimeV1 {
+            try validateCompressionDictionaries(for: dictionaryResults, in: arguments.outputDir)
+        }
+        printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults)
+        try verifyNoWAL(at: storeURL)
+
+        print("\nOutput written to: \(arguments.outputDir.path)")
+    }
+
+    static func validateInputFiles(_ inputURLs: [URL]) throws {
+        for inputURL in inputURLs {
+            guard FileManager.default.fileExists(atPath: inputURL.path) else {
+                throw SeederError.invalidArguments("File not found: \(inputURL.path)")
+            }
+        }
     }
 
     static func createContainer(storeURL: URL) throws -> NSPersistentContainer {
@@ -195,7 +323,6 @@ struct DictionarySeeder {
         let container = NSPersistentContainer(name: "MaruDictionary", managedObjectModel: model)
         let description = NSPersistentStoreDescription(url: storeURL)
 
-        // Disable WAL mode so we get a single SQLite file
         description.setOption(
             ["journal_mode": "DELETE"] as NSDictionary,
             forKey: NSSQLitePragmasOption
@@ -233,6 +360,7 @@ struct DictionarySeeder {
             }
 
             return ImportResult(
+                id: dictionary.id,
                 name: dictionary.title ?? "Unknown",
                 terms: dictionary.termCount,
                 kanji: dictionary.kanjiCount,
@@ -265,10 +393,34 @@ struct DictionarySeeder {
         }
     }
 
+    static func validateCompressionDictionaries(for dictionaryResults: [ImportResult], in outputDir: URL) throws {
+        let termDictionaries = dictionaryResults.filter { $0.status == "Completed" && $0.terms > 0 }
+        guard !termDictionaries.isEmpty else {
+            return
+        }
+
+        for result in termDictionaries {
+            guard let dictionaryID = result.id else {
+                throw SeederError.missingCompressionDictionary("\(result.name) is missing its UUID")
+            }
+
+            let dictionaryURL = GlossaryCompressionCodec.zstdDictionaryURL(dictionaryID: dictionaryID, in: outputDir)
+
+            guard FileManager.default.fileExists(atPath: dictionaryURL.path) else {
+                throw SeederError.missingCompressionDictionary("\(result.name) -> \(dictionaryURL.lastPathComponent)")
+            }
+
+            let attributes = try FileManager.default.attributesOfItem(atPath: dictionaryURL.path)
+            let size = attributes[.size] as? NSNumber
+            guard let size, size.intValue > 0 else {
+                throw SeederError.missingCompressionDictionary("\(result.name) -> \(dictionaryURL.lastPathComponent) is empty")
+            }
+        }
+    }
+
     static func printSummary(dictionaryResults: [ImportResult], audioResults: [AudioSourceResult]) {
         print("\n--- Summary ---")
 
-        // Dictionary summary
         if !dictionaryResults.isEmpty {
             let completed = dictionaryResults.filter { $0.status == "Completed" }
             let failed = dictionaryResults.filter { $0.status != "Completed" }
@@ -287,7 +439,6 @@ struct DictionarySeeder {
             print("Total dictionary entries: \(totalTerms) terms, \(totalKanji) kanji")
         }
 
-        // Audio source summary
         if !audioResults.isEmpty {
             let completed = audioResults.filter { $0.status == "Completed" }
             let failed = audioResults.filter { $0.status != "Completed" }

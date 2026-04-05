@@ -124,6 +124,24 @@
       ]
     },
     {
+      "id": "manual-zstd",
+      "name": "Zstandard (zstd)",
+      "category": "spm",
+      "homepageURL": "https://github.com/facebook/zstd",
+      "sourceURL": "https://github.com/facebook/zstd",
+      "attribution": "Meta Platforms, Inc. and affiliates",
+      "notes": "Vendored C sources compiled via the SwiftZSTD package target at Sources/zstdlib.",
+      "licenses": [
+        {
+          "title": "Zstandard License",
+          "outputPath": "manual/manual-zstd-license.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/zstd/LICENSE.txt",
+          "referenceURL": "https://github.com/aperedera/SwiftZSTD/blob/master/Sources/zstdlib/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/aperedera/SwiftZSTD/master/Sources/zstdlib/LICENSE"
+        }
+      ]
+    },
+    {
       "id": "manual-material-symbols-outlined",
       "name": "Material Symbols Outlined",
       "category": "dictionaryData",

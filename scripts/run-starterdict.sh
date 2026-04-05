@@ -86,7 +86,7 @@ latest_seed_log_path="$LOG_DIR/latest-starterdict-seed.log"
 echo "Seeding starter dictionary output to $STARTER_OUTPUT_DIR..."
 rm -rf "$STARTER_OUTPUT_DIR"
 set +e
-"$SEEDER_BINARY_PATH" "$STARTER_OUTPUT_DIR" "$JITENDEX_ZIP_PATH" "$BCCWJ_ZIP_PATH" "$WADOKU_ZIP_PATH" --audio "$KANJI_ALIVE_ZIP_PATH" 2>&1 | tee "$seed_log_path"
+"$SEEDER_BINARY_PATH" "$STARTER_OUTPUT_DIR" "$JITENDEX_ZIP_PATH" "$BCCWJ_ZIP_PATH" "$WADOKU_ZIP_PATH" --audio "$KANJI_ALIVE_ZIP_PATH" --glossary-codec zstd-runtime-v1 --glossary-training-profile starterdict 2>&1 | tee "$seed_log_path"
 seed_exit_code=${PIPESTATUS[0]}
 set -e
 

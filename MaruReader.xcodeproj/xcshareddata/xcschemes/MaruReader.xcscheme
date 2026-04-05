@@ -48,6 +48,9 @@
          <TestPlanReference
             reference = "container:MaruReaderUITests.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:MaruDictionaryManagementTests.xctestplan">
+         </TestPlanReference>
       </TestPlans>
       <Testables>
          <TestableReference

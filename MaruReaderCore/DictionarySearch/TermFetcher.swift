@@ -198,7 +198,10 @@ enum TermFetcher {
         return await withTaskGroup(of: SearchResult?.self) { group in
             for match in matches {
                 group.addTask {
-                    guard let definitions = GlossaryCompressionCodec.decodeDefinitions(from: match.glossaryData) else {
+                    guard let definitions = GlossaryCompressionCodec.decodeDefinitions(
+                        from: match.glossaryData,
+                        dictionaryID: match.dictionaryUUID
+                    ) else {
                         logger.debug("Failed to decode glossary for term '\(match.term, privacy: .public)'")
                         return nil
                     }

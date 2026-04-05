@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruReaderCore
 
 /// Represents the frequency metadata for a kanji character.
 /// Can be a simple number/string, or an object with `value` and `displayValue`.
@@ -99,7 +100,11 @@ struct KanjiMetaBankV3Entry: DictionaryDataBankEntry {
         try container.encode(frequency)
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory _: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         (.kanjiFrequencyEntry, [
             "character": kanji,
             "displayFrequency": {

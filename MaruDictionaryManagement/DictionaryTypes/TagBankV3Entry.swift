@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruReaderCore
 
 struct TagBankV3Entry: DictionaryDataBankEntry {
     let name: String
@@ -34,7 +35,11 @@ struct TagBankV3Entry: DictionaryDataBankEntry {
         self.score = try container.decode(Double.self)
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory _: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         (
             .dictionaryTagMeta, [
                 "id": UUID(),

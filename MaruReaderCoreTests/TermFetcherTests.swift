@@ -40,7 +40,11 @@ struct TermFetcherTests {
             termEntry.definitionCount = 1
 
             let glossaryJSON = try JSONEncoder().encode([Definition.text("to eat")])
-            termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSON)
+            termEntry.glossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+                glossaryJSON,
+                using: .zstdV1,
+                dictionaryID: nil
+            )
 
             try context.save()
         }
@@ -402,7 +406,11 @@ struct TermFetcherTests {
         termEntry.definitionCount = 1
 
         let glossaryJSON = try JSONEncoder().encode([Definition.text(definition)])
-        termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSON)
+        termEntry.glossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+            glossaryJSON,
+            using: .zstdV1,
+            dictionaryID: nil
+        )
     }
 
     private func insertFrequencyEntry(

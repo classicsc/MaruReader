@@ -75,11 +75,20 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
         try container.encode(termTags.joined(separator: " "))
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
         let glossaryJSONData = (try? encoder.encode(self.glossary)) ?? Data("[]".utf8)
-        let compressedGlossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSONData)
+        let compressedGlossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+            glossaryJSONData,
+            using: glossaryCompressionVersion,
+            dictionaryID: dictionaryID,
+            searchBaseDirectory: glossaryCompressionBaseDirectory
+        )
 
         let definitionTagsData = self.definitionTags != nil ? (try? encoder.encode(self.definitionTags)) ?? Data() : Data()
         let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"

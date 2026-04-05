@@ -1,14 +1,14 @@
 {
   "configurations" : [
     {
-      "id" : "5E76D930-5B3C-4783-89B3-020D5C382252",
+      "id" : "D82642B4-ACD2-4A62-9CA4-61A87041118D",
       "name" : "Configuration 1",
       "options" : {
-        "commandLineArgumentEntries" : [
-          {
-            "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
-          }
-        ]
+          "commandLineArgumentEntries" : [
+            {
+              "argument" : "-com.apple.CoreData.ConcurrencyDebug 1"
+            }
+          ]
       }
     }
   ],
@@ -20,8 +20,8 @@
       "parallelizable" : false,
       "target" : {
         "containerPath" : "container:MaruReader.xcodeproj",
-        "identifier" : "DBCFB1692EAAAE8B00B4F27D",
-        "name" : "MaruReaderCoreTests"
+        "identifier" : "DB216E6B2F801219002C06A5",
+        "name" : "MaruDictionaryManagementTests"
       }
     }
   ],

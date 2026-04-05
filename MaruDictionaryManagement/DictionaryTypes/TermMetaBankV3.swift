@@ -77,7 +77,11 @@ struct TermMetaBankV3Entry: DictionaryDataBankEntry {
         }
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory _: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
         switch data {
         case let .frequency(freq):

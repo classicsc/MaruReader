@@ -72,6 +72,14 @@ struct DictionaryPersistenceTests {
         }
     }
 
+    final class PersistentContainerBox: @unchecked Sendable {
+        let container: NSPersistentContainer
+
+        init(container: NSPersistentContainer) {
+            self.container = container
+        }
+    }
+
     private var nonExpiringBackgroundTaskRunner: ApplicationBackgroundTaskRunner {
         ApplicationBackgroundTaskRunner { _, _, operation in
             await operation()
@@ -250,6 +258,44 @@ struct DictionaryPersistenceTests {
         return zipURL
     }
 
+    private func seedPartiallyImportedTermEntry(
+        in container: NSPersistentContainer,
+        dictionaryUUID: UUID
+    ) async throws -> NSManagedObjectID {
+        let context = container.newBackgroundContext()
+        return try await context.perform {
+            let dictionary = Dictionary(context: context)
+            dictionary.id = dictionaryUUID
+            dictionary.title = "Partial Import"
+            dictionary.timeQueued = Date()
+            dictionary.isComplete = false
+            dictionary.isFailed = false
+            dictionary.isCancelled = false
+            dictionary.isStarted = true
+            dictionary.displayProgressMessage = "Processing dictionary data..."
+            dictionary.format = 3
+
+            let termEntry = TermEntry(context: context)
+            termEntry.id = UUID()
+            termEntry.dictionaryID = dictionaryUUID
+            termEntry.expression = "食べる"
+            termEntry.reading = "たべる"
+            termEntry.glossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+                Data(#"["to eat"]"#.utf8),
+                using: .zstdV1,
+                dictionaryID: nil
+            )
+            termEntry.definitionTags = "[]"
+            termEntry.termTags = "[]"
+            termEntry.rules = "[]"
+            termEntry.score = 0
+            termEntry.sequence = 1
+
+            try context.save()
+            return dictionary.objectID
+        }
+    }
+
     // Helper: Verify dictionary import is properly cancelled
     @MainActor
     private func verifyDictionaryCancelled(_ dictionary: Dictionary?) {
@@ -355,6 +401,16 @@ struct DictionaryPersistenceTests {
         #expect(mediaDirectoryExists == false)
     }
 
+    private func runtimeCompressionDictionaryURL(for dictionaryID: UUID) -> URL? {
+        guard let baseDirectory = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
+        ) else {
+            return nil
+        }
+
+        return GlossaryCompressionCodec.zstdDictionaryURL(dictionaryID: dictionaryID, in: baseDirectory)
+    }
+
     @Test @MainActor func importDictionary_BackgroundTaskExpires_CancelsGracefully() async throws {
         let indexJSON = """
         {
@@ -379,7 +435,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
         await importManager.setBackgroundTaskRunner(expiringBackgroundTaskRunner)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -417,7 +476,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
         await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
 
         let importID = try await importManager.enqueueImport(from: zipURL)
@@ -527,7 +589,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -595,7 +660,10 @@ struct DictionaryPersistenceTests {
         // Test glossary (definitions) from compressed payload
         let decoder = JSONDecoder()
         let glossaryPayload: Data? = termEntry?.glossary
-        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload)
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(
+            glossaryPayload,
+            dictionaryID: termEntry?.dictionaryID
+        )
         let definitions = try? decoder.decode([Definition].self, from: glossaryJSON ?? Data())
         #expect(definitions?.count == 1)
         if case let .text(glossaryText) = definitions?.first {
@@ -803,7 +871,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -859,7 +930,10 @@ struct DictionaryPersistenceTests {
         // Test glossary (V1 uses remaining elements as string definitions) - now stored as compressed payload
         let decoder = JSONDecoder()
         let glossaryPayload: Data? = termEntry?.glossary
-        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(glossaryPayload)
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(
+            glossaryPayload,
+            dictionaryID: termEntry?.dictionaryID
+        )
         let definitions = try? decoder.decode([Definition].self, from: glossaryJSON ?? Data())
         #expect(definitions?.count == 2)
         if case let .text(firstGlossary) = definitions?[0] {
@@ -940,6 +1014,213 @@ struct DictionaryPersistenceTests {
         }
     }
 
+    @Test @MainActor func importDictionary_RuntimeGlossaryCompression_PersistsAndCleansUpPerDictionaryDictionary() async throws {
+        let indexJSON = """
+        {
+            "title": "RuntimeGlossaryCompression",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termRows = (0 ..< 384).map { index in
+            let glossary = String(repeating: "structured-definition-\(index)-", count: 32)
+            return #"["単語\#(index)","たんご\#(index)","","",\#(1000 - index),["\#(glossary)"],\#(index),""]"#
+        }
+        let termJSON = """
+        [
+        \(termRows.joined(separator: ",\n"))
+        ]
+        """
+
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdRuntimeV1
+        )
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let context = persistenceController.container.viewContext
+        guard let dictionary = getDictionary(from: context, importID: importID),
+              let dictionaryID = dictionary.id,
+              let compressionDictionaryURL = runtimeCompressionDictionaryURL(for: dictionaryID)
+        else {
+            Issue.record("Failed to resolve imported dictionary or runtime compression dictionary path")
+            return
+        }
+
+        #expect(dictionary.isComplete == true)
+        #expect(FileManager.default.fileExists(atPath: compressionDictionaryURL.path))
+
+        let glossaryPayload = fetchTermEntries(from: context).first?.glossary
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(
+            glossaryPayload,
+            dictionaryID: dictionaryID
+        )
+        let definitions = try? JSONDecoder().decode([Definition].self, from: glossaryJSON ?? Data())
+        #expect(definitions?.isEmpty == false)
+
+        await importManager.deleteDictionary(dictionaryID: importID)
+        await waitForDictionaryDeletion(in: context, importID: importID)
+
+        #expect(!FileManager.default.fileExists(atPath: compressionDictionaryURL.path))
+        #expect(
+            GlossaryCompressionCodec.decodeGlossaryJSON(
+                glossaryPayload,
+                dictionaryID: dictionaryID
+            ) == nil
+        )
+    }
+
+    @Test @MainActor func importDictionary_RuntimeGlossaryCompressionFallback_UsesPlainZSTDWithoutPersistingDictionary() async throws {
+        let indexJSON = """
+        {
+            "title": "RuntimeGlossaryCompressionFallback",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["食べる", "たべる", "", "", 100, ["to eat"], 1, ""]
+        ]
+        """
+
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdRuntimeV1
+        )
+
+        let importID = try await importManager.enqueueImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let context = persistenceController.container.viewContext
+        guard let dictionary = getDictionary(from: context, importID: importID),
+              let dictionaryID = dictionary.id,
+              let compressionDictionaryURL = runtimeCompressionDictionaryURL(for: dictionaryID),
+              let glossaryPayload = fetchTermEntries(from: context).first?.glossary
+        else {
+            Issue.record("Failed to resolve imported fallback dictionary or payload")
+            return
+        }
+
+        #expect(dictionary.isComplete == true)
+        #expect(!FileManager.default.fileExists(atPath: compressionDictionaryURL.path))
+        #expect(glossaryPayload.starts(with: Data("MRG2".utf8)))
+
+        let glossaryJSON = GlossaryCompressionCodec.decodeGlossaryJSON(
+            glossaryPayload,
+            dictionaryID: dictionaryID
+        )
+        let definitions = try? JSONDecoder().decode([Definition].self, from: glossaryJSON ?? Data())
+        #expect(definitions?.count == 1)
+        if case let .text(firstDefinition) = definitions?.first {
+            #expect(firstDefinition == "to eat")
+        } else {
+            Issue.record("Expected fallback glossary definition to decode as text")
+        }
+    }
+
+    @Test func glossaryCompressionVersionsToTry_appendsUncompressedFallbackLast() {
+        let versions = DictionaryImportManager.glossaryCompressionVersionsToTry(
+            requested: .zstdRuntimeV1,
+            prepared: .zstdRuntimeV1
+        )
+
+        #expect(versions == [.zstdRuntimeV1, .zstdV1, .lzfseV1, .uncompressedV1])
+    }
+
+    @Test @MainActor func cleanupPartialImportForCompressionRetry_ContinuesWhenDeleteThrowsAfterRemovingRows() async throws {
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
+        let containerBox = PersistentContainerBox(container: persistenceController.container)
+        let dictionaryUUID = UUID()
+        _ = try await seedPartiallyImportedTermEntry(
+            in: persistenceController.container,
+            dictionaryUUID: dictionaryUUID
+        )
+
+        await importManager.setTestDeleteDictionaryEntitiesHook { dictionaryUUID, _ in
+            let cleanupContext = containerBox.container.newBackgroundContext()
+            try await cleanupContext.perform {
+                let fetchRequest: NSFetchRequest<TermEntry> = TermEntry.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", dictionaryUUID as CVarArg)
+                let entries = try cleanupContext.fetch(fetchRequest)
+                for entry in entries {
+                    cleanupContext.delete(entry)
+                }
+                try cleanupContext.save()
+            }
+
+            throw NSError(
+                domain: "DictionaryPersistenceTests",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Simulated cleanup failure"]
+            )
+        }
+
+        try await importManager.cleanupPartialImportForCompressionRetry(
+            dictionaryUUID: dictionaryUUID,
+            batchSize: 10000
+        )
+
+        let context = persistenceController.container.viewContext
+        #expect(fetchTermEntries(from: context).isEmpty)
+    }
+
+    @Test @MainActor func cleanupPartialImportForCompressionRetry_ThrowsWhenRowsRemain() async throws {
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
+        let dictionaryUUID = UUID()
+        _ = try await seedPartiallyImportedTermEntry(
+            in: persistenceController.container,
+            dictionaryUUID: dictionaryUUID
+        )
+
+        await importManager.setTestDeleteDictionaryEntitiesHook { _, _ in }
+
+        do {
+            try await importManager.cleanupPartialImportForCompressionRetry(
+                dictionaryUUID: dictionaryUUID,
+                batchSize: 10000
+            )
+            Issue.record("Expected compression retry cleanup to fail when rows remain")
+        } catch {
+            #expect(error.localizedDescription.contains("Remaining rows: TermEntry=1"))
+        }
+
+        let context = persistenceController.container.viewContext
+        #expect(fetchTermEntries(from: context).count == 1)
+    }
+
     // MARK: - Cancellation Tests
 
     @Test func importDictionary_CancelAfterIndex_CleansUpProperly() async throws {
@@ -961,7 +1242,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         // Set up cancellation hook to trigger after index processing
         var cancellationCount = 0
@@ -1013,7 +1297,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         // Set up cancellation hook to trigger after data processing
         var cancellationCount = 0
@@ -1063,7 +1350,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         // Set up cancellation hook to trigger after media copy
         var cancellationCount = 0
@@ -1111,7 +1401,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1142,7 +1435,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1168,7 +1464,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1206,7 +1505,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1245,7 +1547,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1284,7 +1589,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         // Set up error injection to simulate file system error
         await importManager.setTestErrorInjection {
@@ -1328,7 +1636,10 @@ struct DictionaryPersistenceTests {
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
 
@@ -1350,7 +1661,10 @@ struct DictionaryPersistenceTests {
 
     @Test @MainActor func cleanupInterruptedDictionaryImports_MarksFailedAndCleansEntries() async throws {
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let dictionaryUUID = UUID()
         let context = persistenceController.container.newBackgroundContext()
@@ -1374,7 +1688,11 @@ struct DictionaryPersistenceTests {
             termEntry.dictionaryID = dictionaryUUID
             termEntry.expression = "食べる"
             termEntry.reading = "たべる"
-            termEntry.glossary = GlossaryCompressionCodec.encodeGlossaryJSON(Data("[]".utf8))
+            termEntry.glossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+                Data("[]".utf8),
+                using: .zstdV1,
+                dictionaryID: nil
+            )
             termEntry.definitionTags = "[]"
             termEntry.termTags = "[]"
             termEntry.rules = "[]"
@@ -1414,7 +1732,10 @@ struct DictionaryPersistenceTests {
 
     @Test @MainActor func checkForUpdates_MarksUpdateReadyAndStoresDownloadURL() async throws {
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
         let networkProvider = MockUpdateNetworkProvider()
         let updateManager = DictionaryUpdateManager(
             container: persistenceController.container,
@@ -1464,7 +1785,10 @@ struct DictionaryPersistenceTests {
 
     @Test @MainActor func updateDictionary_CopiesPreferencesAndUpdatesAnki() async throws {
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
         let networkProvider = MockUpdateNetworkProvider()
         let updateManager = DictionaryUpdateManager(
             container: persistenceController.container,
@@ -1614,7 +1938,10 @@ struct DictionaryPersistenceTests {
 
     @Test @MainActor func cleanupInterruptedUpdateImports_RetriesInsteadOfFailing() async throws {
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let indexJSON = """
         {

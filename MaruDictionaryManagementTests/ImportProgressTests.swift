@@ -146,7 +146,10 @@ struct ImportProgressTests {
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)
@@ -181,7 +184,10 @@ struct ImportProgressTests {
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)
@@ -215,7 +221,10 @@ struct ImportProgressTests {
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)
@@ -247,7 +256,10 @@ struct ImportProgressTests {
 
         let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
         let collector = ProgressMessageCollector(container: persistenceController.container)
-        let importManager = DictionaryImportManager(container: persistenceController.container)
+        let importManager = DictionaryImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
 
         let importID = try await importManager.enqueueImport(from: zipURL)
         await importManager.waitForCompletion(jobID: importID)

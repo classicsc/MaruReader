@@ -37,7 +37,7 @@ struct DictionarySeedingTests {
         #expect(!DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
-    @Test func copyStarterDictionaryContents_copiesDatabaseAndMedia() throws {
+    @Test func copyStarterDictionaryContents_copiesDatabaseMediaAndCompressionDictionaries() throws {
         let starterDirectory = try makeTemporaryDirectory()
         defer { cleanupTemporaryDirectory(starterDirectory) }
 
@@ -57,15 +57,30 @@ struct DictionarySeedingTests {
         let audioFileURL = audioMediaDirectory.appendingPathComponent("audio.txt")
         #expect(FileManager.default.createFile(atPath: audioFileURL.path, contents: Data("audio".utf8)))
 
+        let compressionDictionaryDirectory = starterDirectory.appendingPathComponent(
+            GlossaryCompressionCodec.zstdDictionaryDirectoryName
+        )
+        try FileManager.default.createDirectory(at: compressionDictionaryDirectory, withIntermediateDirectories: true)
+        let dictionaryID = UUID()
+        let dictionaryIdentifier = GlossaryCompressionCodec.runtimeZSTDDictionaryIdentifier(for: dictionaryID)
+        let compressionDictionaryURL = compressionDictionaryDirectory.appendingPathComponent(
+            "\(dictionaryIdentifier).\(GlossaryCompressionCodec.zstdDictionaryFileExtension)"
+        )
+        #expect(FileManager.default.createFile(atPath: compressionDictionaryURL.path, contents: Data("dict".utf8)))
+
         try DictionaryPersistenceController.copyStarterDictionaryContents(from: starterDirectory, to: destinationDirectory)
 
         let copiedDatabaseURL = destinationDirectory.appendingPathComponent("MaruDictionary.sqlite")
         let copiedMediaURL = destinationDirectory.appendingPathComponent("Media/entry.txt")
         let copiedAudioURL = destinationDirectory.appendingPathComponent("AudioMedia/audio.txt")
+        let copiedCompressionDictionaryURL = destinationDirectory
+            .appendingPathComponent(GlossaryCompressionCodec.zstdDictionaryDirectoryName)
+            .appendingPathComponent("\(dictionaryIdentifier).\(GlossaryCompressionCodec.zstdDictionaryFileExtension)")
 
         #expect(FileManager.default.fileExists(atPath: copiedDatabaseURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedMediaURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedAudioURL.path))
+        #expect(FileManager.default.fileExists(atPath: copiedCompressionDictionaryURL.path))
     }
 
     // MARK: - removeStoreFiles

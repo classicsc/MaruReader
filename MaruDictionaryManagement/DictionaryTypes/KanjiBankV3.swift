@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruReaderCore
 
 /// Represents a single entry in a kanji_bank v3 file.
 /// Layout (array-based):
@@ -72,7 +73,11 @@ struct KanjiBankV3Entry: DictionaryDataBankEntry {
         try container.encode(stats)
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory _: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
         let onyomiData = (try? encoder.encode(onyomi)) ?? Data()

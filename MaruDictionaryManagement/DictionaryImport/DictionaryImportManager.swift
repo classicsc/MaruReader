@@ -21,6 +21,28 @@ import MaruReaderCore
 import os
 
 public actor DictionaryImportManager {
+    private struct CompressionRetryCleanupError: LocalizedError {
+        let underlyingError: (any Error)?
+        let remainingEntityCounts: [String: Int]
+
+        var errorDescription: String? {
+            let remainingDescription = remainingEntityCounts
+                .sorted { $0.key < $1.key }
+                .map { "\($0.key)=\($0.value)" }
+                .joined(separator: ", ")
+
+            if let underlyingError {
+                return FrameworkLocalization.string(
+                    "Failed to clean up partially imported dictionary data before retrying: \(underlyingError.localizedDescription). Remaining rows: \(remainingDescription)"
+                )
+            }
+
+            return FrameworkLocalization.string(
+                "Failed to clean up partially imported dictionary data before retrying. Remaining rows: \(remainingDescription)"
+            )
+        }
+    }
+
     public static let shared = DictionaryImportManager(
         container: DictionaryPersistenceController.shared.container,
         baseDirectory: DictionaryPersistenceController.shared.baseDirectory
@@ -29,6 +51,15 @@ public actor DictionaryImportManager {
     /// Constants
     /// The supported dictionary format versions
     static let supportedFormats: Set<Int> = [1, 3]
+    private static let dictionaryEntryEntityNames = [
+        "TermEntry",
+        "KanjiEntry",
+        "TermFrequencyEntry",
+        "KanjiFrequencyEntry",
+        "IPAEntry",
+        "PitchAccentEntry",
+        "DictionaryTagMeta",
+    ]
 
     private var queue: [NSManagedObjectID] = []
     private var currentTask: Task<Void, Never>?
@@ -36,19 +67,29 @@ public actor DictionaryImportManager {
     private var deletionTasks: [NSManagedObjectID: Task<Void, Never>] = [:]
     private var container: NSPersistentContainer
     private var baseDirectory: URL?
+    private let glossaryCompressionVersion: GlossaryCompressionCodecVersion
+    private let glossaryCompressionTrainingProfile: GlossaryCompressionTrainingProfile
     private var backgroundTaskRunner = ApplicationBackgroundTaskRunner.live
     private let logger = Logger.maru(category: "DictionaryImport")
 
     // Test hooks for controlled testing
     var testCancellationHook: (() async throws -> Void)?
     var testErrorInjection: (() throws -> Void)?
+    var testDeleteDictionaryEntitiesHook: (@Sendable (UUID, Int) async throws -> Void)?
 
     /// Initializer for both shared instance and testing with custom container
-    public init(container: NSPersistentContainer, baseDirectory: URL? = nil) {
+    public init(
+        container: NSPersistentContainer,
+        baseDirectory: URL? = nil,
+        glossaryCompressionVersion: GlossaryCompressionCodecVersion = GlossaryCompressionCodec.defaultImportVersion,
+        glossaryCompressionTrainingProfile: GlossaryCompressionTrainingProfile = .runtime
+    ) {
         self.container = container
         self.baseDirectory = baseDirectory ?? FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
         )
+        self.glossaryCompressionVersion = glossaryCompressionVersion
+        self.glossaryCompressionTrainingProfile = glossaryCompressionTrainingProfile
     }
 
     /// Enqueue a new dictionary import from the given ZIP file URL.
@@ -190,6 +231,7 @@ public actor DictionaryImportManager {
         for dictionaryID in cleanupIDs {
             try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
             cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
+            cleanCompressionDictionaryByUUID(dictionaryUUID: dictionaryID)
         }
 
         guard !retryJobIDs.isEmpty else { return }
@@ -264,15 +306,29 @@ public actor DictionaryImportManager {
             try Task.checkCancellation()
             try await testCancellationHook?()
 
-            let dataBankProcessingTask = DataBankProcessingTask(
+            let glossaryCompressionDictionaryTask = GlossaryCompressionDictionaryImportTask(
                 jobID: jobID,
                 dictionaryID: indexResult.dictionaryID,
                 archiveURL: indexResult.archiveURL,
                 bankPaths: indexResult.bankPaths,
+                glossaryCompressionVersion: glossaryCompressionVersion,
+                glossaryCompressionTrainingProfile: glossaryCompressionTrainingProfile,
+                baseDirectory: baseDirectory,
                 container: container
             )
-            try await dataBankProcessingTask.start()
-            logger.debug("Import job \(jobID) term banks processed")
+            let preparedGlossaryCompressionVersion = try await glossaryCompressionDictionaryTask.start()
+            logger.debug("Import job \(jobID) glossary compression prepared using \(preparedGlossaryCompressionVersion.rawValue, privacy: .public)")
+            try Task.checkCancellation()
+            try await testCancellationHook?()
+
+            let importedGlossaryCompressionVersion = try await processDataBanksWithGlossaryCompressionFallback(
+                jobID: jobID,
+                dictionaryID: indexResult.dictionaryID,
+                archiveURL: indexResult.archiveURL,
+                bankPaths: indexResult.bankPaths,
+                preparedGlossaryCompressionVersion: preparedGlossaryCompressionVersion
+            )
+            logger.debug("Import job \(jobID) term banks processed using \(importedGlossaryCompressionVersion.rawValue, privacy: .public)")
             try Task.checkCancellation()
             try await testCancellationHook?()
 
@@ -367,6 +423,7 @@ public actor DictionaryImportManager {
             }
             if let uuid = uuidToClean {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+                cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
             }
         } catch {
             if let uuid = dictionaryUUID {
@@ -396,11 +453,181 @@ public actor DictionaryImportManager {
             }
             if let uuid = uuidToClean {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+                cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
             }
         }
 
         await context.perform {
             _ = try? context.existingObject(with: jobID) as? Dictionary
+        }
+    }
+
+    private func processDataBanksWithGlossaryCompressionFallback(
+        jobID: NSManagedObjectID,
+        dictionaryID: UUID,
+        archiveURL: URL,
+        bankPaths: DictionaryBankPaths,
+        preparedGlossaryCompressionVersion: GlossaryCompressionCodecVersion
+    ) async throws -> GlossaryCompressionCodecVersion {
+        let versionsToTry = Self.glossaryCompressionVersionsToTry(
+            requested: glossaryCompressionVersion,
+            prepared: preparedGlossaryCompressionVersion
+        )
+
+        for (index, version) in versionsToTry.enumerated() {
+            let dataBankProcessingTask = DataBankProcessingTask(
+                jobID: jobID,
+                dictionaryID: dictionaryID,
+                archiveURL: archiveURL,
+                bankPaths: bankPaths,
+                glossaryCompressionVersion: version,
+                glossaryCompressionBaseDirectory: baseDirectory,
+                container: container
+            )
+
+            do {
+                try await dataBankProcessingTask.start()
+                return version
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                guard index + 1 < versionsToTry.count else {
+                    throw error
+                }
+
+                let fallbackVersion = versionsToTry[index + 1]
+                logger.warning(
+                    "Import job \(jobID) glossary compression with \(version.rawValue, privacy: .public) failed; retrying with \(fallbackVersion.rawValue, privacy: .public): \(error.localizedDescription, privacy: .public)"
+                )
+
+                try await cleanupPartialImportForCompressionRetry(
+                    dictionaryUUID: dictionaryID,
+                    batchSize: 10000
+                )
+                if version == .zstdRuntimeV1, fallbackVersion != .zstdRuntimeV1 {
+                    cleanCompressionDictionaryByUUID(dictionaryUUID: dictionaryID)
+                }
+                try await resetImportStateForCompressionRetry(jobID: jobID)
+            }
+        }
+
+        return preparedGlossaryCompressionVersion
+    }
+
+    static func glossaryCompressionVersionsToTry(
+        requested: GlossaryCompressionCodecVersion,
+        prepared: GlossaryCompressionCodecVersion
+    ) -> [GlossaryCompressionCodecVersion] {
+        var versions = [prepared]
+
+        func appendIfNeeded(_ version: GlossaryCompressionCodecVersion) {
+            guard !versions.contains(version) else {
+                return
+            }
+            versions.append(version)
+        }
+
+        switch requested {
+        case .zstdRuntimeV1:
+            appendIfNeeded(.zstdV1)
+            appendIfNeeded(.lzfseV1)
+            appendIfNeeded(.uncompressedV1)
+        case .zstdV1:
+            appendIfNeeded(.lzfseV1)
+            appendIfNeeded(.uncompressedV1)
+        case .lzfseV1:
+            appendIfNeeded(.uncompressedV1)
+        case .uncompressedV1:
+            break
+        @unknown default:
+            break
+        }
+
+        return versions
+    }
+
+    func cleanupPartialImportForCompressionRetry(
+        dictionaryUUID: UUID,
+        batchSize: Int
+    ) async throws {
+        var deletionError: (any Error)?
+
+        do {
+            if let testDeleteDictionaryEntitiesHook {
+                try await testDeleteDictionaryEntitiesHook(dictionaryUUID, batchSize)
+            } else {
+                try await deleteDictionaryEntitiesInBatches(
+                    dictionaryUUID: dictionaryUUID,
+                    batchSize: batchSize
+                )
+            }
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            deletionError = error
+        }
+
+        let remainingEntityCounts = try await remainingDictionaryEntityCounts(dictionaryUUID: dictionaryUUID)
+        guard remainingEntityCounts.isEmpty else {
+            throw CompressionRetryCleanupError(
+                underlyingError: deletionError,
+                remainingEntityCounts: remainingEntityCounts
+            )
+        }
+
+        if let deletionError {
+            logger.warning(
+                "Retry cleanup for dictionary \(dictionaryUUID.uuidString, privacy: .public) reported an error but no rows remained: \(deletionError.localizedDescription, privacy: .public)"
+            )
+        }
+    }
+
+    private func remainingDictionaryEntityCounts(dictionaryUUID: UUID) async throws -> [String: Int] {
+        var remainingCounts: [String: Int] = [:]
+
+        for entityName in Self.dictionaryEntryEntityNames {
+            try Task.checkCancellation()
+
+            let context = container.newBackgroundContext()
+            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            context.undoManager = nil
+            context.shouldDeleteInaccessibleFaults = true
+
+            let count = try await context.perform {
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+                fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", dictionaryUUID as CVarArg)
+                return try context.count(for: fetchRequest)
+            }
+
+            if count > 0 {
+                remainingCounts[entityName] = count
+            }
+        }
+
+        return remainingCounts
+    }
+
+    private func resetImportStateForCompressionRetry(jobID: NSManagedObjectID) async throws {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        try await context.perform {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
+                throw DictionaryImportError.databaseError
+            }
+
+            dictionary.banksProcessed = false
+            dictionary.termCount = 0
+            dictionary.kanjiCount = 0
+            dictionary.termFrequencyCount = 0
+            dictionary.kanjiFrequencyCount = 0
+            dictionary.pitchesCount = 0
+            dictionary.ipaCount = 0
+            dictionary.tagCount = 0
+            dictionary.displayProgressMessage = FrameworkLocalization.string("Processing dictionary data...")
+            try context.save()
         }
     }
 
@@ -432,6 +659,23 @@ public actor DictionaryImportManager {
         } catch {}
     }
 
+    private func cleanCompressionDictionaryByUUID(dictionaryUUID: UUID) {
+        let fileManager = FileManager.default
+        GlossaryCompressionCodec.evictRuntimeZSTDDictionary(dictionaryID: dictionaryUUID)
+
+        do {
+            guard let baseDir = baseDirectory else { return }
+            let dictionaryURL = GlossaryCompressionCodec.zstdDictionaryURL(
+                dictionaryID: dictionaryUUID,
+                in: baseDir
+            )
+
+            if fileManager.fileExists(atPath: dictionaryURL.path) {
+                try fileManager.removeItem(at: dictionaryURL)
+            }
+        } catch {}
+    }
+
     // MARK: - Test Helper Methods
 
     /// Set test cancellation hook for controlled testing
@@ -442,6 +686,10 @@ public actor DictionaryImportManager {
     /// Set test error injection for controlled testing
     func setTestErrorInjection(_ injection: (() throws -> Void)?) {
         testErrorInjection = injection
+    }
+
+    func setTestDeleteDictionaryEntitiesHook(_ hook: (@Sendable (UUID, Int) async throws -> Void)?) {
+        testDeleteDictionaryEntitiesHook = hook
     }
 
     func setBackgroundTaskRunner(_ runner: ApplicationBackgroundTaskRunner) {
@@ -541,6 +789,7 @@ public actor DictionaryImportManager {
 
             if let uuid = dictionaryUUID {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
+                cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
             }
 
             try Task.checkCancellation()
@@ -583,17 +832,7 @@ public actor DictionaryImportManager {
 
     /// Delete dictionary entry entities in batches for memory efficiency.
     private func deleteDictionaryEntitiesInBatches(dictionaryUUID: UUID, batchSize: Int) async throws {
-        let entityNames = [
-            "TermEntry",
-            "KanjiEntry",
-            "TermFrequencyEntry",
-            "KanjiFrequencyEntry",
-            "IPAEntry",
-            "PitchAccentEntry",
-            "DictionaryTagMeta",
-        ]
-
-        for entityName in entityNames {
+        for entityName in Self.dictionaryEntryEntityNames {
             try Task.checkCancellation()
             logger.debug("Deleting \(entityName) entities for dictionary \(dictionaryUUID)")
             try await deleteBatchesForEntity(entityName: entityName, dictionaryUUID: dictionaryUUID, batchSize: batchSize)

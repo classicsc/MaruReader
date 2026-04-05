@@ -268,6 +268,16 @@ public final class DictionaryPersistenceController: Sendable {
         if fileManager.fileExists(atPath: sourceAudioMediaDir.path) {
             try fileManager.copyItem(at: sourceAudioMediaDir, to: destinationAudioMediaDir)
         }
+
+        let sourceCompressionDictionaryDir = starterDictionaryDirectory.appendingPathComponent(
+            GlossaryCompressionCodec.zstdDictionaryDirectoryName
+        )
+        let destinationCompressionDictionaryDir = baseDirectory.appendingPathComponent(
+            GlossaryCompressionCodec.zstdDictionaryDirectoryName
+        )
+        if fileManager.fileExists(atPath: sourceCompressionDictionaryDir.path) {
+            try fileManager.copyItem(at: sourceCompressionDictionaryDir, to: destinationCompressionDictionaryDir)
+        }
     }
 
     #if DEBUG

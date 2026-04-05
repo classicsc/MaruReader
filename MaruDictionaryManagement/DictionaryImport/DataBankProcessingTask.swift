@@ -29,6 +29,8 @@ struct DataBankProcessingTask {
     let dictionaryID: UUID
     let archiveURL: URL
     let bankPaths: DictionaryBankPaths
+    let glossaryCompressionVersion: GlossaryCompressionCodecVersion
+    let glossaryCompressionBaseDirectory: URL?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger.maru(category: "TermBankProcessingTask")
 
@@ -42,11 +44,21 @@ struct DataBankProcessingTask {
         }
     }
 
-    init(jobID: NSManagedObjectID, dictionaryID: UUID, archiveURL: URL, bankPaths: DictionaryBankPaths, container: NSPersistentContainer) {
+    init(
+        jobID: NSManagedObjectID,
+        dictionaryID: UUID,
+        archiveURL: URL,
+        bankPaths: DictionaryBankPaths,
+        glossaryCompressionVersion: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory: URL?,
+        container: NSPersistentContainer
+    ) {
         self.jobID = jobID
         self.dictionaryID = dictionaryID
         self.archiveURL = archiveURL
         self.bankPaths = bankPaths
+        self.glossaryCompressionVersion = glossaryCompressionVersion
+        self.glossaryCompressionBaseDirectory = glossaryCompressionBaseDirectory
         self.persistentContainer = container
     }
 
@@ -117,7 +129,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await termEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -137,7 +155,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await kanjiEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -177,7 +201,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await termEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await termEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -197,7 +227,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await kanjiEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await kanjiEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -217,7 +253,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await dictionaryTagMetaEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await dictionaryTagMetaEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -237,7 +279,13 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    await kanjiFrequencyEntryChannel.send(entry.toDataDictionary(dictionaryID: self.dictionaryID).1)
+                                    try await kanjiFrequencyEntryChannel.send(
+                                        entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        ).1
+                                    )
                                 }
                             }
                         } catch {
@@ -257,7 +305,11 @@ struct DataBankProcessingTask {
                             try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
                                 let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [fileURL])
                                 for try await entry in iterator {
-                                    let dataDict = entry.toDataDictionary(dictionaryID: self.dictionaryID)
+                                    let dataDict = try entry.toDataDictionary(
+                                        dictionaryID: self.dictionaryID,
+                                        glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                        glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                    )
                                     switch dataDict.0 {
                                     case .termFrequencyEntry:
                                         await termFrequencyEntryChannel.send(dataDict.1)

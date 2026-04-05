@@ -197,7 +197,11 @@ struct KanjiBankV1Entry: DictionaryDataBankEntry {
         }
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory _: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
         let onyomiData = (try? encoder.encode(onyomi)) ?? Data()
@@ -264,14 +268,23 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         self.glossary = glossary
     }
 
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: any Sendable]) {
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory: URL?
+    ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
         let definitionTagsData = (try? encoder.encode(definitionTags)) ?? Data()
         let definitionTagsString = String(data: definitionTagsData, encoding: .utf8) ?? "[]"
 
         let glossaryJSONData = (try? encoder.encode(glossary)) ?? Data("[]".utf8)
-        let compressedGlossary = GlossaryCompressionCodec.encodeGlossaryJSON(glossaryJSONData)
+        let compressedGlossary = try GlossaryCompressionCodec.encodeGlossaryJSON(
+            glossaryJSONData,
+            using: glossaryCompressionVersion,
+            dictionaryID: dictionaryID,
+            searchBaseDirectory: glossaryCompressionBaseDirectory
+        )
 
         let rulesData = (try? encoder.encode(rules)) ?? Data()
         let rulesString = String(data: rulesData, encoding: .utf8) ?? "[]"

@@ -1,5 +1,5 @@
 {
-  "originHash" : "79e47bb55e6b36aa486e28fbad893239a7ebab06df5fcf69f90a8a695f5ec623",
+  "originHash" : "5022f0f4b7fd6cacce25163a7aedb42fb520a365fd7f7105ddb250c7e4eb1831",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -107,6 +107,15 @@
       "state" : {
         "revision" : "dba183c96b2da4e4b80bb31b1e2e59cb9542b8fc",
         "version" : "2.13.1"
+      }
+    },
+    {
+      "identity" : "swiftzstd",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/aperedera/SwiftZSTD",
+      "state" : {
+        "branch" : "master",
+        "revision" : "04cfb0d98ee6c3b245220a80daa99a17a68f95b6"
       }
     },
     {

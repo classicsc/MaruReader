@@ -7,6 +7,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 plans=(
   MaruReaderTests
   MaruReaderCoreTests
+  MaruDictionaryManagementTests
   MaruMangaTests
   MaruAnkiTests
   MaruWebTests

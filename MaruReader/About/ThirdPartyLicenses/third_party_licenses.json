@@ -129,6 +129,22 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock"
     },
     {
+      "attribution" : "Meta Platforms, Inc. and affiliates",
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/facebook\/zstd",
+      "id" : "manual-zstd",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-zstd-license.txt",
+          "referenceURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD\/blob\/master\/Sources\/zstdlib\/LICENSE",
+          "title" : "Zstandard License"
+        }
+      ],
+      "name" : "Zstandard (zstd)",
+      "notes" : "Vendored C sources compiled via the SwiftZSTD package target at Sources\/zstdlib.",
+      "sourceURL" : "https:\/\/github.com\/facebook\/zstd"
+    },
+    {
       "category" : "spm",
       "homepageURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
       "id" : "spm-cryptoswift",
@@ -322,6 +338,21 @@
     },
     {
       "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD",
+      "id" : "spm-swiftzstd",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-swiftzstd-license-md.txt",
+          "referenceURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD",
+          "title" : "LICENSE.md"
+        }
+      ],
+      "name" : "SwiftZSTD",
+      "revision" : "04cfb0d98ee6c3b245220a80daa99a17a68f95b6",
+      "sourceURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD"
+    },
+    {
+      "category" : "spm",
       "homepageURL" : "https:\/\/github.com\/marmelroy\/Zip",
       "id" : "spm-zip",
       "licenses" : [
@@ -497,6 +528,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-02T02:57:17.099Z",
+  "generatedAt" : "2026-04-05T00:59:17.396Z",
   "schemaVersion" : 1
 }

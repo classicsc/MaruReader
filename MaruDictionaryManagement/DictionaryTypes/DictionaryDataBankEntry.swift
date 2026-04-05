@@ -16,9 +16,14 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruReaderCore
 
 protocol DictionaryDataBankEntry: Codable, Sendable {
-    func toDataDictionary(dictionaryID: UUID) -> (DictionaryDataType, [String: Sendable])
+    func toDataDictionary(
+        dictionaryID: UUID,
+        glossaryCompressionVersion: GlossaryCompressionCodecVersion,
+        glossaryCompressionBaseDirectory: URL?
+    ) throws -> (DictionaryDataType, [String: Sendable])
 }
 
 enum DictionaryDataType {
