@@ -26,6 +26,7 @@ import System
 public final class DictionaryPersistenceController: Sendable {
     public static let shared = DictionaryPersistenceController()
     private static let logger = Logger.maru(category: "DictionaryPersistenceController")
+    private static let bundledDatabaseSeedCompletionMarkerFileName = ".bundled-dictionary-seed-complete"
     #if DEBUG
         private static let suppressBundledStarterDictionaryLaunchArgument = "--disableBundledStarterDictionaryFallback"
     #endif
@@ -171,16 +172,23 @@ public final class DictionaryPersistenceController: Sendable {
 
     // MARK: - Bundled Database Seeding
 
-    /// Check whether the bundled dictionary still needs to be seeded.
-    /// - Parameter baseDirectory: The app group container URL to seed into.
-    /// - Returns: True when the starter database isn't present yet.
-    public static func isBundledDatabaseSeedingNeeded(at baseDirectory: URL?) -> Bool {
-        guard let baseDirectory else { return false }
-        let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
-        return !FileManager.default.fileExists(atPath: destinationDB.path)
+    /// Returns the completion marker used to determine whether bundled seeding finished.
+    static func bundledDatabaseSeedCompletionMarkerURL(in baseDirectory: URL) -> URL {
+        baseDirectory.appendingPathComponent(bundledDatabaseSeedCompletionMarkerFileName)
     }
 
-    /// Copy bundled starter dictionary to app group container if no database exists yet.
+    /// Check whether the bundled dictionary still needs to be seeded.
+    /// The completion marker is the only signal that bundled seeding finished.
+    /// - Parameter baseDirectory: The app group container URL to seed into.
+    /// - Returns: True when the bundled seed completion marker isn't present yet.
+    public static func isBundledDatabaseSeedingNeeded(at baseDirectory: URL?) -> Bool {
+        guard let baseDirectory else { return false }
+        let markerURL = bundledDatabaseSeedCompletionMarkerURL(in: baseDirectory)
+        return !FileManager.default.fileExists(atPath: markerURL.path)
+    }
+
+    /// Copy bundled starter dictionary to app group container if seeding has not completed yet.
+    /// The completion marker is written only after all copy work succeeds.
     /// - Parameter baseDirectory: The app group container URL to seed into.
     public static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) async {
         guard isBundledDatabaseSeedingNeeded(at: baseDirectory) else { return }
@@ -190,9 +198,8 @@ public final class DictionaryPersistenceController: Sendable {
 
             let fileManager = FileManager.default
 
-            // Skip if database already exists
-            let destinationDB = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
-            guard !fileManager.fileExists(atPath: destinationDB.path) else { return }
+            let completionMarkerURL = bundledDatabaseSeedCompletionMarkerURL(in: baseDirectory)
+            guard !fileManager.fileExists(atPath: completionMarkerURL.path) else { return }
 
             let starterDictionaryDirectory: URL
             var shouldRemoveAssetPack = false
@@ -238,14 +245,24 @@ public final class DictionaryPersistenceController: Sendable {
             }
 
             do {
-                try copyStarterDictionaryContents(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
+                try performBundledSeedCopy(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
             } catch {
                 // Seeding is best-effort; log but don't crash
                 Self.logger.warning("Failed to seed bundled dictionary: \(error.localizedDescription, privacy: .public)")
-                // Clean up partial copy
-                try? fileManager.removeItem(at: destinationDB)
             }
         }.value
+    }
+
+    static func performBundledSeedCopy(from starterDictionaryDirectory: URL, to baseDirectory: URL, fileManager: FileManager = .default) throws {
+        try removeBundledSeedContents(at: baseDirectory, fileManager: fileManager)
+
+        do {
+            try copyStarterDictionaryContents(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
+            try writeBundledDatabaseSeedCompletionMarker(at: baseDirectory, fileManager: fileManager)
+        } catch {
+            try? removeBundledSeedContents(at: baseDirectory, fileManager: fileManager)
+            throw error
+        }
     }
 
     static func copyStarterDictionaryContents(from starterDictionaryDirectory: URL, to baseDirectory: URL, fileManager: FileManager = .default) throws {
@@ -277,6 +294,35 @@ public final class DictionaryPersistenceController: Sendable {
         )
         if fileManager.fileExists(atPath: sourceCompressionDictionaryDir.path) {
             try fileManager.copyItem(at: sourceCompressionDictionaryDir, to: destinationCompressionDictionaryDir)
+        }
+    }
+
+    static func writeBundledDatabaseSeedCompletionMarker(at baseDirectory: URL, fileManager: FileManager = .default) throws {
+        let markerURL = bundledDatabaseSeedCompletionMarkerURL(in: baseDirectory)
+        if fileManager.fileExists(atPath: markerURL.path) {
+            try fileManager.removeItem(at: markerURL)
+        }
+
+        try Data().write(to: markerURL, options: .atomic)
+    }
+
+    static func removeBundledSeedContents(at baseDirectory: URL, fileManager: FileManager = .default) throws {
+        removeStoreFiles(at: baseDirectory.appendingPathComponent("MaruDictionary.sqlite"))
+
+        for directoryName in [
+            "Media",
+            "AudioMedia",
+            GlossaryCompressionCodec.zstdDictionaryDirectoryName,
+        ] {
+            let directoryURL = baseDirectory.appendingPathComponent(directoryName, isDirectory: true)
+            if fileManager.fileExists(atPath: directoryURL.path) {
+                try fileManager.removeItem(at: directoryURL)
+            }
+        }
+
+        let markerURL = bundledDatabaseSeedCompletionMarkerURL(in: baseDirectory)
+        if fileManager.fileExists(atPath: markerURL.path) {
+            try fileManager.removeItem(at: markerURL)
         }
     }
 

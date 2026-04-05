@@ -20,24 +20,36 @@ import Foundation
 import Testing
 
 struct DictionarySeedingTests {
-    @Test func seedingNeededWhenDatabaseMissing() throws {
+    @Test func seedingNeededWhenMarkerMissing() throws {
         let baseDirectory = try makeTemporaryDirectory()
         defer { cleanupTemporaryDirectory(baseDirectory) }
 
         #expect(DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
-    @Test func seedingNotNeededWhenDatabaseExists() throws {
+    @Test func seedingNotNeededWhenMarkerExists() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(baseDirectory) }
+
+        try DictionaryPersistenceController.writeBundledDatabaseSeedCompletionMarker(at: baseDirectory)
+
+        #expect(!DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
+    }
+
+    @Test func seedingNeededWhenPartialSeedFilesExistWithoutMarker() throws {
         let baseDirectory = try makeTemporaryDirectory()
         defer { cleanupTemporaryDirectory(baseDirectory) }
 
         let databaseURL = baseDirectory.appendingPathComponent("MaruDictionary.sqlite")
         #expect(FileManager.default.createFile(atPath: databaseURL.path, contents: Data()))
 
-        #expect(!DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
+        let mediaDirectory = baseDirectory.appendingPathComponent("Media")
+        try FileManager.default.createDirectory(at: mediaDirectory, withIntermediateDirectories: true)
+
+        #expect(DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
-    @Test func copyStarterDictionaryContents_copiesDatabaseMediaAndCompressionDictionaries() throws {
+    @Test func performBundledSeedCopy_copiesDatabaseMediaCompressionDictionariesAndCreatesMarker() throws {
         let starterDirectory = try makeTemporaryDirectory()
         defer { cleanupTemporaryDirectory(starterDirectory) }
 
@@ -68,7 +80,7 @@ struct DictionarySeedingTests {
         )
         #expect(FileManager.default.createFile(atPath: compressionDictionaryURL.path, contents: Data("dict".utf8)))
 
-        try DictionaryPersistenceController.copyStarterDictionaryContents(from: starterDirectory, to: destinationDirectory)
+        try DictionaryPersistenceController.performBundledSeedCopy(from: starterDirectory, to: destinationDirectory)
 
         let copiedDatabaseURL = destinationDirectory.appendingPathComponent("MaruDictionary.sqlite")
         let copiedMediaURL = destinationDirectory.appendingPathComponent("Media/entry.txt")
@@ -76,11 +88,57 @@ struct DictionarySeedingTests {
         let copiedCompressionDictionaryURL = destinationDirectory
             .appendingPathComponent(GlossaryCompressionCodec.zstdDictionaryDirectoryName)
             .appendingPathComponent("\(dictionaryIdentifier).\(GlossaryCompressionCodec.zstdDictionaryFileExtension)")
+        let markerURL = DictionaryPersistenceController.bundledDatabaseSeedCompletionMarkerURL(in: destinationDirectory)
 
         #expect(FileManager.default.fileExists(atPath: copiedDatabaseURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedMediaURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedAudioURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedCompressionDictionaryURL.path))
+        #expect(FileManager.default.fileExists(atPath: markerURL.path))
+    }
+
+    @Test func performBundledSeedCopy_failureCleansPartialSeedOutputAndDoesNotLeaveMarker() throws {
+        let starterDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(starterDirectory) }
+
+        let destinationDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(destinationDirectory) }
+
+        let staleDatabaseURL = destinationDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        #expect(FileManager.default.createFile(atPath: staleDatabaseURL.path, contents: Data("stale-db".utf8)))
+
+        let staleMediaDirectory = destinationDirectory.appendingPathComponent("Media")
+        try FileManager.default.createDirectory(at: staleMediaDirectory, withIntermediateDirectories: true)
+        let staleMediaFileURL = staleMediaDirectory.appendingPathComponent("entry.txt")
+        #expect(FileManager.default.createFile(atPath: staleMediaFileURL.path, contents: Data("stale-media".utf8)))
+
+        let staleAudioDirectory = destinationDirectory.appendingPathComponent("AudioMedia")
+        try FileManager.default.createDirectory(at: staleAudioDirectory, withIntermediateDirectories: true)
+        let staleAudioFileURL = staleAudioDirectory.appendingPathComponent("audio.txt")
+        #expect(FileManager.default.createFile(atPath: staleAudioFileURL.path, contents: Data("stale-audio".utf8)))
+
+        let staleCompressionDirectory = destinationDirectory.appendingPathComponent(
+            GlossaryCompressionCodec.zstdDictionaryDirectoryName
+        )
+        try FileManager.default.createDirectory(at: staleCompressionDirectory, withIntermediateDirectories: true)
+        let staleCompressionFileURL = staleCompressionDirectory.appendingPathComponent(
+            "stale.\(GlossaryCompressionCodec.zstdDictionaryFileExtension)"
+        )
+        #expect(FileManager.default.createFile(atPath: staleCompressionFileURL.path, contents: Data("stale-dict".utf8)))
+
+        try DictionaryPersistenceController.writeBundledDatabaseSeedCompletionMarker(at: destinationDirectory)
+
+        #expect(throws: Error.self) {
+            try DictionaryPersistenceController.performBundledSeedCopy(from: starterDirectory, to: destinationDirectory)
+        }
+
+        let markerURL = DictionaryPersistenceController.bundledDatabaseSeedCompletionMarkerURL(in: destinationDirectory)
+
+        #expect(!FileManager.default.fileExists(atPath: staleDatabaseURL.path))
+        #expect(!FileManager.default.fileExists(atPath: staleMediaDirectory.path))
+        #expect(!FileManager.default.fileExists(atPath: staleAudioDirectory.path))
+        #expect(!FileManager.default.fileExists(atPath: staleCompressionDirectory.path))
+        #expect(!FileManager.default.fileExists(atPath: markerURL.path))
     }
 
     // MARK: - removeStoreFiles
