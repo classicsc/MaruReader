@@ -194,11 +194,6 @@ private enum StreamingJSONValue {
         }
     }
 
-    static func read(fromJSONData jsonData: Data) throws -> StreamingJSONValue {
-        let foundationObject = try JSONSerialization.jsonObject(with: jsonData, options: .fragmentsAllowed)
-        return try fromFoundationObject(foundationObject)
-    }
-
     private static func readObject(from stream: JsonInputStream) throws -> [String: StreamingJSONValue] {
         var object: [String: StreamingJSONValue] = [:]
 
@@ -239,27 +234,6 @@ private enum StreamingJSONValue {
         }
 
         throw DictionaryImportError.invalidData
-    }
-
-    private static func fromFoundationObject(_ foundationObject: Any) throws -> StreamingJSONValue {
-        switch foundationObject {
-        case let value as [String: Any]:
-            return try .object(value.mapValues { try fromFoundationObject($0) })
-        case let value as [Any]:
-            return try .array(value.map { try fromFoundationObject($0) })
-        case let value as String:
-            return .string(value)
-        case let value as NSNumber:
-            if CFGetTypeID(value) == CFBooleanGetTypeID() {
-                return .bool(value.boolValue)
-            }
-
-            return .number(jsonNumber(from: value))
-        case _ as NSNull:
-            return .null
-        default:
-            throw DictionaryImportError.invalidData
-        }
     }
 
     private static func jsonNumber(from number: NSNumber) -> JsonNumber {
