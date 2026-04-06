@@ -23,7 +23,7 @@ import MaruReaderCore
 import os
 
 struct DataBankProcessingTask {
-    static let batchSize = 5000
+    static let batchSize = 50000
 
     let jobID: NSManagedObjectID
     let dictionaryID: UUID
