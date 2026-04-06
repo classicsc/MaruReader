@@ -245,8 +245,8 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
     let score: Double
     let glossaryStorage: TermGlossaryStorage
 
-    var glossary: [Definition] {
-        glossaryStorage.glossary
+    func glossary() throws -> [Definition] {
+        try glossaryStorage.glossary()
     }
 
     init(from decoder: Decoder) throws {
@@ -280,7 +280,7 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
         try container.encode(rules.joined(separator: " "))
         try container.encode(score)
 
-        for definition in glossary {
+        for definition in try glossaryStorage.glossary() {
             try container.encode(definition)
         }
     }

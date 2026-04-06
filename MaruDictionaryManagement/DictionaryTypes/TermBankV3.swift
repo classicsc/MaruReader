@@ -29,8 +29,8 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     let sequence: Int
     let termTags: [String] // space‑separated string
 
-    var glossary: [Definition] {
-        glossaryStorage.glossary
+    func glossary() throws -> [Definition] {
+        try glossaryStorage.glossary()
     }
 
     init(from decoder: Decoder) throws {
@@ -75,7 +75,7 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
 
         try container.encode(rules.joined(separator: " "))
         try container.encode(score)
-        try container.encode(glossary)
+        try container.encode(glossaryStorage.glossary())
         try container.encode(sequence)
         try container.encode(termTags.joined(separator: " "))
     }

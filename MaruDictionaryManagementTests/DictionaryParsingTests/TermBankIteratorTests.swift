@@ -93,7 +93,7 @@ struct TermBankIteratorTests {
         #expect(terms[3].rules == [])
         #expect(terms[3].score == 80)
         #expect(terms[3].sequence == 0)
-        let glossary3 = terms[3].glossary
+        let glossary3 = try terms[3].glossary()
         #expect(glossary3.count == 1)
         let glossary3JSONObject = try glossaryJSONObject(glossary3[0])
         let glossary3Object = try #require(glossary3JSONObject)
@@ -123,7 +123,7 @@ struct TermBankIteratorTests {
         #expect(terms[4].rules == [])
         #expect(terms[4].score == 70)
         #expect(terms[4].sequence == -1)
-        let glossary4 = terms[4].glossary
+        let glossary4 = try terms[4].glossary()
         #expect(glossary4.count == 1)
         let glossary4JSONObject = try glossaryJSONObject(glossary4[0])
         let glossary4Object = try #require(glossary4JSONObject)
@@ -171,15 +171,15 @@ struct TermBankIteratorTests {
         #expect(terms[0].definitionTags == ["v1"])
         #expect(terms[0].rules == ["A"])
         #expect(terms[0].score == 100)
-        #expect(terms[0].glossary.count == 2)
+        #expect(try terms[0].glossary().count == 2)
 
         // Check second term (single definition)
         #expect(terms[1].expression == "飲む")
-        #expect(terms[1].glossary.count == 1)
+        #expect(try terms[1].glossary().count == 1)
 
         // Check third term (multiple definitions)
         #expect(terms[2].expression == "走る")
-        #expect(terms[2].glossary.count == 2)
+        #expect(try terms[2].glossary().count == 2)
     }
 
     @Test func termBankIterator_V3Format_ParsesNullDefinitionTagsAndDeinflectionGlossary() async throws {
@@ -205,7 +205,7 @@ struct TermBankIteratorTests {
         #expect(term.termTags.isEmpty)
         #expect(term.sequence == 9)
         #expect(term.score == 42)
-        let glossaryData = try JSONEncoder().encode(term.glossary[0])
+        let glossaryData = try JSONEncoder().encode(term.glossary()[0])
         let glossaryJSONObject = try #require(try JSONSerialization.jsonObject(with: glossaryData) as? [Any])
         #expect(glossaryJSONObject.count == 2)
         #expect(glossaryJSONObject[0] as? String == "見る")
@@ -309,10 +309,10 @@ struct TermBankIteratorTests {
         let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [tempURL])
         let term = try #require(try await Array(iterator).first)
 
-        #expect(term.glossary.count == 3)
-        #expect(glossaryText(term.glossary[0]) == "line\nbreak")
-        #expect(glossaryText(term.glossary[1]) == "\"quoted\" text")
-        #expect(glossaryText(term.glossary[2]) == "\\slash/")
+        #expect(try term.glossary().count == 3)
+        #expect(try glossaryText(term.glossary()[0]) == "line\nbreak")
+        #expect(try glossaryText(term.glossary()[1]) == "\"quoted\" text")
+        #expect(try glossaryText(term.glossary()[2]) == "\\slash/")
     }
 
     @Test func termBankIterator_V1Format_RejectsNonStringRemainingGlossaryValues() async throws {

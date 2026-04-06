@@ -35,7 +35,7 @@ struct TermGlossaryStorage {
         self.definitionCount = definitionCount
     }
 
-    var glossary: [Definition] {
+    func glossary() throws -> [Definition] {
         if let decodedDefinitions {
             return decodedDefinitions
         }
@@ -44,7 +44,7 @@ struct TermGlossaryStorage {
             return []
         }
 
-        return (try? JSONDecoder().decode([Definition].self, from: rawGlossaryJSON)) ?? []
+        return try (JSONDecoder().decode([Definition].self, from: rawGlossaryJSON))
     }
 
     func glossaryJSONData() -> Data {

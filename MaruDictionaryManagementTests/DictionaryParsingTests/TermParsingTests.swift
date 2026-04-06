@@ -41,7 +41,7 @@ struct TermParsingTests {
         #expect(terms[0].score == 100)
         #expect(terms[0].sequence == 1)
         #expect(terms[0].termTags == ["common"])
-        #expect(try encodedJSONString(terms[0].glossary[0]) == "\"to eat\"")
+        #expect(try encodedJSONString(terms[0].glossary()[0]) == "\"to eat\"")
     }
 
     @Test func termBankV3Entry_ComplexGlossary_ReturnsCorrectGlossaryData() throws {
@@ -58,7 +58,7 @@ struct TermParsingTests {
         let terms = try decoder.decode([TermBankV3Entry].self, from: data)
 
         #expect(terms.count == 1)
-        let glossaryObject = try #require(encodedJSONObject(terms[0].glossary[0]) as? [String: Any])
+        let glossaryObject = try #require(encodedJSONObject(terms[0].glossary()[0]) as? [String: Any])
         #expect(glossaryObject["type"] as? String == "structured-content")
         #expect(glossaryObject["content"] as? String == "Detailed def")
     }
@@ -95,7 +95,7 @@ struct TermParsingTests {
         #expect(term.definitionTags == ["v1"])
         #expect(term.rules == ["v1"])
         #expect(term.score == 100)
-        #expect(try encodedJSONString(term.glossary[0]) == "\"to eat\"")
+        #expect(try encodedJSONString(term.glossary()[0]) == "\"to eat\"")
     }
 
     @Test func termBankV1Entry_MultipleDefinitions_ReturnsAllGlossaryItems() throws {
@@ -109,8 +109,8 @@ struct TermParsingTests {
         #expect(terms.count == 1)
         let term = terms[0]
         #expect(term.definitionTags == ["v1", "freq", "common"])
-        #expect(try encodedJSONString(term.glossary[0]) == "\"to eat\"")
-        #expect(try encodedJSONString(term.glossary[1]) == "\"consume\"")
+        #expect(try encodedJSONString(term.glossary()[0]) == "\"to eat\"")
+        #expect(try encodedJSONString(term.glossary()[1]) == "\"consume\"")
     }
 
     @Test func termBankV1Entry_EmptyTagsAndRules_YieldsEmptyArrays() throws {
@@ -128,7 +128,7 @@ struct TermParsingTests {
         #expect(term.definitionTags.isEmpty)
         #expect(term.rules.isEmpty)
         #expect(term.score == 5)
-        #expect(try encodedJSONString(term.glossary[0]) == "\"book\"")
+        #expect(try encodedJSONString(term.glossary()[0]) == "\"book\"")
     }
 
     @Test func termBankV1Entry_InvalidAdditionalItemType_ThrowsInvalidData() throws {
