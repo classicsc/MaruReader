@@ -53,7 +53,7 @@ public enum GlossaryCompressionCodecVersion: String, Sendable, Equatable, CaseIt
         case .uncompressedV1, .lzfseV1:
             nil
         case .zstdV1, .zstdRuntimeV1:
-            10
+            3
         }
     }
 }
