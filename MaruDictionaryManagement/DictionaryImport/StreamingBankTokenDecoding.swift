@@ -95,62 +95,44 @@ private struct EntryTokenArrayReader {
     }
 
     mutating func readStreamingGlossaryJSON() throws -> (jsonData: Data, definitionCount: Int) {
-        guard case .startArray = try requireToken() else {
+        var jsonData = Data()
+        guard let kind = try stream.appendRawValue(to: &jsonData), kind == .array else {
             throw DictionaryImportError.invalidData
         }
 
-        var json = "["
-        var definitionCount = 0
-
-        while let token = try stream.read() {
-            switch token {
-            case .endArray:
-                json.append("]")
-                return (Data(json.utf8), definitionCount)
-
-            case .string:
-                if definitionCount > 0 {
-                    json.append(",")
-                }
-                try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
-                definitionCount += 1
-
-            case .number, .bool, .null:
-                throw DictionaryImportError.invalidData
-
-            case .startArray, .startObject:
-                if definitionCount > 0 {
-                    json.append(",")
-                }
-                try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
-                definitionCount += 1
-
-            case .endObject:
-                throw DictionaryImportError.invalidData
-            }
-        }
-
-        throw DictionaryImportError.invalidData
+        let definitionCount = try RawGlossaryArrayInspector.inspect(
+            jsonData,
+            allowedKinds: Set<JsonRawValueKind>([.string, .array, .object])
+        )
+        return (jsonData, definitionCount)
     }
 
     mutating func readRemainingStringGlossaryJSON() throws -> (jsonData: Data, definitionCount: Int) {
-        var json = "["
+        var jsonData = Data("[".utf8)
         var definitionCount = 0
 
-        while let token = try nextValueToken() {
-            guard case .string = token else {
+        while true {
+            let commaStart = jsonData.count
+            if definitionCount > 0 {
+                jsonData.append(Data(",".utf8))
+            }
+
+            guard let kind = try stream.appendRawValue(to: &jsonData) else {
+                if definitionCount > 0 {
+                    jsonData.removeSubrange(commaStart ..< jsonData.count)
+                }
+                break
+            }
+
+            guard kind == .string else {
                 throw DictionaryImportError.invalidData
             }
 
-            if definitionCount > 0 {
-                json.append(",")
-            }
-            try JSONTokenSerializer.appendValue(from: stream, firstToken: token, to: &json)
             definitionCount += 1
         }
 
-        json.append("]")
-        return (Data(json.utf8), definitionCount)
+        jsonData.append(Data("]".utf8))
+        return (jsonData, definitionCount)
     }
 
     mutating func nextValueToken() throws -> JsonToken? {

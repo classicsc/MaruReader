@@ -1663,7 +1663,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				DBC9FEAE2E6C9B2800F1E920 /* XCRemoteSwiftPackageReference "Zip" */,
-				DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */,
+				DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */,
 				DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */,
 				DBD9069E2E9AF52D00A4F03E /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				DB4A7A042F03629700DBCAD9 /* XCRemoteSwiftPackageReference "Mecab-Swift" */,
@@ -3970,6 +3970,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = External/json-stream;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		DB1A5B162F80C4F100010C2A /* XCRemoteSwiftPackageReference "SwiftZSTD" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -3993,14 +4000,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 0.8.0;
-			};
-		};
-		DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Topolyte/json-stream.git";
-			requirement = {
-				kind = exactVersion;
-				version = 1.0.3;
 			};
 		};
 		DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */ = {
@@ -4075,7 +4074,7 @@
 		};
 		DB5DFD072E76701F0085AC1F /* JsonStream */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
+			package = DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */;
 			productName = JsonStream;
 		};
 		DB6FDFB32EAB4BCD005DF219 /* Zip */ = {
@@ -4099,7 +4098,7 @@
 		};
 		DBCFB1C72EAAC56800B4F27D /* JsonStream */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
+			package = DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */;
 			productName = JsonStream;
 		};
 		DBCFB1C92EAAC56C00B4F27D /* AsyncAlgorithms */ = {
@@ -4139,7 +4138,7 @@
 		};
 		E1A2B1013A30010100A1B001 /* JsonStream */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = DB5DFD062E76701F0085AC1F /* XCRemoteSwiftPackageReference "json-stream" */;
+			package = DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */;
 			productName = JsonStream;
 		};
 		E1A2B1023A30010200A1B001 /* AsyncAlgorithms */ = {

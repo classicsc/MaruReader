@@ -245,6 +245,27 @@ struct TermBankIteratorTests {
         #expect(structuredDefinition["content"] as? String == "Detailed def")
     }
 
+    @Test func termBankIterator_V3Format_RejectsScalarTopLevelGlossaryValues() async throws {
+        let invalidGlossaries = [
+            #"["term", "てすと", "n", "", 1, [123], 0, ""]"#,
+            #"["term", "てすと", "n", "", 1, [true], 0, ""]"#,
+            #"["term", "てすと", "n", "", 1, [null], 0, ""]"#,
+        ]
+
+        for (index, row) in invalidGlossaries.enumerated() {
+            let jsonString = "[\(row)]"
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v3_invalid_glossary_\(index).json")
+            try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+            defer { try? FileManager.default.removeItem(at: tempURL) }
+
+            let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [tempURL])
+
+            await #expect(throws: DictionaryImportError.invalidData) {
+                _ = try await Array(iterator)
+            }
+        }
+    }
+
     @Test func termBankIterator_V1Format_ToDataDictionaryCompressesStreamedGlossaryJSON() async throws {
         let jsonString = """
         [
@@ -272,6 +293,44 @@ struct TermBankIteratorTests {
         let glossaryArray = try #require(try JSONSerialization.jsonObject(with: glossaryJSON) as? [String])
 
         #expect(glossaryArray == ["to eat", "consume"])
+    }
+
+    @Test func termBankIterator_V1Format_PreservesEscapedGlossaryStrings() async throws {
+        let jsonString = #"""
+        [
+            ["escape", "えすけーぷ", "", "", 1, "line\nbreak", "\"quoted\" text", "\\slash\/"]
+        ]
+        """#
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v1_escaped_glossary.json")
+        try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [tempURL])
+        let term = try #require(try await Array(iterator).first)
+
+        #expect(term.glossary.count == 3)
+        #expect(glossaryText(term.glossary[0]) == "line\nbreak")
+        #expect(glossaryText(term.glossary[1]) == "\"quoted\" text")
+        #expect(glossaryText(term.glossary[2]) == "\\slash/")
+    }
+
+    @Test func termBankIterator_V1Format_RejectsNonStringRemainingGlossaryValues() async throws {
+        let jsonString = """
+        [
+            ["食べる", "たべる", "v1", "A", 100, "to eat", 123]
+        ]
+        """
+
+        let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("test_term_bank_v1_invalid_glossary.json")
+        try jsonString.write(to: tempURL, atomically: true, encoding: .utf8)
+        defer { try? FileManager.default.removeItem(at: tempURL) }
+
+        let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [tempURL])
+
+        await #expect(throws: DictionaryImportError.invalidData) {
+            _ = try await Array(iterator)
+        }
     }
 
     @Test func termBankIterator_MultipleFiles_StreamsAllTerms() async throws {
@@ -372,4 +431,12 @@ struct TermBankIteratorTests {
 private func glossaryJSONObject(_ value: some Encodable) throws -> [String: Any]? {
     let data = try JSONEncoder().encode(value)
     return try JSONSerialization.jsonObject(with: data) as? [String: Any]
+}
+
+private func glossaryText(_ definition: Definition) -> String? {
+    guard case let .text(value) = definition else {
+        return nil
+    }
+
+    return value
 }

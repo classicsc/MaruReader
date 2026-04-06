@@ -1,3 +1,6 @@
 [submodule "External/uBlock"]
 	path = External/uBlock
 	url = https://github.com/gorhill/uBlock.git
+[submodule "External/json-stream"]
+	path = External/json-stream
+	url = https://github.com/classicsc/json-stream.git
