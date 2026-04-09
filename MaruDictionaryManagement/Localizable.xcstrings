@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "A database error occurred during import." : {
+
+    },
     "A database error occurred while importing the dictionary." : {
       "localizations" : {
         "ja" : {
@@ -97,6 +100,9 @@
         }
       }
     },
+    "Could not access the file." : {
+
+    },
     "Downloaded update." : {
       "localizations" : {
         "ja" : {
@@ -163,6 +169,9 @@
         }
       }
     },
+    "Failed to create the media directory." : {
+
+    },
     "Failed to delete the audio source." : {
       "localizations" : {
         "ja" : {
@@ -183,6 +192,9 @@
         }
       }
     },
+    "Failed to delete the item." : {
+
+    },
     "Failed to read archive: %@" : {
       "localizations" : {
         "ja" : {
@@ -192,6 +204,9 @@
           }
         }
       }
+    },
+    "Failed to read the archive: %@" : {
+
     },
     "Failed to read the dictionary archive: %@" : {
       "localizations" : {
@@ -415,6 +430,9 @@
         }
       }
     },
+    "The archive contains invalid data." : {
+
+    },
     "The archive does not contain a valid audio source index." : {
       "localizations" : {
         "ja" : {
@@ -475,6 +493,9 @@
         }
       }
     },
+    "The file is missing." : {
+
+    },
     "The import job was not found." : {
       "localizations" : {
         "ja" : {
@@ -494,6 +515,9 @@
           }
         }
       }
+    },
+    "The selected file is not a recognized dictionary or audio source." : {
+
     },
     "The selected file is not a valid dictionary." : {
       "localizations" : {

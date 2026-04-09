@@ -3973,7 +3973,7 @@
 /* Begin XCLocalSwiftPackageReference section */
 		DB5DFD062E76701F0085AC1F /* XCLocalSwiftPackageReference "External/json-stream" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = External/json-stream;
+			relativePath = "External/json-stream";
 		};
 /* End XCLocalSwiftPackageReference section */
 

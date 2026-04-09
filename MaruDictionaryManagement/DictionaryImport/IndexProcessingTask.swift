@@ -122,7 +122,7 @@ struct IndexProcessingTask {
         let index = try decoder.decode(DictionaryIndex.self, from: indexData)
 
         // Ensure format is supported
-        guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
+        guard let format = index.format, ImportManager.supportedFormats.contains(format) else {
             throw DictionaryImportError.unsupportedFormat
         }
 

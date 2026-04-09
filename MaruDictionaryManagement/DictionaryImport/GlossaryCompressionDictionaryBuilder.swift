@@ -273,7 +273,7 @@ public enum GlossaryCompressionDictionaryBuilder {
         do {
             let indexData = try await archive.extractData(indexEntry, skipCRC32: true)
             let index = try JSONDecoder().decode(DictionaryIndex.self, from: indexData)
-            guard let format = index.format, DictionaryImportManager.supportedFormats.contains(format) else {
+            guard let format = index.format, ImportManager.supportedFormats.contains(format) else {
                 throw DictionaryImportError.unsupportedFormat
             }
 

@@ -1,4 +1,4 @@
-// AudioSourceSettingsRootView.swift
+// UnifiedDictionaryManagementImportItemRow.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -15,19 +15,18 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import MaruDictionaryUICommon
 import SwiftUI
 
-struct AudioSourceSettingsRootView: View {
-    let availability: DictionaryFeatureAvailability
-
-    init(availability: DictionaryFeatureAvailability = .ready) {
-        self.availability = availability
-    }
+struct UnifiedDictionaryManagementImportItemRow: View {
+    let item: UnifiedDictionaryManagementImportItem
+    let onCancel: () -> Void
+    let onRemove: () -> Void
 
     var body: some View {
-        DictionaryManagedContextRoot(availability: availability) {
-            AudioSourceSettingsView()
+        if item.isFailed || item.isCancelled {
+            UnifiedDictionaryManagementFailedImportRow(item: item, onRemove: onRemove)
+        } else {
+            UnifiedDictionaryManagementInProgressImportRow(item: item, onCancel: onCancel)
         }
     }
 }

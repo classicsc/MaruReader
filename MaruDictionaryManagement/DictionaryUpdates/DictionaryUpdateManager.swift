@@ -27,7 +27,7 @@ public protocol DictionaryUpdateAnkiPreferencesUpdating: Sendable {
 public actor DictionaryUpdateManager {
     public static let shared = DictionaryUpdateManager(
         container: DictionaryPersistenceController.shared.container,
-        importManager: DictionaryImportManager.shared,
+        importManager: ImportManager.shared,
         networkProvider: URLSession.shared
     )
 
@@ -35,12 +35,12 @@ public actor DictionaryUpdateManager {
     private var currentTask: Task<Void, Never>?
     private var currentTaskID: NSManagedObjectID?
     private let container: NSPersistentContainer
-    private let importManager: DictionaryImportManager
+    private let importManager: ImportManager
     private let networkProvider: NetworkProviding
     private var ankiUpdater: (any DictionaryUpdateAnkiPreferencesUpdating)?
     private let logger = Logger.maru(category: "DictionaryUpdate")
 
-    init(container: NSPersistentContainer, importManager: DictionaryImportManager, networkProvider: NetworkProviding) {
+    init(container: NSPersistentContainer, importManager: ImportManager, networkProvider: NetworkProviding) {
         self.container = container
         self.importManager = importManager
         self.networkProvider = networkProvider
@@ -332,7 +332,7 @@ public actor DictionaryUpdateManager {
             if let existingJobID = await findUpdateImportJob(taskUUID: updateInfo.taskUUID, in: context) {
                 importJobID = existingJobID
             } else {
-                importJobID = try await importManager.enqueueImport(from: updateFileURL, updateTaskID: updateInfo.taskUUID)
+                importJobID = try await importManager.enqueueDictionaryImport(from: updateFileURL, updateTaskID: updateInfo.taskUUID)
             }
         } catch {
             await markTaskFailed(taskID: taskID, dictionaryID: updateInfo.dictionaryID, error: error)

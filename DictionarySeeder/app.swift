@@ -254,7 +254,7 @@ struct DictionarySeeder {
         print("Glossary training profile: \(arguments.glossaryCompressionTrainingProfile.rawValue)")
 
         if !arguments.dictionaryPaths.isEmpty {
-            let importManager = DictionaryImportManager(
+            let importManager = ImportManager(
                 container: container,
                 baseDirectory: arguments.outputDir,
                 glossaryCompressionVersion: arguments.glossaryCompressionVersion,
@@ -264,7 +264,7 @@ struct DictionarySeeder {
             for zipURL in arguments.dictionaryPaths {
                 print("Importing dictionary: \(zipURL.lastPathComponent)...")
 
-                let jobID = try await importManager.enqueueImport(from: zipURL)
+                let jobID = try await importManager.enqueueDictionaryImport(from: zipURL)
                 await importManager.waitForCompletion(jobID: jobID)
 
                 let result = try await getDictionaryResult(container: container, jobID: jobID)
@@ -278,7 +278,7 @@ struct DictionarySeeder {
         }
 
         if !arguments.audioSourcePaths.isEmpty {
-            let audioImportManager = AudioSourceImportManager(
+            let audioImportManager = ImportManager(
                 container: container,
                 baseDirectory: arguments.outputDir
             )
@@ -286,7 +286,7 @@ struct DictionarySeeder {
             for zipURL in arguments.audioSourcePaths {
                 print("Importing audio source: \(zipURL.lastPathComponent)...")
 
-                let jobID = try await audioImportManager.enqueueImport(from: zipURL)
+                let jobID = try await audioImportManager.enqueueAudioSourceImport(from: zipURL)
                 await audioImportManager.waitForCompletion(jobID: jobID)
 
                 let result = try await getAudioSourceResult(container: container, jobID: jobID)

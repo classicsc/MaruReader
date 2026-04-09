@@ -41,14 +41,9 @@ struct SettingsView: View {
             Form {
                 Section("Data") {
                     NavigationLink {
-                        DictionaryManagementRootView(availability: dictionaryAvailability)
+                        UnifiedDictionaryManagementRootView(availability: dictionaryAvailability)
                     } label: {
-                        Label("Dictionaries", systemImage: "book.closed")
-                    }
-                    NavigationLink {
-                        AudioSourceSettingsRootView(availability: dictionaryAvailability)
-                    } label: {
-                        Label("Pronunciation Audio", systemImage: "speaker.wave.2")
+                        Label("Dictionaries & Audio", systemImage: "book.closed")
                     }
                 }
                 Section("Appearance") {

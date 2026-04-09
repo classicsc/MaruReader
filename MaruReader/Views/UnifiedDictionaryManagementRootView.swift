@@ -1,4 +1,4 @@
-// DictionaryManagementRootView.swift
+// UnifiedDictionaryManagementRootView.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -18,7 +18,7 @@
 import MaruDictionaryUICommon
 import SwiftUI
 
-struct DictionaryManagementRootView: View {
+struct UnifiedDictionaryManagementRootView: View {
     let availability: DictionaryFeatureAvailability
 
     init(availability: DictionaryFeatureAvailability = .ready) {
@@ -27,7 +27,7 @@ struct DictionaryManagementRootView: View {
 
     var body: some View {
         DictionaryManagedContextRoot(availability: availability) {
-            DictionaryManagementView()
+            UnifiedDictionaryManagementView()
         }
     }
 }
