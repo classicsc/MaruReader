@@ -71,11 +71,8 @@ final class WebExtensionManager {
     }
 
     private static func loadContentBlockerExtension() async -> WKWebExtensionContext? {
-        guard let extensionURL = Bundle.framework.url(
-            forResource: "uBOLite.safari",
-            withExtension: nil
-        ) else {
-            logger.warning("uBlock extension bundle not found")
+        guard let extensionURL = bundledContentBlockerExtensionURL() else {
+            logger.warning("uBlock extension ZIP/bundle not found")
             return nil
         }
 
@@ -97,5 +94,19 @@ final class WebExtensionManager {
             Self.logger.error("Failed to create web extension: \(String(describing: error), privacy: .public)")
             return nil
         }
+    }
+
+    private static func bundledContentBlockerExtensionURL() -> URL? {
+        if let zipURL = Bundle.framework.url(
+            forResource: "uBOLite.safari",
+            withExtension: "zip"
+        ) {
+            return zipURL
+        }
+
+        return Bundle.framework.url(
+            forResource: "uBOLite.safari",
+            withExtension: nil
+        )
     }
 }

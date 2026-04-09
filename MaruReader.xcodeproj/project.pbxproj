@@ -11,6 +11,7 @@
 		228BCC432F29D77D003C173D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		DB03767F2F7560850077F3BA /* MaruAssetDownloader.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB13A6632F87481D0025C09F /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB13A6622F87481D0025C09F /* JsonStream */; };
+		DB13B2B02F8750590025C09F /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB13B2AF2F8750590025C09F /* LRUCache */; };
 		DB1A5B182F80C4F100010C2A /* SwiftZSTD in Frameworks */ = {isa = PBXBuildFile; productRef = DB1A5B172F80C4F100010C2A /* SwiftZSTD */; };
 		DB1C342C2EB8578200315E79 /* MaruVisionUICommon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; };
 		DB1C342D2EB8578200315E79 /* MaruVisionUICommon.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -722,6 +723,7 @@
 				DB827D7C2E8C1E7B00DE15EC /* ReadiumStreamer in Frameworks */,
 				DBEBB2CE2EB58E88005C3BFC /* MaruVision.framework in Frameworks */,
 				DB216E772F801219002C06A5 /* MaruDictionaryManagement.framework in Frameworks */,
+				DB13B2B02F8750590025C09F /* LRUCache in Frameworks */,
 				DB97CED62E8B332D00E9723D /* ReadiumShared in Frameworks */,
 				DB97CED42E8B332D00E9723D /* ReadiumNavigator in Frameworks */,
 				DBCFB1752EAAAE8B00B4F27D /* MaruReaderCore.framework in Frameworks */,
@@ -1165,6 +1167,7 @@
 				DB97CED32E8B332D00E9723D /* ReadiumNavigator */,
 				DB97CED52E8B332D00E9723D /* ReadiumShared */,
 				DB827D7B2E8C1E7B00DE15EC /* ReadiumStreamer */,
+				DB13B2AF2F8750590025C09F /* LRUCache */,
 			);
 			productName = MaruReader;
 			productReference = DB2B698C2E660F8B00EDA656 /* MaruReader.app */;
@@ -1855,13 +1858,14 @@
 			);
 			inputPaths = (
 				"$(SRCROOT)/scripts/copy-optional-ubolite.sh",
+				"$(SRCROOT)/External/uBlock/dist/build/uBOLite.safari.zip",
 				"$(SRCROOT)/External/uBlock/dist/build/uBOLite.safari",
 			);
 			name = "Copy Optional uBOLite";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/uBOLite.safari",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/uBOLite.safari.zip",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -4021,6 +4025,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = DB13A6612F87481D0025C09F /* XCRemoteSwiftPackageReference "json-stream" */;
 			productName = JsonStream;
+		};
+		DB13B2AF2F8750590025C09F /* LRUCache */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DB35EE822F6101FA00A6BBC6 /* XCRemoteSwiftPackageReference "LRUCache" */;
+			productName = LRUCache;
 		};
 		DB1A5B172F80C4F100010C2A /* SwiftZSTD */ = {
 			isa = XCSwiftPackageProductDependency;
