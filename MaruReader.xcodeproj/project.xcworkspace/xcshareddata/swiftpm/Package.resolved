@@ -1,5 +1,5 @@
 {
-  "originHash" : "7db97d96bb9d7bd5e422fcaca87b2094b80b7abd61abac4fcc93d047505a5e12",
+  "originHash" : "aa204a85171c3facb27e45213392ee2848bddbe72d8df148d37a71cb5e78609f",
   "pins" : [
     {
       "identity" : "cryptoswift",
@@ -35,6 +35,15 @@
       "state" : {
         "revision" : "584db89a4c3c3be27206cce6afde037b2b6e38d8",
         "version" : "4.0.1"
+      }
+    },
+    {
+      "identity" : "json-stream",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/classicsc/json-stream",
+      "state" : {
+        "branch" : "jsonrawvalues",
+        "revision" : "802208858e5ad07c367b9b68949e07a043f9d9a0"
       }
     },
     {
