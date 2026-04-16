@@ -332,7 +332,11 @@ public actor DictionaryUpdateManager {
             if let existingJobID = await findUpdateImportJob(taskUUID: updateInfo.taskUUID, in: context) {
                 importJobID = existingJobID
             } else {
-                importJobID = try await importManager.enqueueDictionaryImport(from: updateFileURL, updateTaskID: updateInfo.taskUUID)
+                importJobID = try await importManager.enqueueDictionaryImport(
+                    from: updateFileURL,
+                    queuedDisplayName: nil,
+                    updateTaskID: updateInfo.taskUUID
+                )
             }
         } catch {
             await markTaskFailed(taskID: taskID, dictionaryID: updateInfo.dictionaryID, error: error)

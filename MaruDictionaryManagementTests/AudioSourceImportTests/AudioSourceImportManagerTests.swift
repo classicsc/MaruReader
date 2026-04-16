@@ -744,6 +744,39 @@ struct AudioSourceImportManagerTests {
 
     // MARK: - Failure Tests
 
+    @Test func enqueueImport_AudioSourcePreservesOriginalQueuedFilename() async throws {
+        let indexJSON = """
+        {
+            "meta": { "name": "Queued Name Audio Source" },
+            "headwords": {},
+            "files": {}
+        }
+        """
+
+        let zipURL = try await createMockAudioSourceZIP(indexJSON: indexJSON)
+        let renamedZipURL = zipURL.deletingLastPathComponent().appendingPathComponent("queued-audio-name.zip")
+        try FileManager.default.moveItem(at: zipURL, to: renamedZipURL)
+        defer { try? FileManager.default.removeItem(at: renamedZipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = ImportManager(container: persistenceController.container)
+        await importManager.setTestErrorInjection {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        let importID = try await importManager.enqueueImport(from: renamedZipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let queuedState = await MainActor.run {
+            let viewContext = persistenceController.container.viewContext
+            viewContext.refreshAllObjects()
+            let job = getJob(from: viewContext, importID: importID)
+            return (job?.name, job?.isFailed)
+        }
+        #expect(queuedState.0 == "queued-audio-name")
+        #expect(queuedState.1 == true)
+    }
+
     @Test @MainActor func importAudioSource_MalformedZIP_FailsAndCleansUp() async throws {
         let zipURL = try createCorruptedZIP()
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }

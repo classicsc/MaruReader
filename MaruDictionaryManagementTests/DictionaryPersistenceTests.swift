@@ -538,6 +538,48 @@ struct DictionaryPersistenceTests {
         #expect(fetchTermEntries(from: viewContext).isEmpty)
     }
 
+    @Test func enqueueImport_DictionaryPreservesOriginalQueuedFilename() async throws {
+        let indexJSON = """
+        {
+            "title": "Queued Name Dictionary",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: nil,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        let renamedZipURL = zipURL.deletingLastPathComponent().appendingPathComponent("queued-name-test.zip")
+        try FileManager.default.moveItem(at: zipURL, to: renamedZipURL)
+        defer { try? FileManager.default.removeItem(at: renamedZipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = ImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
+        await importManager.setTestErrorInjection {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        let importID = try await importManager.enqueueImport(from: renamedZipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let queuedState = await MainActor.run {
+            let viewContext = persistenceController.container.viewContext
+            viewContext.refreshAllObjects()
+            let dictionary = getDictionary(from: viewContext, importID: importID)
+            return (dictionary?.title, dictionary?.isFailed)
+        }
+        #expect(queuedState.0 == "queued-name-test")
+        #expect(queuedState.1 == true)
+    }
+
     @Test @MainActor func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is read, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.

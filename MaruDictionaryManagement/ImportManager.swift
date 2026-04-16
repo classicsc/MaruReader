@@ -136,6 +136,7 @@ public actor ImportManager {
         // round-trip. Working from a local copy avoids both issues and makes the
         // import pipeline resilient to lifecycle/timing changes.
         let localURL = try Self.copyToImportStaging(from: zipURL)
+        let originalDisplayName = zipURL.deletingPathExtension().lastPathComponent
         let contentType: ArchiveContentType
         do {
             contentType = try await ArchiveTypeDetector.detect(zipURL: localURL, manageSecurityScope: false)
@@ -145,9 +146,13 @@ public actor ImportManager {
         }
         switch contentType {
         case .dictionary:
-            return try await enqueueDictionaryImport(from: localURL)
+            return try await enqueueDictionaryImport(
+                from: localURL,
+                queuedDisplayName: originalDisplayName,
+                updateTaskID: nil
+            )
         case .audioSource:
-            return try await enqueueAudioSourceImport(from: localURL)
+            return try await enqueueAudioSourceImport(from: localURL, queuedDisplayName: originalDisplayName)
         }
     }
 
@@ -173,11 +178,15 @@ public actor ImportManager {
 
     /// Enqueue a dictionary import from the given ZIP file URL.
     public func enqueueDictionaryImport(from zipURL: URL) async throws -> NSManagedObjectID {
-        try await enqueueDictionaryImport(from: zipURL, updateTaskID: nil)
+        try await enqueueDictionaryImport(from: zipURL, queuedDisplayName: nil, updateTaskID: nil)
     }
 
     /// Enqueue a dictionary import tied to an update task.
-    func enqueueDictionaryImport(from zipURL: URL, updateTaskID: UUID?) async throws -> NSManagedObjectID {
+    func enqueueDictionaryImport(
+        from zipURL: URL,
+        queuedDisplayName: String?,
+        updateTaskID: UUID?
+    ) async throws -> NSManagedObjectID {
         backgroundExpired = false
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
@@ -185,7 +194,7 @@ public actor ImportManager {
             let jobID = UUID()
             dictionary.id = jobID
             dictionary.file = zipURL
-            let baseTitle = zipURL.deletingPathExtension().lastPathComponent
+            let baseTitle = queuedDisplayName ?? zipURL.deletingPathExtension().lastPathComponent
             dictionary.title = baseTitle.isEmpty ? "Imported Dictionary" : baseTitle
             dictionary.timeQueued = Date()
             dictionary.displayProgressMessage = FrameworkLocalization.string("Queued for import.")
@@ -206,6 +215,10 @@ public actor ImportManager {
 
     /// Enqueue an audio source import from the given ZIP file URL.
     public func enqueueAudioSourceImport(from zipURL: URL) async throws -> NSManagedObjectID {
+        try await enqueueAudioSourceImport(from: zipURL, queuedDisplayName: nil)
+    }
+
+    private func enqueueAudioSourceImport(from zipURL: URL, queuedDisplayName: String?) async throws -> NSManagedObjectID {
         backgroundExpired = false
         let context = container.newBackgroundContext()
         let importJob = try await context.perform {
@@ -213,7 +226,7 @@ public actor ImportManager {
             let jobID = UUID()
             job.id = jobID
             job.file = zipURL
-            let baseName = zipURL.deletingPathExtension().lastPathComponent
+            let baseName = queuedDisplayName ?? zipURL.deletingPathExtension().lastPathComponent
             job.name = baseName.isEmpty ? "Imported Audio Source" : baseName
             job.dateAdded = Date()
             job.enabled = true
