@@ -538,7 +538,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
         // Try to find the specified dictionary, fallback to first rank-based frequency if not found
         let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
-            ?? firstResult.frequencies.first(where: { $0.mode == "rank-based" })
+            ?? firstResult.frequencies.first(where: { FrequencyModeSupport.isRankBased($0.mode) })
         guard let freq else {
             return .text("9999999")
         }
@@ -554,7 +554,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         }
         // Try to find the specified dictionary, fallback to first occurrence-based frequency if not found
         let freq = firstResult.frequencies.first(where: { $0.dictionaryID == dictionaryID })
-            ?? firstResult.frequencies.first(where: { $0.mode == nil || $0.mode == "occurrence-based" })
+            ?? firstResult.frequencies.first(where: { FrequencyModeSupport.isOccurrenceBased($0.mode) })
         guard let freq else {
             return .text("0")
         }
@@ -567,7 +567,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         else {
             return .text("9999999")
         }
-        let rankFrequencies = firstResult.frequencies.filter { $0.mode == "rank-based" }
+        let rankFrequencies = firstResult.frequencies.filter { FrequencyModeSupport.isRankBased($0.mode) }
         guard !rankFrequencies.isEmpty else {
             return .text("9999999")
         }
@@ -581,7 +581,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         else {
             return .text("0")
         }
-        let occurrenceFrequencies = firstResult.frequencies.filter { $0.mode == nil || $0.mode == "occurrence-based" }
+        let occurrenceFrequencies = firstResult.frequencies.filter { FrequencyModeSupport.isOccurrenceBased($0.mode) }
         guard !occurrenceFrequencies.isEmpty else {
             return .text("0")
         }

@@ -242,9 +242,9 @@ struct FieldMappingEditorView: View {
         case .frequency:
             availableFrequencyDictionaries
         case .frequencyRankSort:
-            availableFrequencyDictionaries.filter { $0.frequencyMode == "rank-based" }
+            availableFrequencyDictionaries.filter { FrequencyModeSupport.isRankBased($0.frequencyMode) }
         case .frequencyOccurrenceSort:
-            availableFrequencyDictionaries.filter { $0.frequencyMode == nil || $0.frequencyMode == "occurrence-based" }
+            availableFrequencyDictionaries.filter { FrequencyModeSupport.isOccurrenceBased($0.frequencyMode) }
         }
     }
 
