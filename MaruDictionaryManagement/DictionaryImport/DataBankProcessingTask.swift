@@ -49,6 +49,21 @@ struct DataBankProcessingTask {
         }
     }
 
+    private enum BankProcessingCategory {
+        case terms
+        case kanji
+        case termFrequency
+        case kanjiFrequency
+        case pitchAccent
+        case ipa
+        case tagMeta
+    }
+
+    private enum BankProcessingResult {
+        case producerFinished
+        case processed(BankProcessingCategory, Int)
+    }
+
     init(
         jobID: NSManagedObjectID,
         dictionaryID: UUID,
@@ -127,68 +142,120 @@ struct DataBankProcessingTask {
         let kanjiEntryChannel = AsyncThrowingChannel<[String: Sendable], Error>()
         let progressCounter = ProgressCounter()
         let progressContext = persistentContainer.newBackgroundContext()
+        var termsProcessed = 0
+        var kanjiProcessed = 0
 
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.termBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await termEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
+        try await withThrowingTaskGroup(of: BankProcessingResult.self) { group in
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.termBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<TermBankV1Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await termEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
+                                    }
                                 }
                             }
-                        } catch {
-                            termEntryChannel.fail(error)
                         }
+                        try await group.waitForAll()
                     }
+                    termEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    termEntryChannel.fail(error)
+                    throw error
                 }
             }
-            termEntryChannel.finish()
-        }
 
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.kanjiBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await kanjiEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.kanjiBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<KanjiBankV1Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await kanjiEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
+                                    }
                                 }
                             }
-                        } catch {
-                            kanjiEntryChannel.fail(error)
                         }
+                        try await group.waitForAll()
                     }
+                    kanjiEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    kanjiEntryChannel.fail(error)
+                    throw error
                 }
             }
-            kanjiEntryChannel.finish()
+
+            group.addTask {
+                try await .processed(
+                    .terms,
+                    self.processChannel(
+                        channel: termEntryChannel,
+                        entityName: "TermEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .kanji,
+                    self.processChannel(
+                        channel: kanjiEntryChannel,
+                        entityName: "KanjiEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            do {
+                for try await result in group {
+                    switch result {
+                    case .producerFinished:
+                        break
+                    case let .processed(.terms, count):
+                        termsProcessed = count
+                    case let .processed(.kanji, count):
+                        kanjiProcessed = count
+                    default:
+                        break
+                    }
+                }
+            } catch {
+                group.cancelAll()
+                termEntryChannel.fail(error)
+                kanjiEntryChannel.fail(error)
+                throw error
+            }
         }
 
-        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        let results = try await [
-            termsProcessed,
-            kanjiProcessed,
-        ]
-        logger.info("Processed \(results.reduce(0, +)) entries: Terms=\(results[0]), Kanji=\(results[1])")
+        logger.info("Processed \(termsProcessed + kanjiProcessed) entries: Terms=\(termsProcessed), Kanji=\(kanjiProcessed)")
     }
 
     private func processV3DataBanks(bankPaths: DictionaryBankPaths, archiveURL: URL, context: NSManagedObjectContext) async throws {
@@ -202,183 +269,333 @@ struct DataBankProcessingTask {
         let progressCounter = ProgressCounter()
         let progressContext = persistentContainer.newBackgroundContext()
 
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.termBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await termEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
-                                }
-                            }
-                        } catch {
-                            termEntryChannel.fail(error)
-                        }
-                    }
-                }
-            }
-            termEntryChannel.finish()
-        }
+        var termsProcessed = 0
+        var kanjiProcessed = 0
+        var termFrequencyProcessed = 0
+        var kanjiFrequencyProcessed = 0
+        var pitchAccentProcessed = 0
+        var ipaProcessed = 0
+        var tagMetaProcessed = 0
 
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.kanjiBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await kanjiEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
-                                }
-                            }
-                        } catch {
-                            kanjiEntryChannel.fail(error)
-                        }
-                    }
-                }
-            }
-            kanjiEntryChannel.finish()
-        }
-
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.tagBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await dictionaryTagMetaEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
-                                }
-                            }
-                        } catch {
-                            dictionaryTagMetaEntryChannel.fail(error)
-                        }
-                    }
-                }
-            }
-            dictionaryTagMetaEntryChannel.finish()
-        }
-
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.kanjiMetaBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    try await kanjiFrequencyEntryChannel.send(
-                                        entry.toDataDictionary(
-                                            dictionaryID: self.dictionaryID,
-                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                        ).1
-                                    )
-                                }
-                            }
-                        } catch {
-                            kanjiFrequencyEntryChannel.fail(error)
-                        }
-                    }
-                }
-            }
-            kanjiFrequencyEntryChannel.finish()
-        }
-
-        Task {
-            await withTaskGroup(of: Void.self) { group in
-                for path in bankPaths.termMetaBanks {
-                    group.addTask {
-                        do {
-                            try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
-                                let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [fileURL])
-                                for try await entry in iterator {
-                                    let dataDict = try entry.toDataDictionary(
-                                        dictionaryID: self.dictionaryID,
-                                        glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                        glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
-                                        glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
-                                    )
-                                    switch dataDict.0 {
-                                    case .termFrequencyEntry:
-                                        await termFrequencyEntryChannel.send(dataDict.1)
-                                    case .pitchAccentEntry:
-                                        await pitchAccentEntryChannel.send(dataDict.1)
-                                    case .ipaEntry:
-                                        await ipaEntryChannel.send(dataDict.1)
-                                    default: throw DictionaryImportError.invalidData
+        try await withThrowingTaskGroup(of: BankProcessingResult.self) { group in
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.termBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<TermBankV3Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await termEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
                                     }
                                 }
                             }
-                        } catch {
-                            termFrequencyEntryChannel.fail(error)
-                            pitchAccentEntryChannel.fail(error)
-                            ipaEntryChannel.fail(error)
                         }
+                        try await group.waitForAll()
                     }
+                    termEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    termEntryChannel.fail(error)
+                    throw error
                 }
             }
-            termFrequencyEntryChannel.finish()
-            pitchAccentEntryChannel.finish()
-            ipaEntryChannel.finish()
+
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.kanjiBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<KanjiBankV3Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await kanjiEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        try await group.waitForAll()
+                    }
+                    kanjiEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    kanjiEntryChannel.fail(error)
+                    throw error
+                }
+            }
+
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.tagBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<TagBankV3Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await dictionaryTagMetaEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        try await group.waitForAll()
+                    }
+                    dictionaryTagMetaEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    dictionaryTagMetaEntryChannel.fail(error)
+                    throw error
+                }
+            }
+
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.kanjiMetaBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<KanjiMetaBankV3Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        try await kanjiFrequencyEntryChannel.send(
+                                            entry.toDataDictionary(
+                                                dictionaryID: self.dictionaryID,
+                                                glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                                glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                                glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                            ).1
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        try await group.waitForAll()
+                    }
+                    kanjiFrequencyEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    kanjiFrequencyEntryChannel.fail(error)
+                    throw error
+                }
+            }
+
+            group.addTask {
+                do {
+                    try await withThrowingTaskGroup(of: Void.self) { group in
+                        for path in bankPaths.termMetaBanks {
+                            group.addTask {
+                                try Task.checkCancellation()
+                                try await self.withExtractedEntry(archiveURL: archiveURL, entryPath: path) { fileURL in
+                                    let iterator = StreamingBankIterator<TermMetaBankV3Entry>(bankURLs: [fileURL])
+                                    for try await entry in iterator {
+                                        let dataDict = try entry.toDataDictionary(
+                                            dictionaryID: self.dictionaryID,
+                                            glossaryCompressionVersion: self.glossaryCompressionVersion,
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
+                                        )
+                                        switch dataDict.0 {
+                                        case .termFrequencyEntry:
+                                            await termFrequencyEntryChannel.send(dataDict.1)
+                                        case .pitchAccentEntry:
+                                            await pitchAccentEntryChannel.send(dataDict.1)
+                                        case .ipaEntry:
+                                            await ipaEntryChannel.send(dataDict.1)
+                                        default:
+                                            throw DictionaryImportError.invalidData
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        try await group.waitForAll()
+                    }
+                    termFrequencyEntryChannel.finish()
+                    pitchAccentEntryChannel.finish()
+                    ipaEntryChannel.finish()
+                    return .producerFinished
+                } catch {
+                    termFrequencyEntryChannel.fail(error)
+                    pitchAccentEntryChannel.fail(error)
+                    ipaEntryChannel.fail(error)
+                    throw error
+                }
+            }
+
+            group.addTask {
+                try await .processed(
+                    .terms,
+                    self.processChannel(
+                        channel: termEntryChannel,
+                        entityName: "TermEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .kanji,
+                    self.processChannel(
+                        channel: kanjiEntryChannel,
+                        entityName: "KanjiEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .termFrequency,
+                    self.processChannel(
+                        channel: termFrequencyEntryChannel,
+                        entityName: "TermFrequencyEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .kanjiFrequency,
+                    self.processChannel(
+                        channel: kanjiFrequencyEntryChannel,
+                        entityName: "KanjiFrequencyEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .pitchAccent,
+                    self.processChannel(
+                        channel: pitchAccentEntryChannel,
+                        entityName: "PitchAccentEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .ipa,
+                    self.processChannel(
+                        channel: ipaEntryChannel,
+                        entityName: "IPAEntry",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            group.addTask {
+                try await .processed(
+                    .tagMeta,
+                    self.processChannel(
+                        channel: dictionaryTagMetaEntryChannel,
+                        entityName: "DictionaryTagMeta",
+                        context: context,
+                        progressCounter: progressCounter,
+                        progressContext: progressContext
+                    )
+                )
+            }
+
+            do {
+                for try await result in group {
+                    switch result {
+                    case .producerFinished:
+                        break
+                    case let .processed(.terms, count):
+                        termsProcessed = count
+                    case let .processed(.kanji, count):
+                        kanjiProcessed = count
+                    case let .processed(.termFrequency, count):
+                        termFrequencyProcessed = count
+                    case let .processed(.kanjiFrequency, count):
+                        kanjiFrequencyProcessed = count
+                    case let .processed(.pitchAccent, count):
+                        pitchAccentProcessed = count
+                    case let .processed(.ipa, count):
+                        ipaProcessed = count
+                    case let .processed(.tagMeta, count):
+                        tagMetaProcessed = count
+                    }
+                }
+            } catch {
+                group.cancelAll()
+                termEntryChannel.fail(error)
+                kanjiEntryChannel.fail(error)
+                termFrequencyEntryChannel.fail(error)
+                kanjiFrequencyEntryChannel.fail(error)
+                pitchAccentEntryChannel.fail(error)
+                ipaEntryChannel.fail(error)
+                dictionaryTagMetaEntryChannel.fail(error)
+                throw error
+            }
         }
 
-        async let termsProcessed = processChannel(channel: termEntryChannel, entityName: "TermEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let kanjiProcessed = processChannel(channel: kanjiEntryChannel, entityName: "KanjiEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let termFrequencyProcessed = processChannel(channel: termFrequencyEntryChannel, entityName: "TermFrequencyEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let kanjiFrequencyProcessed = processChannel(channel: kanjiFrequencyEntryChannel, entityName: "KanjiFrequencyEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let pitchAccentProcessed = processChannel(channel: pitchAccentEntryChannel, entityName: "PitchAccentEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let ipaProcessed = processChannel(channel: ipaEntryChannel, entityName: "IPAEntry", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        async let tagMetaProcessed = processChannel(channel: dictionaryTagMetaEntryChannel, entityName: "DictionaryTagMeta", context: context, progressCounter: progressCounter, progressContext: progressContext)
-        let results = try await [
-            termsProcessed,
-            kanjiProcessed,
-            termFrequencyProcessed,
-            kanjiFrequencyProcessed,
-            pitchAccentProcessed,
-            ipaProcessed,
-            tagMetaProcessed,
-        ]
+        let finalCounts = (
+            terms: termsProcessed,
+            kanji: kanjiProcessed,
+            termFrequency: termFrequencyProcessed,
+            kanjiFrequency: kanjiFrequencyProcessed,
+            pitchAccent: pitchAccentProcessed,
+            ipa: ipaProcessed,
+            tagMeta: tagMetaProcessed
+        )
 
         try await context.perform {
             guard let dictionary = try? context.existingObject(with: self.jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            dictionary.ipaCount = Int64(results[5])
-            dictionary.pitchesCount = Int64(results[4])
-            dictionary.kanjiCount = Int64(results[1])
-            dictionary.termCount = Int64(results[0])
-            dictionary.tagCount = Int64(results[6])
-            dictionary.kanjiFrequencyCount = Int64(results[3])
-            dictionary.termFrequencyCount = Int64(results[2])
+            dictionary.ipaCount = Int64(finalCounts.ipa)
+            dictionary.pitchesCount = Int64(finalCounts.pitchAccent)
+            dictionary.kanjiCount = Int64(finalCounts.kanji)
+            dictionary.termCount = Int64(finalCounts.terms)
+            dictionary.tagCount = Int64(finalCounts.tagMeta)
+            dictionary.kanjiFrequencyCount = Int64(finalCounts.kanjiFrequency)
+            dictionary.termFrequencyCount = Int64(finalCounts.termFrequency)
             try context.save()
         }
-        logger.info("Processed \(results.reduce(0, +)) entries: Terms=\(results[0]), Kanji=\(results[1]), TermFrequency=\(results[2]), KanjiFrequency=\(results[3]), PitchAccent=\(results[4]), IPA=\(results[5]), TagMeta=\(results[6])")
+        logger.info(
+            "Processed \(finalCounts.terms + finalCounts.kanji + finalCounts.termFrequency + finalCounts.kanjiFrequency + finalCounts.pitchAccent + finalCounts.ipa + finalCounts.tagMeta) entries: Terms=\(finalCounts.terms), Kanji=\(finalCounts.kanji), TermFrequency=\(finalCounts.termFrequency), KanjiFrequency=\(finalCounts.kanjiFrequency), PitchAccent=\(finalCounts.pitchAccent), IPA=\(finalCounts.ipa), TagMeta=\(finalCounts.tagMeta)"
+        )
     }
 
     private func processChannel(
