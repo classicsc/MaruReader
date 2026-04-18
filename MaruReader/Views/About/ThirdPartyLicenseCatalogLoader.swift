@@ -19,6 +19,7 @@ import Foundation
 
 enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
     case spm
+    case rustCrate
     case contentBlocker
     case filterList
     case dictionaryData
@@ -28,6 +29,8 @@ enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
         switch self {
         case .spm:
             String(localized: "Swift Packages")
+        case .rustCrate:
+            String(localized: "Rust Crates")
         case .contentBlocker:
             String(localized: "Content Blocking")
         case .filterList:
@@ -47,10 +50,12 @@ enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
             1
         case .dictionaryData:
             2
-        case .spm:
+        case .rustCrate:
             3
-        case .ublockEmbedded:
+        case .spm:
             4
+        case .ublockEmbedded:
+            5
         }
     }
 }
@@ -127,7 +132,7 @@ enum ThirdPartyLicenseCatalogLoader {
         if let content = String(data: data, encoding: .utf8) {
             return content
         }
-        // Some upstream license files use Latin-1 encoding (e.g. IPADic).
+        // Some upstream license files use Latin-1 encoding.
         if let content = String(data: data, encoding: .isoLatin1) {
             return content
         }

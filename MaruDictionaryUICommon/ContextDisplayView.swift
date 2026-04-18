@@ -23,6 +23,7 @@
 //  optional furigana, and edit support.
 //
 
+internal import MaruTextAnalysis
 import MaruReaderCore
 import SwiftUI
 

@@ -20,14 +20,14 @@ import MaruReaderCore
 import SwiftUI
 
 struct UnifiedDictionaryManagementImportsSection: View {
-    let updateTasks: [DictionaryUpdateTask]
+    let updateTasks: [UnifiedDictionaryManagementUpdateTaskItem]
     let importItems: [UnifiedDictionaryManagementImportItem]
     let onCancelImport: (UnifiedDictionaryManagementImportItem) -> Void
     let onRemoveImport: (UnifiedDictionaryManagementImportItem) -> Void
 
     var body: some View {
         Section("Imports") {
-            ForEach(updateTasks, id: \.objectID) { task in
+            ForEach(updateTasks) { task in
                 UnifiedDictionaryManagementUpdateTaskRow(task: task)
             }
 

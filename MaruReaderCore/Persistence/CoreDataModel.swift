@@ -295,6 +295,13 @@ public final class DictionaryPersistenceController: Sendable {
         if fileManager.fileExists(atPath: sourceCompressionDictionaryDir.path) {
             try fileManager.copyItem(at: sourceCompressionDictionaryDir, to: destinationCompressionDictionaryDir)
         }
+
+        if let sourceTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: starterDictionaryDirectory),
+           fileManager.fileExists(atPath: sourceTokenizerDictionaryDir.path),
+           let destinationTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory)
+        {
+            try fileManager.copyItem(at: sourceTokenizerDictionaryDir, to: destinationTokenizerDictionaryDir)
+        }
     }
 
     static func writeBundledDatabaseSeedCompletionMarker(at baseDirectory: URL, fileManager: FileManager = .default) throws {
@@ -313,6 +320,7 @@ public final class DictionaryPersistenceController: Sendable {
             "Media",
             "AudioMedia",
             GlossaryCompressionCodec.zstdDictionaryDirectoryName,
+            TokenizerDictionaryStorage.installationDirectoryName,
         ] {
             let directoryURL = baseDirectory.appendingPathComponent(directoryName, isDirectory: true)
             if fileManager.fileExists(atPath: directoryURL.path) {

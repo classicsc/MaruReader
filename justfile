@@ -32,11 +32,15 @@ starterdict:
 contentblocker:
   ./scripts/run-contentblocker.sh
 
+# regenerates committed UniFFI Swift bindings for MaruSudachiFFI
+sudachi-bindings:
+  ./scripts/generate-sudachi-uniffi-bindings.sh
+
 # syncs bundled third-party license documents and catalog
 licenses:
   swift scripts/sync-third-party-licenses.swift
 
-# refreshes upstream license snapshots before syncing bundled third-party licenses
+# refreshes upstream license snapshots, including Rust cargo-about output, before syncing bundled third-party licenses
 licenses-refresh:
   swift scripts/sync-third-party-licenses.swift --refresh-snapshots
 

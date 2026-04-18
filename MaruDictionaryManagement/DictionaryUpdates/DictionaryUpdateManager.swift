@@ -25,15 +25,27 @@ public protocol DictionaryUpdateAnkiPreferencesUpdating: Sendable {
 }
 
 public actor DictionaryUpdateManager {
+    private enum QueuedUpdateTask: Equatable {
+        case dictionary(NSManagedObjectID)
+        case tokenizerDictionary(NSManagedObjectID)
+
+        var objectID: NSManagedObjectID {
+            switch self {
+            case let .dictionary(id), let .tokenizerDictionary(id):
+                id
+            }
+        }
+    }
+
     public static let shared = DictionaryUpdateManager(
         container: DictionaryPersistenceController.shared.container,
         importManager: ImportManager.shared,
         networkProvider: URLSession.shared
     )
 
-    private var queue: [NSManagedObjectID] = []
+    private var queue: [QueuedUpdateTask] = []
     private var currentTask: Task<Void, Never>?
-    private var currentTaskID: NSManagedObjectID?
+    private var currentTaskID: QueuedUpdateTask?
     private let container: NSPersistentContainer
     private let importManager: ImportManager
     private let networkProvider: NetworkProviding
@@ -51,10 +63,17 @@ public actor DictionaryUpdateManager {
     }
 
     public func checkForUpdates() async -> Int {
-        struct Candidate: Sendable {
+        struct DictionaryCandidate: Sendable {
             let objectID: NSManagedObjectID
             let indexURL: String?
             let revision: String?
+            let downloadURL: String?
+        }
+
+        struct TokenizerCandidate: Sendable {
+            let objectID: NSManagedObjectID
+            let indexURL: String?
+            let version: String?
             let downloadURL: String?
         }
 
@@ -63,12 +82,12 @@ public actor DictionaryUpdateManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let candidates: [Candidate] = await context.perform {
+        let dictionaryCandidates: [DictionaryCandidate] = await context.perform {
             let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO AND isUpdatable == YES")
             let dictionaries = (try? context.fetch(request)) ?? []
             return dictionaries.map { dictionary in
-                Candidate(
+                DictionaryCandidate(
                     objectID: dictionary.objectID,
                     indexURL: dictionary.indexURL,
                     revision: dictionary.revision,
@@ -77,10 +96,26 @@ public actor DictionaryUpdateManager {
             }
         }
 
-        guard !candidates.isEmpty else { return 0 }
+        let tokenizerCandidates: [TokenizerCandidate] = await context.perform {
+            let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            request.predicate = NSPredicate(
+                format: "isComplete == YES AND pendingDeletion == NO AND isCurrent == YES AND isUpdatable == YES"
+            )
+            let tokenizerDictionaries = (try? context.fetch(request)) ?? []
+            return tokenizerDictionaries.map { tokenizerDictionary in
+                TokenizerCandidate(
+                    objectID: tokenizerDictionary.objectID,
+                    indexURL: tokenizerDictionary.indexURL,
+                    version: tokenizerDictionary.version,
+                    downloadURL: tokenizerDictionary.downloadURL
+                )
+            }
+        }
+
+        guard !dictionaryCandidates.isEmpty || !tokenizerCandidates.isEmpty else { return 0 }
 
         var results: [(NSManagedObjectID, Bool, String?)] = []
-        for candidate in candidates {
+        for candidate in dictionaryCandidates {
             do {
                 guard let indexURL = candidate.indexURL,
                       let currentRevision = candidate.revision,
@@ -104,18 +139,47 @@ public actor DictionaryUpdateManager {
             }
         }
 
+        for candidate in tokenizerCandidates {
+            do {
+                guard let indexURL = candidate.indexURL,
+                      let currentVersion = candidate.version,
+                      let url = URL(string: indexURL)
+                else {
+                    results.append((candidate.objectID, false, nil))
+                    continue
+                }
+                let (data, _) = try await networkProvider.data(from: url)
+                let index = try JSONDecoder().decode(TokenizerDictionaryIndex.self, from: data)
+                let hasUpdate = Self.compareRevisions(current: currentVersion, latest: index.version)
+                let downloadURL = index.downloadUrl ?? candidate.downloadURL
+                results.append((candidate.objectID, hasUpdate, downloadURL))
+            } catch {
+                logger.error("Tokenizer update check failed: \(error.localizedDescription)")
+                results.append((candidate.objectID, false, nil))
+            }
+        }
+
         let updateResults = results
         return await context.perform {
             var count = 0
             for (objectID, hasUpdate, downloadURL) in updateResults {
-                guard let dictionary = try? context.existingObject(with: objectID) as? Dictionary else {
+                if let dictionary = try? context.existingObject(with: objectID) as? Dictionary {
+                    dictionary.updateReady = hasUpdate
+                    if hasUpdate {
+                        count += 1
+                        if let downloadURL {
+                            dictionary.downloadURL = downloadURL
+                        }
+                    }
                     continue
                 }
-                dictionary.updateReady = hasUpdate
-                if hasUpdate {
-                    count += 1
-                    if let downloadURL {
-                        dictionary.downloadURL = downloadURL
+                if let tokenizerDictionary = try? context.existingObject(with: objectID) as? TokenizerDictionary {
+                    tokenizerDictionary.updateReady = hasUpdate
+                    if hasUpdate {
+                        count += 1
+                        if let downloadURL {
+                            tokenizerDictionary.downloadURL = downloadURL
+                        }
                     }
                 }
             }
@@ -174,8 +238,9 @@ public actor DictionaryUpdateManager {
             return task.objectID
         }
 
-        if currentTaskID != taskID, !queue.contains(taskID) {
-            queue.append(taskID)
+        let queuedTask: QueuedUpdateTask = .dictionary(taskID)
+        if currentTaskID != queuedTask, !queue.contains(queuedTask) {
+            queue.append(queuedTask)
             processNextIfIdle()
         }
         return taskID
@@ -187,13 +252,80 @@ public actor DictionaryUpdateManager {
         }
     }
 
+    @discardableResult
+    public func enqueueTokenizerDictionaryUpdate(for tokenizerDictionaryID: NSManagedObjectID) async throws -> NSManagedObjectID {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let taskID = try await context.perform {
+            guard let tokenizerDictionary = try? context.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
+                throw TokenizerDictionaryImportError.importNotFound
+            }
+            guard tokenizerDictionary.isComplete, tokenizerDictionary.updateReady, tokenizerDictionary.isCurrent else {
+                throw TokenizerDictionaryImportError.importNotFound
+            }
+            guard let tokenizerUUID = tokenizerDictionary.id else {
+                throw TokenizerDictionaryImportError.tokenizerDictionaryCreationFailed
+            }
+
+            let existingRequest: NSFetchRequest<TokenizerDictionaryUpdateTask> = TokenizerDictionaryUpdateTask.fetchRequest()
+            existingRequest.predicate = NSPredicate(
+                format: "tokenizerDictionaryID == %@ AND isComplete == NO AND isFailed == NO AND isCancelled == NO",
+                tokenizerUUID as CVarArg
+            )
+            existingRequest.fetchLimit = 1
+            if let existingTask = try? context.fetch(existingRequest).first {
+                return existingTask.objectID
+            }
+
+            guard let downloadURL = tokenizerDictionary.downloadURL else {
+                throw TokenizerDictionaryImportError.missingFile
+            }
+
+            let task = TokenizerDictionaryUpdateTask(context: context)
+            let taskUUID = UUID()
+            task.id = taskUUID
+            task.tokenizerDictionaryID = tokenizerUUID
+            task.tokenizerDictionaryName = tokenizerDictionary.name ?? "Tokenizer Dictionary"
+            task.downloadURL = downloadURL
+            task.displayProgressMessage = FrameworkLocalization.string("Queued for update.")
+            task.isComplete = false
+            task.isFailed = false
+            task.isCancelled = false
+            task.isStarted = false
+            task.timeQueued = Date()
+            task.bytesReceived = 0
+            task.totalBytes = 0
+
+            tokenizerDictionary.updateReady = false
+
+            try context.save()
+            return task.objectID
+        }
+
+        let queuedTask: QueuedUpdateTask = .tokenizerDictionary(taskID)
+        if currentTaskID != queuedTask, !queue.contains(queuedTask) {
+            queue.append(queuedTask)
+            processNextIfIdle()
+        }
+        return taskID
+    }
+
+    public func enqueueTokenizerDictionaryUpdates(for tokenizerDictionaryIDs: [NSManagedObjectID]) async {
+        for tokenizerDictionaryID in tokenizerDictionaryIDs {
+            _ = try? await enqueueTokenizerDictionaryUpdate(for: tokenizerDictionaryID)
+        }
+    }
+
     public func resumePendingUpdates() async {
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let pendingTasks: [NSManagedObjectID] = await context.perform {
+        let pendingDictionaryTasks: [NSManagedObjectID] = await context.perform {
             let request: NSFetchRequest<DictionaryUpdateTask> = DictionaryUpdateTask.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO")
             request.sortDescriptors = [NSSortDescriptor(key: "timeQueued", ascending: true)]
@@ -201,19 +333,36 @@ public actor DictionaryUpdateManager {
             return tasks.map(\.objectID)
         }
 
-        guard !pendingTasks.isEmpty else { return }
-        for taskID in pendingTasks where currentTaskID != taskID && !queue.contains(taskID) {
-            queue.append(taskID)
+        let pendingTokenizerTasks: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<TokenizerDictionaryUpdateTask> = TokenizerDictionaryUpdateTask.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO")
+            request.sortDescriptors = [NSSortDescriptor(key: "timeQueued", ascending: true)]
+            let tasks = (try? context.fetch(request)) ?? []
+            return tasks.map(\.objectID)
+        }
+
+        guard !pendingDictionaryTasks.isEmpty || !pendingTokenizerTasks.isEmpty else { return }
+        for taskID in pendingDictionaryTasks {
+            let queuedTask: QueuedUpdateTask = .dictionary(taskID)
+            if currentTaskID != queuedTask, !queue.contains(queuedTask) {
+                queue.append(queuedTask)
+            }
+        }
+        for taskID in pendingTokenizerTasks {
+            let queuedTask: QueuedUpdateTask = .tokenizerDictionary(taskID)
+            if currentTaskID != queuedTask, !queue.contains(queuedTask) {
+                queue.append(queuedTask)
+            }
         }
         processNextIfIdle()
     }
 
     func waitForCompletion(taskID: NSManagedObjectID) async {
         while true {
-            if currentTaskID == taskID {
+            if currentTaskID?.objectID == taskID {
                 await currentTask?.value
                 return
-            } else if !queue.contains(taskID) {
+            } else if !queue.contains(where: { $0.objectID == taskID }) {
                 return
             } else {
                 try? await Task.sleep(nanoseconds: 100_000_000)
@@ -234,7 +383,16 @@ public actor DictionaryUpdateManager {
         currentTaskID = nextTask
     }
 
-    private func runUpdate(for taskID: NSManagedObjectID) async {
+    private func runUpdate(for queuedTask: QueuedUpdateTask) async {
+        switch queuedTask {
+        case let .dictionary(taskID):
+            await runDictionaryUpdate(for: taskID)
+        case let .tokenizerDictionary(taskID):
+            await runTokenizerDictionaryUpdate(for: taskID)
+        }
+    }
+
+    private func runDictionaryUpdate(for taskID: NSManagedObjectID) async {
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         context.undoManager = nil
@@ -367,6 +525,137 @@ public actor DictionaryUpdateManager {
         }
     }
 
+    private func runTokenizerDictionaryUpdate(for taskID: NSManagedObjectID) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        struct UpdateInfo: Sendable {
+            let taskUUID: UUID
+            let tokenizerDictionaryID: UUID
+            let downloadURL: String
+            let existingFile: URL?
+        }
+
+        let updateInfo: UpdateInfo
+        do {
+            updateInfo = try await context.perform {
+                guard let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask,
+                      let taskUUID = task.id
+                else {
+                    throw TokenizerDictionaryImportError.importNotFound
+                }
+                guard let tokenizerDictionaryID = task.tokenizerDictionaryID,
+                      let downloadURL = task.downloadURL
+                else {
+                    throw TokenizerDictionaryImportError.tokenizerDictionaryCreationFailed
+                }
+                task.isStarted = true
+                task.isFailed = false
+                task.isCancelled = false
+                task.timeStarted = Date()
+                task.displayProgressMessage = FrameworkLocalization.string("Preparing update...")
+                let existingFile = task.downloadedFile
+                try context.save()
+
+                return UpdateInfo(
+                    taskUUID: taskUUID,
+                    tokenizerDictionaryID: tokenizerDictionaryID,
+                    downloadURL: downloadURL,
+                    existingFile: existingFile
+                )
+            }
+        } catch {
+            logger.error("Failed to start tokenizer update task: \(error.localizedDescription)")
+            return
+        }
+
+        let updateFileURL: URL
+        do {
+            if let existingFile = updateInfo.existingFile,
+               FileManager.default.fileExists(atPath: existingFile.path)
+            {
+                updateFileURL = existingFile
+            } else {
+                guard let downloadURL = URL(string: updateInfo.downloadURL) else {
+                    throw TokenizerDictionaryImportError.missingFile
+                }
+                await context.perform {
+                    if let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask {
+                        task.displayProgressMessage = FrameworkLocalization.string("Downloading update...")
+                        task.bytesReceived = 0
+                        task.totalBytes = 0
+                        try? context.save()
+                    }
+                }
+
+                let (data, response) = try await networkProvider.data(from: downloadURL)
+                let expectedBytes = response.expectedContentLength > 0 ? response.expectedContentLength : Int64(data.count)
+                let destination = try downloadDestinationURL(for: updateInfo.taskUUID)
+                try data.write(to: destination, options: [.atomic])
+                updateFileURL = destination
+
+                await context.perform {
+                    if let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask {
+                        task.bytesReceived = Int64(data.count)
+                        task.totalBytes = expectedBytes
+                        task.downloadedFile = destination
+                        task.displayProgressMessage = FrameworkLocalization.string("Downloaded update.")
+                        try? context.save()
+                    }
+                }
+            }
+        } catch {
+            await markTokenizerTaskFailed(taskID: taskID, tokenizerDictionaryID: updateInfo.tokenizerDictionaryID, error: error)
+            return
+        }
+
+        await context.perform {
+            if let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask {
+                task.displayProgressMessage = FrameworkLocalization.string("Importing update...")
+                try? context.save()
+            }
+        }
+
+        let importJobID: NSManagedObjectID
+        do {
+            if let existingJobID = await findTokenizerUpdateImportJob(taskUUID: updateInfo.taskUUID, in: context) {
+                importJobID = existingJobID
+            } else {
+                importJobID = try await importManager.enqueueTokenizerDictionaryImport(
+                    from: updateFileURL,
+                    queuedDisplayName: nil,
+                    updateTaskID: updateInfo.taskUUID
+                )
+            }
+        } catch {
+            await markTokenizerTaskFailed(taskID: taskID, tokenizerDictionaryID: updateInfo.tokenizerDictionaryID, error: error)
+            return
+        }
+
+        await importManager.waitForCompletion(jobID: importJobID)
+
+        do {
+            let originalTokenizerObjectID = try await finalizeTokenizerDictionaryUpdate(
+                importJobID: importJobID,
+                originalTokenizerDictionaryID: updateInfo.tokenizerDictionaryID
+            )
+            await importManager.deleteTokenizerDictionary(tokenizerDictionaryID: originalTokenizerObjectID)
+            await context.perform {
+                if let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask {
+                    task.isComplete = true
+                    task.timeCompleted = Date()
+                    task.displayProgressMessage = FrameworkLocalization.string("Update complete.")
+                    try? context.save()
+                }
+            }
+            try? FileManager.default.removeItem(at: updateFileURL)
+        } catch {
+            await markTokenizerTaskFailed(taskID: taskID, tokenizerDictionaryID: updateInfo.tokenizerDictionaryID, error: error)
+        }
+    }
+
     private func markTaskFailed(taskID: NSManagedObjectID, dictionaryID: UUID, error: Error) async {
         let context = container.newBackgroundContext()
         context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
@@ -392,6 +681,31 @@ public actor DictionaryUpdateManager {
         }
     }
 
+    private func markTokenizerTaskFailed(taskID: NSManagedObjectID, tokenizerDictionaryID: UUID, error: Error) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        await context.perform {
+            if let task = try? context.existingObject(with: taskID) as? TokenizerDictionaryUpdateTask {
+                task.isFailed = true
+                task.isComplete = false
+                task.isCancelled = false
+                task.timeFailed = Date()
+                task.errorMessage = error.localizedDescription
+                task.displayProgressMessage = FrameworkLocalization.string("Update failed.")
+            }
+            let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "id == %@", tokenizerDictionaryID as CVarArg)
+            request.fetchLimit = 1
+            if let tokenizerDictionary = try? context.fetch(request).first {
+                tokenizerDictionary.updateReady = true
+            }
+            try? context.save()
+        }
+    }
+
     private func findUpdateImportJob(taskUUID: UUID, in context: NSManagedObjectContext) async -> NSManagedObjectID? {
         await context.perform {
             let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
@@ -399,6 +713,16 @@ public actor DictionaryUpdateManager {
             request.fetchLimit = 1
             let dictionary = try? context.fetch(request).first
             return dictionary?.objectID
+        }
+    }
+
+    private func findTokenizerUpdateImportJob(taskUUID: UUID, in context: NSManagedObjectContext) async -> NSManagedObjectID? {
+        await context.perform {
+            let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "updateTaskID == %@", taskUUID as CVarArg)
+            request.fetchLimit = 1
+            let tokenizerDictionary = try? context.fetch(request).first
+            return tokenizerDictionary?.objectID
         }
     }
 
@@ -449,6 +773,40 @@ public actor DictionaryUpdateManager {
                 oldDictionaryID: originalDictionaryID,
                 oldDictionaryObjectID: oldDictionary.objectID
             )
+        }
+    }
+
+    private func finalizeTokenizerDictionaryUpdate(
+        importJobID: NSManagedObjectID,
+        originalTokenizerDictionaryID: UUID
+    ) async throws -> NSManagedObjectID {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        return try await context.perform {
+            guard let newTokenizerDictionary = try? context.existingObject(with: importJobID) as? TokenizerDictionary else {
+                throw TokenizerDictionaryImportError.importNotFound
+            }
+            context.refresh(newTokenizerDictionary, mergeChanges: true)
+            guard newTokenizerDictionary.isComplete, newTokenizerDictionary.isFailed == false else {
+                throw TokenizerDictionaryImportError.databaseError
+            }
+
+            let oldTokenizerRequest: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            oldTokenizerRequest.predicate = NSPredicate(format: "id == %@", originalTokenizerDictionaryID as CVarArg)
+            oldTokenizerRequest.fetchLimit = 1
+            guard let oldTokenizerDictionary = try? context.fetch(oldTokenizerRequest).first else {
+                throw TokenizerDictionaryImportError.importNotFound
+            }
+
+            newTokenizerDictionary.updateTaskID = nil
+            newTokenizerDictionary.updateReady = false
+            oldTokenizerDictionary.updateReady = false
+
+            try context.save()
+            return oldTokenizerDictionary.objectID
         }
     }
 

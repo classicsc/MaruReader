@@ -241,6 +241,50 @@ struct DictionaryPersistenceTests {
         }
     }
 
+    private func createMockTokenizerDictionaryZIP(
+        name: String = "SudachiDict Full",
+        version: String = "20260116",
+        isUpdatable: Bool = false,
+        attribution: String? = nil,
+        indexURL: String? = nil,
+        downloadURL: String? = nil
+    ) async throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
+
+        let indexJSON = """
+        {
+            "type": "tokenizer-dictionary",
+            "format": 1,
+            "name": "\(name)",
+            "version": "\(version)",
+            "isUpdatable": \(isUpdatable ? "true" : "false"),
+            "attribution": \(attribution.map { "\"\($0)\"" } ?? "null"),
+            "indexUrl": \(indexURL.map { "\"\($0)\"" } ?? "null"),
+            "downloadUrl": \(downloadURL.map { "\"\($0)\"" } ?? "null")
+        }
+        """
+
+        try Data(indexJSON.utf8).write(to: contentsDir.appendingPathComponent("index.json"))
+
+        let tokenizerFiles: [String: Data] = [
+            "char.def": Data("char".utf8),
+            "rewrite.def": Data("rewrite".utf8),
+            "sudachi.json": Data("{}".utf8),
+            "system_full.dic": Data([0x00, 0x01, 0x02, 0x03]),
+            "unk.def": Data("unk".utf8),
+        ]
+
+        for (fileName, data) in tokenizerFiles {
+            try data.write(to: contentsDir.appendingPathComponent(fileName))
+        }
+
+        let zipURL = tempDir.appendingPathComponent("tokenizer.zip")
+        try await createArchive(from: contentsDir, zipURL: zipURL)
+        return zipURL
+    }
+
     // Helper: Create a corrupted ZIP file for testing error handling
     private func createCorruptedZIP() throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -338,6 +382,17 @@ struct DictionaryPersistenceTests {
     @MainActor
     private func fetchDictionaries(from context: NSManagedObjectContext) -> [Dictionary] {
         let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+        return (try? context.fetch(request)) ?? []
+    }
+
+    @MainActor
+    private func getTokenizerDictionary(from context: NSManagedObjectContext, importID: NSManagedObjectID) -> TokenizerDictionary? {
+        try? context.existingObject(with: importID) as? TokenizerDictionary
+    }
+
+    @MainActor
+    private func fetchTokenizerDictionaries(from context: NSManagedObjectContext) -> [TokenizerDictionary] {
+        let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
         return (try? context.fetch(request)) ?? []
     }
 
@@ -577,6 +632,35 @@ struct DictionaryPersistenceTests {
             return (dictionary?.title, dictionary?.isFailed)
         }
         #expect(queuedState.0 == "queued-name-test")
+        #expect(queuedState.1 == true)
+    }
+
+    @Test func enqueueImport_TokenizerDictionaryPreservesOriginalQueuedFilename() async throws {
+        let zipURL = try await createMockTokenizerDictionaryZIP()
+        let renamedZipURL = zipURL.deletingLastPathComponent().appendingPathComponent("queued-tokenizer-name.zip")
+        try FileManager.default.moveItem(at: zipURL, to: renamedZipURL)
+        defer { try? FileManager.default.removeItem(at: renamedZipURL.deletingLastPathComponent()) }
+
+        let baseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: baseDirectory) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite, baseDirectory: baseDirectory)
+        let importManager = ImportManager(container: persistenceController.container, baseDirectory: baseDirectory)
+        await importManager.setTestErrorInjection {
+            throw CocoaError(.fileReadUnknown)
+        }
+
+        let importID = try await importManager.enqueueImport(from: renamedZipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let queuedState = await MainActor.run {
+            let viewContext = persistenceController.container.viewContext
+            viewContext.refreshAllObjects()
+            let tokenizerDictionary = getTokenizerDictionary(from: viewContext, importID: importID)
+            return (tokenizerDictionary?.name, tokenizerDictionary?.isFailed)
+        }
+        #expect(queuedState.0 == "queued-tokenizer-name")
         #expect(queuedState.1 == true)
     }
 
@@ -1842,6 +1926,97 @@ struct DictionaryPersistenceTests {
             #expect(!FileManager.default.fileExists(atPath: mediaDir.path), "Media directory should be deleted")
         }
         expectDictionaryScratchDirectoryRemoved(dictionaryID: dictionaryUUID)
+    }
+
+    @Test @MainActor func importTokenizerDictionary_ValidZIP_ImportsSuccessfully() async throws {
+        let zipURL = try await createMockTokenizerDictionaryZIP(
+            name: "SudachiDict Full",
+            version: "20260116",
+            isUpdatable: true,
+            attribution: "Works Applications",
+            indexURL: "https://example.com/tokenizer/index.json",
+            downloadURL: "https://example.com/tokenizer.zip"
+        )
+        defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }
+
+        let baseDirectory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: baseDirectory) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite, baseDirectory: baseDirectory)
+        let importManager = ImportManager(container: persistenceController.container, baseDirectory: baseDirectory)
+
+        let importID = try await importManager.enqueueTokenizerDictionaryImport(from: zipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let context = persistenceController.container.viewContext
+        let tokenizerDictionary = getTokenizerDictionary(from: context, importID: importID)
+
+        #expect(tokenizerDictionary?.isComplete == true)
+        #expect(tokenizerDictionary?.isCurrent == true)
+        #expect(tokenizerDictionary?.name == "SudachiDict Full")
+        #expect(tokenizerDictionary?.version == "20260116")
+        #expect(tokenizerDictionary?.attribution == "Works Applications")
+        #expect(tokenizerDictionary?.indexURL == "https://example.com/tokenizer/index.json")
+        #expect(tokenizerDictionary?.downloadURL == "https://example.com/tokenizer.zip")
+        #expect(tokenizerDictionary?.isUpdatable == true)
+
+        let installedDirectory = try #require(TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory))
+        for requiredFile in TokenizerDictionaryStorage.requiredResourceFiles + [TokenizerDictionaryStorage.manifestFileName] {
+            #expect(FileManager.default.fileExists(atPath: installedDirectory.appendingPathComponent(requiredFile).path))
+        }
+    }
+
+    @Test @MainActor func checkForUpdates_MarksTokenizerDictionaryUpdateReadyAndStoresDownloadURL() async throws {
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = ImportManager(container: persistenceController.container)
+        let networkProvider = MockUpdateNetworkProvider()
+        let updateManager = DictionaryUpdateManager(
+            container: persistenceController.container,
+            importManager: importManager,
+            networkProvider: networkProvider
+        )
+
+        let indexURL = try #require(URL(string: "https://example.com/tokenizer/index.json"))
+        let indexJSON = """
+        {
+            "type": "tokenizer-dictionary",
+            "format": 1,
+            "name": "SudachiDict Full",
+            "version": "20260116",
+            "isUpdatable": true,
+            "indexUrl": "https://example.com/tokenizer/index.json",
+            "downloadUrl": "https://example.com/tokenizer-new.zip"
+        }
+        """
+        networkProvider.queueResponse(url: indexURL, data: Data(indexJSON.utf8))
+
+        let context = persistenceController.container.newBackgroundContext()
+        let tokenizerObjectID = try await context.perform {
+            let tokenizerDictionary = TokenizerDictionary(context: context)
+            tokenizerDictionary.id = UUID()
+            tokenizerDictionary.name = "SudachiDict Full"
+            tokenizerDictionary.version = "20240101"
+            tokenizerDictionary.timeQueued = Date()
+            tokenizerDictionary.isComplete = true
+            tokenizerDictionary.isFailed = false
+            tokenizerDictionary.isCancelled = false
+            tokenizerDictionary.isCurrent = true
+            tokenizerDictionary.pendingDeletion = false
+            tokenizerDictionary.isUpdatable = true
+            tokenizerDictionary.indexURL = "https://example.com/tokenizer/index.json"
+            tokenizerDictionary.downloadURL = "https://example.com/tokenizer-old.zip"
+            try context.save()
+            return tokenizerDictionary.objectID
+        }
+
+        let updateCount = await updateManager.checkForUpdates()
+
+        let viewContext = persistenceController.container.viewContext
+        let tokenizerDictionary = getTokenizerDictionary(from: viewContext, importID: tokenizerObjectID)
+        #expect(updateCount == 1)
+        #expect(tokenizerDictionary?.updateReady == true)
+        #expect(tokenizerDictionary?.downloadURL == "https://example.com/tokenizer-new.zip")
     }
 
     @Test @MainActor func checkForUpdates_MarksUpdateReadyAndStoresDownloadURL() async throws {

@@ -65,7 +65,7 @@ struct ThirdPartyLicenseCatalogTests {
     @Test func packageResolvedPinsAppearExactlyOnce() throws {
         let catalog = try loadCatalog()
         let spmIDs = catalog.components
-            .filter { $0.category == .spm }
+            .filter { $0.category == .spm && $0.id.hasPrefix("spm-") }
             .map(\.id)
 
         let expectedPinIDs = try loadResolvedPinIDs().map { "spm-\($0)" }
@@ -95,6 +95,15 @@ struct ThirdPartyLicenseCatalogTests {
         let names = Set(embedded.map(\.name))
         #expect(names.contains("codemirror"))
         #expect(names.contains("js-beautify"))
+    }
+
+    @Test func rustCatalogIncludesSudachiAndDependencies() throws {
+        let catalog = try loadCatalog()
+        let rustComponents = catalog.components.filter { $0.category == .rustCrate }
+
+        #expect(!rustComponents.isEmpty)
+        #expect(rustComponents.count > 1)
+        #expect(rustComponents.contains { $0.name == "sudachi" })
     }
 
     private func loadCatalog() throws -> ThirdPartyLicenseCatalog {

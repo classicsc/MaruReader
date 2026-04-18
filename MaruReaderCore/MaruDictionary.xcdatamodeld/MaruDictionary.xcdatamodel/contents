@@ -164,6 +164,54 @@
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="totalBytes" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="TokenizerDictionary" representedClassName="TokenizerDictionary" syncable="YES" codeGenerationType="class">
+        <attribute name="attribution" optional="YES" attributeType="String"/>
+        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
+        <attribute name="downloadURL" optional="YES" attributeType="String"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+        <attribute name="file" optional="YES" attributeType="URI"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="indexURL" optional="YES" attributeType="String"/>
+        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isCurrent" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="name" attributeType="String"/>
+        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeFailed" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeQueued" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="updateReady" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="updateTaskID" optional="YES" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="version" optional="YES" attributeType="String"/>
+        <fetchIndex name="byCurrentTokenizer">
+            <fetchIndexElement property="isCurrent" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
+    <entity name="TokenizerDictionaryUpdateTask" representedClassName="TokenizerDictionaryUpdateTask" syncable="YES" codeGenerationType="class">
+        <attribute name="bytesReceived" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
+        <attribute name="downloadedFile" optional="YES" attributeType="URI"/>
+        <attribute name="downloadURL" attributeType="String"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeFailed" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeQueued" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="tokenizerDictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="tokenizerDictionaryName" attributeType="String"/>
+        <attribute name="totalBytes" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+    </entity>
     <entity name="IPAEntry" representedClassName="IPAEntry" syncable="YES" codeGenerationType="class">
         <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
         <attribute name="expression" attributeType="String"/>

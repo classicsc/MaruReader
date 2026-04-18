@@ -1,0 +1,12 @@
+[package]
+name = "maru_sudachi_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["lib", "staticlib"]
+
+[dependencies]
+sudachi = { git = "https://github.com/WorksApplications/sudachi.rs", rev = "4ff4bbc3b410f88ce93a3582cd94eb168f855007" }
+thiserror = "2.0.17"
+uniffi = "=0.31.1"

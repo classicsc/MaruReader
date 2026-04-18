@@ -64,6 +64,14 @@ struct UnifiedDictionaryManagementView: View {
     private var audioSources: FetchedResults<AudioSource>
 
     @FetchRequest(
+        entity: TokenizerDictionary.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \TokenizerDictionary.timeCompleted, ascending: false)],
+        predicate: NSPredicate(format: "isComplete == YES AND pendingDeletion == NO AND isCurrent == YES", NSNumber(value: true)),
+        animation: .default
+    )
+    private var tokenizerDictionaries: FetchedResults<TokenizerDictionary>
+
+    @FetchRequest(
         entity: Dictionary.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \Dictionary.kanjiDisplayPriority, ascending: true)],
         predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND kanjiCount > 0", NSNumber(value: true)),
@@ -104,6 +112,14 @@ struct UnifiedDictionaryManagementView: View {
     private var incompleteAudioSources: FetchedResults<AudioSource>
 
     @FetchRequest(
+        entity: TokenizerDictionary.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \TokenizerDictionary.timeQueued, ascending: true)],
+        predicate: NSPredicate(format: "isComplete == NO AND pendingDeletion == NO"),
+        animation: .default
+    )
+    private var incompleteTokenizerDictionaries: FetchedResults<TokenizerDictionary>
+
+    @FetchRequest(
         entity: DictionaryUpdateTask.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \DictionaryUpdateTask.timeQueued, ascending: true)],
         predicate: NSPredicate(
@@ -111,7 +127,17 @@ struct UnifiedDictionaryManagementView: View {
         ),
         animation: .default
     )
-    private var updateTasks: FetchedResults<DictionaryUpdateTask>
+    private var dictionaryUpdateTasks: FetchedResults<DictionaryUpdateTask>
+
+    @FetchRequest(
+        entity: TokenizerDictionaryUpdateTask.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \TokenizerDictionaryUpdateTask.timeQueued, ascending: true)],
+        predicate: NSPredicate(
+            format: "isStarted == YES AND downloadedFile == nil AND isComplete == NO AND isFailed == NO AND isCancelled == NO"
+        ),
+        animation: .default
+    )
+    private var tokenizerUpdateTasks: FetchedResults<TokenizerDictionaryUpdateTask>
 
     @FetchRequest(
         entity: Dictionary.entity(),
@@ -125,15 +151,37 @@ struct UnifiedDictionaryManagementView: View {
     )
     private var updatableDictionaries: FetchedResults<Dictionary>
 
+    @FetchRequest(
+        entity: TokenizerDictionary.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \TokenizerDictionary.name, ascending: true)],
+        predicate: NSPredicate(
+            format: "isComplete == %@ AND pendingDeletion == NO AND isCurrent == YES AND updateReady == %@",
+            NSNumber(value: true),
+            NSNumber(value: true)
+        ),
+        animation: .default
+    )
+    private var updatableTokenizerDictionaries: FetchedResults<TokenizerDictionary>
+
     private var hasImportActivity: Bool {
-        !incompleteDictionaries.isEmpty || !incompleteAudioSources.isEmpty || !updateTasks.isEmpty
+        !incompleteDictionaries.isEmpty
+            || !incompleteAudioSources.isEmpty
+            || !incompleteTokenizerDictionaries.isEmpty
+            || !updateTaskItems.isEmpty
+    }
+
+    private var updateTaskItems: [UnifiedDictionaryManagementUpdateTaskItem] {
+        let dictionaryTasks = dictionaryUpdateTasks.map(UnifiedDictionaryManagementUpdateTaskItem.dictionary)
+        let tokenizerTasks = tokenizerUpdateTasks.map(UnifiedDictionaryManagementUpdateTaskItem.tokenizerDictionary)
+        return dictionaryTasks + tokenizerTasks
     }
 
     private var importItems: [UnifiedDictionaryManagementImportItem] {
         let dictionaries = incompleteDictionaries.map(UnifiedDictionaryManagementImportItem.dictionary)
         let audioSources = incompleteAudioSources.map(UnifiedDictionaryManagementImportItem.audioSource)
+        let tokenizerDictionaries = incompleteTokenizerDictionaries.map(UnifiedDictionaryManagementImportItem.tokenizerDictionary)
 
-        return (dictionaries + audioSources).sorted { lhs, rhs in
+        return (dictionaries + audioSources + tokenizerDictionaries).sorted { lhs, rhs in
             if lhs.isStarted != rhs.isStarted {
                 return lhs.isStarted
             }
@@ -151,12 +199,13 @@ struct UnifiedDictionaryManagementView: View {
     private var allSectionsEmpty: Bool {
         termDictionaries.isEmpty && frequencyDictionaries.isEmpty && pitchDictionaries.isEmpty
             && audioSources.isEmpty && kanjiDictionaries.isEmpty && kanjiFrequencyDictionaries.isEmpty
-            && ipaDictionaries.isEmpty && !hasImportActivity && updatableDictionaries.isEmpty
+            && ipaDictionaries.isEmpty && tokenizerDictionaries.isEmpty
+            && !hasImportActivity && updatableDictionaries.isEmpty && updatableTokenizerDictionaries.isEmpty
     }
 
     var body: some View {
         List {
-            if !updatableDictionaries.isEmpty {
+            if !updatableDictionaries.isEmpty || !updatableTokenizerDictionaries.isEmpty {
                 Section {
                     Button("Update All", systemImage: "arrow.down.circle", action: updateAll)
                 }
@@ -164,7 +213,7 @@ struct UnifiedDictionaryManagementView: View {
 
             if hasImportActivity {
                 UnifiedDictionaryManagementImportsSection(
-                    updateTasks: Array(updateTasks),
+                    updateTasks: updateTaskItems,
                     importItems: importItems,
                     onCancelImport: cancelImport,
                     onRemoveImport: removeImport
@@ -301,6 +350,25 @@ struct UnifiedDictionaryManagementView: View {
                 }
             )
 
+            Section {
+                if let tokenizerDictionary = tokenizerDictionaries.first {
+                    UnifiedTokenizerDictionaryManagementRow(
+                        tokenizerDictionary: tokenizerDictionary,
+                        onUpdate: {
+                            startUpdate(tokenizerDictionary)
+                        }
+                    )
+                } else {
+                    Text("Import a tokenizer dictionary ZIP to enable furigana functionality.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            } header: {
+                Text("Tokenizer Dictionary")
+            } footer: {
+                Text("The tokenizer dictionary is used for furigana generation. Importing a new tokenizer dictionary will replace the old one.")
+            }
+
             if allSectionsEmpty {
                 ContentUnavailableView(
                     "No Dictionaries",
@@ -405,9 +473,11 @@ struct UnifiedDictionaryManagementView: View {
 
     private func updateAll() {
         let dictionaryIDs = updatableDictionaries.map(\.objectID)
+        let tokenizerDictionaryIDs = updatableTokenizerDictionaries.map(\.objectID)
 
         Task {
             await DictionaryUpdateManager.shared.enqueueUpdates(for: dictionaryIDs)
+            await DictionaryUpdateManager.shared.enqueueTokenizerDictionaryUpdates(for: tokenizerDictionaryIDs)
         }
     }
 
@@ -415,6 +485,18 @@ struct UnifiedDictionaryManagementView: View {
         Task {
             do {
                 _ = try await DictionaryUpdateManager.shared.enqueueUpdate(for: dictionary.objectID)
+            } catch {
+                await MainActor.run {
+                    present(error: error)
+                }
+            }
+        }
+    }
+
+    private func startUpdate(_ tokenizerDictionary: TokenizerDictionary) {
+        Task {
+            do {
+                _ = try await DictionaryUpdateManager.shared.enqueueTokenizerDictionaryUpdate(for: tokenizerDictionary.objectID)
             } catch {
                 await MainActor.run {
                     present(error: error)
@@ -436,6 +518,8 @@ struct UnifiedDictionaryManagementView: View {
                 await ImportManager.shared.deleteDictionary(dictionaryID: dictionary.objectID)
             case let .audioSource(audioSource):
                 await ImportManager.shared.deleteAudioSource(sourceID: audioSource.objectID)
+            case let .tokenizerDictionary(tokenizerDictionary):
+                await ImportManager.shared.deleteTokenizerDictionary(tokenizerDictionaryID: tokenizerDictionary.objectID)
             }
         }
     }

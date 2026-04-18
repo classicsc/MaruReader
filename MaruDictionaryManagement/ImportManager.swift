@@ -63,10 +63,11 @@ public actor ImportManager {
     enum QueuedImport: Equatable {
         case dictionary(NSManagedObjectID)
         case audioSource(NSManagedObjectID)
+        case tokenizerDictionary(NSManagedObjectID)
 
         var jobID: NSManagedObjectID {
             switch self {
-            case let .dictionary(id), let .audioSource(id): id
+            case let .dictionary(id), let .audioSource(id), let .tokenizerDictionary(id): id
             }
         }
     }
@@ -153,6 +154,12 @@ public actor ImportManager {
             )
         case .audioSource:
             return try await enqueueAudioSourceImport(from: localURL, queuedDisplayName: originalDisplayName)
+        case .tokenizerDictionary:
+            return try await enqueueTokenizerDictionaryImport(
+                from: localURL,
+                queuedDisplayName: originalDisplayName,
+                updateTaskID: nil
+            )
         }
     }
 
@@ -255,6 +262,42 @@ public actor ImportManager {
         return importJob
     }
 
+    public func enqueueTokenizerDictionaryImport(from zipURL: URL) async throws -> NSManagedObjectID {
+        try await enqueueTokenizerDictionaryImport(from: zipURL, queuedDisplayName: nil, updateTaskID: nil)
+    }
+
+    func enqueueTokenizerDictionaryImport(
+        from zipURL: URL,
+        queuedDisplayName: String?,
+        updateTaskID: UUID?
+    ) async throws -> NSManagedObjectID {
+        backgroundExpired = false
+        let context = container.newBackgroundContext()
+        let importJob = try await context.perform {
+            let tokenizerDictionary = TokenizerDictionary(context: context)
+            let jobID = UUID()
+            tokenizerDictionary.id = jobID
+            tokenizerDictionary.file = zipURL
+            let baseName = queuedDisplayName ?? zipURL.deletingPathExtension().lastPathComponent
+            tokenizerDictionary.name = baseName.isEmpty ? "Imported Tokenizer Dictionary" : baseName
+            tokenizerDictionary.timeQueued = Date()
+            tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Queued for import.")
+            tokenizerDictionary.isComplete = false
+            tokenizerDictionary.isCurrent = false
+            tokenizerDictionary.isFailed = false
+            tokenizerDictionary.isCancelled = false
+            tokenizerDictionary.isStarted = false
+            tokenizerDictionary.errorMessage = nil
+            tokenizerDictionary.updateReady = false
+            tokenizerDictionary.updateTaskID = updateTaskID
+            try context.save()
+            return tokenizerDictionary.objectID
+        }
+        queue.append(.tokenizerDictionary(importJob))
+        processNextIfIdle()
+        return importJob
+    }
+
     // MARK: - Public API: Cancel / Wait
 
     /// Cancel an ongoing or queued import job.
@@ -273,6 +316,9 @@ public actor ImportManager {
                     try? context.save()
                 } else if let audioSource = try? context.existingObject(with: jobID) as? AudioSource {
                     Self.markAudioSourceCancelled(audioSource)
+                    try? context.save()
+                } else if let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary {
+                    Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
                     try? context.save()
                 }
             }
@@ -299,12 +345,14 @@ public actor ImportManager {
     public func cleanupInterruptedImports() async {
         await cleanupInterruptedDictionaryImports()
         await cleanupInterruptedAudioSourceImports()
+        await cleanupInterruptedTokenizerDictionaryImports()
     }
 
     /// Clean up entities marked for deletion but not yet removed.
     public func cleanupPendingDeletions(batchSize: Int = 10000) async {
         await cleanupPendingDictionaryDeletions(batchSize: batchSize)
         await cleanupPendingAudioSourceDeletions(batchSize: batchSize)
+        await cleanupPendingTokenizerDictionaryDeletions()
     }
 
     // MARK: - Public API: Deletion
@@ -390,6 +438,44 @@ public actor ImportManager {
         deletionTasks[sourceID] = task
     }
 
+    public func deleteTokenizerDictionary(tokenizerDictionaryID: NSManagedObjectID) async {
+        guard deletionTasks[tokenizerDictionaryID] == nil else { return }
+
+        let taskContext = container.newBackgroundContext()
+        taskContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        taskContext.undoManager = nil
+
+        do {
+            try await taskContext.perform {
+                guard let tokenizerDictionary = try? taskContext.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
+                    throw TokenizerDictionaryImportError.databaseError
+                }
+                tokenizerDictionary.pendingDeletion = true
+                tokenizerDictionary.errorMessage = nil
+                try taskContext.save()
+            }
+        } catch {
+            logger.error("Failed to mark tokenizer dictionary for deletion \(tokenizerDictionaryID): \(error.localizedDescription)")
+            return
+        }
+
+        let runner = backgroundTaskRunner
+        let task = Task {
+            await runner.run("Tokenizer Dictionary Delete", {
+                Task {
+                    await self.handleDeletionExpiration(for: tokenizerDictionaryID)
+                }
+            }, {
+                await self.runTokenizerDictionaryDeletion(
+                    tokenizerDictionaryID: tokenizerDictionaryID,
+                    taskContext: taskContext
+                )
+            })
+            finishDeletionTask(for: tokenizerDictionaryID)
+        }
+        deletionTasks[tokenizerDictionaryID] = task
+    }
+
     // MARK: - Queue Lifecycle (Shared)
 
     private func processNextIfIdle() {
@@ -447,6 +533,9 @@ public actor ImportManager {
                 case let .audioSource(jobID):
                     guard let audioSource = try? context.existingObject(with: jobID) as? AudioSource else { continue }
                     Self.markAudioSourceCancelled(audioSource)
+                case let .tokenizerDictionary(jobID):
+                    guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else { continue }
+                    Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
                 }
             }
             try? context.save()
@@ -487,6 +576,19 @@ public actor ImportManager {
         audioSource.mediaImported = false
     }
 
+    private static func markTokenizerDictionaryCancelled(_ tokenizerDictionary: TokenizerDictionary) {
+        let cancelledAt = Date()
+        tokenizerDictionary.isCancelled = true
+        tokenizerDictionary.isFailed = false
+        tokenizerDictionary.isComplete = false
+        tokenizerDictionary.isStarted = false
+        tokenizerDictionary.timeCancelled = cancelledAt
+        tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
+        tokenizerDictionary.errorMessage = nil
+        tokenizerDictionary.isCurrent = false
+        tokenizerDictionary.updateReady = false
+    }
+
     // MARK: - Import Dispatch
 
     private func runImport(for job: QueuedImport) async {
@@ -495,6 +597,8 @@ public actor ImportManager {
             await runDictionaryImport(for: jobID)
         case let .audioSource(jobID):
             await runAudioSourceImport(for: jobID)
+        case let .tokenizerDictionary(jobID):
+            await runTokenizerDictionaryImport(for: jobID)
         }
     }
 
@@ -822,6 +926,88 @@ public actor ImportManager {
         }
     }
 
+    // MARK: - Tokenizer Dictionary Import Pipeline
+
+    private func runTokenizerDictionaryImport(for jobID: NSManagedObjectID) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        var tokenizerID: UUID?
+        var scratchSpace: ImportScratchSpace?
+        defer {
+            scratchSpace?.cleanupBestEffort()
+        }
+
+        do {
+            tokenizerID = try await context.perform {
+                guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
+                    throw TokenizerDictionaryImportError.databaseError
+                }
+                if tokenizerDictionary.id == nil {
+                    tokenizerDictionary.id = UUID()
+                }
+                tokenizerDictionary.isComplete = false
+                tokenizerDictionary.isCurrent = false
+                tokenizerDictionary.isFailed = false
+                tokenizerDictionary.isCancelled = false
+                tokenizerDictionary.isStarted = true
+                tokenizerDictionary.timeStarted = Date()
+                tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Starting import...")
+                tokenizerDictionary.errorMessage = nil
+                try context.save()
+                guard let tokenizerID = tokenizerDictionary.id else {
+                    throw TokenizerDictionaryImportError.databaseError
+                }
+                return tokenizerID
+            }
+            if let tokenizerID {
+                scratchSpace = ImportScratchSpace(kind: .tokenizer, jobUUID: tokenizerID)
+            }
+
+            try Task.checkCancellation()
+            try testErrorInjection?()
+
+            let importTask = TokenizerDictionaryImportTask(
+                jobID: jobID,
+                container: container,
+                baseDirectory: baseDirectory
+            )
+            let result = try await importTask.start()
+
+            for replacedObjectID in result.replacedTokenizerObjectIDs {
+                await deleteTokenizerDictionary(tokenizerDictionaryID: replacedObjectID)
+            }
+        } catch is CancellationError {
+            await context.perform {
+                guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
+                    return
+                }
+                Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
+                try? context.save()
+            }
+        } catch {
+            await context.perform {
+                guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
+                    return
+                }
+                tokenizerDictionary.isFailed = true
+                tokenizerDictionary.isCancelled = false
+                tokenizerDictionary.isComplete = false
+                tokenizerDictionary.isCurrent = false
+                tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Import failed.")
+                tokenizerDictionary.errorMessage = error.localizedDescription
+                tokenizerDictionary.timeFailed = Date()
+                try? context.save()
+            }
+        }
+
+        await context.perform {
+            _ = try? context.existingObject(with: jobID) as? TokenizerDictionary
+        }
+    }
+
     // MARK: - Dictionary Cleanup
 
     private func cleanupInterruptedDictionaryImports() async {
@@ -983,6 +1169,82 @@ public actor ImportManager {
         }
     }
 
+    // MARK: - Tokenizer Dictionary Cleanup
+
+    private func cleanupInterruptedTokenizerDictionaryImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let (cleanupIDs, retryJobIDs): ([UUID], [NSManagedObjectID]) = await context.perform {
+            let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
+            let tokenizerDictionaries = (try? context.fetch(request)) ?? []
+            guard !tokenizerDictionaries.isEmpty else { return ([], []) }
+
+            let now = Date()
+            var ids: [UUID] = []
+            var retryJobIDs: [NSManagedObjectID] = []
+            for tokenizerDictionary in tokenizerDictionaries {
+                if let tokenizerID = tokenizerDictionary.id {
+                    ids.append(tokenizerID)
+                }
+                if tokenizerDictionary.updateTaskID != nil {
+                    tokenizerDictionary.isFailed = false
+                    tokenizerDictionary.isCancelled = false
+                    tokenizerDictionary.isComplete = false
+                    tokenizerDictionary.isStarted = false
+                    tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Retrying update import.")
+                    tokenizerDictionary.errorMessage = nil
+                    tokenizerDictionary.timeQueued = now
+                    tokenizerDictionary.timeStarted = nil
+                    tokenizerDictionary.timeFailed = nil
+                    tokenizerDictionary.timeCancelled = nil
+                    retryJobIDs.append(tokenizerDictionary.objectID)
+                } else {
+                    tokenizerDictionary.isFailed = true
+                    tokenizerDictionary.isCancelled = false
+                    tokenizerDictionary.isComplete = false
+                    tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Import interrupted.")
+                    tokenizerDictionary.errorMessage = FrameworkLocalization.string("Import interrupted.")
+                    tokenizerDictionary.timeFailed = now
+                }
+                tokenizerDictionary.isCurrent = false
+            }
+
+            try? context.save()
+            return (ids, retryJobIDs)
+        }
+
+        for tokenizerID in cleanupIDs {
+            ImportScratchSpace(kind: .tokenizer, jobUUID: tokenizerID).cleanupBestEffort()
+        }
+
+        for jobID in retryJobIDs where currentJob?.jobID != jobID && !queue.contains(where: { $0.jobID == jobID }) {
+            queue.append(.tokenizerDictionary(jobID))
+        }
+        processNextIfIdle()
+    }
+
+    private func cleanupPendingTokenizerDictionaryDeletions() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let tokenizerDictionaries = (try? context.fetch(request)) ?? []
+            return tokenizerDictionaries.map(\.objectID)
+        }
+
+        for tokenizerDictionaryID in pendingIDs {
+            await deleteTokenizerDictionary(tokenizerDictionaryID: tokenizerDictionaryID)
+        }
+    }
+
     // MARK: - Deletion Workers
 
     private func handleDeletionExpiration(for entityID: NSManagedObjectID) {
@@ -1105,6 +1367,60 @@ public actor ImportManager {
                 }
                 audioSource.pendingDeletion = false
                 audioSource.displayProgressMessage = AudioSourceImportError.deletionFailed.localizedDescription
+                try? taskContext.save()
+            }
+        }
+    }
+
+    private func runTokenizerDictionaryDeletion(
+        tokenizerDictionaryID: NSManagedObjectID,
+        taskContext: NSManagedObjectContext
+    ) async {
+        do {
+            try Task.checkCancellation()
+
+            let tokenizerInfo = try await taskContext.perform {
+                guard let tokenizerDictionary = try? taskContext.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
+                    throw TokenizerDictionaryImportError.databaseError
+                }
+                return (tokenizerDictionary.id, tokenizerDictionary.isCurrent)
+            }
+
+            try Task.checkCancellation()
+
+            if tokenizerInfo.1, let installDirectory = TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory),
+               FileManager.default.fileExists(atPath: installDirectory.path)
+            {
+                try FileManager.default.removeItem(at: installDirectory)
+            }
+
+            if let tokenizerID = tokenizerInfo.0 {
+                ImportScratchSpace(kind: .tokenizer, jobUUID: tokenizerID).cleanupBestEffort()
+            }
+
+            try Task.checkCancellation()
+
+            let finalContext = container.newBackgroundContext()
+            finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            finalContext.undoManager = nil
+
+            try await finalContext.perform {
+                guard let tokenizerDictionary = try? finalContext.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
+                    throw TokenizerDictionaryImportError.databaseError
+                }
+                finalContext.delete(tokenizerDictionary)
+                try finalContext.save()
+            }
+        } catch is CancellationError {
+            logger.error("Tokenizer dictionary deletion cancelled for \(tokenizerDictionaryID); cleanup will resume later")
+        } catch {
+            logger.error("Tokenizer dictionary deletion failed for \(tokenizerDictionaryID): \(error.localizedDescription)")
+            await taskContext.perform {
+                guard let tokenizerDictionary = try? taskContext.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
+                    return
+                }
+                tokenizerDictionary.pendingDeletion = false
+                tokenizerDictionary.errorMessage = error.localizedDescription
                 try? taskContext.save()
             }
         }

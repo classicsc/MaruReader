@@ -51,6 +51,9 @@
          <TestPlanReference
             reference = "container:MaruDictionaryManagementTests.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:MaruTextAnalysisTests.xctestplan">
+         </TestPlanReference>
       </TestPlans>
       <Testables>
          <TestableReference
@@ -149,6 +152,17 @@
                BlueprintIdentifier = "DB216E6B2F801219002C06A5"
                BuildableName = "MaruDictionaryManagementTests.xctest"
                BlueprintName = "MaruDictionaryManagementTests"
+               ReferencedContainer = "container:MaruReader.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DBCC44ED2F9187AC00A40D22"
+               BuildableName = "MaruTextAnalysisTests.xctest"
+               BlueprintName = "MaruTextAnalysisTests"
                ReferencedContainer = "container:MaruReader.xcodeproj">
             </BuildableReference>
          </TestableReference>

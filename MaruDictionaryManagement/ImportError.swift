@@ -25,6 +25,8 @@ public enum ImportError: Error, Equatable, LocalizedError {
     case notADictionary
     /// The archive is not a valid audio source (missing required index structure).
     case notAnAudioSource
+    /// The archive is not a valid tokenizer dictionary (missing required manifest or resources).
+    case notATokenizerDictionary
     /// The dictionary format version is not supported.
     case unsupportedFormat
     /// The import job was not found in Core Data.
@@ -54,6 +56,8 @@ public enum ImportError: Error, Equatable, LocalizedError {
             FrameworkLocalization.string("The selected file is not a valid dictionary.")
         case .notAnAudioSource:
             FrameworkLocalization.string("The archive does not contain a valid audio source index.")
+        case .notATokenizerDictionary:
+            FrameworkLocalization.string("The archive does not contain a valid tokenizer dictionary.")
         case .unsupportedFormat:
             FrameworkLocalization.string("The dictionary format is unsupported.")
         case .importNotFound:
@@ -82,6 +86,7 @@ public enum ImportError: Error, Equatable, LocalizedError {
         case (.unrecognizedArchive, .unrecognizedArchive),
              (.notADictionary, .notADictionary),
              (.notAnAudioSource, .notAnAudioSource),
+             (.notATokenizerDictionary, .notATokenizerDictionary),
              (.unsupportedFormat, .unsupportedFormat),
              (.importNotFound, .importNotFound),
              (.entityCreationFailed, .entityCreationFailed),

@@ -62,8 +62,15 @@ struct AudioSourceResult {
     let status: String
 }
 
+struct TokenizerDictionaryResult {
+    let name: String
+    let version: String?
+    let status: String
+}
+
 enum PendingSeedArgument {
     case audio
+    case tokenizer
     case glossaryCodec
     case glossaryTrainingProfile
 
@@ -71,6 +78,8 @@ enum PendingSeedArgument {
         switch self {
         case .audio:
             "--audio"
+        case .tokenizer:
+            "--tokenizer"
         case .glossaryCodec:
             "--glossary-codec"
         case .glossaryTrainingProfile:
@@ -83,6 +92,7 @@ struct SeedArguments {
     let outputDir: URL
     let dictionaryPaths: [URL]
     let audioSourcePaths: [URL]
+    let tokenizerDictionaryPaths: [URL]
     let glossaryCompressionVersion: GlossaryCompressionCodecVersion
     let glossaryCompressionTrainingProfile: GlossaryCompressionTrainingProfile
 }
@@ -125,12 +135,13 @@ struct DictionarySeeder {
             Usage:
               DictionarySeeder <output-dir> <dictionary1.zip> [dictionary2.zip ...] [options]
 
-            Imports Yomitan dictionaries and audio sources into a SQLite database suitable for bundling.
+            Imports Yomitan dictionaries, audio sources, and tokenizer dictionaries into a SQLite database suitable for bundling.
 
             Seed mode arguments:
               output-dir                    Directory to write the database and media files
               dictionary.zip                One or more Yomitan dictionary ZIP files to import
               --audio <file>                Specify the next ZIP file as an indexed audio source
+              --tokenizer <file>            Specify the next ZIP file as a tokenizer dictionary package
               --glossary-codec <version>    Supported codecs: \(supportedCodecs)
                                             Default: \(GlossaryCompressionCodec.defaultImportVersion.rawValue)
               --glossary-training-profile   Supported profiles: \(GlossaryCompressionTrainingProfile.allCases.map(\.rawValue).joined(separator: ", "))
@@ -147,6 +158,9 @@ struct DictionarySeeder {
                 AudioMedia/
                   {audioSourceUUID}/
                     [audio files...]
+                TokenizerDictionary/
+                  index.json
+                  [Sudachi resource files...]
 
             Examples:
               DictionarySeeder ./StarterDictionary jitendex.zip --audio kanjialive.zip --glossary-codec zstd-runtime-v1 --glossary-training-profile starterdict
@@ -165,6 +179,7 @@ struct DictionarySeeder {
 
         var dictionaryPaths: [URL] = []
         var audioSourcePaths: [URL] = []
+        var tokenizerDictionaryPaths: [URL] = []
         var glossaryCompressionVersion = GlossaryCompressionCodec.defaultImportVersion
         var glossaryCompressionTrainingProfile = GlossaryCompressionTrainingProfile.runtime
         var pendingArgument: PendingSeedArgument?
@@ -174,6 +189,8 @@ struct DictionarySeeder {
                 switch activePendingArgument {
                 case .audio:
                     audioSourcePaths.append(URL(fileURLWithPath: arg))
+                case .tokenizer:
+                    tokenizerDictionaryPaths.append(URL(fileURLWithPath: arg))
                 case .glossaryCodec:
                     glossaryCompressionVersion = try parseGlossaryCompressionVersion(arg)
                 case .glossaryTrainingProfile:
@@ -186,6 +203,8 @@ struct DictionarySeeder {
             switch arg {
             case "--audio":
                 pendingArgument = .audio
+            case "--tokenizer":
+                pendingArgument = .tokenizer
             case "--glossary-codec":
                 pendingArgument = .glossaryCodec
             case "--glossary-training-profile":
@@ -210,6 +229,7 @@ struct DictionarySeeder {
             outputDir: outputDir,
             dictionaryPaths: dictionaryPaths,
             audioSourcePaths: audioSourcePaths,
+            tokenizerDictionaryPaths: tokenizerDictionaryPaths,
             glossaryCompressionVersion: glossaryCompressionVersion,
             glossaryCompressionTrainingProfile: glossaryCompressionTrainingProfile
         )
@@ -232,7 +252,7 @@ struct DictionarySeeder {
     }
 
     static func runSeedCommand(_ arguments: SeedArguments) async throws {
-        try validateInputFiles(arguments.dictionaryPaths + arguments.audioSourcePaths)
+        try validateInputFiles(arguments.dictionaryPaths + arguments.audioSourcePaths + arguments.tokenizerDictionaryPaths)
 
         try FileManager.default.createDirectory(at: arguments.outputDir, withIntermediateDirectories: true)
 
@@ -249,6 +269,7 @@ struct DictionarySeeder {
         let container = try createContainer(storeURL: storeURL)
         var dictionaryResults: [ImportResult] = []
         var audioResults: [AudioSourceResult] = []
+        var tokenizerResults: [TokenizerDictionaryResult] = []
 
         print("Glossary codec: \(arguments.glossaryCompressionVersion.rawValue)")
         print("Glossary training profile: \(arguments.glossaryCompressionTrainingProfile.rawValue)")
@@ -295,10 +316,32 @@ struct DictionarySeeder {
             }
         }
 
+        if !arguments.tokenizerDictionaryPaths.isEmpty {
+            let tokenizerImportManager = ImportManager(
+                container: container,
+                baseDirectory: arguments.outputDir
+            )
+
+            for zipURL in arguments.tokenizerDictionaryPaths {
+                print("Importing tokenizer dictionary: \(zipURL.lastPathComponent)...")
+
+                let jobID = try await tokenizerImportManager.enqueueTokenizerDictionaryImport(from: zipURL)
+                await tokenizerImportManager.waitForCompletion(jobID: jobID)
+
+                let result = try await getTokenizerDictionaryResult(container: container, jobID: jobID)
+                tokenizerResults.append(result)
+                print("  \(result.status): \(result.name)\(result.version.map { " (\($0))" } ?? "")")
+
+                if result.status != "Completed" {
+                    throw SeederError.importFailed("\(result.name): \(result.status)")
+                }
+            }
+        }
+
         if arguments.glossaryCompressionVersion == .zstdRuntimeV1 {
             try validateCompressionDictionaries(for: dictionaryResults, in: arguments.outputDir)
         }
-        printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults)
+        printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults, tokenizerResults: tokenizerResults)
         try verifyNoWAL(at: storeURL)
 
         print("\nOutput written to: \(arguments.outputDir.path)")
@@ -393,6 +436,31 @@ struct DictionarySeeder {
         }
     }
 
+    static func getTokenizerDictionaryResult(container: NSPersistentContainer, jobID: NSManagedObjectID) async throws -> TokenizerDictionaryResult {
+        let context = container.newBackgroundContext()
+        return try await context.perform {
+            guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
+                throw SeederError.importFailed("Could not fetch tokenizer dictionary record")
+            }
+
+            let status = if tokenizerDictionary.isComplete {
+                "Completed"
+            } else if tokenizerDictionary.isFailed {
+                "Failed: \(tokenizerDictionary.errorMessage ?? "Unknown error")"
+            } else if tokenizerDictionary.isCancelled {
+                "Cancelled"
+            } else {
+                "Unknown"
+            }
+
+            return TokenizerDictionaryResult(
+                name: tokenizerDictionary.name ?? "Unknown",
+                version: tokenizerDictionary.version,
+                status: status
+            )
+        }
+    }
+
     static func validateCompressionDictionaries(for dictionaryResults: [ImportResult], in outputDir: URL) throws {
         let termDictionaries = dictionaryResults.filter { $0.status == "Completed" && $0.terms > 0 }
         guard !termDictionaries.isEmpty else {
@@ -418,7 +486,11 @@ struct DictionarySeeder {
         }
     }
 
-    static func printSummary(dictionaryResults: [ImportResult], audioResults: [AudioSourceResult]) {
+    static func printSummary(
+        dictionaryResults: [ImportResult],
+        audioResults: [AudioSourceResult],
+        tokenizerResults: [TokenizerDictionaryResult]
+    ) {
         print("\n--- Summary ---")
 
         if !dictionaryResults.isEmpty {
@@ -447,6 +519,20 @@ struct DictionarySeeder {
 
             if !failed.isEmpty {
                 print("\nFailed audio source imports:")
+                for result in failed {
+                    print("  - \(result.name): \(result.status)")
+                }
+            }
+        }
+
+        if !tokenizerResults.isEmpty {
+            let completed = tokenizerResults.filter { $0.status == "Completed" }
+            let failed = tokenizerResults.filter { $0.status != "Completed" }
+
+            print("Tokenizer dictionaries: \(completed.count)/\(tokenizerResults.count) imported")
+
+            if !failed.isEmpty {
+                print("\nFailed tokenizer dictionary imports:")
                 for result in failed {
                     print("  - \(result.name): \(result.status)")
                 }

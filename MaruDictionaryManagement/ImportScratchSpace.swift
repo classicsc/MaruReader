@@ -21,6 +21,7 @@ import Foundation
 enum ImportScratchKind {
     case dictionary
     case audio
+    case tokenizer
 
     fileprivate var prefix: String {
         switch self {
@@ -28,6 +29,8 @@ enum ImportScratchKind {
             "MaruDictionaryImport"
         case .audio:
             "MaruAudioImport"
+        case .tokenizer:
+            "MaruTokenizerImport"
         }
     }
 }

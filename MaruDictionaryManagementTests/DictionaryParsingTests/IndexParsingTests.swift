@@ -77,4 +77,32 @@ struct IndexParsingTests {
             try decoder.decode(DictionaryIndex.self, from: data)
         }
     }
+
+    @Test func parseTokenizerIndex_ValidJSON_ReturnsCorrectIndex() throws {
+        let jsonString = """
+        {
+            "type": "tokenizer-dictionary",
+            "format": 1,
+            "name": "SudachiDict Full",
+            "version": "20260116",
+            "isUpdatable": true,
+            "attribution": "Works Applications",
+            "indexUrl": "https://example.com/tokenizer/index.json",
+            "downloadUrl": "https://example.com/tokenizer.zip"
+        }
+        """
+        let data = try #require(jsonString.data(using: .utf8))
+
+        let decoder = JSONDecoder()
+        let index = try decoder.decode(TokenizerDictionaryIndex.self, from: data)
+
+        #expect(index.type == "tokenizer-dictionary")
+        #expect(index.format == 1)
+        #expect(index.name == "SudachiDict Full")
+        #expect(index.version == "20260116")
+        #expect(index.isUpdatable == true)
+        #expect(index.attribution == "Works Applications")
+        #expect(index.indexUrl == "https://example.com/tokenizer/index.json")
+        #expect(index.downloadUrl == "https://example.com/tokenizer.zip")
+    }
 }

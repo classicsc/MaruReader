@@ -53,7 +53,7 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
 ### Dictionary System
 
 - **Deinflection** Inflected forms are automatically converted to dictionary form to make searching more convenient. Just enter text as you found it.
-- **Sentence Furigana** To aid with reading sentences, the dictionary displays Mecab-generated readings. While this isn't 100% accurate, it can he a helpful reference.
+- **Sentence Furigana** To aid with reading sentences, the dictionary displays auto-generated readings. While this isn't 100% accurate, it can he a helpful reference.
 - **Yomitan Dictionary Format Support**
   - MaruReader uses the same dictionary format as [Yomitan](https://yomitan.wiki/). Term, frequency, and pitch accent dictionaries are supported.
   - Add as many custom dictionaries as you like, search is fast even with many large dictionaries.

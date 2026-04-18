@@ -43,23 +43,6 @@
       "sourceURL" : "https:\/\/github.com\/easylist\/easylist"
     },
     {
-      "attribution" : "Nara Institute of Science and Technology and ICOT",
-      "category" : "dictionaryData",
-      "homepageURL" : "https:\/\/taku910.github.io\/mecab\/",
-      "id" : "manual-ipadic",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-ipadic-license.txt",
-          "referenceURL" : "https:\/\/github.com\/taku910\/mecab\/blob\/2fd29256c6d5e1b10211cac838069ee9ede8c77a\/mecab-ipadic\/COPYING",
-          "title" : "IPADic License"
-        }
-      ],
-      "name" : "IPADic",
-      "notes" : "Compiled into MaruReaderCore framework resources for furigana generation.",
-      "revision" : "2fd29256c6d5e1b10211cac838069ee9ede8c77a",
-      "sourceURL" : "https:\/\/github.com\/taku910\/mecab"
-    },
-    {
       "attribution" : "Lyroxide",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/www.npmjs.com\/package\/kanji-processor",
@@ -145,6 +128,1136 @@
       "sourceURL" : "https:\/\/github.com\/facebook\/zstd"
     },
     {
+      "attribution" : "Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
+      "id" : "rust-aho-corasick-1-1-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-aho-corasick-1-1-4-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "aho-corasick",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
+      "version" : "1.1.4"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/anyhow",
+      "id" : "rust-anyhow-1-0-102",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-anyhow-1-0-102-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/anyhow",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "anyhow",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/anyhow",
+      "version" : "1.0.102"
+    },
+    {
+      "attribution" : "Alexis Beingessner <a.beingessner@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/contain-rs\/bit-set",
+      "id" : "rust-bit-set-0-5-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-bit-set-0-5-3-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/contain-rs\/bit-set",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "bit-set",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/contain-rs\/bit-set",
+      "version" : "0.5.3"
+    },
+    {
+      "attribution" : "Alexis Beingessner <a.beingessner@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/contain-rs\/bit-vec",
+      "id" : "rust-bit-vec-0-6-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-bit-vec-0-6-3-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/contain-rs\/bit-vec",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "bit-vec",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/contain-rs\/bit-vec",
+      "version" : "0.6.3"
+    },
+    {
+      "attribution" : "The Rust Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/bitflags\/bitflags",
+      "id" : "rust-bitflags-2-11-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-bitflags-2-11-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/bitflags\/bitflags",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "bitflags",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/bitflags\/bitflags",
+      "version" : "2.11.1"
+    },
+    {
+      "attribution" : "Carl Lerche <me@carllerche.com>, Sean McArthur <sean@seanmonstar.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/tokio-rs\/bytes",
+      "id" : "rust-bytes-1-11-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-bytes-1-11-1-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/tokio-rs\/bytes",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "bytes",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/tokio-rs\/bytes",
+      "version" : "1.11.1"
+    },
+    {
+      "attribution" : "Without Boats <saoirse@without.boats>, Ashley Williams <ashley666ashley@gmail.com>, Steve Klabnik <steve@steveklabnik.com>, Rain <rain@sunshowers.io>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/camino-rs\/camino",
+      "id" : "rust-camino-1-2-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-camino-1-2-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/camino-rs\/camino",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "camino",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/camino-rs\/camino",
+      "version" : "1.2.2"
+    },
+    {
+      "attribution" : "Oliver Schneider <git-spam-no-reply9815368754983@oli-obk.de>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/oli-obk\/cargo_metadata",
+      "id" : "rust-cargo-metadata-0-19-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-cargo-metadata-0-19-2-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/oli-obk\/cargo_metadata",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "cargo_metadata",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/oli-obk\/cargo_metadata",
+      "version" : "0.19.2"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/cargo",
+      "id" : "rust-cargo-platform-0-1-9",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-cargo-platform-0-1-9-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/cargo",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "cargo-platform",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/cargo",
+      "version" : "0.1.9"
+    },
+    {
+      "attribution" : "Alex Crichton <alex@alexcrichton.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/cfg-if",
+      "id" : "rust-cfg-if-1-0-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-cfg-if-1-0-4-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/cfg-if",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "cfg-if",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/cfg-if",
+      "version" : "1.0.4"
+    },
+    {
+      "attribution" : "Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+      "id" : "rust-csv-1-4-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-csv-1-4-0-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "csv",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+      "version" : "1.4.0"
+    },
+    {
+      "attribution" : "Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+      "id" : "rust-csv-core-0-1-13",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-csv-core-0-1-13-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "csv-core",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/BurntSushi\/rust-csv",
+      "version" : "0.1.13"
+    },
+    {
+      "attribution" : "bluss",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rayon-rs\/either",
+      "id" : "rust-either-1-15-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-either-1-15-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rayon-rs\/either",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "either",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rayon-rs\/either",
+      "version" : "1.15.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/indexmap-rs\/equivalent",
+      "id" : "rust-equivalent-1-0-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-equivalent-1-0-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/indexmap-rs\/equivalent",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "equivalent",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/indexmap-rs\/equivalent",
+      "version" : "1.0.2"
+    },
+    {
+      "attribution" : "Chris Wong <lambda.fairy@gmail.com>, Dan Gohman <dev@sunfishcode.online>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/lambda-fairy\/rust-errno",
+      "id" : "rust-errno-0-3-14",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-errno-0-3-14-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/lambda-fairy\/rust-errno",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "errno",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/lambda-fairy\/rust-errno",
+      "version" : "0.3.14"
+    },
+    {
+      "attribution" : "Raph Levien <raph@google.com>, Robin Stocker <robin@nibor.org>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/fancy-regex\/fancy-regex",
+      "id" : "rust-fancy-regex-0-13-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-fancy-regex-0-13-0-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/fancy-regex\/fancy-regex",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "fancy-regex",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/fancy-regex\/fancy-regex",
+      "version" : "0.13.0"
+    },
+    {
+      "attribution" : "Stjepan Glavina <stjepang@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/smol-rs\/fastrand",
+      "id" : "rust-fastrand-2-4-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-fastrand-2-4-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/smol-rs\/fastrand",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "fastrand",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/smol-rs\/fastrand",
+      "version" : "2.4.1"
+    },
+    {
+      "attribution" : "Andrew Hickman <andrew.hickman1@sky.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/andrewhickman\/fs-err",
+      "id" : "rust-fs-err-2-11-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-fs-err-2-11-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/andrewhickman\/fs-err",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "fs-err",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/andrewhickman\/fs-err",
+      "version" : "2.11.0"
+    },
+    {
+      "attribution" : "The Rand Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-random\/getrandom",
+      "id" : "rust-getrandom-0-4-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-getrandom-0-4-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-random\/getrandom",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "getrandom",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-random\/getrandom",
+      "version" : "0.4.2"
+    },
+    {
+      "attribution" : "Amanieu d'Antras <amanieu@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/hashbrown",
+      "id" : "rust-hashbrown-0-17-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-hashbrown-0-17-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/hashbrown",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "hashbrown",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/hashbrown",
+      "version" : "0.17.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/withoutboats\/heck",
+      "id" : "rust-heck-0-5-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-heck-0-5-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/withoutboats\/heck",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "heck",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/withoutboats\/heck",
+      "version" : "0.5.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/indexmap-rs\/indexmap",
+      "id" : "rust-indexmap-2-14-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-indexmap-2-14-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/indexmap-rs\/indexmap",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "indexmap",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/indexmap-rs\/indexmap",
+      "version" : "2.14.0"
+    },
+    {
+      "attribution" : "bluss",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+      "id" : "rust-itertools-0-13-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-itertools-0-13-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "itertools",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+      "version" : "0.13.0"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/itoa",
+      "id" : "rust-itoa-1-0-18",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-itoa-1-0-18-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/itoa",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "itoa",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/itoa",
+      "version" : "1.0.18"
+    },
+    {
+      "attribution" : "Marvin Löbel <loebel.marvin@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang-nursery\/lazy-static.rs",
+      "id" : "rust-lazy-static-1-5-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-lazy-static-1-5-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang-nursery\/lazy-static.rs",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "lazy_static",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang-nursery\/lazy-static.rs",
+      "version" : "1.5.0"
+    },
+    {
+      "attribution" : "The Rust Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/libc",
+      "id" : "rust-libc-0-2-185",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-libc-0-2-185-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/libc",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "libc",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/libc",
+      "version" : "0.2.185"
+    },
+    {
+      "attribution" : "Simonas Kazlauskas <libloading@kazlauskas.me>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/nagisa\/rust_libloading\/",
+      "id" : "rust-libloading-0-8-9",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-libloading-0-8-9-isc-1.txt",
+          "referenceURL" : "https:\/\/github.com\/nagisa\/rust_libloading\/",
+          "title" : "ISC License"
+        }
+      ],
+      "name" : "libloading",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/nagisa\/rust_libloading\/",
+      "version" : "0.8.9"
+    },
+    {
+      "attribution" : "Andrew Gallant <jamslam@gmail.com>, bluss",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/BurntSushi\/memchr",
+      "id" : "rust-memchr-2-8-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-memchr-2-8-0-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/BurntSushi\/memchr",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "memchr",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/BurntSushi\/memchr",
+      "version" : "2.8.0"
+    },
+    {
+      "attribution" : "Dan Burkert <dan@danburkert.com>, Yevhenii Reizner <razrfalcon@gmail.com>, The Contributors",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/RazrFalcon\/memmap2-rs",
+      "id" : "rust-memmap2-0-9-10",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-memmap2-0-9-10-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/RazrFalcon\/memmap2-rs",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "memmap2",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/RazrFalcon\/memmap2-rs",
+      "version" : "0.9.10"
+    },
+    {
+      "attribution" : "Alex Huszagh <ahuszagh@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/Alexhuszagh\/minimal-lexical",
+      "id" : "rust-minimal-lexical-0-2-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-minimal-lexical-0-2-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/Alexhuszagh\/minimal-lexical",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "minimal-lexical",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/Alexhuszagh\/minimal-lexical",
+      "version" : "0.2.1"
+    },
+    {
+      "attribution" : "contact@geoffroycouprie.com",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/Geal\/nom",
+      "id" : "rust-nom-7-1-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-nom-7-1-3-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/Geal\/nom",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "nom",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/Geal\/nom",
+      "version" : "7.1.3"
+    },
+    {
+      "attribution" : "Aleksey Kladov <aleksey.kladov@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/matklad\/once_cell",
+      "id" : "rust-once-cell-1-21-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-once-cell-1-21-4-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/matklad\/once_cell",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "once_cell",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/matklad\/once_cell",
+      "version" : "1.21.4"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
+      "id" : "rust-proc-macro2-1-0-106",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-proc-macro2-1-0-106-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "proc-macro2",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
+      "version" : "1.0.106"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/quote",
+      "id" : "rust-quote-1-0-45",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-quote-1-0-45-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/quote",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "quote",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/quote",
+      "version" : "1.0.45"
+    },
+    {
+      "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "id" : "rust-regex-1-12-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-regex-1-12-3-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/regex",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "regex",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "version" : "1.12.3"
+    },
+    {
+      "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/regex\/tree\/master\/regex-automata",
+      "id" : "rust-regex-automata-0-4-14",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-regex-automata-0-4-14-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/regex",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "regex-automata",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "version" : "0.4.14"
+    },
+    {
+      "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/regex\/tree\/master\/regex-syntax",
+      "id" : "rust-regex-syntax-0-8-10",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-regex-syntax-0-8-10-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/regex",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "regex-syntax",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "version" : "0.8.10"
+    },
+    {
+      "attribution" : "Dan Gohman <dev@sunfishcode.online>, Jakub Konka <kubkon@jakubkonka.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
+      "id" : "rust-rustix-1-1-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustix-1-1-4-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "rustix",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
+      "version" : "1.1.4"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/ryu",
+      "id" : "rust-ryu-1-0-23",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-ryu-1-0-23-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/ryu",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "ryu",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/ryu",
+      "version" : "1.0.23"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/semver",
+      "id" : "rust-semver-1-0-28",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-semver-1-0-28-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/semver",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "semver",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/semver",
+      "version" : "1.0.28"
+    },
+    {
+      "attribution" : "Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/serde.rs",
+      "id" : "rust-serde-1-0-228",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-1-0-228-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/serde-rs\/serde",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "serde",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
+      "version" : "1.0.228"
+    },
+    {
+      "attribution" : "Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/serde.rs",
+      "id" : "rust-serde-core-1-0-228",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-core-1-0-228-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/serde-rs\/serde",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "serde_core",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
+      "version" : "1.0.228"
+    },
+    {
+      "attribution" : "Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/serde-rs\/json",
+      "id" : "rust-serde-json-1-0-149",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-json-1-0-149-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/serde-rs\/json",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "serde_json",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
+      "version" : "1.0.149"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "id" : "rust-serde-spanned-1-1-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-spanned-1-1-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/toml-rs\/toml",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "serde_spanned",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "version" : "1.1.1"
+    },
+    {
+      "attribution" : "Frank Denis <github@pureftpd.org>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/docs.rs\/siphasher",
+      "id" : "rust-siphasher-1-0-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-siphasher-1-0-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/jedisct1\/rust-siphash",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "siphasher",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/jedisct1\/rust-siphash",
+      "version" : "1.0.2"
+    },
+    {
+      "attribution" : "Nikolai Vazquez",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/nvzqz\/static-assertions-rs",
+      "id" : "rust-static-assertions-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-static-assertions-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/nvzqz\/static-assertions-rs",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "static_assertions",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/nvzqz\/static-assertions-rs",
+      "version" : "1.1.0"
+    },
+    {
+      "attribution" : "Works Applications <sudachi@worksap.co.jp>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/WorksApplications\/sudachi.rs",
+      "id" : "rust-sudachi-0-6-11-a1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-sudachi-0-6-11-a1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/WorksApplications\/sudachi.rs",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "sudachi",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "revision" : "4ff4bbc3b410f88ce93a3582cd94eb168f855007",
+      "sourceURL" : "https:\/\/github.com\/WorksApplications\/sudachi.rs",
+      "version" : "0.6.11-a1"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/syn",
+      "id" : "rust-syn-2-0-117",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-syn-2-0-117-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/syn",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "syn",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/syn",
+      "version" : "2.0.117"
+    },
+    {
+      "attribution" : "Steven Allen <steven@stebalien.com>, The Rust Project Developers, Ashley Mannix <ashleymannix@live.com.au>, Jason White <me@jasonwhite.io>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/stebalien.com\/projects\/tempfile-rs\/",
+      "id" : "rust-tempfile-3-27-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tempfile-3-27-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/Stebalien\/tempfile",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "tempfile",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/Stebalien\/tempfile",
+      "version" : "3.27.0"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+      "id" : "rust-thiserror-1-0-69",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-thiserror-1-0-69-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "thiserror",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+      "version" : "1.0.69"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+      "id" : "rust-thiserror-2-0-18",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-thiserror-2-0-18-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "thiserror",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
+      "version" : "2.0.18"
+    },
+    {
+      "attribution" : "Lokathor <zefria@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/Lokathor\/tinyvec",
+      "id" : "rust-tinyvec-1-11-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tinyvec-1-11-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/Lokathor\/tinyvec",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "tinyvec",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/Lokathor\/tinyvec",
+      "version" : "1.11.0"
+    },
+    {
+      "attribution" : "Soveu <marx.tomasz@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/Soveu\/tinyvec_macros",
+      "id" : "rust-tinyvec-macros-0-1-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tinyvec-macros-0-1-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/Soveu\/tinyvec_macros",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "tinyvec_macros",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/Soveu\/tinyvec_macros",
+      "version" : "0.1.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "id" : "rust-toml-0-9-12-spec-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-toml-0-9-12-spec-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/toml-rs\/toml",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "toml",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "version" : "0.9.12+spec-1.1.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "id" : "rust-toml-datetime-0-7-5-spec-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-toml-datetime-0-7-5-spec-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/toml-rs\/toml",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "toml_datetime",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "version" : "0.7.5+spec-1.1.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "id" : "rust-toml-parser-1-1-2-spec-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-toml-parser-1-1-2-spec-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/toml-rs\/toml",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "toml_parser",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "version" : "1.1.2+spec-1.1.0"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "id" : "rust-toml-writer-1-1-1-spec-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-toml-writer-1-1-1-spec-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/toml-rs\/toml",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "toml_writer",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
+      "version" : "1.1.1+spec-1.1.0"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
+      "id" : "rust-unicode-ident-1-0-24",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-unicode-ident-1-0-24-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
+          "title" : "Apache License 2.0"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-unicode-ident-1-0-24-unicode-3-0-2.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "unicode-ident",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
+      "version" : "1.0.24"
+    },
+    {
+      "attribution" : "kwantam <kwantam@gmail.com>, Manish Goregaokar <manishsmail@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-rs\/unicode-normalization",
+      "id" : "rust-unicode-normalization-0-1-25",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-unicode-normalization-0-1-25-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-rs\/unicode-normalization",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "unicode-normalization",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-rs\/unicode-normalization",
+      "version" : "0.1.25"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/mozilla.github.io\/uniffi-rs",
+      "id" : "rust-uniffi-0-31-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-uniffi-0-31-1-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "uniffi",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+      "version" : "0.31.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/mozilla.github.io\/uniffi-rs",
+      "id" : "rust-uniffi-core-0-31-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-uniffi-core-0-31-1-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "uniffi_core",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+      "version" : "0.31.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/mozilla.github.io\/uniffi-rs",
+      "id" : "rust-uniffi-meta-0-31-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-uniffi-meta-0-31-1-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "uniffi_meta",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+      "version" : "0.31.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/mozilla.github.io\/uniffi-rs",
+      "id" : "rust-uniffi-pipeline-0-31-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-uniffi-pipeline-0-31-1-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "uniffi_pipeline",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
+      "version" : "0.31.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "id" : "rust-winnow-0-7-15",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-winnow-0-7-15-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "winnow",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "version" : "0.7.15"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "id" : "rust-winnow-1-0-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-winnow-1-0-1-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "winnow",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "version" : "1.0.1"
+    },
+    {
+      "attribution" : "Takuya Asano <takuya.a@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/takuyaa\/yada",
+      "id" : "rust-yada-0-5-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-yada-0-5-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/takuyaa\/yada",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "yada",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/takuyaa\/yada",
+      "version" : "0.5.1"
+    },
+    {
+      "attribution" : "David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/dtolnay\/zmij",
+      "id" : "rust-zmij-1-0-21",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-zmij-1-0-21-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/dtolnay\/zmij",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "zmij",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/dtolnay\/zmij",
+      "version" : "1.0.21"
+    },
+    {
       "category" : "spm",
       "homepageURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
       "id" : "spm-cryptoswift",
@@ -210,19 +1323,18 @@
     },
     {
       "category" : "spm",
-      "homepageURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
+      "homepageURL" : "https:\/\/github.com\/classicsc\/json-stream",
       "id" : "spm-json-stream",
       "licenses" : [
         {
           "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-json-stream-license.txt",
-          "referenceURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
+          "referenceURL" : "https:\/\/github.com\/classicsc\/json-stream",
           "title" : "LICENSE"
         }
       ],
       "name" : "json-stream",
-      "revision" : "703a39ce871e97c4c3831ad8f681d26f4d884559",
-      "sourceURL" : "https:\/\/github.com\/Topolyte\/json-stream.git",
-      "version" : "1.0.3"
+      "revision" : "802208858e5ad07c367b9b68949e07a043f9d9a0",
+      "sourceURL" : "https:\/\/github.com\/classicsc\/json-stream"
     },
     {
       "category" : "spm",
@@ -239,22 +1351,6 @@
       "revision" : "cb5b2bd0da83ad29c0bec762d39f41c8ad0eaf3e",
       "sourceURL" : "https:\/\/github.com\/nicklockwood\/LRUCache.git",
       "version" : "1.2.1"
-    },
-    {
-      "category" : "spm",
-      "homepageURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
-      "id" : "spm-mecab-swift",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/spm\/spm-mecab-swift-license.txt",
-          "referenceURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "Mecab-Swift",
-      "revision" : "1f096492e37fc05fc2e7304091f54889974c5368",
-      "sourceURL" : "https:\/\/github.com\/shinjukunian\/Mecab-Swift",
-      "version" : "0.8.0"
     },
     {
       "category" : "spm",
@@ -348,7 +1444,7 @@
         }
       ],
       "name" : "SwiftZSTD",
-      "revision" : "04cfb0d98ee6c3b245220a80daa99a17a68f95b6",
+      "revision" : "1c9fdce21e3552ba6aa867cbcd1a4c2e29563cf3",
       "sourceURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD"
     },
     {
@@ -528,6 +1624,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-05T00:59:17.396Z",
+  "generatedAt" : "2026-04-18T02:06:00.152Z",
   "schemaVersion" : 1
 }

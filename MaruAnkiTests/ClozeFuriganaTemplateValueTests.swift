@@ -18,6 +18,7 @@
 import Foundation
 @testable import MaruAnki
 @testable import MaruReaderCore
+import MaruTextAnalysis
 import Testing
 
 struct ClozeFuriganaTemplateValueTests {

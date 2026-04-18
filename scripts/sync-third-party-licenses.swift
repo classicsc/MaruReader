@@ -25,34 +25,47 @@ private enum ScriptError: LocalizedError {
     case packageCheckoutNotFound(identity: String)
     case licenseNotFound(identity: String)
     case missingManualSnapshot(path: String)
+    case missingGeneratedSnapshot(path: String)
+    case missingGeneratedLicense(crate: String)
     case conflictingGeneratedDocument(path: String)
     case requiredComponentMissing(id: String)
     case invalidRulesetURL(String)
+    case commandFailed(command: String, exitCode: Int32, stderr: String)
 
     var errorDescription: String? {
         switch self {
         case let .missingFile(path):
-            "Required file not found: \(path)"
+            return "Required file not found: \(path)"
         case .noCheckoutsFound:
-            "Could not locate SwiftPM checkouts from SOURCE_PACKAGES_DIR_PATH or DerivedData."
+            return "Could not locate SwiftPM checkouts from SOURCE_PACKAGES_DIR_PATH or DerivedData."
         case let .packageCheckoutNotFound(identity):
-            "Could not locate checkout directory for package identity '\(identity)'."
+            return "Could not locate checkout directory for package identity '\(identity)'."
         case let .licenseNotFound(identity):
-            "Could not find a license-like file for package '\(identity)'."
+            return "Could not find a license-like file for package '\(identity)'."
         case let .missingManualSnapshot(path):
-            "Manual snapshot is missing: \(path). Run with --refresh-snapshots or add the file."
+            return "Manual snapshot is missing: \(path). Run with --refresh-snapshots or add the file."
+        case let .missingGeneratedSnapshot(path):
+            return "Generated snapshot is missing: \(path). Run with --refresh-snapshots."
+        case let .missingGeneratedLicense(crate):
+            return "Generated Rust license data is missing for crate '\(crate)'."
         case let .conflictingGeneratedDocument(path):
-            "Generated document collision with different contents: \(path)."
+            return "Generated document collision with different contents: \(path)."
         case let .requiredComponentMissing(id):
-            "Required manual component is missing from generated catalog: \(id)."
+            return "Required manual component is missing from generated catalog: \(id)."
         case let .invalidRulesetURL(value):
-            "Invalid ruleset home URL: \(value)."
+            return "Invalid ruleset home URL: \(value)."
+        case let .commandFailed(command, exitCode, stderr):
+            if stderr.isEmpty {
+                return "Command failed with exit code \(exitCode): \(command)"
+            }
+            return "Command failed with exit code \(exitCode): \(command)\n\(stderr)"
         }
     }
 }
 
 private enum ComponentCategory: String, Codable {
     case spm
+    case rustCrate
     case contentBlocker
     case filterList
     case dictionaryData
@@ -134,16 +147,70 @@ private struct Ruleset: Decodable {
     let homeURL: String?
 }
 
+private struct CargoAboutSnapshot: Decodable {
+    struct License: Decodable {
+        struct UsedBy: Decodable {
+            struct PackageReference: Decodable {
+                let name: String
+                let version: String
+            }
+
+            let krate: PackageReference
+
+            private enum CodingKeys: String, CodingKey {
+                case krate = "crate"
+            }
+        }
+
+        let name: String
+        let id: String
+        let text: String
+        let sourcePath: String?
+        let usedBy: [UsedBy]
+
+        private enum CodingKeys: String, CodingKey {
+            case name
+            case id
+            case text
+            case sourcePath = "source_path"
+            case usedBy = "used_by"
+        }
+    }
+
+    struct CrateEntry: Decodable {
+        struct Package: Decodable {
+            struct Target: Decodable {
+                let kind: [String]
+            }
+
+            let name: String
+            let version: String
+            let authors: [String]
+            let source: String?
+            let homepage: String?
+            let repository: String?
+            let documentation: String?
+            let targets: [Target]
+        }
+
+        let package: Package
+        let license: String
+    }
+
+    let licenses: [License]
+    let crates: [CrateEntry]
+}
+
 private let requiredManualComponentIDs: Set<String> = [
     "manual-ublock-origin-lite",
     "manual-uassets-filters",
     "manual-easylist-easyprivacy",
     "manual-adguard-filters",
-    "manual-ipadic",
     "manual-material-symbols-outlined",
 ]
 
 private let resourcePrefix = "About/ThirdPartyLicenses/Documents"
+private let rustSnapshotPath = "scripts/third-party-license-snapshots/rust/maru-sudachi-ffi-cargo-about.json"
 
 private func run() throws {
     let refreshSnapshots = CommandLine.arguments.contains("--refresh-snapshots")
@@ -178,6 +245,7 @@ private func run() throws {
 
     if refreshSnapshots {
         try refreshManualSnapshots(manualSources, rootURL: rootURL)
+        try refreshRustSnapshots(rootURL: rootURL)
     }
 
     let checkoutsRootURL = try resolveCheckoutsRoot(rootURL: rootURL)
@@ -200,6 +268,10 @@ private func run() throws {
         rootURL: rootURL,
         documentsRootURL: documentsRootURL
     )
+    let rustComponents = try buildRustComponents(
+        rootURL: rootURL,
+        documentsRootURL: documentsRootURL
+    )
 
     let manualIDs = Set(manualComponents.map(\.id))
     for requiredID in requiredManualComponentIDs where !manualIDs.contains(requiredID) {
@@ -219,7 +291,7 @@ private func run() throws {
         }
     }
 
-    let components = (manualComponents + spmComponents + ublockEmbeddedComponents)
+    let components = (manualComponents + spmComponents + rustComponents + ublockEmbeddedComponents)
         .sorted { lhs, rhs in
             lhs.id < rhs.id
         }
@@ -241,6 +313,7 @@ private func run() throws {
 
     print("Generated catalog at \(catalogURL.path)")
     print("SPM components: \(spmComponents.count)")
+    print("Rust components: \(rustComponents.count)")
     print("Manual components: \(manualComponents.count)")
     print("uBlock embedded components: \(ublockEmbeddedComponents.count)")
 }
@@ -365,6 +438,34 @@ private func refreshManualSnapshots(_ manualSources: ManualSourceMap, rootURL: U
     }
 }
 
+private func refreshRustSnapshots(rootURL: URL) throws {
+    let fileManager = FileManager.default
+    let crateURL = rootURL.appendingPathComponent("MaruSudachiFFI")
+    let configURL = crateURL.appendingPathComponent("about.toml")
+    let snapshotURL = rootURL.appendingPathComponent(rustSnapshotPath)
+
+    try requireFile(configURL.path)
+    try fileManager.createDirectory(at: snapshotURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+    try runCommand(
+        [
+            "cargo",
+            "about",
+            "-L",
+            "error",
+            "generate",
+            "--format",
+            "json",
+            "--locked",
+            "-c",
+            configURL.lastPathComponent,
+            "-o",
+            snapshotURL.path,
+        ],
+        currentDirectoryURL: crateURL
+    )
+}
+
 private func buildManualComponents(
     manualSources: ManualSourceMap,
     rootURL: URL,
@@ -444,6 +545,81 @@ private func buildProviderNotes(rulesets: [Ruleset]) throws -> [String: String] 
     }
 }
 
+private func buildRustComponents(
+    rootURL: URL,
+    documentsRootURL: URL
+) throws -> [CatalogComponent] {
+    let snapshotURL = rootURL.appendingPathComponent(rustSnapshotPath)
+    guard FileManager.default.fileExists(atPath: snapshotURL.path) else {
+        throw ScriptError.missingGeneratedSnapshot(path: rustSnapshotPath)
+    }
+
+    let snapshot = try decode(CargoAboutSnapshot.self, from: snapshotURL)
+    var licensesByPackageKey: [String: [CargoAboutSnapshot.License]] = [:]
+
+    for license in snapshot.licenses {
+        for usage in license.usedBy {
+            licensesByPackageKey[packageKey(name: usage.krate.name, version: usage.krate.version), default: []].append(license)
+        }
+    }
+
+    return try snapshot.crates
+        .filter { $0.license != "Unknown" && hasLibraryLikeTarget($0.package.targets) }
+        .sorted { lhs, rhs in
+            if lhs.package.name != rhs.package.name {
+                return lhs.package.name < rhs.package.name
+            }
+            return lhs.package.version < rhs.package.version
+        }
+        .map { crate in
+            let package = crate.package
+            let key = packageKey(name: package.name, version: package.version)
+            guard let crateLicenses = licensesByPackageKey[key], !crateLicenses.isEmpty else {
+                throw ScriptError.missingGeneratedLicense(crate: key)
+            }
+
+            let sortedLicenses = crateLicenses.sorted { lhs, rhs in
+                if lhs.id != rhs.id {
+                    return lhs.id < rhs.id
+                }
+                let lhsPath = lhs.sourcePath ?? ""
+                let rhsPath = rhs.sourcePath ?? ""
+                if lhsPath != rhsPath {
+                    return lhsPath < rhsPath
+                }
+                return lhs.text < rhs.text
+            }
+
+            let componentSourceURL = preferredRustSourceURL(for: package)
+            let componentHomepageURL = preferredRustHomepageURL(for: package)
+            let baseOutputPath = "rust/rust-\(slug(package.name))-\(slug(package.version))"
+            let licenses = try sortedLicenses.enumerated().map { index, license in
+                let outputPath = "\(baseOutputPath)-\(slug(license.id))-\(index + 1).txt"
+                let outputURL = documentsRootURL.appendingPathComponent(outputPath)
+                try writeDocument(Data(license.text.utf8), to: outputURL)
+
+                return CatalogLicense(
+                    title: license.name,
+                    path: "\(resourcePrefix)/\(outputPath)",
+                    referenceURL: componentSourceURL ?? componentHomepageURL
+                )
+            }
+
+            return CatalogComponent(
+                id: "rust-\(slug(package.name))-\(slug(package.version))",
+                name: package.name,
+                category: .rustCrate,
+                homepageURL: componentHomepageURL,
+                sourceURL: componentSourceURL,
+                version: package.version,
+                revision: gitRevision(from: package.source),
+                attribution: package.authors.isEmpty ? nil : package.authors.joined(separator: ", "),
+                notes: "Generated from MaruSudachiFFI/Cargo.lock using cargo-about.",
+                licenses: licenses
+            )
+        }
+}
+
 private func buildUBLockEmbeddedComponents(
     rootURL: URL,
     documentsRootURL: URL
@@ -492,19 +668,23 @@ private func buildUBLockEmbeddedComponents(
 }
 
 private func copyDocument(from sourceURL: URL, to destinationURL: URL) throws {
+    let sourceData = try Data(contentsOf: sourceURL)
+    try writeDocument(sourceData, to: destinationURL)
+}
+
+private func writeDocument(_ data: Data, to destinationURL: URL) throws {
     let fileManager = FileManager.default
     try fileManager.createDirectory(at: destinationURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-    let sourceData = try Data(contentsOf: sourceURL)
     if fileManager.fileExists(atPath: destinationURL.path) {
         let existingData = try Data(contentsOf: destinationURL)
-        if existingData != sourceData {
+        if existingData != data {
             throw ScriptError.conflictingGeneratedDocument(path: destinationURL.path)
         }
         return
     }
 
-    try sourceData.write(to: destinationURL)
+    try data.write(to: destinationURL)
 }
 
 private func findLicenseLikeFiles(in directoryURL: URL, maxDepth: Int) throws -> [URL] {
@@ -571,6 +751,108 @@ private func embeddedComponentName(for relativePath: String) -> String {
     let components = relativePath.split(separator: "/")
     guard components.count >= 2 else { return relativePath }
     return String(components[components.count - 2])
+}
+
+private func packageKey(name: String, version: String) -> String {
+    "\(name)@\(version)"
+}
+
+private func hasLibraryLikeTarget(_ targets: [CargoAboutSnapshot.CrateEntry.Package.Target]) -> Bool {
+    targets.contains { target in
+        target.kind.contains { kind in
+            kind == "lib" || kind == "rlib" || kind == "staticlib" || kind == "cdylib" || kind == "dylib"
+        }
+    }
+}
+
+private func preferredRustSourceURL(for package: CargoAboutSnapshot.CrateEntry.Package) -> URL? {
+    if let repository = package.repository, let url = URL(string: repository) {
+        return url
+    }
+
+    if let source = package.source, let url = gitRepositoryURL(from: source) {
+        return url
+    }
+
+    if let homepage = package.homepage, let url = URL(string: homepage) {
+        return url
+    }
+
+    if let documentation = package.documentation, let url = URL(string: documentation) {
+        return url
+    }
+
+    return nil
+}
+
+private func preferredRustHomepageURL(for package: CargoAboutSnapshot.CrateEntry.Package) -> URL? {
+    if let homepage = package.homepage, let url = URL(string: homepage) {
+        return url
+    }
+
+    if let repository = package.repository, let url = URL(string: repository) {
+        return url
+    }
+
+    if let documentation = package.documentation, let url = URL(string: documentation) {
+        return url
+    }
+
+    return gitRepositoryURL(from: package.source)
+}
+
+private func gitRepositoryURL(from source: String?) -> URL? {
+    guard let source, source.hasPrefix("git+") else { return nil }
+    let rawValue = String(source.dropFirst(4))
+    let baseValue = rawValue
+        .split(separator: "#", maxSplits: 1)
+        .first
+        .map(String.init) ?? rawValue
+    let repositoryValue = baseValue
+        .split(separator: "?", maxSplits: 1)
+        .first
+        .map(String.init) ?? baseValue
+    return URL(string: repositoryValue)
+}
+
+private func gitRevision(from source: String?) -> String? {
+    guard let source, source.hasPrefix("git+") else { return nil }
+    let rawValue = String(source.dropFirst(4))
+    guard let components = URLComponents(string: rawValue) else {
+        return rawValue.split(separator: "#", maxSplits: 1).last.map(String.init)
+    }
+
+    if let revision = components.queryItems?.first(where: { $0.name == "rev" })?.value {
+        return revision
+    }
+
+    return components.fragment
+}
+
+private func runCommand(_ arguments: [String], currentDirectoryURL: URL) throws {
+    let process = Process()
+    let stdoutPipe = Pipe()
+    let stderrPipe = Pipe()
+
+    process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+    process.arguments = arguments
+    process.currentDirectoryURL = currentDirectoryURL
+    process.standardOutput = stdoutPipe
+    process.standardError = stderrPipe
+
+    try process.run()
+    process.waitUntilExit()
+
+    guard process.terminationStatus == 0 else {
+        let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+        let stderr = String(data: stderrData, encoding: .utf8)?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        throw ScriptError.commandFailed(
+            command: arguments.joined(separator: " "),
+            exitCode: process.terminationStatus,
+            stderr: stderr
+        )
+    }
 }
 
 do {

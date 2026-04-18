@@ -24,15 +24,19 @@ public enum ArchiveContentType: Sendable {
     case dictionary
     /// An AJT-format indexed audio source archive.
     case audioSource
+    /// A tokenizer dictionary archive containing Sudachi resources and manifest metadata.
+    case tokenizerDictionary
 }
 
-/// Detects whether a ZIP archive contains a Yomitan dictionary or an AJT audio source
+/// Detects whether a ZIP archive contains a Yomitan dictionary, an AJT audio source,
+/// or a tokenizer dictionary package
 /// by probing the structure of its `index.json`.
 ///
 /// Yomitan dictionaries have root-level `title` and `revision` keys with at least one
 /// of `format` or `version`. AJT audio sources have a root-level `meta` object containing
-/// a `name` key, plus `headwords` and `files` sections. These schemas are fully
-/// non-overlapping, so detection is unambiguous.
+/// a `name` key, plus `headwords` and `files` sections. Tokenizer dictionaries use a
+/// root-level `type` of `tokenizer-dictionary` plus `name`, `version`, and `format`.
+/// These schemas are fully non-overlapping, so detection is unambiguous.
 enum ArchiveTypeDetector {
     /// Detect the content type of a ZIP archive.
     /// - Parameters:
@@ -135,6 +139,14 @@ enum ArchiveTypeDetector {
            root["files"] is [String: Any]
         {
             return .audioSource
+        }
+
+        if root["type"] as? String == TokenizerDictionaryIndex.packageType,
+           root["name"] is String,
+           root["version"] is String,
+           root["format"] is Int
+        {
+            return .tokenizerDictionary
         }
 
         throw ImportError.unrecognizedArchive

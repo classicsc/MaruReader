@@ -22,6 +22,7 @@ import MaruReaderCore
 enum UnifiedDictionaryManagementImportItem: Identifiable {
     case dictionary(Dictionary)
     case audioSource(AudioSource)
+    case tokenizerDictionary(TokenizerDictionary)
 
     var id: NSManagedObjectID {
         objectID
@@ -33,6 +34,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.objectID
         case let .audioSource(audioSource):
             audioSource.objectID
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.objectID
         }
     }
 
@@ -51,6 +54,13 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             }
 
             return audioSource.file?.deletingPathExtension().lastPathComponent ?? AppLocalization.unknownSource
+
+        case let .tokenizerDictionary(tokenizerDictionary):
+            if let name = tokenizerDictionary.name, !name.isEmpty {
+                return name
+            }
+
+            return tokenizerDictionary.file?.deletingPathExtension().lastPathComponent ?? String(localized: "Unknown Tokenizer Dictionary")
         }
     }
 
@@ -60,6 +70,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.isStarted
         case let .audioSource(audioSource):
             audioSource.isStarted
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.isStarted
         }
     }
 
@@ -69,6 +81,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.isFailed
         case let .audioSource(audioSource):
             audioSource.isFailed
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.isFailed
         }
     }
 
@@ -78,6 +92,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.isCancelled
         case let .audioSource(audioSource):
             audioSource.isCancelled
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.isCancelled
         }
     }
 
@@ -87,6 +103,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.pendingDeletion
         case let .audioSource(audioSource):
             audioSource.pendingDeletion
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.pendingDeletion
         }
     }
 
@@ -96,6 +114,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.displayProgressMessage
         case let .audioSource(audioSource):
             audioSource.displayProgressMessage
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.displayProgressMessage
         }
     }
 
@@ -105,6 +125,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.errorMessage
         case let .audioSource(audioSource):
             audioSource.displayProgressMessage
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.errorMessage
         }
     }
 
@@ -114,6 +136,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             dictionary.timeQueued
         case let .audioSource(audioSource):
             audioSource.timeQueued
+        case let .tokenizerDictionary(tokenizerDictionary):
+            tokenizerDictionary.timeQueued
         }
     }
 

@@ -1,0 +1,7 @@
+module maru_sudachi_ffiFFI {
+    header "maru_sudachi_ffiFFI.h"
+    export *
+    use "Darwin"
+    use "_Builtin_stdbool"
+    use "_Builtin_stdint"
+}

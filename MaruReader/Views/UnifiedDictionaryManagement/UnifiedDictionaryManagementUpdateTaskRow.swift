@@ -20,7 +20,7 @@ import MaruReaderCore
 import SwiftUI
 
 struct UnifiedDictionaryManagementUpdateTaskRow: View {
-    @ObservedObject var task: DictionaryUpdateTask
+    let task: UnifiedDictionaryManagementUpdateTaskItem
 
     private var progressValue: Double? {
         guard task.totalBytes > 0 else { return nil }
@@ -45,7 +45,7 @@ struct UnifiedDictionaryManagementUpdateTaskRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(task.dictionaryTitle ?? String(localized: "Dictionary Update"))
+            Text(task.displayName)
                 .font(.headline)
                 .lineLimit(1)
 
