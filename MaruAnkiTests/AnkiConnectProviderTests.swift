@@ -309,6 +309,114 @@ struct AnkiConnectProviderTests {
         #expect(pictureFields.isEmpty)
     }
 
+    @Test func addNote_withMarureaderAudioScheme_includesBase64Data() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueAddNoteSuccessResponse()
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+
+        let sourceUUID = UUID()
+        let appGroupDir = try #require(FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AnkiPersistenceController.appGroupIdentifier
+        ))
+        let audioDir = appGroupDir
+            .appendingPathComponent("AudioMedia", isDirectory: true)
+            .appendingPathComponent(sourceUUID.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: audioDir, withIntermediateDirectories: true)
+
+        let audioFile = audioDir.appendingPathComponent("test.mp3")
+        let audioData = Data([0x01, 0x02, 0x03])
+        try audioData.write(to: audioFile)
+        defer { try? FileManager.default.removeItem(at: audioDir) }
+
+        let mediaURL = try #require(URL(string: "marureader-audio://\(sourceUUID.uuidString)/test.mp3"))
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Audio": [TemplateResolvedValue(mediaFiles: ["audio": mediaURL])],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .none,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User 1",
+            deckName: "Test Deck",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let body = try #require(try mock.lastRequestBodyAsJSON())
+        let params = try #require(body["params"] as? [String: Any])
+        let note = try #require(params["note"] as? [String: Any])
+        let audioArray = try #require(note["audio"] as? [[String: Any]])
+        #expect(audioArray.count == 1)
+
+        let audioItem = audioArray[0]
+        #expect(audioItem["filename"] as? String == "audio.mp3")
+        #expect(audioItem["url"] == nil)
+        #expect(audioItem["data"] as? String == audioData.base64EncodedString())
+        #expect(audioItem["fields"] as? [String] == ["Audio"])
+    }
+
+    @Test func addNote_withMarureaderMediaScheme_includesBase64Data() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueAddNoteSuccessResponse()
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+
+        let dictionaryUUID = UUID()
+        let appGroupDir = try #require(FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AnkiPersistenceController.appGroupIdentifier
+        ))
+        let mediaDir = appGroupDir
+            .appendingPathComponent("Media", isDirectory: true)
+            .appendingPathComponent(dictionaryUUID.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: mediaDir, withIntermediateDirectories: true)
+
+        let imageFile = mediaDir.appendingPathComponent("glossary.png")
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+        try imageData.write(to: imageFile)
+        defer { try? FileManager.default.removeItem(at: mediaDir) }
+
+        let mediaURL = try #require(URL(string: "marureader-media://\(dictionaryUUID.uuidString)/glossary.png"))
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Picture": [TemplateResolvedValue(mediaFiles: ["glossary": mediaURL])],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .none,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User 1",
+            deckName: "Test Deck",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let body = try #require(try mock.lastRequestBodyAsJSON())
+        let params = try #require(body["params"] as? [String: Any])
+        let note = try #require(params["note"] as? [String: Any])
+        let pictureArray = try #require(note["picture"] as? [[String: Any]])
+        #expect(pictureArray.count == 1)
+
+        let pictureItem = pictureArray[0]
+        #expect(pictureItem["filename"] as? String == "glossary.png")
+        #expect(pictureItem["url"] == nil)
+        #expect(pictureItem["data"] as? String == imageData.base64EncodedString())
+        #expect(pictureItem["fields"] as? [String] == ["Picture"])
+    }
+
     @Test func addNote_combinesMultipleValuesPerField() async throws {
         let mock = MockNetworkProvider()
         mock.queuePermissionGrantedResponse()

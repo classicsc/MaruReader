@@ -231,6 +231,61 @@ struct AnkiMobileProviderTests {
         #expect(!(audioValue?.contains("marureader-audio://") ?? false))
     }
 
+    @Test func addNote_convertsMarureaderMediaSchemeToDataURL() async throws {
+        let opener = TestURLOpener()
+        let provider = AnkiMobileProvider(urlOpener: opener)
+
+        let dictionaryUUID = UUID()
+        guard let appGroupDir = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: AnkiPersistenceController.appGroupIdentifier
+        ) else {
+            Issue.record("App group directory not available")
+            return
+        }
+
+        let mediaDir = appGroupDir
+            .appendingPathComponent("Media", isDirectory: true)
+            .appendingPathComponent(dictionaryUUID.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: mediaDir, withIntermediateDirectories: true)
+
+        let imageFile = mediaDir.appendingPathComponent("test.png")
+        let imageData = Data([0x89, 0x50, 0x4E, 0x47])
+        try imageData.write(to: imageFile)
+        defer { try? FileManager.default.removeItem(at: mediaDir) }
+
+        let customURL = try #require(URL(string: "marureader-media://\(dictionaryUUID.uuidString)/test.png"))
+
+        let fields: [String: [TemplateResolvedValue]] = [
+            "Image": [
+                TemplateResolvedValue(mediaFiles: ["image": customURL]),
+            ],
+        ]
+
+        let duplicateOptions = DuplicateDetectionOptions(
+            scope: .deck,
+            deckName: nil,
+            includeChildDecks: false,
+            checkAllModels: false
+        )
+
+        _ = try await provider.addNote(
+            fields: fields,
+            profileName: "User",
+            deckName: "Default",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        let url = try #require(await opener.lastURL)
+        let components = try #require(URLComponents(url: url, resolvingAgainstBaseURL: false))
+        let items = components.queryItems ?? []
+        let imageValue = items.first { $0.name == "fldImage" }?.value
+
+        let expectedDataURL = "data:image/png;base64,\(imageData.base64EncodedString())"
+        #expect(imageValue == expectedDataURL)
+        #expect(!(imageValue?.contains("marureader-media://") ?? false))
+    }
+
     @Test func addNote_inlinesLocalMediaInHTML() async throws {
         let opener = TestURLOpener()
         let provider = AnkiMobileProvider(urlOpener: opener)

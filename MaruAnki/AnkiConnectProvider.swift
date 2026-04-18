@@ -402,13 +402,13 @@ struct AnkiConnectProvider: AnkiProvider {
         let mediaType = MediaType.from(filename: finalFilename)
         let targetFields: [String] = fieldName.map { [$0] } ?? []
 
-        if url.isFileURL {
+        if let localFileURL = AnkiMediaURLResolver.localFileURL(for: url) {
             // Base64 encode local files
             let data: Data
             do {
-                data = try Data(contentsOf: url)
+                data = try Data(contentsOf: localFileURL)
             } catch {
-                throw AnkiConnectError.mediaReadFailed(url)
+                throw AnkiConnectError.mediaReadFailed(localFileURL)
             }
             let base64 = data.base64EncodedString()
 
@@ -418,6 +418,8 @@ struct AnkiConnectProvider: AnkiProvider {
                 fields: targetFields,
                 type: mediaType
             )
+        } else if AnkiMediaURLResolver.usesInternalScheme(url) {
+            throw AnkiConnectError.mediaReadFailed(url)
         } else {
             // Use URL for remote files
             return MediaItem(

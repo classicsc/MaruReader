@@ -106,19 +106,14 @@ enum AnkiFieldValueFormatter {
 
     /// Returns a URL string for use in HTML src attributes (for inlining into existing tags).
     private static func formatMediaLink(from url: URL) -> String? {
-        guard let scheme = url.scheme?.lowercased() else {
-            return nil
-        }
-
-        switch scheme {
+        switch url.scheme?.lowercased() {
         case "http", "https":
             return url.absoluteString
-        case "file":
-            return dataURL(for: url)
-        case "marureader-audio":
-            return dataURLForAudioScheme(url)
         default:
-            return nil
+            guard let fileURL = AnkiMediaURLResolver.localFileURL(for: url) else {
+                return nil
+            }
+            return dataURL(for: fileURL)
         }
     }
 
@@ -166,34 +161,6 @@ enum AnkiFieldValueFormatter {
 
         let base64 = data.base64EncodedString()
         return "data:\(mimeType);base64,\(base64)"
-    }
-
-    /// Converts a marureader-audio:// URL to a data URL by resolving the file path.
-    /// Format: marureader-audio://{sourceUUID}/{filepath}
-    private static func dataURLForAudioScheme(_ url: URL) -> String? {
-        guard url.scheme == "marureader-audio",
-              let host = url.host(),
-              UUID(uuidString: host) != nil
-        else {
-            return nil
-        }
-
-        guard let appGroupDir = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: AnkiPersistenceController.appGroupIdentifier
-        ) else {
-            return nil
-        }
-
-        let requestedPath = String(url.path.dropFirst())
-        let fileURL = requestedPath.split(separator: "/").reduce(
-            appGroupDir
-                .appendingPathComponent("AudioMedia", isDirectory: true)
-                .appendingPathComponent(host, isDirectory: true)
-        ) {
-            $0.appendingPathComponent(String($1), isDirectory: false)
-        }
-
-        return dataURL(for: fileURL)
     }
 
     private static func mediaMimeType(for fileURL: URL) -> String? {
