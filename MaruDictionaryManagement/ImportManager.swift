@@ -183,6 +183,41 @@ public actor ImportManager {
         return destURL
     }
 
+    private static var importStagingDirectoryURL: URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("ImportStaging", isDirectory: true)
+    }
+
+    private static func cleanupImportStagingFileIfNeeded(at fileURL: URL?) {
+        guard let fileURL else { return }
+
+        let stagingDirectoryURL = importStagingDirectoryURL
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+        let resolvedFileURL = fileURL
+            .resolvingSymlinksInPath()
+            .standardizedFileURL
+        let stagingPath = stagingDirectoryURL.path
+        let filePath = resolvedFileURL.path
+
+        guard filePath == stagingPath || filePath.hasPrefix(stagingPath + "/") else {
+            return
+        }
+
+        let fileManager = FileManager.default
+        if fileManager.fileExists(atPath: resolvedFileURL.path) {
+            try? fileManager.removeItem(at: resolvedFileURL)
+        }
+
+        guard fileManager.fileExists(atPath: stagingDirectoryURL.path) else { return }
+        if let remainingEntries = try? fileManager.contentsOfDirectory(
+            at: stagingDirectoryURL,
+            includingPropertiesForKeys: nil
+        ), remainingEntries.isEmpty {
+            try? fileManager.removeItem(at: stagingDirectoryURL)
+        }
+    }
+
     /// Enqueue a dictionary import from the given ZIP file URL.
     public func enqueueDictionaryImport(from zipURL: URL) async throws -> NSManagedObjectID {
         try await enqueueDictionaryImport(from: zipURL, queuedDisplayName: nil, updateTaskID: nil)
@@ -310,18 +345,29 @@ public actor ImportManager {
             let context = container.newBackgroundContext()
             context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
             context.undoManager = nil
-            await context.perform {
+            let stagedArchiveURL: URL? = await context.perform {
                 if let dictionary = try? context.existingObject(with: jobID) as? Dictionary {
                     Self.markDictionaryCancelled(dictionary)
+                    let fileURL = dictionary.file
+                    dictionary.file = nil
                     try? context.save()
+                    return fileURL
                 } else if let audioSource = try? context.existingObject(with: jobID) as? AudioSource {
                     Self.markAudioSourceCancelled(audioSource)
+                    let fileURL = audioSource.file
+                    audioSource.file = nil
                     try? context.save()
+                    return fileURL
                 } else if let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary {
                     Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
+                    let fileURL = tokenizerDictionary.file
+                    tokenizerDictionary.file = nil
                     try? context.save()
+                    return fileURL
                 }
+                return nil
             }
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         }
     }
 
@@ -524,21 +570,39 @@ public actor ImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        await context.perform {
+        let stagedArchiveURLs: [URL] = await context.perform {
+            var fileURLs: [URL] = []
             for job in jobs {
                 switch job {
                 case let .dictionary(jobID):
                     guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else { continue }
                     Self.markDictionaryCancelled(dictionary)
+                    if let fileURL = dictionary.file {
+                        fileURLs.append(fileURL)
+                    }
+                    dictionary.file = nil
                 case let .audioSource(jobID):
                     guard let audioSource = try? context.existingObject(with: jobID) as? AudioSource else { continue }
                     Self.markAudioSourceCancelled(audioSource)
+                    if let fileURL = audioSource.file {
+                        fileURLs.append(fileURL)
+                    }
+                    audioSource.file = nil
                 case let .tokenizerDictionary(jobID):
                     guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else { continue }
                     Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
+                    if let fileURL = tokenizerDictionary.file {
+                        fileURLs.append(fileURL)
+                    }
+                    tokenizerDictionary.file = nil
                 }
             }
             try? context.save()
+            return fileURLs
+        }
+
+        for fileURL in stagedArchiveURLs {
+            Self.cleanupImportStagingFileIfNeeded(at: fileURL)
         }
     }
 
@@ -587,6 +651,51 @@ public actor ImportManager {
         tokenizerDictionary.errorMessage = nil
         tokenizerDictionary.isCurrent = false
         tokenizerDictionary.updateReady = false
+    }
+
+    private func takeDictionaryImportArchiveURL(
+        jobID: NSManagedObjectID,
+        in context: NSManagedObjectContext
+    ) async -> URL? {
+        await context.perform {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
+                return nil
+            }
+            let fileURL = dictionary.file
+            dictionary.file = nil
+            try? context.save()
+            return fileURL
+        }
+    }
+
+    private func takeAudioSourceImportArchiveURL(
+        jobID: NSManagedObjectID,
+        in context: NSManagedObjectContext
+    ) async -> URL? {
+        await context.perform {
+            guard let audioSource = try? context.existingObject(with: jobID) as? AudioSource else {
+                return nil
+            }
+            let fileURL = audioSource.file
+            audioSource.file = nil
+            try? context.save()
+            return fileURL
+        }
+    }
+
+    private func takeTokenizerDictionaryImportArchiveURL(
+        jobID: NSManagedObjectID,
+        in context: NSManagedObjectContext
+    ) async -> URL? {
+        await context.perform {
+            guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
+                return nil
+            }
+            let fileURL = tokenizerDictionary.file
+            tokenizerDictionary.file = nil
+            try? context.save()
+            return fileURL
+        }
     }
 
     // MARK: - Import Dispatch
@@ -730,19 +839,24 @@ public actor ImportManager {
                 }
                 try context.save()
             }
+            let stagedArchiveURL = await takeDictionaryImportArchiveURL(jobID: jobID, in: context)
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         } catch is CancellationError {
             if let uuid = dictionaryUUID {
                 try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
             }
-            let uuidToClean: UUID? = await context.perform {
+            let cleanupInfo: (UUID?, URL?) = await context.perform {
                 guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                    return nil
+                    return (nil, nil)
                 }
                 Self.markDictionaryCancelled(dictionary)
+                let fileURL = dictionary.file
+                dictionary.file = nil
                 try? context.save()
-                return dictionary.id
+                return (dictionary.id, fileURL)
             }
-            if let uuid = uuidToClean {
+            Self.cleanupImportStagingFileIfNeeded(at: cleanupInfo.1)
+            if let uuid = cleanupInfo.0 {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
             }
@@ -750,9 +864,9 @@ public actor ImportManager {
             if let uuid = dictionaryUUID {
                 try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: uuid, batchSize: 10000)
             }
-            let uuidToClean: UUID? = await context.perform {
+            let cleanupInfo: (UUID?, URL?) = await context.perform {
                 guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                    return nil
+                    return (nil, nil)
                 }
                 dictionary.isFailed = true
                 dictionary.isCancelled = false
@@ -767,12 +881,15 @@ public actor ImportManager {
                 dictionary.pitchesCount = 0
                 dictionary.ipaCount = 0
                 dictionary.tagCount = 0
+                let fileURL = dictionary.file
+                dictionary.file = nil
 
                 try? context.save()
 
-                return dictionary.id
+                return (dictionary.id, fileURL)
             }
-            if let uuid = uuidToClean {
+            Self.cleanupImportStagingFileIfNeeded(at: cleanupInfo.1)
+            if let uuid = cleanupInfo.0 {
                 cleanMediaDirectoryByUUID(dictionaryUUID: uuid)
                 cleanCompressionDictionaryByUUID(dictionaryUUID: uuid)
             }
@@ -886,6 +1003,8 @@ public actor ImportManager {
                 job.displayProgressMessage = FrameworkLocalization.string("Import complete.")
                 try context.save()
             }
+            let stagedArchiveURL = await takeAudioSourceImportArchiveURL(jobID: jobID, in: context)
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
 
         } catch is CancellationError {
             let capturedSourceID = sourceID
@@ -894,13 +1013,17 @@ public actor ImportManager {
                 try? await deleteAudioSourceEntitiesInBatches(sourceID: id, batchSize: 10000)
                 AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id, baseDirectory: capturedBaseDirectory)
             }
-            await context.perform {
+            let stagedArchiveURL: URL? = await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
-                    return
+                    return nil
                 }
                 Self.markAudioSourceCancelled(job)
+                let fileURL = job.file
+                job.file = nil
                 try? context.save()
+                return fileURL
             }
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         } catch {
             let capturedSourceID = sourceID
             let capturedBaseDirectory = baseDirectory
@@ -908,17 +1031,21 @@ public actor ImportManager {
                 try? await deleteAudioSourceEntitiesInBatches(sourceID: id, batchSize: 10000)
                 AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: id, baseDirectory: capturedBaseDirectory)
             }
-            await context.perform {
+            let stagedArchiveURL: URL? = await context.perform {
                 guard let job = try? context.existingObject(with: jobID) as? AudioSource else {
-                    return
+                    return nil
                 }
                 job.isFailed = true
                 job.isCancelled = false
                 job.isComplete = false
                 job.displayProgressMessage = error.localizedDescription
                 job.timeFailed = Date()
+                let fileURL = job.file
+                job.file = nil
                 try? context.save()
+                return fileURL
             }
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         }
 
         await context.perform {
@@ -979,18 +1106,24 @@ public actor ImportManager {
             for replacedObjectID in result.replacedTokenizerObjectIDs {
                 await deleteTokenizerDictionary(tokenizerDictionaryID: replacedObjectID)
             }
+            let stagedArchiveURL = await takeTokenizerDictionaryImportArchiveURL(jobID: jobID, in: context)
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         } catch is CancellationError {
-            await context.perform {
+            let stagedArchiveURL: URL? = await context.perform {
                 guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
-                    return
+                    return nil
                 }
                 Self.markTokenizerDictionaryCancelled(tokenizerDictionary)
+                let fileURL = tokenizerDictionary.file
+                tokenizerDictionary.file = nil
                 try? context.save()
+                return fileURL
             }
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         } catch {
-            await context.perform {
+            let stagedArchiveURL: URL? = await context.perform {
                 guard let tokenizerDictionary = try? context.existingObject(with: jobID) as? TokenizerDictionary else {
-                    return
+                    return nil
                 }
                 tokenizerDictionary.isFailed = true
                 tokenizerDictionary.isCancelled = false
@@ -999,8 +1132,12 @@ public actor ImportManager {
                 tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Import failed.")
                 tokenizerDictionary.errorMessage = error.localizedDescription
                 tokenizerDictionary.timeFailed = Date()
+                let fileURL = tokenizerDictionary.file
+                tokenizerDictionary.file = nil
                 try? context.save()
+                return fileURL
             }
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         }
 
         await context.perform {
@@ -1016,19 +1153,16 @@ public actor ImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (cleanupIDs, retryJobIDs): ([UUID], [NSManagedObjectID]) = await context.perform {
+        let (cleanupEntries, retryJobIDs): ([(UUID, URL?)], [NSManagedObjectID]) = await context.perform {
             let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
             let dictionaries = (try? context.fetch(request)) ?? []
             guard !dictionaries.isEmpty else { return ([], []) }
 
             let now = Date()
-            var ids: [UUID] = []
+            var entries: [(UUID, URL?)] = []
             var retryJobIDs: [NSManagedObjectID] = []
             for dictionary in dictionaries {
-                if let dictionaryID = dictionary.id {
-                    ids.append(dictionaryID)
-                }
                 if dictionary.updateTaskID != nil {
                     dictionary.isFailed = false
                     dictionary.isCancelled = false
@@ -1042,12 +1176,16 @@ public actor ImportManager {
                     dictionary.timeCancelled = nil
                     retryJobIDs.append(dictionary.objectID)
                 } else {
+                    if let dictionaryID = dictionary.id {
+                        entries.append((dictionaryID, dictionary.file))
+                    }
                     dictionary.isFailed = true
                     dictionary.isCancelled = false
                     dictionary.isComplete = false
                     dictionary.displayProgressMessage = FrameworkLocalization.string("Import interrupted.")
                     dictionary.errorMessage = FrameworkLocalization.string("Import interrupted.")
                     dictionary.timeFailed = now
+                    dictionary.file = nil
                 }
                 dictionary.termCount = 0
                 dictionary.kanjiCount = 0
@@ -1062,17 +1200,19 @@ public actor ImportManager {
             }
 
             try? context.save()
-            return (ids, retryJobIDs)
+            return (entries, retryJobIDs)
         }
 
-        guard !cleanupIDs.isEmpty else { return }
-        logger.debug("Cleaning up \(cleanupIDs.count, privacy: .public) interrupted dictionary imports")
+        if !cleanupEntries.isEmpty {
+            logger.debug("Cleaning up \(cleanupEntries.count, privacy: .public) interrupted dictionary imports")
 
-        for dictionaryID in cleanupIDs {
-            try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
-            cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
-            cleanCompressionDictionaryByUUID(dictionaryUUID: dictionaryID)
-            cleanDictionaryScratchDirectory(dictionaryUUID: dictionaryID)
+            for (dictionaryID, stagedArchiveURL) in cleanupEntries {
+                try? await deleteDictionaryEntitiesInBatches(dictionaryUUID: dictionaryID, batchSize: 10000)
+                cleanMediaDirectoryByUUID(dictionaryUUID: dictionaryID)
+                cleanCompressionDictionaryByUUID(dictionaryUUID: dictionaryID)
+                cleanDictionaryScratchDirectory(dictionaryUUID: dictionaryID)
+                Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
+            }
         }
 
         guard !retryJobIDs.isEmpty else { return }
@@ -1111,17 +1251,17 @@ public actor ImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let cleanupIDs: [UUID] = await context.perform {
+        let cleanupEntries: [(UUID, URL?)] = await context.perform {
             let request: NSFetchRequest<AudioSource> = AudioSource.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
             let sources = (try? context.fetch(request)) ?? []
             guard !sources.isEmpty else { return [] }
 
             let now = Date()
-            var ids: [UUID] = []
+            var entries: [(UUID, URL?)] = []
             for source in sources {
                 if let sourceID = source.id {
-                    ids.append(sourceID)
+                    entries.append((sourceID, source.file))
                 }
                 source.isFailed = true
                 source.isCancelled = false
@@ -1132,19 +1272,21 @@ public actor ImportManager {
                 source.indexProcessed = false
                 source.entriesProcessed = false
                 source.mediaImported = false
+                source.file = nil
             }
 
             try? context.save()
-            return ids
+            return entries
         }
 
-        guard !cleanupIDs.isEmpty else { return }
-        logger.debug("Cleaning up \(cleanupIDs.count, privacy: .public) interrupted audio source imports")
+        guard !cleanupEntries.isEmpty else { return }
+        logger.debug("Cleaning up \(cleanupEntries.count, privacy: .public) interrupted audio source imports")
 
-        for sourceID in cleanupIDs {
+        for (sourceID, stagedArchiveURL) in cleanupEntries {
             try? await deleteAudioSourceEntitiesInBatches(sourceID: sourceID, batchSize: 10000)
             AudioSourceMediaCopyTask.cleanMediaDirectory(sourceID: sourceID, baseDirectory: baseDirectory)
             cleanAudioSourceScratchDirectory(sourceID: sourceID)
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         }
     }
 
@@ -1177,19 +1319,16 @@ public actor ImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (cleanupIDs, retryJobIDs): ([UUID], [NSManagedObjectID]) = await context.perform {
+        let (cleanupEntries, retryJobIDs): ([(UUID, URL?)], [NSManagedObjectID]) = await context.perform {
             let request: NSFetchRequest<TokenizerDictionary> = TokenizerDictionary.fetchRequest()
             request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
             let tokenizerDictionaries = (try? context.fetch(request)) ?? []
             guard !tokenizerDictionaries.isEmpty else { return ([], []) }
 
             let now = Date()
-            var ids: [UUID] = []
+            var entries: [(UUID, URL?)] = []
             var retryJobIDs: [NSManagedObjectID] = []
             for tokenizerDictionary in tokenizerDictionaries {
-                if let tokenizerID = tokenizerDictionary.id {
-                    ids.append(tokenizerID)
-                }
                 if tokenizerDictionary.updateTaskID != nil {
                     tokenizerDictionary.isFailed = false
                     tokenizerDictionary.isCancelled = false
@@ -1203,22 +1342,27 @@ public actor ImportManager {
                     tokenizerDictionary.timeCancelled = nil
                     retryJobIDs.append(tokenizerDictionary.objectID)
                 } else {
+                    if let tokenizerID = tokenizerDictionary.id {
+                        entries.append((tokenizerID, tokenizerDictionary.file))
+                    }
                     tokenizerDictionary.isFailed = true
                     tokenizerDictionary.isCancelled = false
                     tokenizerDictionary.isComplete = false
                     tokenizerDictionary.displayProgressMessage = FrameworkLocalization.string("Import interrupted.")
                     tokenizerDictionary.errorMessage = FrameworkLocalization.string("Import interrupted.")
                     tokenizerDictionary.timeFailed = now
+                    tokenizerDictionary.file = nil
                 }
                 tokenizerDictionary.isCurrent = false
             }
 
             try? context.save()
-            return (ids, retryJobIDs)
+            return (entries, retryJobIDs)
         }
 
-        for tokenizerID in cleanupIDs {
+        for (tokenizerID, stagedArchiveURL) in cleanupEntries {
             ImportScratchSpace(kind: .tokenizer, jobUUID: tokenizerID).cleanupBestEffort()
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
         }
 
         for jobID in retryJobIDs where currentJob?.jobID != jobID && !queue.contains(where: { $0.jobID == jobID }) {
@@ -1265,12 +1409,19 @@ public actor ImportManager {
         do {
             try Task.checkCancellation()
 
-            let dictionaryUUID = try await taskContext.perform {
+            let (dictionaryUUID, stagedArchiveURL) = try await taskContext.perform {
                 guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
-                return dictionary.id
+                let fileURL = dictionary.file
+                dictionary.file = nil
+                try taskContext.save()
+                return (dictionary.id, fileURL)
             }
+
+            try Task.checkCancellation()
+
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
 
             try Task.checkCancellation()
 
@@ -1326,12 +1477,19 @@ public actor ImportManager {
         do {
             try Task.checkCancellation()
 
-            let audioSourceUUID = try await taskContext.perform {
+            let (audioSourceUUID, stagedArchiveURL) = try await taskContext.perform {
                 guard let audioSource = try? taskContext.existingObject(with: sourceID) as? AudioSource else {
                     throw AudioSourceImportError.databaseError
                 }
-                return audioSource.id
+                let fileURL = audioSource.file
+                audioSource.file = nil
+                try taskContext.save()
+                return (audioSource.id, fileURL)
             }
+
+            try Task.checkCancellation()
+
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
 
             try Task.checkCancellation()
 
@@ -1383,8 +1541,15 @@ public actor ImportManager {
                 guard let tokenizerDictionary = try? taskContext.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
                     throw TokenizerDictionaryImportError.databaseError
                 }
-                return (tokenizerDictionary.id, tokenizerDictionary.isCurrent)
+                let fileURL = tokenizerDictionary.file
+                tokenizerDictionary.file = nil
+                try taskContext.save()
+                return (tokenizerDictionary.id, tokenizerDictionary.isCurrent, fileURL)
             }
+
+            try Task.checkCancellation()
+
+            Self.cleanupImportStagingFileIfNeeded(at: tokenizerInfo.2)
 
             try Task.checkCancellation()
 

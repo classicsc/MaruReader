@@ -664,6 +664,55 @@ struct DictionaryPersistenceTests {
         #expect(queuedState.1 == true)
     }
 
+    @Test @MainActor func enqueueImport_DictionaryCleanupRemovesStagedArchiveAfterCompletion() async throws {
+        let indexJSON = """
+        {
+            "title": "CleanupDict",
+            "revision": "1.0",
+            "format": 3
+        }
+        """
+        let termJSON = """
+        [
+            ["片付け", "かたづけ", "", "", 0, ["cleanup"], 1, ""]
+        ]
+        """
+        let zipURL = try await createMockZIP(
+            indexJSON: indexJSON,
+            tagJSON: nil,
+            termJSON: termJSON,
+            termMetaJSON: nil,
+            kanjiJSON: nil,
+            kanjiMetaJSON: nil
+        )
+        let uniqueFilename = "staging-cleanup-\(UUID().uuidString).zip"
+        let renamedZipURL = zipURL.deletingLastPathComponent().appendingPathComponent(uniqueFilename)
+        try FileManager.default.moveItem(at: zipURL, to: renamedZipURL)
+        defer { try? FileManager.default.removeItem(at: renamedZipURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = ImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
+
+        let importID = try await importManager.enqueueImport(from: renamedZipURL)
+        await importManager.waitForCompletion(jobID: importID)
+
+        let viewContext = persistenceController.container.viewContext
+        viewContext.refreshAllObjects()
+
+        let dictionary = getDictionary(from: viewContext, importID: importID)
+        #expect(dictionary?.isComplete == true)
+        #expect(dictionary?.file == nil)
+        #expect(FileManager.default.fileExists(atPath: renamedZipURL.path))
+
+        let stagingDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ImportStaging", isDirectory: true)
+        let stagedEntries = (try? FileManager.default.contentsOfDirectory(at: stagingDir, includingPropertiesForKeys: nil)) ?? []
+        #expect(stagedEntries.contains(where: { $0.lastPathComponent.contains(uniqueFilename) }) == false)
+    }
+
     @Test @MainActor func importDictionary_ValidV3ZIP_ImportsSuccessfully() async throws {
         // Test Description: Verifies that a valid Yomitan ZIP is read, parsed, and batch-inserted into Core Data.
         // - Setup: Mock ZIP with index, tags, and terms.
