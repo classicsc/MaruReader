@@ -53,6 +53,15 @@ public enum GlossaryCompressionTrainingProfile: String, Sendable, Equatable, Cas
     var windowLength: Int {
         32
     }
+
+    var zstdCompressionLevel: Int32 {
+        switch self {
+        case .runtime:
+            GlossaryCompressionCodec.defaultZSTDCompressionLevel
+        case .starterdict:
+            GlossaryCompressionCodec.maximumZSTDCompressionLevel
+        }
+    }
 }
 
 public enum GlossaryCompressionDictionaryBuildError: Error, LocalizedError {

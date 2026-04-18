@@ -200,7 +200,8 @@ struct KanjiBankV1Entry: DictionaryDataBankEntry {
     func toDataDictionary(
         dictionaryID: UUID,
         glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
-        glossaryCompressionBaseDirectory _: URL?
+        glossaryCompressionBaseDirectory _: URL?,
+        glossaryZSTDCompressionLevel _: Int32? = nil
     ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
@@ -288,7 +289,8 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
     func toDataDictionary(
         dictionaryID: UUID,
         glossaryCompressionVersion: GlossaryCompressionCodecVersion,
-        glossaryCompressionBaseDirectory: URL?
+        glossaryCompressionBaseDirectory: URL?,
+        glossaryZSTDCompressionLevel: Int32? = nil
     ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
@@ -300,7 +302,8 @@ struct TermBankV1Entry: DictionaryDataBankEntry {
             glossaryJSONData,
             using: glossaryCompressionVersion,
             dictionaryID: dictionaryID,
-            searchBaseDirectory: glossaryCompressionBaseDirectory
+            searchBaseDirectory: glossaryCompressionBaseDirectory,
+            zstdCompressionLevel: glossaryZSTDCompressionLevel
         )
 
         let rulesData = (try? encoder.encode(rules)) ?? Data()

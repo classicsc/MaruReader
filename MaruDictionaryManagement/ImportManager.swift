@@ -1448,6 +1448,7 @@ public actor ImportManager {
                 bankPaths: bankPaths,
                 glossaryCompressionVersion: version,
                 glossaryCompressionBaseDirectory: baseDirectory,
+                glossaryZSTDCompressionLevel: glossaryCompressionTrainingProfile.zstdCompressionLevel,
                 container: container
             )
             do {

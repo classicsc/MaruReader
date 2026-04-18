@@ -22,7 +22,8 @@ protocol DictionaryDataBankEntry: Codable, Sendable {
     func toDataDictionary(
         dictionaryID: UUID,
         glossaryCompressionVersion: GlossaryCompressionCodecVersion,
-        glossaryCompressionBaseDirectory: URL?
+        glossaryCompressionBaseDirectory: URL?,
+        glossaryZSTDCompressionLevel: Int32?
     ) throws -> (DictionaryDataType, [String: Sendable])
 }
 

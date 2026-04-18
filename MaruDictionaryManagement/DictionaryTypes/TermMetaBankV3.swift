@@ -80,7 +80,8 @@ struct TermMetaBankV3Entry: DictionaryDataBankEntry {
     func toDataDictionary(
         dictionaryID: UUID,
         glossaryCompressionVersion _: GlossaryCompressionCodecVersion,
-        glossaryCompressionBaseDirectory _: URL?
+        glossaryCompressionBaseDirectory _: URL?,
+        glossaryZSTDCompressionLevel _: Int32? = nil
     ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
         switch data {

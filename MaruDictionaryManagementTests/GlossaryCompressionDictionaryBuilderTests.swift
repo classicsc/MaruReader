@@ -24,6 +24,17 @@ import Testing
 private let minimumTrainableCorpusBytes = 32 * 1024
 
 struct GlossaryCompressionDictionaryBuilderTests {
+    @Test func glossaryCompressionTrainingProfiles_useExpectedZSTDCompressionLevels() {
+        #expect(
+            GlossaryCompressionTrainingProfile.runtime.zstdCompressionLevel ==
+                GlossaryCompressionCodec.defaultZSTDCompressionLevel
+        )
+        #expect(
+            GlossaryCompressionTrainingProfile.starterdict.zstdCompressionLevel ==
+                GlossaryCompressionCodec.maximumZSTDCompressionLevel
+        )
+    }
+
     @Test func windowedGlossaryJSONSamples_runtimeProfile_samplesExpectedWindow() async throws {
         let zipURL = try await makeMockDictionaryArchive(entryCount: 128, glossaryRepeatCount: 24)
         defer { try? FileManager.default.removeItem(at: zipURL.deletingLastPathComponent()) }

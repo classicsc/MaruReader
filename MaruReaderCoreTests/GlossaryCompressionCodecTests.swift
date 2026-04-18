@@ -285,6 +285,51 @@ struct GlossaryCompressionCodecTests {
         #expect(GlossaryCompressionCodec.cacheEntryCountsForTesting().processorPools == 0)
     }
 
+    @Test func encodeGlossaryJSON_runtimeMixedCompressionLevels_useDistinctProcessorPools() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer {
+            GlossaryCompressionCodec.resetCachesForTesting()
+            cleanupTemporaryDirectory(baseDirectory)
+        }
+
+        GlossaryCompressionCodec.resetCachesForTesting()
+
+        let dictionaryID = UUID()
+        try writeRuntimeDictionary(for: dictionaryID, in: baseDirectory)
+        let jsonData = Data(#"["to eat",{"type":"text","text":"Mixed compression level coverage"}]"#.utf8)
+
+        let defaultEncoded = try GlossaryCompressionCodec.encodeGlossaryJSON(
+            jsonData,
+            using: .zstdRuntimeV1,
+            dictionaryID: dictionaryID,
+            searchBaseDirectory: baseDirectory
+        )
+        let maximumEncoded = try GlossaryCompressionCodec.encodeGlossaryJSON(
+            jsonData,
+            using: .zstdRuntimeV1,
+            dictionaryID: dictionaryID,
+            searchBaseDirectory: baseDirectory,
+            zstdCompressionLevel: GlossaryCompressionCodec.maximumZSTDCompressionLevel
+        )
+
+        #expect(
+            GlossaryCompressionCodec.decodeGlossaryJSON(
+                defaultEncoded,
+                dictionaryID: dictionaryID,
+                searchBaseDirectory: baseDirectory
+            ) == jsonData
+        )
+        #expect(
+            GlossaryCompressionCodec.decodeGlossaryJSON(
+                maximumEncoded,
+                dictionaryID: dictionaryID,
+                searchBaseDirectory: baseDirectory
+            ) == jsonData
+        )
+        #expect(GlossaryCompressionCodec.cacheEntryCountsForTesting().dictionaryData == 1)
+        #expect(GlossaryCompressionCodec.cacheEntryCountsForTesting().processorPools == 2)
+    }
+
     @Test func reusableZSTDProcessorPool_borrowsProcessorsInParallelUpToConfiguredLimit() {
         let pool = ReusableZSTDProcessorPool<Int>(maximumRetainedProcessors: 4) { 1 }
         let tracker = ConcurrencyTracker()

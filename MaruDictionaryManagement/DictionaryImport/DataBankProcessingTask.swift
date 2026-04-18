@@ -31,6 +31,7 @@ struct DataBankProcessingTask {
     let bankPaths: DictionaryBankPaths
     let glossaryCompressionVersion: GlossaryCompressionCodecVersion
     let glossaryCompressionBaseDirectory: URL?
+    let glossaryZSTDCompressionLevel: Int32?
     let persistentContainer: NSPersistentContainer
     private let logger = Logger.maru(category: "TermBankProcessingTask")
 
@@ -55,6 +56,7 @@ struct DataBankProcessingTask {
         bankPaths: DictionaryBankPaths,
         glossaryCompressionVersion: GlossaryCompressionCodecVersion,
         glossaryCompressionBaseDirectory: URL?,
+        glossaryZSTDCompressionLevel: Int32?,
         container: NSPersistentContainer
     ) {
         self.jobID = jobID
@@ -63,6 +65,7 @@ struct DataBankProcessingTask {
         self.bankPaths = bankPaths
         self.glossaryCompressionVersion = glossaryCompressionVersion
         self.glossaryCompressionBaseDirectory = glossaryCompressionBaseDirectory
+        self.glossaryZSTDCompressionLevel = glossaryZSTDCompressionLevel
         self.persistentContainer = container
     }
 
@@ -137,7 +140,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -163,7 +167,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -209,7 +214,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -235,7 +241,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -261,7 +268,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -287,7 +295,8 @@ struct DataBankProcessingTask {
                                         entry.toDataDictionary(
                                             dictionaryID: self.dictionaryID,
                                             glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                            glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                            glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                         ).1
                                     )
                                 }
@@ -312,7 +321,8 @@ struct DataBankProcessingTask {
                                     let dataDict = try entry.toDataDictionary(
                                         dictionaryID: self.dictionaryID,
                                         glossaryCompressionVersion: self.glossaryCompressionVersion,
-                                        glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory
+                                        glossaryCompressionBaseDirectory: self.glossaryCompressionBaseDirectory,
+                                        glossaryZSTDCompressionLevel: self.glossaryZSTDCompressionLevel
                                     )
                                     switch dataDict.0 {
                                     case .termFrequencyEntry:

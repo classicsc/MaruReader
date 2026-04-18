@@ -83,7 +83,8 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
     func toDataDictionary(
         dictionaryID: UUID,
         glossaryCompressionVersion: GlossaryCompressionCodecVersion,
-        glossaryCompressionBaseDirectory: URL?
+        glossaryCompressionBaseDirectory: URL?,
+        glossaryZSTDCompressionLevel: Int32? = nil
     ) throws -> (DictionaryDataType, [String: any Sendable]) {
         let encoder = JSONEncoder()
 
@@ -92,7 +93,8 @@ struct TermBankV3Entry: DictionaryDataBankEntry {
             glossaryJSONData,
             using: glossaryCompressionVersion,
             dictionaryID: dictionaryID,
-            searchBaseDirectory: glossaryCompressionBaseDirectory
+            searchBaseDirectory: glossaryCompressionBaseDirectory,
+            zstdCompressionLevel: glossaryZSTDCompressionLevel
         )
 
         let definitionTagsData = self.definitionTags != nil ? (try? encoder.encode(self.definitionTags)) ?? Data() : Data()

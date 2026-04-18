@@ -53,8 +53,16 @@ public enum GlossaryCompressionCodecVersion: String, Sendable, Equatable, CaseIt
         case .uncompressedV1, .lzfseV1:
             nil
         case .zstdV1, .zstdRuntimeV1:
-            3
+            glossaryCompressionDefaultZSTDCompressionLevel
         }
+    }
+
+    fileprivate func resolvedZSTDCompressionLevel(override compressionLevel: Int32?) -> Int32? {
+        guard let defaultCompressionLevel = zstdCompressionLevel else {
+            return nil
+        }
+
+        return compressionLevel ?? defaultCompressionLevel
     }
 }
 
@@ -83,6 +91,8 @@ private let glossaryCompressionProcessorPoolWidth = max(
 private let glossaryCompressionDictionaryCacheCostLimit = 32_000_000
 private let glossaryCompressionDictionaryCacheCountLimit = 16
 private let glossaryCompressionProcessorCacheCountLimit = 16
+private let glossaryCompressionDefaultZSTDCompressionLevel: Int32 = 3
+private let glossaryCompressionMaximumZSTDCompressionLevel: Int32 = 22
 
 private final class GlossaryCompressionZSTDDictionaryCache: @unchecked Sendable {
     private let cachedByIdentifier: LRUCache<String, Data>
@@ -331,13 +341,39 @@ private final class GlossaryCompressionZSTDProcessorCache: @unchecked Sendable {
     }
 }
 
+private final class RuntimeDictionaryProcessorCacheKeyStore: @unchecked Sendable {
+    private let lock = NSLock()
+    private var keysByIdentifier: [String: Set<String>] = [:]
+
+    func record(_ cacheKey: String, for identifier: String) {
+        lock.lock()
+        keysByIdentifier[identifier, default: []].insert(cacheKey)
+        lock.unlock()
+    }
+
+    func takeKeys(for identifier: String) -> [String] {
+        lock.lock()
+        defer { lock.unlock() }
+        return Array(keysByIdentifier.removeValue(forKey: identifier) ?? [])
+    }
+
+    func reset() {
+        lock.lock()
+        keysByIdentifier.removeAll()
+        lock.unlock()
+    }
+}
+
 public enum GlossaryCompressionCodec {
     public static let defaultImportVersion: GlossaryCompressionCodecVersion = .zstdRuntimeV1
+    public static let defaultZSTDCompressionLevel = glossaryCompressionDefaultZSTDCompressionLevel
+    public static let maximumZSTDCompressionLevel = glossaryCompressionMaximumZSTDCompressionLevel
     public static let zstdDictionaryDirectoryName = "CompressionDictionaries"
     public static let zstdDictionaryFileExtension = "zdict"
 
     private static let dictionaryCache = GlossaryCompressionZSTDDictionaryCache()
     private static let processorCache = GlossaryCompressionZSTDProcessorCache()
+    private static let runtimeDictionaryProcessorCacheKeyStore = RuntimeDictionaryProcessorCacheKeyStore()
 
     public static func buildZSTDDictionary(fromSamples samples: [Data]) throws -> Data {
         try buildDictionary(fromSamples: samples)
@@ -364,7 +400,8 @@ public enum GlossaryCompressionCodec {
         _ jsonData: Data,
         using version: GlossaryCompressionCodecVersion = defaultImportVersion,
         dictionaryID: UUID?,
-        searchBaseDirectory: URL? = nil
+        searchBaseDirectory: URL? = nil,
+        zstdCompressionLevel: Int32? = nil
     ) throws -> Data {
         switch version {
         case .uncompressedV1:
@@ -379,7 +416,8 @@ public enum GlossaryCompressionCodec {
                 jsonData,
                 using: version,
                 dictionaryID: dictionaryID,
-                searchBaseDirectory: searchBaseDirectory
+                searchBaseDirectory: searchBaseDirectory,
+                zstdCompressionLevel: zstdCompressionLevel
             )
             return payload(magic: version.magic, contents: compressed)
         }
@@ -438,6 +476,7 @@ public enum GlossaryCompressionCodec {
     static func resetCachesForTesting() {
         dictionaryCache.clear()
         processorCache.clear()
+        runtimeDictionaryProcessorCacheKeyStore.reset()
     }
 
     static func cacheEntryCountsForTesting() -> (dictionaryData: Int, processorPools: Int) {
@@ -457,9 +496,12 @@ public enum GlossaryCompressionCodec {
         _ jsonData: Data,
         using version: GlossaryCompressionCodecVersion,
         dictionaryID: UUID?,
-        searchBaseDirectory: URL? = nil
+        searchBaseDirectory: URL? = nil,
+        zstdCompressionLevel: Int32? = nil
     ) throws -> Data {
-        guard let compressionLevel = version.zstdCompressionLevel else {
+        guard let compressionLevel = version.resolvedZSTDCompressionLevel(
+            override: zstdCompressionLevel
+        ) else {
             throw ZSTDError.invalidCompressionLevel(cl: 0)
         }
 
@@ -480,11 +522,19 @@ public enum GlossaryCompressionCodec {
                 throw GlossaryCompressionCodecError.missingRuntimeZSTDDictionary(dictionaryIdentifier)
             }
 
-            return try processorCache.dictionaryProcessor(
-                cacheKey: runtimeDictionaryCacheKey(version: version, identifier: dictionaryIdentifier),
+            let cacheKey = runtimeDictionaryCacheKey(
+                version: version,
+                identifier: dictionaryIdentifier,
+                compressionLevel: compressionLevel
+            )
+
+            let processor = processorCache.dictionaryProcessor(
+                cacheKey: cacheKey,
                 dictionaryData: dictionaryData,
                 compressionLevel: compressionLevel
-            ).compress(jsonData)
+            )
+            recordRuntimeDictionaryProcessorCacheKey(cacheKey, identifier: dictionaryIdentifier)
+            return try processor.compress(jsonData)
         case .uncompressedV1, .lzfseV1:
             break
         }
@@ -520,11 +570,20 @@ public enum GlossaryCompressionCodec {
         }
 
         let compressedPayload = Data(payload.dropFirst(version.magic.count))
-        return try processorCache.dictionaryProcessor(
-            cacheKey: runtimeDictionaryCacheKey(version: version, identifier: dictionaryIdentifier),
+        let compressionLevel = version.zstdCompressionLevel ?? defaultZSTDCompressionLevel
+        let cacheKey = runtimeDictionaryCacheKey(
+            version: version,
+            identifier: dictionaryIdentifier,
+            compressionLevel: compressionLevel
+        )
+
+        let processor = processorCache.dictionaryProcessor(
+            cacheKey: cacheKey,
             dictionaryData: dictionaryData,
-            compressionLevel: version.zstdCompressionLevel ?? 1
-        ).decompress(compressedPayload)
+            compressionLevel: compressionLevel
+        )
+        recordRuntimeDictionaryProcessorCacheKey(cacheKey, identifier: dictionaryIdentifier)
+        return try processor.decompress(compressedPayload)
     }
 
     private static func payload(magic: Data, contents: Data) -> Data {
@@ -560,22 +619,31 @@ public enum GlossaryCompressionCodec {
 
     private static func runtimeDictionaryCacheKey(
         version: GlossaryCompressionCodecVersion,
-        identifier: String
+        identifier: String,
+        compressionLevel: Int32
     ) -> String {
-        "\(version.rawValue):\(identifier)"
+        "\(version.rawValue):\(identifier):\(compressionLevel)"
     }
 
     private static func evictRuntimeZSTDDictionaries(identifiers: [String]) {
         dictionaryCache.remove(identifiers: identifiers)
 
         for identifier in identifiers {
-            processorCache.removeDictionaryProcessor(
-                cacheKey: runtimeDictionaryCacheKey(
-                    version: .zstdRuntimeV1,
-                    identifier: identifier
-                )
-            )
+            for cacheKey in runtimeDictionaryProcessorCacheKeys(for: identifier) {
+                processorCache.removeDictionaryProcessor(cacheKey: cacheKey)
+            }
         }
+    }
+
+    private static func recordRuntimeDictionaryProcessorCacheKey(
+        _ cacheKey: String,
+        identifier: String
+    ) {
+        runtimeDictionaryProcessorCacheKeyStore.record(cacheKey, for: identifier)
+    }
+
+    private static func runtimeDictionaryProcessorCacheKeys(for identifier: String) -> [String] {
+        runtimeDictionaryProcessorCacheKeyStore.takeKeys(for: identifier)
     }
 
     private static func zstdDictionaryCandidateURLs(
