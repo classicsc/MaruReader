@@ -25,30 +25,30 @@ struct UnifiedTokenizerDictionaryManagementMetadataView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let version = tokenizerDictionary.version, !version.isEmpty {
-                LabeledContent("Version", value: version)
+                UnifiedDictionaryManagementMetadataField("Version", value: version)
             }
 
             if let attribution = tokenizerDictionary.attribution, !attribution.isEmpty {
-                LabeledContent("Attribution", value: attribution)
+                UnifiedDictionaryManagementMetadataField("Attribution", value: attribution)
             }
 
             if let indexURL = tokenizerDictionary.indexURL,
                let parsedIndexURL = URL(string: indexURL)
             {
-                HStack {
-                    Text("Index:")
-                        .foregroundStyle(.secondary)
-                    Link(indexURL, destination: parsedIndexURL)
+                UnifiedDictionaryManagementMetadataField("Index") {
+                    Link(destination: parsedIndexURL) {
+                        Text(verbatim: indexURL)
+                    }
                 }
             }
 
             if let downloadURL = tokenizerDictionary.downloadURL,
                let parsedDownloadURL = URL(string: downloadURL)
             {
-                HStack {
-                    Text("Download:")
-                        .foregroundStyle(.secondary)
-                    Link(downloadURL, destination: parsedDownloadURL)
+                UnifiedDictionaryManagementMetadataField("Download") {
+                    Link(destination: parsedDownloadURL) {
+                        Text(verbatim: downloadURL)
+                    }
                 }
             }
         }

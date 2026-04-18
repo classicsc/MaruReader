@@ -25,31 +25,31 @@ struct UnifiedDictionaryManagementAudioSourceMetadataView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let attribution = source.attribution, !attribution.isEmpty {
-                LabeledContent("Attribution", value: attribution)
+                UnifiedDictionaryManagementMetadataField("Attribution", value: attribution)
             }
 
             if let pattern = source.urlPattern, !pattern.isEmpty {
-                LabeledContent("URL Pattern", value: pattern)
+                UnifiedDictionaryManagementMetadataField("URL Pattern", value: pattern)
             }
 
             if let baseRemoteURL = source.baseRemoteURL, !baseRemoteURL.isEmpty {
-                LabeledContent("Base URL", value: baseRemoteURL)
+                UnifiedDictionaryManagementMetadataField("Base URL", value: baseRemoteURL)
             }
 
             if let audioExtensions = source.audioFileExtensions, !audioExtensions.isEmpty {
-                LabeledContent("Audio Extensions", value: audioExtensions)
+                UnifiedDictionaryManagementMetadataField("Audio Extensions", value: audioExtensions)
             }
 
             if let fileURL = source.file, source.isLocal {
-                LabeledContent("Archive", value: fileURL.lastPathComponent)
+                UnifiedDictionaryManagementMetadataField("Archive", value: fileURL.lastPathComponent)
             }
 
             if source.version > 0 {
-                LabeledContent("Version", value: String(source.version))
+                UnifiedDictionaryManagementMetadataField("Version", value: String(source.version))
             }
 
             if source.year > 0 {
-                LabeledContent("Year", value: String(source.year))
+                UnifiedDictionaryManagementMetadataField("Year", value: String(source.year))
             }
         }
         .font(.caption)

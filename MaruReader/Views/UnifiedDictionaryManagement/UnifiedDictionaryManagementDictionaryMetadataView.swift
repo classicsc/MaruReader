@@ -25,28 +25,28 @@ struct UnifiedDictionaryManagementDictionaryMetadataView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             if let author = dictionary.author, !author.isEmpty {
-                LabeledContent("Author", value: author)
+                UnifiedDictionaryManagementMetadataField("Author", value: author)
             }
 
             if let attribution = dictionary.attribution, !attribution.isEmpty {
-                LabeledContent("Attribution", value: attribution)
+                UnifiedDictionaryManagementMetadataField("Attribution", value: attribution)
             }
 
             if let description = dictionary.displayDescription, !description.isEmpty {
-                LabeledContent("Description", value: description)
+                UnifiedDictionaryManagementMetadataField("Description", value: description)
             }
 
             if let revision = dictionary.revision, !revision.isEmpty {
-                LabeledContent("Revision", value: revision)
+                UnifiedDictionaryManagementMetadataField("Revision", value: revision)
             }
 
             if let url = dictionary.url,
                let projectURL = URL(string: url)
             {
-                HStack {
-                    Text("Project:")
-                        .foregroundStyle(.secondary)
-                    Link(url, destination: projectURL)
+                UnifiedDictionaryManagementMetadataField("Project") {
+                    Link(destination: projectURL) {
+                        Text(verbatim: url)
+                    }
                 }
             }
         }
