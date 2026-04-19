@@ -53,7 +53,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var currentPopupSession: TextLookupSession?
     private var focusDebounceTask: Task<Void, Never>?
     private var searchTask: Task<Void, Never>?
-    private var popupSearchTask: Task<Void, Error>?
+    private var popupSearchTask: Task<Void, Never>?
     private var dictionaryWebTheme: DictionaryWebTheme?
     @ObservationIgnored
     private(set) var isResultsPageBootstrapped: Bool = false
@@ -342,19 +342,23 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
         searchTask?.cancel()
         searchTask = Task {
-            if Task.isCancelled { return }
-            self.hidePopup()
-            self.resultState = .searching
             do {
+                try Task.checkCancellation()
+                self.hidePopup()
+                self.resultState = .searching
+
                 guard let session = try await self.searchService().startTextLookup(request: lookupRequest) else {
+                    try Task.checkCancellation()
                     self.currentRequest = lookupRequest
                     self.currentResponse = nil
                     self.currentSession = nil
                     self.resultState = .noResults(lookupRequest.context)
                     return
                 }
+                try Task.checkCancellation()
 
                 let hasResults = try await session.prepareInitialResults()
+                try Task.checkCancellation()
                 guard hasResults else {
                     self.currentRequest = lookupRequest
                     self.currentResponse = nil
@@ -363,17 +367,23 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                     return
                 }
 
+                let snapshot = try await session.snapshot()
+                try Task.checkCancellation()
+
+                await self.ankiSchemeHandler.setSession(session)
+                try Task.checkCancellation()
+                await self.resultsSchemeHandler.setSession(session)
+                try Task.checkCancellation()
+                try await self.showResultsPage(for: lookupRequest.id)
+                try Task.checkCancellation()
                 self.currentRequest = lookupRequest
                 self.currentSession = session
-                self.currentResponse = try? await session.snapshot()
-                // Push to navigation history
+                self.currentResponse = snapshot
                 self.history.push(request: lookupRequest, session: session)
-                await self.ankiSchemeHandler.setSession(session)
-                await self.resultsSchemeHandler.setSession(session)
-                try await self.showResultsPage(for: lookupRequest.id)
-                if Task.isCancelled { return }
                 self.resultState = .ready
                 self.updateLinksActiveState()
+                return
+            } catch is CancellationError {
                 return
             } catch {
                 self.currentRequest = lookupRequest
@@ -541,62 +551,81 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         let baseContextValues = currentRequest?.contextValues ?? LookupContextValues()
         popupSearchTask?.cancel()
         popupSearchTask = Task {
-            // When scanning text within dictionary results, transition source type to .dictionary.
-            let screenshotURL = await captureSearchScreenshotURL()
-            let contextInfo = makeDictionaryContextInfo()
-            let transitionedContextValues = baseContextValues.withSourceType(
-                .dictionary,
-                contextInfo: contextInfo,
-                screenshotURL: screenshotURL
-            )
-            let lookupRequest = TextLookupRequest(
-                context: context,
-                offset: offset,
-                contextStartOffset: contextStartOffset,
-                cssSelector: cssSelector,
-                contextValues: transitionedContextValues
-            )
-            guard let session = try await self.searchService().startTextLookup(request: lookupRequest) else {
-                return
-            }
-
-            let hasResults = try await session.prepareInitialResults()
-            guard hasResults, let snapshot = try? await session.snapshot() else {
-                return
-            }
-
-            // Store the response so we can preserve context when navigating
-            self.currentPopupSession = session
-            self.currentPopupResponse = snapshot
-            await self.popupAnkiSchemeHandler.setSession(session)
-            await self.popupResultsSchemeHandler.setSession(session)
-
-            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
-            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
-            for try await value in loadSequence {
+            do {
+                // When scanning text within dictionary results, transition source type to .dictionary.
+                let screenshotURL = await captureSearchScreenshotURL()
                 try Task.checkCancellation()
-                if value == WebPage.NavigationEvent.finished {
-                    self.showPopup = true
 
-                    // Use offset-based highlighting for precise positioning
-                    do {
-                        try await page.clearHighlights()
-                        let highlightBoundingRects = try await page.highlightTextByContextRange(
-                            cssSelector: cssSelector,
-                            contextStartOffset: snapshot.contextStartOffset,
-                            matchStartInContext: snapshot.matchStartInContext,
-                            matchEndInContext: snapshot.matchEndInContext,
-                            styles: self.highlightStylesAsJSObject()
-                        )
-                        let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
-                        if let firstRect = boundingRects.first {
-                            self.popupAnchorPosition = firstRect
-                        }
-                    } catch {
-                        logger.error("Failed to highlight text: \(error.localizedDescription)")
-                    }
-                    logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
+                let contextInfo = makeDictionaryContextInfo()
+                let transitionedContextValues = baseContextValues.withSourceType(
+                    .dictionary,
+                    contextInfo: contextInfo,
+                    screenshotURL: screenshotURL
+                )
+                let lookupRequest = TextLookupRequest(
+                    context: context,
+                    offset: offset,
+                    contextStartOffset: contextStartOffset,
+                    cssSelector: cssSelector,
+                    contextValues: transitionedContextValues
+                )
+                guard let session = try await self.searchService().startTextLookup(request: lookupRequest) else {
+                    return
                 }
+                try Task.checkCancellation()
+
+                let hasResults = try await session.prepareInitialResults()
+                try Task.checkCancellation()
+                guard hasResults, let snapshot = try await session.snapshot() else {
+                    return
+                }
+                try Task.checkCancellation()
+
+                await self.popupAnkiSchemeHandler.setSession(session)
+                try Task.checkCancellation()
+                await self.popupResultsSchemeHandler.setSession(session)
+                try Task.checkCancellation()
+
+                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
+                let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
+                for try await value in loadSequence {
+                    try Task.checkCancellation()
+                    if value == WebPage.NavigationEvent.finished {
+                        do {
+                            try await page.clearHighlights()
+                            try Task.checkCancellation()
+
+                            let highlightBoundingRects = try await page.highlightTextByContextRange(
+                                cssSelector: cssSelector,
+                                contextStartOffset: snapshot.contextStartOffset,
+                                matchStartInContext: snapshot.matchStartInContext,
+                                matchEndInContext: snapshot.matchEndInContext,
+                                styles: self.highlightStylesAsJSObject()
+                            )
+                            try Task.checkCancellation()
+
+                            let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
+                            if let firstRect = boundingRects.first {
+                                self.popupAnchorPosition = firstRect
+                            } else {
+                                self.popupAnchorPosition = .zero
+                            }
+                            self.currentPopupSession = session
+                            self.currentPopupResponse = snapshot
+                            self.showPopup = true
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            logger.error("Failed to highlight text: \(error.localizedDescription)")
+                        }
+                        logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
+                        return
+                    }
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                logger.error("Popup search failed: \(error.localizedDescription)")
             }
         }
     }

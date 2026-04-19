@@ -46,7 +46,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     private(set) var pendingSheetSearchText: String?
     private(set) var pendingSheetContextValues: LookupContextValues?
 
-    private var popupSearchTask: Task<Void, Error>?
+    private var popupSearchTask: Task<Void, Never>?
     private weak var activeNavigatorWebView: WKWebView?
     private var currentPopupSession: TextLookupSession?
     private var dictionaryWebTheme: DictionaryWebTheme?
@@ -158,46 +158,65 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
 
         popupSearchTask?.cancel()
         popupSearchTask = Task {
-            let contextValues = await session.makeLookupContextValues()
-            let lookupRequest = TextLookupRequest(
-                context: context,
-                offset: offset,
-                contextStartOffset: contextStartOffset,
-                cssSelector: cssSelector,
-                contextValues: contextValues
-            )
-            guard let lookupSession = try await self.searchService().startTextLookup(request: lookupRequest) else {
-                logger.debug("No search session created for lookup")
-                return
-            }
-
-            let hasResults = try await lookupSession.prepareInitialResults()
-            guard hasResults, let snapshot = try? await lookupSession.snapshot() else {
-                logger.debug("No search results found for lookup")
-                return
-            }
-
-            currentPopupSession = lookupSession
-            await ankiSchemeHandler.setSession(lookupSession)
-            await resultsSchemeHandler.setSession(lookupSession)
-
-            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
-            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
-            for try await value in loadSequence {
+            do {
+                let contextValues = await session.makeLookupContextValues()
                 try Task.checkCancellation()
-                if value == WebPage.NavigationEvent.finished {
-                    await clearHighlights()
-                    let boundingRects = await highlightTextByContextRange(
-                        cssSelector: cssSelector,
-                        contextStartOffset: snapshot.contextStartOffset,
-                        matchStartInContext: snapshot.matchStartInContext,
-                        matchEndInContext: snapshot.matchEndInContext,
-                        styles: highlightStylesAsJSObject()
-                    )
-                    let rects = makeBoundingRects(from: boundingRects)
-                    popupAnchorPosition = rects.first ?? .zero
-                    showPopup = true
+
+                let lookupRequest = TextLookupRequest(
+                    context: context,
+                    offset: offset,
+                    contextStartOffset: contextStartOffset,
+                    cssSelector: cssSelector,
+                    contextValues: contextValues
+                )
+                guard let lookupSession = try await self.searchService().startTextLookup(request: lookupRequest) else {
+                    logger.debug("No search session created for lookup")
+                    return
                 }
+                try Task.checkCancellation()
+
+                let hasResults = try await lookupSession.prepareInitialResults()
+                try Task.checkCancellation()
+
+                guard hasResults, let snapshot = try? await lookupSession.snapshot() else {
+                    logger.debug("No search results found for lookup")
+                    return
+                }
+                try Task.checkCancellation()
+
+                await ankiSchemeHandler.setSession(lookupSession)
+                try Task.checkCancellation()
+                await resultsSchemeHandler.setSession(lookupSession)
+                try Task.checkCancellation()
+
+                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
+                let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
+                for try await value in loadSequence {
+                    try Task.checkCancellation()
+                    if value == WebPage.NavigationEvent.finished {
+                        await clearHighlights()
+                        try Task.checkCancellation()
+
+                        let boundingRects = await highlightTextByContextRange(
+                            cssSelector: cssSelector,
+                            contextStartOffset: snapshot.contextStartOffset,
+                            matchStartInContext: snapshot.matchStartInContext,
+                            matchEndInContext: snapshot.matchEndInContext,
+                            styles: highlightStylesAsJSObject()
+                        )
+                        try Task.checkCancellation()
+
+                        let rects = makeBoundingRects(from: boundingRects)
+                        currentPopupSession = lookupSession
+                        popupAnchorPosition = rects.first ?? .zero
+                        showPopup = true
+                        return
+                    }
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                logger.error("Popup search failed: \(error.localizedDescription)")
             }
         }
     }
