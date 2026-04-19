@@ -41,24 +41,6 @@ final class ScreenshotTests: XCTestCase {
         app = nil
     }
 
-    // MARK: - Library Screenshots
-
-    @MainActor
-    func testScreenshot_BookLibrary() {
-        navigateToTab(english: "Read", japanese: "読む")
-        selectLibrarySegment(english: "Books", japanese: "本")
-        sleep(2)
-        takeScreenshot(named: "01-BookLibrary")
-    }
-
-    @MainActor
-    func testScreenshot_MangaLibrary() {
-        navigateToTab(english: "Read", japanese: "読む")
-        selectLibrarySegment(english: "Manga", japanese: "マンガ")
-        sleep(2)
-        takeScreenshot(named: "02-MangaLibrary")
-    }
-
     // MARK: - Book Reader Screenshots
 
     @MainActor
@@ -78,7 +60,7 @@ final class ScreenshotTests: XCTestCase {
             sleep(2)
         }
 
-        takeScreenshot(named: "03-BookDictionary")
+        takeScreenshot(named: "01-BookDictionary")
     }
 
     // MARK: - Manga Reader Screenshots
@@ -93,14 +75,28 @@ final class ScreenshotTests: XCTestCase {
         // Wait for the sheet to appear.
         let dictionarySheet = app.otherElements["mangaReader.dictionarySheet"].firstMatch
         if dictionarySheet.waitForExistence(timeout: 10) {
-            takeScreenshot(named: "04-MangaDictionary")
+            takeScreenshot(named: "02-MangaDictionary")
         } else {
             // Fallback: tap in the center of the page where OCR text clusters are likely
             let pageArea = app.windows.firstMatch
             let center = pageArea.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
             center.tap()
             sleep(2)
-            takeScreenshot(named: "04-MangaDictionary")
+            takeScreenshot(named: "02-MangaDictionary")
+        }
+        // Now dismiss the sheet, turn on bounding box display (button labeled "Show text regions"), and take another screenshot.
+        if dictionarySheet.exists {
+            let dismissButton = button(english: "Done", japanese: "完了")
+            if dismissButton.waitForExistence(timeout: 5) {
+                dismissButton.tap()
+                sleep(1)
+            }
+        }
+        let showRegionsButton = button(english: "Show text regions", japanese: "テキスト領域を表示")
+        if showRegionsButton.waitForExistence(timeout: 5) {
+            showRegionsButton.tap()
+            sleep(1)
+            takeScreenshot(named: "03-MangaDictionary-Regions")
         }
     }
 
@@ -127,24 +123,7 @@ final class ScreenshotTests: XCTestCase {
             }
         }
         sleep(2)
-        takeScreenshot(named: "05-WebDictionary")
-    }
-
-    // MARK: - Dictionary Search Screenshot
-
-    @MainActor
-    func testScreenshot_DictionarySearch() {
-        // Tap the search tab (role: .search shows as a magnifying glass)
-        let searchTab = button(english: "Search", japanese: "検索")
-        if searchTab.waitForExistence(timeout: 5) {
-            searchTab.tap()
-        }
-
-        // In screenshot mode, the search screen auto-populates a query and
-        // dismisses focus so the screenshot does not depend on keyboard state.
-        let searchField = app.searchFields.firstMatch
-        sleep(5)
-        takeScreenshot(named: "06-DictionarySearch")
+        takeScreenshot(named: "04-WebDictionary")
     }
 
     // MARK: - Locale-Independent Element Lookup

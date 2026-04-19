@@ -89,7 +89,7 @@ struct SettingsView: View {
                     Link(destination: supportForumURL) {
                         Label("Support & Feedback", systemImage: "questionmark.circle")
                     }
-                    
+
                     Link(destination: privacyPolicyURL) {
                         Label("Privacy Policy", systemImage: "hand.raised")
                     }
