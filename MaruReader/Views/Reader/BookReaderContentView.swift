@@ -33,6 +33,7 @@ struct BookReaderContentView: View {
 
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
 
     var body: some View {
@@ -143,17 +144,18 @@ struct BookReaderContentView: View {
                 }
             }
             .onChange(of: colorScheme) {
-                readerPreferences.systemColorScheme = colorScheme
-                readerPreferences.submitToNavigator()
-                applyReaderDictionaryTheme()
+                syncResolvedAppearance()
             }
             .onChange(of: readerPreferences.selectedAppearanceMode) {
                 applyReaderDictionaryTheme()
             }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active else { return }
+                syncResolvedAppearance()
+            }
             .tourOverlay(manager: tourManager)
             .onAppear {
-                readerPreferences.systemColorScheme = colorScheme
-                applyReaderDictionaryTheme()
+                syncResolvedAppearance()
                 lookup.isDictionaryReady = dictionaryAvailability == .ready
                 if MaruReaderApp.isScreenshotMode {
                     chrome.isDictionaryActive = true
@@ -321,6 +323,12 @@ struct BookReaderContentView: View {
     private func applyReaderDictionaryTheme() {
         let webTheme = readerDictionaryPresentationTheme.dictionaryWebTheme
         lookup.setDictionaryWebTheme(webTheme)
+    }
+
+    private func syncResolvedAppearance() {
+        readerPreferences.systemColorScheme = colorScheme
+        readerPreferences.submitToNavigator()
+        applyReaderDictionaryTheme()
     }
 
     private func makeDictionaryWebTheme(

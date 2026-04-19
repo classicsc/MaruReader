@@ -22,24 +22,12 @@ import SwiftUI
 import UIKit
 
 struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
-    @State private var session: BookReaderSessionModel
-    @State private var lookup: BookReaderLookupModel
-    @State private var readerPreferences: ReaderPreferences
+    let session: BookReaderSessionModel
+    let lookup: BookReaderLookupModel
+    let readerPreferences: ReaderPreferences
     let colorScheme: ColorScheme
 
     private let logger = Logger.maru(category: "EPUBNavigatorWrapper")
-
-    init(
-        session: BookReaderSessionModel,
-        lookup: BookReaderLookupModel,
-        readerPreferences: ReaderPreferences,
-        colorScheme: ColorScheme
-    ) {
-        _session = State(wrappedValue: session)
-        _lookup = State(wrappedValue: lookup)
-        _readerPreferences = State(wrappedValue: readerPreferences)
-        self.colorScheme = colorScheme
-    }
 
     func makeUIViewController(context: Context) -> UIViewController {
         do {
@@ -82,8 +70,20 @@ struct EPUBNavigatorWrapper: UIViewControllerRepresentable {
         }
     }
 
-    func updateUIViewController(_: UIViewController, context _: Context) {
-        // No updates needed
+    func updateUIViewController(_ uiViewController: UIViewController, context _: Context) {
+        guard let navigator = uiViewController as? EPUBNavigatorViewController else {
+            return
+        }
+
+        if session.navigator !== navigator {
+            session.attachNavigator(navigator)
+        }
+
+        if readerPreferences.navigator !== navigator {
+            readerPreferences.navigator = navigator
+        }
+
+        readerPreferences.systemColorScheme = colorScheme
     }
 
     func makeCoordinator() -> BookReaderCoordinator {
