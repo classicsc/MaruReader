@@ -44,6 +44,18 @@ licenses:
 licenses-refresh:
   swift scripts/sync-third-party-licenses.swift --refresh-snapshots
 
+# shows the synced marketing version and build number for MaruReader and its release extensions
+release-status:
+  ./scripts/run-release-workflow.sh show
+
+# creates a prerelease archive by incrementing the build number, then commits and tags it
+prerelease:
+  ./scripts/run-release-workflow.sh prerelease
+
+# creates a release archive by setting the marketing version, resetting build to 1, then commits and tags it
+release version:
+  ./scripts/run-release-workflow.sh release "{{version}}"
+
 # runs the UI screenshot test plan and extracts images to build/screenshots/
 screenshots:
   ./scripts/run-screenshots.sh
