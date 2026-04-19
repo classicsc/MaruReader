@@ -37,6 +37,7 @@ struct SettingsView: View {
     }
 
     private let supportForumURL = URL(string: "https://github.com/classicsc/MaruReader/discussions")!
+    private let privacyPolicyURL = URL(string: "https://github.com/classicsc/MaruReader/blob/main/PRIVACY.md")!
 
     var body: some View {
         NavigationStack {
@@ -87,6 +88,10 @@ struct SettingsView: View {
 
                     Link(destination: supportForumURL) {
                         Label("Support & Feedback", systemImage: "questionmark.circle")
+                    }
+                    
+                    Link(destination: privacyPolicyURL) {
+                        Label("Privacy Policy", systemImage: "hand.raised")
                     }
                 }
                 Section(
