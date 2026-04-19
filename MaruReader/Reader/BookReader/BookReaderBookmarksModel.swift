@@ -149,8 +149,8 @@ final class BookReaderBookmarksModel {
             return String(localized: "Position \(position)")
         }
         if let totalProgression = locator.locations.totalProgression {
-            let percent = Int(totalProgression * 100)
-            return String(localized: "Book \(percent)%")
+            let formatted = totalProgression.formatted(.percent.precision(.fractionLength(0)))
+            return String(localized: "Book \(formatted)")
         }
         return String(localized: "Bookmark")
     }

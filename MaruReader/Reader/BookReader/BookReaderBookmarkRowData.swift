@@ -49,8 +49,8 @@ struct BookReaderBookmarkRowData: Identifiable, Equatable {
 
     private static func progressText(for locator: Locator) -> String? {
         if let totalProgression = locator.locations.totalProgression {
-            let percent = Int(totalProgression * 100)
-            return String(localized: "Book \(percent)%")
+            let formatted = totalProgression.formatted(.percent.precision(.fractionLength(0)))
+            return String(localized: "Book \(formatted)")
         }
         if let position = locator.locations.position {
             return String(localized: "Position \(position)")

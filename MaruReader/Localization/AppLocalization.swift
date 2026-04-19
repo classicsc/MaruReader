@@ -84,9 +84,10 @@ enum AppLocalization {
     }
 
     static func fontScale(_ percent: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Font Scale: %lld%%"),
-            Int64(percent)
+        let formatted = (Double(percent) / 100.0).formatted(.percent.precision(.fractionLength(0)))
+        return String.localizedStringWithFormat(
+            String(localized: "Font Scale: %@"),
+            formatted
         )
     }
 
@@ -150,10 +151,11 @@ enum AppLocalization {
     }
 
     static func bookContextPercent(title: String, percent: Int) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "%@ - %lld%%"),
+        let formatted = (Double(percent) / 100.0).formatted(.percent.precision(.fractionLength(0)))
+        return String.localizedStringWithFormat(
+            String(localized: "%@ - %@", comment: "Book title followed by percentage progress"),
             title,
-            Int64(percent)
+            formatted
         )
     }
 
