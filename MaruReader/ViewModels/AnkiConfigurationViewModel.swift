@@ -109,7 +109,7 @@ final class AnkiConfigurationViewModel {
     // Template configuration
     var selectedTemplateID: String?
     var templateDictionaryID: UUID?
-    var templateCardType: LapisCardType = .vocabularyCard
+    var templateCardType: LapisCardType = .clickCard
     var templateConfiguredProfiles: [String: Bool] = [:] // templateID -> isConfigured
 
     // Duplicate detection settings
@@ -292,7 +292,7 @@ final class AnkiConfigurationViewModel {
         case .templateConfiguration:
             // Clear template configuration and go back to duplicate settings
             templateDictionaryID = nil
-            templateCardType = .vocabularyCard
+            templateCardType = .clickCard
             currentStep = .duplicateSettings
         }
     }
@@ -648,11 +648,11 @@ final class AnkiConfigurationViewModel {
         // Load existing configuration if any
         if let existingConfig = await SystemProfileManager.getConfiguredProfileData(for: templateID, in: context) {
             templateDictionaryID = existingConfig.mainDefinitionDictionaryID
-            templateCardType = existingConfig.lapisCardType ?? .vocabularyCard
+            templateCardType = existingConfig.lapisCardType ?? .clickCard
         } else {
             // Reset to defaults
             templateDictionaryID = nil
-            templateCardType = .vocabularyCard
+            templateCardType = .clickCard
         }
     }
 

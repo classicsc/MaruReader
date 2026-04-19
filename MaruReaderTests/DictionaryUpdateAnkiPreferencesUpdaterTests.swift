@@ -41,7 +41,7 @@ struct DictionaryUpdateAnkiPreferencesUpdaterTests {
         let config = ConfiguredProfileData(
             templateID: "lapis",
             mainDefinitionDictionaryID: oldID,
-            cardType: .vocabularyCard
+            cardType: .clickCard
         )
         let configData = try JSONEncoder().encode(config)
         let configString = try #require(String(data: configData, encoding: .utf8))

@@ -26,7 +26,7 @@ struct TemplateConfigurationSheetView: View {
     let onSave: () -> Void
 
     @State private var selectedDictionaryID: UUID?
-    @State private var selectedCardType: LapisCardType = .vocabularyCard
+    @State private var selectedCardType: LapisCardType = .clickCard
     @State private var availableDictionaries: [DictionaryPickerInfo] = []
     @State private var isLoadingDictionaries = true
     @State private var isSaving = false
@@ -165,7 +165,7 @@ struct TemplateConfigurationSheetView: View {
 
             if let config = existingConfig {
                 selectedDictionaryID = config.mainDefinitionDictionaryID
-                selectedCardType = config.lapisCardType ?? .vocabularyCard
+                selectedCardType = config.lapisCardType ?? .clickCard
             } else if let first = termDicts.first {
                 selectedDictionaryID = first.id
             }

@@ -105,7 +105,7 @@ struct CoreDataUniquenessHardeningTests {
         let firstConfiguration = ConfiguredProfileData(
             templateID: "lapis",
             mainDefinitionDictionaryID: UUID(),
-            cardType: .vocabularyCard
+            cardType: .clickCard
         )
 
         let firstID = try await SystemProfileManager.saveConfiguredProfile(
