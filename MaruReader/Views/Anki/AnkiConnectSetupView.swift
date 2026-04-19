@@ -31,6 +31,8 @@ struct AnkiConnectSetupView: View {
                 TextField("Port", text: $viewModel.port)
                     .keyboardType(.numberPad)
 
+                Toggle("Use HTTPS", isOn: $viewModel.useHTTPS)
+
                 SecureField("API Key (optional)", text: $viewModel.apiKey)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -38,7 +40,8 @@ struct AnkiConnectSetupView: View {
 
             Section {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Make sure Anki is running on your computer with the Anki-Connect add-on installed. Only SSL connections are supported.")
+                    Text("Make sure Anki is running on your computer with the Anki-Connect add-on installed.")
+                    Text("Enter the IP address or domain name, enable HTTPS if configured on your computer. HTTPS is required for non-local networks.")
                 }
                 .font(.caption)
             }

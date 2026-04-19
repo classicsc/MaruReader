@@ -66,9 +66,9 @@ Anki-Connect is a desktop Anki add-on for integrating with external apps. This g
 
 - [Anki desktop](https://apps.ankiweb.net/) running on your computer
 - [Anki-Connect add-on](https://ankiweb.net/shared/info/2055492159) installed
-- SSL connection
+- A reachable network connection to your computer, using HTTPS or a supported plain HTTP local/private-network host (iOS will block plain HTTP except for private addresses. Even on the local network, HTTPS is recommended for privacy.)
 
-> **Note:** Anki-Connect is marked as an advanced option because it requires SSL configuration.
+> **Note:** Anki-Connect is marked as an advanced option because it requires extra network setup compared with AnkiMobile.
 
 ---
 
@@ -91,15 +91,14 @@ Anki-Connect is a desktop Anki add-on for integrating with external apps. This g
 
 ### Anki-Connect Setup
 
-> **Important:** MaruReader only supports SSL (HTTPS) connections to Anki-Connect. Plain HTTP connections will not work.
-
 1. Ensure Anki is running with Anki-Connect installed
 2. Open MaruReader **Settings → Anki**
 3. Tap **Configure Anki Integration**
 4. Select **Anki-Connect (Advanced)**
 5. Enter your connection details:
-   - **Host**: Your computer's hostname (e.g., `mycomputer.mydomain.net`)
+   - **Host**: Your computer's hostname (e.g., `mycomputer.local`) or IP address
    - **Port**: Usually `8765` or `443`
+   - **Use HTTPS**: Turn this on when your Anki-Connect endpoint is using TLS. Turn it off for supported plain HTTP local/private-network setups.
    - **API Key**: Optional, if you've configured one in Anki-Connect
 6. Tap **Test Connection**. If successful, continue to select profile, deck, note type, and field mapping as above
 

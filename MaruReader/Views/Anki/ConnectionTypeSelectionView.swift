@@ -66,7 +66,7 @@ struct ConnectionTypeSelectionView: View {
     private func connectionTypeDescription(_ type: AnkiConfigurationViewModel.ConnectionType) -> String {
         switch type {
         case .ankiConnect:
-            "Advanced: Connect to Anki running on your computer via the Anki-Connect add-on. Requires Anki open with the addon installed, and a valid SSL certificate."
+            "Advanced: Connect to Anki running on your computer via the Anki-Connect add-on. Requires Anki open with the add-on installed and reachable over the network."
         case .ankiMobile:
             "Add notes to AnkiMobile on this device. Easiest to set up, but not compatible with all image types and duplicate note detection options."
         }

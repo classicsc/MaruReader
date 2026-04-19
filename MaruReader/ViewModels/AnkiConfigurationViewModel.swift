@@ -90,6 +90,7 @@ final class AnkiConfigurationViewModel {
     // Connection settings (temporary, not saved until completion)
     var host: String = ""
     var port: String = "8765"
+    var useHTTPS: Bool = true
     var apiKey: String = ""
 
     // Fetched data
@@ -166,6 +167,10 @@ final class AnkiConfigurationViewModel {
 
     var apiKeyOrNil: String? {
         apiKey.isEmpty ? nil : apiKey
+    }
+
+    var ankiConnectScheme: AnkiConnectScheme {
+        useHTTPS ? .https : .http
     }
 
     var canGoBack: Bool {
@@ -304,6 +309,7 @@ final class AnkiConfigurationViewModel {
             let connection = AnkiConnectConnectionInfo(
                 host: host,
                 port: portInt,
+                scheme: ankiConnectScheme,
                 apiKey: apiKeyOrNil
             )
             let probe = connectionProbeFactory()
@@ -337,6 +343,7 @@ final class AnkiConfigurationViewModel {
             let connection = AnkiConnectConnectionInfo(
                 host: host,
                 port: portInt,
+                scheme: ankiConnectScheme,
                 apiKey: apiKeyOrNil
             )
             let probe = connectionProbeFactory()
@@ -545,6 +552,7 @@ final class AnkiConfigurationViewModel {
         // Capture MainActor-isolated properties before entering background context
         let hostValue = host
         let apiKeyValue = apiKeyOrNil
+        let ankiConnectScheme = ankiConnectScheme
         let connectionType = connectionType
         let selectedProfileID = selectedProfileID
         let selectedDeckName = selectedDeckName
@@ -581,6 +589,7 @@ final class AnkiConfigurationViewModel {
                     settings.connectConfiguration = [
                         "hostname": hostValue,
                         "port": portInt,
+                        "scheme": ankiConnectScheme.rawValue,
                         "apiKey": apiKeyValue as Any,
                     ]
                 case .ankiMobile:

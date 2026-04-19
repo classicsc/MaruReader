@@ -60,11 +60,12 @@ struct AnkiSettingsSnapshot: Equatable {
     init(settings: MaruAnkiSettings, duplicateOptions: DuplicateDetectionOptions?) {
         let host = Self.trimmedString(settings.connectConfiguration?["hostname"] as? String)
         let port = settings.connectConfiguration?["port"] as? Int
+        let scheme = AnkiConnectScheme.fromPersistedValue(settings.connectConfiguration?["scheme"] as? String)
 
         self.init(
             isEnabled: settings.ankiEnabled,
             hasCompleteConfiguration: Self.hasCompleteConfiguration(settings),
-            connection: settings.isAnkiConnect ? .ankiConnect(server: Self.serverDescription(host: host, port: port)) : .ankiMobile,
+            connection: settings.isAnkiConnect ? .ankiConnect(server: Self.serverDescription(scheme: scheme, host: host, port: port)) : .ankiMobile,
             profileName: Self.trimmedString(settings.defaultProfileName),
             deckName: Self.trimmedString(settings.defaultDeckName),
             modelName: Self.trimmedString(settings.defaultModelName),
@@ -89,6 +90,7 @@ struct AnkiSettingsSnapshot: Equatable {
         guard trimmedString(settings.defaultProfileName) != nil,
               let configuration = settings.connectConfiguration,
               trimmedString(configuration["hostname"] as? String) != nil,
+              AnkiConnectScheme.fromPersistedValue(configuration["scheme"] as? String) != nil,
               let port = configuration["port"] as? Int,
               port > 0
         else {
@@ -118,11 +120,11 @@ struct AnkiSettingsSnapshot: Equatable {
         }
     }
 
-    private static func serverDescription(host: String?, port: Int?) -> String? {
-        guard let host, let port else {
+    private static func serverDescription(scheme: AnkiConnectScheme?, host: String?, port: Int?) -> String? {
+        guard let scheme, let host, let port else {
             return nil
         }
-        return "\(host):\(port)"
+        return "\(scheme.rawValue)://\(host):\(port)"
     }
 
     private static func trimmedString(_ value: String?) -> String? {

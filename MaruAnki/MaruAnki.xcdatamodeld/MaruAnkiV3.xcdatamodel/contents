@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24512" systemVersion="25D2128" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="1.2.0">
+    <entity name="AnkiNote" representedClassName="AnkiNote" syncable="YES" codeGenerationType="class">
+        <attribute name="ankiID" optional="YES" attributeType="String"/>
+        <attribute name="createdAt" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="deckName" attributeType="String"/>
+        <attribute name="expression" attributeType="String"/>
+        <attribute name="fields" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="modelName" attributeType="String"/>
+        <attribute name="pendingSync" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="profileName" attributeType="String"/>
+        <attribute name="reading" optional="YES" attributeType="String"/>
+        <attribute name="tags" attributeType="String"/>
+    </entity>
+    <entity name="MaruAnkiSettings" representedClassName="MaruAnkiSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="ankiEnabled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="connectConfiguration" optional="YES" attributeType="Composite" composite="AnkiConnectConfiguration"/>
+        <attribute name="contextImageConfiguration" optional="YES" attributeType="String"/>
+        <attribute name="defaultDeckName" attributeType="String"/>
+        <attribute name="defaultModelName" attributeType="String"/>
+        <attribute name="defaultProfileName" attributeType="String"/>
+        <attribute name="duplicateNoteSettings" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isAnkiConnect" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <relationship name="modelConfiguration" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="MaruModelSettings" inverseName="settings" inverseEntity="MaruModelSettings"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="id"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <entity name="MaruModelSettings" representedClassName="MaruModelSettings" syncable="YES" codeGenerationType="class">
+        <attribute name="displayName" attributeType="String"/>
+        <attribute name="fieldMap" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="isHidden" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isSystemProfile" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="sourceTemplateID" optional="YES" attributeType="String"/>
+        <attribute name="templateConfiguration" optional="YES" attributeType="String"/>
+        <relationship name="settings" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="MaruAnkiSettings" inverseName="modelConfiguration" inverseEntity="MaruAnkiSettings"/>
+        <uniquenessConstraints>
+            <uniquenessConstraint>
+                <constraint value="sourceTemplateID"/>
+            </uniquenessConstraint>
+        </uniquenessConstraints>
+    </entity>
+    <composite name="AnkiConnectConfiguration">
+        <attribute name="hostname" optional="YES" attributeType="String"/>
+        <attribute name="port" optional="YES" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="scheme" optional="YES" attributeType="String"/>
+        <attribute name="apiKey" optional="YES" attributeType="String"/>
+    </composite>
+</model>

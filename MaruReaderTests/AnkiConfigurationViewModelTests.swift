@@ -155,7 +155,26 @@ struct AnkiConfigurationViewModelTests {
         #expect(viewModel.currentStep == .profileSelection)
         #expect(viewModel.profiles.map(\.id) == ["User 1", "User 2"])
         #expect(viewModel.selectedProfileID == "User 2")
+        #expect(await probe.lastProfilesConnection() == .init(host: "localhost", port: 8765, scheme: .https, apiKey: nil))
         #expect(viewModel.showError == false)
+    }
+
+    @Test @MainActor func proceedFromConnectionDetailsUsesHTTPWhenHTTPSToggleIsOff() async {
+        let probe = MockAnkiConnectionProbe(
+            profilesResult: .success([
+                AnkiProfileMeta(id: "User 1", isActiveProfile: true),
+            ])
+        )
+        let viewModel = AnkiConfigurationViewModel(connectionProbeFactory: { probe })
+        viewModel.connectionType = .ankiConnect
+        viewModel.currentStep = .connectionDetails
+        viewModel.host = "anki.local"
+        viewModel.port = "8765"
+        viewModel.useHTTPS = false
+
+        await viewModel.proceed()
+
+        #expect(await probe.lastProfilesConnection() == .init(host: "anki.local", port: 8765, scheme: .http, apiKey: nil))
     }
 
     @Test @MainActor func proceedFromConnectionDetailsShowsErrorOnProbeFailure() async {
@@ -204,6 +223,7 @@ private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
     private let profilesResult: Result<[AnkiProfileMeta], Error>
     private let decksResult: Result<[AnkiDeckMeta], Error>
     private let modelsResult: Result<[AnkiModelMeta], Error>
+    private var lastProfilesConnectionInfo: AnkiConnectConnectionInfo?
 
     init(
         profilesResult: Result<[AnkiProfileMeta], Error> = .success([]),
@@ -215,7 +235,8 @@ private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
         self.modelsResult = modelsResult
     }
 
-    func fetchProfiles(connection _: AnkiConnectConnectionInfo) async throws -> [AnkiProfileMeta] {
+    func fetchProfiles(connection: AnkiConnectConnectionInfo) async throws -> [AnkiProfileMeta] {
+        lastProfilesConnectionInfo = connection
         switch profilesResult {
         case let .success(profiles):
             return profiles
@@ -240,6 +261,10 @@ private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
         case let .failure(error):
             throw error
         }
+    }
+
+    func lastProfilesConnection() -> AnkiConnectConnectionInfo? {
+        lastProfilesConnectionInfo
     }
 }
 

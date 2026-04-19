@@ -84,6 +84,7 @@ enum AnkiConnectError: Error, Equatable, LocalizedError {
 struct AnkiConnectProvider: AnkiProvider {
     private let host: String
     private let port: Int
+    private let scheme: AnkiConnectScheme
     private let apiKey: String?
     private let network: any NetworkProviding
 
@@ -100,11 +101,13 @@ struct AnkiConnectProvider: AnkiProvider {
     init(
         host: String,
         port: Int = 8765,
+        scheme: AnkiConnectScheme = .https,
         apiKey: String? = nil,
         network: any NetworkProviding = URLSession.shared
     ) async throws {
         self.host = host
         self.port = port
+        self.scheme = scheme
         self.apiKey = apiKey
         self.network = network
         let permissionResponse = try await requestPermission() // Ensure permission is granted at initialization
@@ -359,7 +362,7 @@ struct AnkiConnectProvider: AnkiProvider {
     }
 
     private func send<T: Decodable>(_ request: AnkiConnectRequest) async throws -> AnkiConnectResponse<T> {
-        let url = URL(string: "https://\(host):\(port)")!
+        let url = URL(string: "\(scheme.rawValue)://\(host):\(port)")!
 
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"

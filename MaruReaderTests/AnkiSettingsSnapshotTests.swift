@@ -82,6 +82,46 @@ struct AnkiSettingsSnapshotTests {
         }
 
         #expect(snapshot.hasCompleteConfiguration)
+        #expect(snapshot.connection == .ankiConnect(server: "https://localhost:8765"))
+    }
+
+    @Test func validAnkiConnectHTTPConfigurationIsComplete() async throws {
+        let persistence = makeAnkiPersistenceController()
+        let viewContext = persistence.container.viewContext
+
+        try await viewContext.perform {
+            let settings = try AnkiSettingsStore.fetchOrCreateSettings(in: viewContext)
+            let fieldMapping = MaruModelSettings(context: viewContext)
+            fieldMapping.id = UUID()
+            fieldMapping.displayName = "Basic Mapping"
+            fieldMapping.fieldMap = "{}"
+
+            settings.ankiEnabled = true
+            settings.isAnkiConnect = true
+            settings.defaultProfileName = "User 1"
+            settings.defaultDeckName = "Default"
+            settings.defaultModelName = "Basic"
+            settings.modelConfiguration = fieldMapping
+            settings.connectConfiguration = [
+                "hostname": "anki.local",
+                "port": 8765,
+                "scheme": "http",
+            ]
+
+            try viewContext.save()
+        }
+
+        let backgroundContext = persistence.newBackgroundContext()
+        let (persistedScheme, snapshot) = try await backgroundContext.perform {
+            let settings = try #require(try AnkiSettingsStore.fetchSettings(in: backgroundContext))
+            let persistedScheme = settings.connectConfiguration?["scheme"] as? String
+            let snapshot = AnkiSettingsSnapshot(settings: settings, duplicateOptions: nil)
+            return (persistedScheme, snapshot)
+        }
+
+        #expect(persistedScheme == "http")
+        #expect(snapshot.hasCompleteConfiguration)
+        #expect(snapshot.connection == .ankiConnect(server: "http://anki.local:8765"))
     }
 
     @Test func incompleteAnkiConnectConfigurationIsNotComplete() async throws {

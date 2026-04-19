@@ -320,11 +320,15 @@ public actor AnkiConnectionManager {
 
             let connectConfig = settings.isAnkiConnect ? settings.connectConfiguration : nil
             let connectionInfo: AnkiConnectConnectionInfo? = if let host = connectConfig?["hostname"] as? String,
-                                                                let port = connectConfig?["port"] as? Int
+                                                                let port = connectConfig?["port"] as? Int,
+                                                                let scheme = AnkiConnectScheme.fromPersistedValue(
+                                                                    connectConfig?["scheme"] as? String
+                                                                )
             {
                 AnkiConnectConnectionInfo(
                     host: host,
                     port: port,
+                    scheme: scheme,
                     apiKey: connectConfig?["apiKey"] as? String
                 )
             } else {
@@ -359,6 +363,7 @@ public actor AnkiConnectionManager {
                 return try await AnkiConnectProvider(
                     host: connectionInfo.host,
                     port: connectionInfo.port,
+                    scheme: connectionInfo.scheme,
                     apiKey: connectionInfo.apiKey
                 )
             } catch {

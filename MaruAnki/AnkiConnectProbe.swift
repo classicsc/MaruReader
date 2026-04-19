@@ -17,14 +17,30 @@
 
 import Foundation
 
+public enum AnkiConnectScheme: String, Sendable, Codable {
+    case http
+    case https
+
+    public static let defaultPersistedValue: Self = .https
+
+    public static func fromPersistedValue(_ value: String?) -> Self? {
+        guard let value else {
+            return defaultPersistedValue
+        }
+        return Self(rawValue: value.lowercased())
+    }
+}
+
 public struct AnkiConnectConnectionInfo: Sendable, Equatable {
     public let host: String
     public let port: Int
+    public let scheme: AnkiConnectScheme
     public let apiKey: String?
 
-    public init(host: String, port: Int, apiKey: String?) {
+    public init(host: String, port: Int, scheme: AnkiConnectScheme = .https, apiKey: String?) {
         self.host = host
         self.port = port
+        self.scheme = scheme
         self.apiKey = apiKey
     }
 }
@@ -62,6 +78,7 @@ public struct AnkiConnectProbe: Sendable {
         try await AnkiConnectProvider(
             host: connection.host,
             port: connection.port,
+            scheme: connection.scheme,
             apiKey: connection.apiKey,
             network: network
         )

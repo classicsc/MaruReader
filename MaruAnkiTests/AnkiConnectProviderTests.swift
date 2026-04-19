@@ -28,6 +28,8 @@ struct AnkiConnectProviderTests {
 
         _ = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
 
+        #expect(mock.lastRequest?.url?.absoluteString == "https://localhost:8765")
+
         let body = try #require(try mock.lastRequestBodyAsJSON())
 
         // Record the request payload as an attachment
@@ -53,6 +55,20 @@ struct AnkiConnectProviderTests {
         Attachment.record(bodyData, named: "requestPermission-with-apikey-request.json")
 
         #expect(body["key"] as? String == "test-api-key")
+    }
+
+    @Test func requestPermission_usesHTTPWhenConfigured() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+
+        _ = try await AnkiConnectProvider(
+            host: "192.168.1.5",
+            port: 8765,
+            scheme: .http,
+            network: mock
+        )
+
+        #expect(mock.lastRequest?.url?.absoluteString == "http://192.168.1.5:8765")
     }
 
     // MARK: - addNote Tests
