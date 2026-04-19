@@ -56,6 +56,12 @@ struct MangaSpreadView: View {
                 .onTapGesture { location in
                     handleSpreadTap(at: location, containerSize: containerSize)
                 }
+                .accessibilityLabel(MangaLocalization.string("Manga spread"))
+                .accessibilityHint(MangaLocalization.string("Double-tap to show or hide reader controls."))
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    viewModel.toggleToolbars()
+                }
         }
         .ignoresSafeArea()
         .task {

@@ -57,6 +57,12 @@ struct MangaPageView: View {
                     imageRect: imageRect
                 )
             }
+            .accessibilityLabel(MangaLocalization.string("Manga page"))
+            .accessibilityHint(MangaLocalization.string("Double-tap to show or hide reader controls."))
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction {
+                viewModel.toggleToolbars()
+            }
         }
         .ignoresSafeArea()
         .task {

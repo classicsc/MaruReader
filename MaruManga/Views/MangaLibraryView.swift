@@ -411,21 +411,21 @@ struct MangaArchiveGridItem: View {
 
                 if let author = displayAuthor {
                     Text(author)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
                 if let progress = displayProgress {
                     Text(progress)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
 
                 if let statusMessage {
                     Text(statusMessage)
-                        .font(.caption2)
+                        .font(.caption)
                         .foregroundStyle(state.status == .failed ? .red : .secondary)
                         .lineLimit(2)
                         .multilineTextAlignment(.center)
