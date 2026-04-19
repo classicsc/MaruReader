@@ -398,7 +398,7 @@ struct MangaArchiveGridItem: View {
             }
             .frame(width: 120, height: 180)
             .background(Color(.systemGray5))
-            .cornerRadius(8)
+            .clipShape(.rect(cornerRadius: 8))
             .shadow(radius: 2)
 
             // MangaArchive Info

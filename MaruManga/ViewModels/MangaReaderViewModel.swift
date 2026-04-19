@@ -39,7 +39,7 @@ private struct MangaPageRenderError: LocalizedError {
 final class MangaReaderViewModel {
     // MARK: - Configuration
 
-    private static let saveDebounceInterval: UInt64 = 500_000_000 // 0.5 seconds
+    private static let saveDebounceInterval: Duration = .milliseconds(500)
     private static let singlePageWorkingSetRadius = 1
     private static let spreadWorkingSetRadius = 1
     nonisolated static let screenshotLookupPreferredPrefix = "教授の実験"
@@ -371,7 +371,7 @@ final class MangaReaderViewModel {
             highlightedCluster = cluster
 
             // Brief delay for highlight animation
-            try? await Task.sleep(nanoseconds: 100_000_000)
+            try? await Task.sleep(for: .milliseconds(100))
 
             // Perform dictionary lookup
             await performDictionaryLookup(text: cluster.transcript, pageIndex: pageIndex)
@@ -508,7 +508,7 @@ final class MangaReaderViewModel {
     private func debounceSaveProgress() {
         saveTask?.cancel()
         saveTask = Task {
-            try? await Task.sleep(nanoseconds: Self.saveDebounceInterval)
+            try? await Task.sleep(for: Self.saveDebounceInterval)
             guard !Task.isCancelled else { return }
             await saveReadingProgress()
         }

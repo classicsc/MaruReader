@@ -26,7 +26,7 @@ public struct MangaReaderView: View {
     @State private var viewModel: MangaReaderViewModel
     @State private var searchSheetViewModel: DictionarySearchViewModel?
     @State private var isShowingPageJumpDialog: Bool = false
-    @State private var pageJumpInput: String = ""
+    @State private var pageJumpInput: Int = 1
     @State private var tourManager = TourManager()
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
@@ -39,6 +39,7 @@ public struct MangaReaderView: View {
     public var body: some View {
         GeometryReader { geometry in
             let isLandscape = geometry.size.width > geometry.size.height
+            let shouldShowToolbars = viewModel.overlayState.shouldShowToolbars
 
             ZStack(alignment: .topLeading) {
                 Color(.systemBackground)
@@ -46,18 +47,16 @@ public struct MangaReaderView: View {
                 pageContainer
                     .ignoresSafeArea()
                     .safeAreaInset(edge: .top) {
-                        if viewModel.overlayState.shouldShowToolbars {
-                            floatingBackButton
-                        } else {
-                            floatingBackButton.hidden()
-                        }
+                        floatingBackButton
+                            .opacity(shouldShowToolbars ? 1 : 0)
+                            .allowsHitTesting(shouldShowToolbars)
+                            .accessibilityHidden(!shouldShowToolbars)
                     }
                     .safeAreaInset(edge: .bottom) {
-                        if viewModel.overlayState.shouldShowToolbars {
-                            bottomToolbarOverlay
-                        } else {
-                            bottomToolbarOverlay.hidden()
-                        }
+                        bottomToolbarOverlay
+                            .opacity(shouldShowToolbars ? 1 : 0)
+                            .allowsHitTesting(shouldShowToolbars)
+                            .accessibilityHidden(!shouldShowToolbars)
                     }
             }
             .onAppear {
@@ -134,20 +133,12 @@ public struct MangaReaderView: View {
         }
         .statusBar(hidden: !viewModel.overlayState.shouldShowToolbars)
         .overlay(alignment: .top) {
-            if viewModel.overlayState.shouldShowToolbars {
-                Rectangle()
-                    .fill(.clear)
-                    .glassEffect()
-                    .ignoresSafeArea(edges: .top)
-                    .frame(height: 0)
-            } else {
-                Rectangle()
-                    .fill(.clear)
-                    .glassEffect()
-                    .ignoresSafeArea(edges: .top)
-                    .frame(height: 0)
-                    .hidden()
-            }
+            Rectangle()
+                .fill(.clear)
+                .glassEffect()
+                .ignoresSafeArea(edges: .top)
+                .frame(height: 0)
+                .opacity(viewModel.overlayState.shouldShowToolbars ? 1 : 0)
         }
         .animation(.easeInOut, value: viewModel.overlayState.shouldShowToolbars)
         .tourOverlay(manager: tourManager)
@@ -214,7 +205,7 @@ public struct MangaReaderView: View {
             let pageHeight = geometry.size.height
 
             ScrollViewReader { proxy in
-                ScrollView(.vertical, showsIndicators: false) {
+                ScrollView(.vertical) {
                     LazyVStack(spacing: 0) {
                         ForEach(0 ..< max(1, viewModel.pageCount), id: \.self) { pageIndex in
                             MangaPageView(pageIndex: pageIndex, viewModel: viewModel)
@@ -223,6 +214,7 @@ public struct MangaReaderView: View {
                         }
                     }
                 }
+                .scrollIndicators(.hidden)
                 .scrollTargetBehavior(.paging)
                 .onAppear {
                     // Scroll to current page when entering vertical mode
@@ -348,11 +340,12 @@ public struct MangaReaderView: View {
         .accessibilityLabel(MangaLocalization.string("Page \(displayText)"))
         .accessibilityHint(MangaLocalization.string("Jump to a page"))
         .alert(MangaLocalization.string("Go to Page"), isPresented: $isShowingPageJumpDialog) {
-            TextField(MangaLocalization.string("Page number"), text: $pageJumpInput)
-                .keyboardType(.numberPad)
-                .onChange(of: pageJumpInput) { _, newValue in
-                    pageJumpInput = newValue.filter(\.isNumber)
-                }
+            TextField(
+                MangaLocalization.string("Page number"),
+                value: $pageJumpInput,
+                format: .number
+            )
+            .keyboardType(.numberPad)
             Button(MangaLocalization.string("Go")) {
                 performPageJump()
             }
@@ -364,14 +357,13 @@ public struct MangaReaderView: View {
 
     private func preparePageJump() {
         guard viewModel.pageCount > 0 else { return }
-        pageJumpInput = String(viewModel.currentPageIndex + 1)
+        pageJumpInput = viewModel.currentPageIndex + 1
         isShowingPageJumpDialog = true
     }
 
     private func performPageJump() {
-        let trimmed = pageJumpInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let pageNumber = Int(trimmed), viewModel.pageCount > 0 else { return }
-        let clampedPage = min(max(pageNumber, 1), viewModel.pageCount)
+        guard viewModel.pageCount > 0 else { return }
+        let clampedPage = min(max(pageJumpInput, 1), viewModel.pageCount)
         viewModel.goToPage(clampedPage - 1)
     }
 
