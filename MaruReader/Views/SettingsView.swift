@@ -73,7 +73,9 @@ struct SettingsView: View {
                 }
                 Section("Integrations") {
                     NavigationLink {
-                        AnkiSettingsView()
+                        DictionaryManagedContextRoot(availability: dictionaryAvailability) {
+                            AnkiSettingsView()
+                        }
                     } label: {
                         Label("Anki", systemImage: "rectangle.stack.badge.plus")
                     }
