@@ -86,8 +86,9 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
     }
 
     func setLookupProvider(_ provider: (any TextLookupSnapshotProviding)?) async {
+        let requestID = await provider?.requestId()
         currentProvider = provider
-        currentRequestID = await provider?.requestId()
+        currentRequestID = requestID
     }
 
     public func setSession(_ session: TextLookupSession?) async {

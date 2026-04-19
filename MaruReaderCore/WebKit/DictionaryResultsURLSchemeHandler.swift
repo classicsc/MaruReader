@@ -29,13 +29,14 @@ public final actor DictionaryResultsURLSchemeHandler: URLSchemeHandler {
     public init() {}
 
     public func setSession(_ session: TextLookupSession?) async {
-        currentSession = session
-        if let session {
-            let requestId = await session.requestId
-            currentRequestID = requestId.uuidString
+        let requestID: String? = if let session {
+            await session.requestId.uuidString
         } else {
-            currentRequestID = nil
+            nil
         }
+
+        currentSession = session
+        currentRequestID = requestID
     }
 
     public func setWebTheme(_ theme: DictionaryWebTheme?) {
