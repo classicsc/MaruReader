@@ -36,6 +36,8 @@ struct SettingsView: View {
         MangaImportManager.isMetadataExtractorAvailable
     }
 
+    private let supportForumURL = URL(string: "https://github.com/classicsc/MaruReader/discussions")!
+
     var body: some View {
         NavigationStack {
             Form {
@@ -76,6 +78,17 @@ struct SettingsView: View {
                     }
                     .badge(pendingCount)
                 }
+                Section("About") {
+                    NavigationLink {
+                        AboutView()
+                    } label: {
+                        Label("About MaruReader", systemImage: "info.circle")
+                    }
+
+                    Link(destination: supportForumURL) {
+                        Label("Support & Feedback", systemImage: "questionmark.circle")
+                    }
+                }
                 Section(
                     header: Text("Help"),
                     footer: Text("Show the guided tours again the next time you open each reader.")
@@ -91,15 +104,6 @@ struct SettingsView: View {
                     } message: {
                         Text("This will show the guided tours again the next time you open each reader.")
                     }
-                }
-                Section("About") {
-                    NavigationLink {
-                        AboutView()
-                    } label: {
-                        Label("About MaruReader", systemImage: "info.circle")
-                    }
-                    LabeledContent("App Version", value: appVersion)
-                    LabeledContent("Build", value: appBuild)
                 }
             }
             .navigationTitle("Settings")
