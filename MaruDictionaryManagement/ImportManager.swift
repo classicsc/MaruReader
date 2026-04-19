@@ -415,6 +415,27 @@ public actor ImportManager {
                 guard let dictionary = try? taskContext.existingObject(with: dictionaryID) as? Dictionary else {
                     throw DictionaryImportError.databaseError
                 }
+
+                if dictionary.termFrequencyEnabled {
+                    try Self.selectHighestPriorityFrequencyDictionary(
+                        in: taskContext,
+                        sortDescriptors: [NSSortDescriptor(keyPath: \Dictionary.termFrequencyDisplayPriority, ascending: true)],
+                        enabledKey: \.termFrequencyEnabled
+                    ) { candidate in
+                        candidate.termFrequencyCount > 0 && candidate.objectID != dictionary.objectID
+                    }
+                }
+
+                if dictionary.kanjiFrequencyEnabled {
+                    try Self.selectHighestPriorityFrequencyDictionary(
+                        in: taskContext,
+                        sortDescriptors: [NSSortDescriptor(keyPath: \Dictionary.kanjiFrequencyDisplayPriority, ascending: true)],
+                        enabledKey: \.kanjiFrequencyEnabled
+                    ) { candidate in
+                        candidate.kanjiFrequencyCount > 0 && candidate.objectID != dictionary.objectID
+                    }
+                }
+
                 dictionary.pendingDeletion = true
                 dictionary.errorMessage = nil
                 try taskContext.save()
@@ -548,6 +569,21 @@ public actor ImportManager {
         currentTask = nil
         currentJob = nil
         processNextIfIdle()
+    }
+
+    private static func selectHighestPriorityFrequencyDictionary(
+        in context: NSManagedObjectContext,
+        sortDescriptors: [NSSortDescriptor],
+        enabledKey: ReferenceWritableKeyPath<Dictionary, Bool>,
+        isEligible: (Dictionary) -> Bool
+    ) throws {
+        let request: NSFetchRequest<Dictionary> = Dictionary.fetchRequest()
+        request.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO")
+        request.sortDescriptors = sortDescriptors
+
+        if let replacement = try context.fetch(request).first(where: isEligible) {
+            replacement[keyPath: enabledKey] = true
+        }
     }
 
     private func handleImportExpiration(for job: QueuedImport) async {

@@ -255,12 +255,14 @@ struct UnifiedDictionaryManagementView: View {
                     )
                 }
             ) {
-                UnifiedDictionaryManagementRankingPicker(
-                    title: "Ranking Dictionary",
-                    dictionaries: Array(frequencyDictionaries),
-                    enabledKey: \.termFrequencyEnabled,
-                    onSelectionChange: setTermFrequencyRanking
-                )
+                if !frequencyDictionaries.isEmpty {
+                    UnifiedDictionaryManagementRankingPicker(
+                        title: "Ranking Dictionary",
+                        dictionaries: Array(frequencyDictionaries),
+                        enabledKey: \.termFrequencyEnabled,
+                        onSelectionChange: setTermFrequencyRanking
+                    )
+                }
             }
 
             UnifiedDictionaryManagementDictionarySection(
@@ -324,12 +326,14 @@ struct UnifiedDictionaryManagementView: View {
                     )
                 }
             ) {
-                UnifiedDictionaryManagementRankingPicker(
-                    title: "Ranking Dictionary",
-                    dictionaries: Array(kanjiFrequencyDictionaries),
-                    enabledKey: \.kanjiFrequencyEnabled,
-                    onSelectionChange: setKanjiFrequencyRanking
-                )
+                if !kanjiFrequencyDictionaries.isEmpty {
+                    UnifiedDictionaryManagementRankingPicker(
+                        title: "Ranking Dictionary",
+                        dictionaries: Array(kanjiFrequencyDictionaries),
+                        enabledKey: \.kanjiFrequencyEnabled,
+                        onSelectionChange: setKanjiFrequencyRanking
+                    )
+                }
             }
 
             UnifiedDictionaryManagementDictionarySection(

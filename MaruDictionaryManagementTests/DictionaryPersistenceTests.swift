@@ -593,6 +593,118 @@ struct DictionaryPersistenceTests {
         #expect(fetchTermEntries(from: viewContext).isEmpty)
     }
 
+    @Test @MainActor func deleteDictionary_ReassignsFrequencyRankingsToHighestPriorityRemainingDictionaries() async throws {
+        let persistenceController = makeDictionaryPersistenceController(storeKind: .temporarySQLite)
+        let importManager = ImportManager(
+            container: persistenceController.container,
+            glossaryCompressionVersion: .zstdV1
+        )
+        await importManager.setBackgroundTaskRunner(nonExpiringBackgroundTaskRunner)
+
+        let context = persistenceController.container.newBackgroundContext()
+        let (
+            deletedDictionaryID,
+            termReplacementUUID,
+            termOtherUUID,
+            kanjiReplacementUUID,
+            kanjiOtherUUID
+        ) = try await context.perform {
+            func makeDictionary(
+                title: String,
+                termFrequencyCount: Int64,
+                termFrequencyPriority: Int64,
+                termFrequencyEnabled: Bool,
+                kanjiFrequencyCount: Int64,
+                kanjiFrequencyPriority: Int64,
+                kanjiFrequencyEnabled: Bool
+            ) -> Dictionary {
+                let dictionary = Dictionary(context: context)
+                dictionary.id = UUID()
+                dictionary.title = title
+                dictionary.timeQueued = Date()
+                dictionary.isComplete = true
+                dictionary.isFailed = false
+                dictionary.isCancelled = false
+                dictionary.pendingDeletion = false
+                dictionary.termFrequencyCount = termFrequencyCount
+                dictionary.termFrequencyDisplayPriority = termFrequencyPriority
+                dictionary.termFrequencyEnabled = termFrequencyEnabled
+                dictionary.kanjiFrequencyCount = kanjiFrequencyCount
+                dictionary.kanjiFrequencyDisplayPriority = kanjiFrequencyPriority
+                dictionary.kanjiFrequencyEnabled = kanjiFrequencyEnabled
+                return dictionary
+            }
+
+            let deletedDictionary = makeDictionary(
+                title: "Deleted Ranking",
+                termFrequencyCount: 1,
+                termFrequencyPriority: 5,
+                termFrequencyEnabled: true,
+                kanjiFrequencyCount: 1,
+                kanjiFrequencyPriority: 5,
+                kanjiFrequencyEnabled: true
+            )
+            let termReplacement = makeDictionary(
+                title: "Term Replacement",
+                termFrequencyCount: 1,
+                termFrequencyPriority: 0,
+                termFrequencyEnabled: false,
+                kanjiFrequencyCount: 0,
+                kanjiFrequencyPriority: 0,
+                kanjiFrequencyEnabled: false
+            )
+            let termOther = makeDictionary(
+                title: "Term Other",
+                termFrequencyCount: 1,
+                termFrequencyPriority: 3,
+                termFrequencyEnabled: false,
+                kanjiFrequencyCount: 0,
+                kanjiFrequencyPriority: 0,
+                kanjiFrequencyEnabled: false
+            )
+            let kanjiReplacement = makeDictionary(
+                title: "Kanji Replacement",
+                termFrequencyCount: 0,
+                termFrequencyPriority: 0,
+                termFrequencyEnabled: false,
+                kanjiFrequencyCount: 1,
+                kanjiFrequencyPriority: 1,
+                kanjiFrequencyEnabled: false
+            )
+            let kanjiOther = makeDictionary(
+                title: "Kanji Other",
+                termFrequencyCount: 0,
+                termFrequencyPriority: 0,
+                termFrequencyEnabled: false,
+                kanjiFrequencyCount: 1,
+                kanjiFrequencyPriority: 4,
+                kanjiFrequencyEnabled: false
+            )
+
+            try context.save()
+            return try (
+                deletedDictionary.objectID,
+                #require(termReplacement.id),
+                #require(termOther.id),
+                #require(kanjiReplacement.id),
+                #require(kanjiOther.id)
+            )
+        }
+
+        await importManager.deleteDictionary(dictionaryID: deletedDictionaryID)
+        await waitForDictionaryDeletion(in: persistenceController.container.viewContext, importID: deletedDictionaryID)
+
+        let viewContext = persistenceController.container.viewContext
+        viewContext.refreshAllObjects()
+        let dictionaries = fetchDictionaries(from: viewContext)
+
+        #expect(dictionaries.count == 4)
+        #expect(dictionaries.contains(where: { $0.id == termReplacementUUID && $0.termFrequencyEnabled }))
+        #expect(dictionaries.contains(where: { $0.id == kanjiReplacementUUID && $0.kanjiFrequencyEnabled }))
+        #expect(dictionaries.contains(where: { $0.id == termOtherUUID && !$0.termFrequencyEnabled }))
+        #expect(dictionaries.contains(where: { $0.id == kanjiOtherUUID && !$0.kanjiFrequencyEnabled }))
+    }
+
     @Test func enqueueImport_DictionaryPreservesOriginalQueuedFilename() async throws {
         let indexJSON = """
         {

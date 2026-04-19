@@ -26,32 +26,30 @@ struct UnifiedDictionaryManagementRankingPicker: View {
     let enabledKey: ReferenceWritableKeyPath<Dictionary, Bool>
     let onSelectionChange: (NSManagedObjectID?) -> Void
 
-    @State private var selectedID: NSManagedObjectID?
-
     private var currentSelectionID: NSManagedObjectID? {
         dictionaries.first(where: { $0[keyPath: enabledKey] })?.objectID
     }
 
-    private var selectionSyncToken: String {
-        dictionaries.map { dictionary in
-            "\(dictionary.objectID.uriRepresentation().absoluteString):\(dictionary[keyPath: enabledKey])"
-        }
-        .joined(separator: "|")
+    private var selection: Binding<NSManagedObjectID?> {
+        Binding(
+            get: {
+                currentSelectionID
+            },
+            set: { newValue in
+                guard newValue != currentSelectionID else { return }
+                onSelectionChange(newValue)
+            }
+        )
     }
 
     var body: some View {
-        Picker(title, selection: $selectedID) {
-            ForEach(dictionaries, id: \.objectID) { dictionary in
-                Text(dictionary.title ?? AppLocalization.unknownDictionary)
-                    .tag(dictionary.objectID as NSManagedObjectID?)
+        if !dictionaries.isEmpty {
+            Picker(title, selection: selection) {
+                ForEach(dictionaries, id: \.objectID) { dictionary in
+                    Text(dictionary.title ?? AppLocalization.unknownDictionary)
+                        .tag(dictionary.objectID as NSManagedObjectID?)
+                }
             }
-        }
-        .task(id: selectionSyncToken) {
-            selectedID = currentSelectionID
-        }
-        .onChange(of: selectedID) { _, newValue in
-            guard newValue != currentSelectionID else { return }
-            onSelectionChange(newValue)
         }
     }
 }
