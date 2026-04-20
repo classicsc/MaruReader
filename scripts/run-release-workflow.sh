@@ -94,7 +94,7 @@ update_setting_for_config() {
        \b\Q$key\E\s*=\s*)
       [^;]+
       (;)
-    }{$1$value$2}gs;
+    }{$1$value$2}gsx;
     die "Failed to update $key for $config_id\n" if $count != 1;
   ' "$PROJECT_FILE"
 }
