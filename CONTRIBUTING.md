@@ -2,9 +2,11 @@
 
 Thanks for your interest in helping to improve MaruReader!
 
-If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue. For general feedback and bug reports, use the Discussions tab.
+For general feedback, feature requests, and bug reports, use the Discussions tab.
 
-Before sending a PR, make sure it passes the unit tests, and if possible, include new test coverage.
+If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue.
+
+Before sending a PR, make sure it passes the unit tests, run `swiftformat`, and if possible, include new test coverage.
 
 ## Development
 
@@ -32,9 +34,7 @@ Builds and tests can also be run in Xcode GUI if you prefer.
 
 #### Tests
 
-`just test` runs all the tests. Specify a simulator target like `just test 'iPhone 17 Pro'` (default) or `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`.
-
-You can also run a specific test plan with `just test-plan MaruReaderCoreTests` or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
+Run a specific test plan with `just test-plan MaruReaderCoreTests`, or `just test` to run all tests. Specify a simulator target like `just test-plan MaruReaderCoreTests 'iPhone 17 Pro'` (default) or `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`. Or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
 
 Accepted device specifier formats:
 
@@ -51,10 +51,11 @@ This pulls the uBOL submodule and builds the extension with the latest filter li
 #### Release build checklist
 
 ```bash
-just contentblocker # Sync uBOL
-just starterdict # Prepare the default jitendex and kanji-alive dictionaries
-just licenses-refresh # Get acknowledgments for all dependencies
-just screenshots # Generate new screenshots for App Store listing (writes to build/screenshots/)
+just starterdict # Prepare the default jitendex and kanji-alive dictionaries. Upload the resulting build/starterdict.aar via Transporter
+# one of:
+# just prerelease: creates a prerelease archive by incrementing the build number, then commits and tags it
+# just release <version>: creates a release archive by setting the marketing version, resetting build to 1, then commits and tags it
+just screenshots # Generate new screenshots for App Store listing if needed (writes to build/screenshots/)
 ```
 
 ### Agents
@@ -63,6 +64,6 @@ To save some frustration: If you want to work on MaruReader with a coding agent,
 
 ## Licensing Note
 
-The GPLv3 license allows you to distribute copies or derivative works of MaruReader, provided you comply with all the terms. Distribition of derivative works without sharing the modified sources under the same license, or distribution of derivative works that bundle GPL-incompatible libraries, will not be tolerated.
+If you distribute a derivative work, note that the `just starterdict` output is not GPL3 due to the BCCWJ (CC-BY-NC) and Wadoku (incompatible custom license). This project distributes the package as a separate App Store-managed asset.
 
-If you have concerns about GPL compliance, please open a discussion.
+If you have questions or concerns about GPL compliance, please open a discussion.

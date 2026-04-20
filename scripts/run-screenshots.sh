@@ -22,14 +22,13 @@ SCREENSHOT_EXPORT_STEMS=(
 # or from `xcrun simctl list devicetypes`.
 simulators=(
   "iPhone 17 Pro Max"
-  "iPad Air 13-inch (M3)"
+  "iPad Air 11-inch (M3)"
 )
 
 # All appearances to capture screenshots in.
 # Supported values are "light" and "dark".
 appearances=(
   "light"
-  "dark"
 )
 
 require_command() {
