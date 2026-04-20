@@ -81,7 +81,7 @@ public struct DictionarySearchSheetView: View {
                 performSearchIfReady()
             }
         }
-        .presentationDetents([.medium, .large])
+        .dictionarySheetDetents()
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 

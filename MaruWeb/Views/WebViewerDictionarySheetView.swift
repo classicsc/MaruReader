@@ -77,7 +77,7 @@ struct WebViewerDictionarySheetView: View {
                 performSearchIfReady()
             }
         }
-        .presentationDetents([.medium, .large])
+        .dictionarySheetDetents()
         .accessibilityIdentifier(accessibilityIdentifier)
     }
 

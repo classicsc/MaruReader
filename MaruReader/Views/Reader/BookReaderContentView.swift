@@ -93,7 +93,7 @@ struct BookReaderContentView: View {
                     for: .navigationBar
                 )
                 .accessibilityIdentifier("bookReader.dictionarySheet")
-                .presentationDetents([.medium, .large])
+                .dictionarySheetDetents()
             }
             .sheet(isPresented: $chrome.isShowingTableOfContents) {
                 if let publication = session.publication {

@@ -116,7 +116,7 @@ public struct MangaReaderView: View {
                 searchSheetViewModel = nil
             }
             .accessibilityIdentifier("mangaReader.dictionarySheet")
-            .presentationDetents([.medium, .large])
+            .dictionarySheetDetents()
         }
         .task {
             await viewModel.loadArchive()
