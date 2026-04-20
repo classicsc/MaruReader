@@ -287,6 +287,9 @@ struct SampleContentSeederTests {
                     },
                     resumePendingDictionaryUpdates: {
                         await recorder.record("updates")
+                    },
+                    configureScreenshotStateIfNeeded: {
+                        await recorder.record("screenshot")
                     }
                 )
             )
@@ -294,7 +297,7 @@ struct SampleContentSeederTests {
 
         await coordinator.waitUntilComplete()
         let events = await recorder.snapshot()
-        #expect(events == ["anki", "cleanup", "sample", "updates"])
+        #expect(events == ["anki", "cleanup", "sample", "updates", "screenshot"])
     }
 
     @Test func requiresWelcomeScreen_OnlyDictionarySeeding_ReturnsFalse() async {
@@ -307,7 +310,8 @@ struct SampleContentSeederTests {
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
                     importSampleContentIfAvailable: {},
-                    resumePendingDictionaryUpdates: {}
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
                 ),
                 autoStart: false
             )
@@ -326,7 +330,8 @@ struct SampleContentSeederTests {
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
                     importSampleContentIfAvailable: {},
-                    resumePendingDictionaryUpdates: {}
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
                 ),
                 autoStart: false
             )
@@ -345,7 +350,8 @@ struct SampleContentSeederTests {
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
                     importSampleContentIfAvailable: {},
-                    resumePendingDictionaryUpdates: {}
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
                 ),
                 autoStart: false
             )
@@ -364,7 +370,8 @@ struct SampleContentSeederTests {
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
                     importSampleContentIfAvailable: {},
-                    resumePendingDictionaryUpdates: {}
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
                 ),
                 autoStart: false
             )
@@ -383,7 +390,8 @@ struct SampleContentSeederTests {
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
                     importSampleContentIfAvailable: {},
-                    resumePendingDictionaryUpdates: {}
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
                 )
             )
         }

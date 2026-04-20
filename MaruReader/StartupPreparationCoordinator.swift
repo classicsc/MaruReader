@@ -16,6 +16,7 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruAnki
 import MaruDictionaryManagement
 import MaruDictionaryUICommon
 import MaruManga
@@ -31,9 +32,11 @@ final class StartupPreparationCoordinator {
         let cleanupInterruptedImportsAndPendingDeletions: () async -> Void
         let importSampleContentIfAvailable: () async throws -> Void
         let resumePendingDictionaryUpdates: () async -> Void
+        let configureScreenshotStateIfNeeded: () async throws -> Void
 
         static func `default`() -> Operations {
             let sampleContentSeeder = SampleContentSeeder()
+            let screenshotModeSetupSeeder = ScreenshotModeSetupSeeder()
             return Operations(
                 seedDictionaryIfNeeded: {
                     let baseDirectory = FileManager.default.containerURL(
@@ -57,6 +60,12 @@ final class StartupPreparationCoordinator {
                 },
                 resumePendingDictionaryUpdates: {
                     await DictionaryUpdateManager.shared.resumePendingUpdates()
+                },
+                configureScreenshotStateIfNeeded: {
+                    guard ProcessInfo.processInfo.arguments.contains("--screenshotMode") else {
+                        return
+                    }
+                    try await screenshotModeSetupSeeder.seedAnkiLapisConfiguration()
                 }
             )
         }
@@ -183,6 +192,12 @@ final class StartupPreparationCoordinator {
 
         phase = .finalizing
         await operations.resumePendingDictionaryUpdates()
+        do {
+            try await operations.configureScreenshotStateIfNeeded()
+        } catch {
+            errorMessage = error.localizedDescription
+            return
+        }
 
         phase = .ready
         isPreparationComplete = true

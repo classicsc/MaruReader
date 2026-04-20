@@ -126,6 +126,27 @@ final class ScreenshotTests: XCTestCase {
         takeScreenshot(named: "04-WebDictionary")
     }
 
+    // MARK: - Anki Screenshots
+
+    @MainActor
+    func testScreenshot_AnkiSettings() {
+        openAnkiSettings()
+
+        let editConfigurationButton = button(english: "Edit Configuration", japanese: "設定を編集")
+        let manageFieldMappingsButton = button(english: "Manage Field Mappings", japanese: "フィールドマッピングを管理")
+
+        XCTAssertTrue(
+            editConfigurationButton.waitForExistence(timeout: 15),
+            "Configured Anki settings actions did not appear"
+        )
+        XCTAssertTrue(
+            manageFieldMappingsButton.exists,
+            "Configured field mapping controls did not appear"
+        )
+
+        takeScreenshot(named: "05-AnkiSettings")
+    }
+
     // MARK: - Locale-Independent Element Lookup
 
     /// Finds a button matching either the English or Japanese label.
@@ -167,6 +188,17 @@ final class ScreenshotTests: XCTestCase {
 
         let webView = app.webViews.firstMatch
         _ = webView.waitForExistence(timeout: 10)
+    }
+
+    private func openAnkiSettings() {
+        navigateToTab(english: "Settings", japanese: "設定")
+
+        let ankiButton = button(english: "Anki", japanese: "Anki")
+        XCTAssertTrue(
+            ankiButton.waitForExistence(timeout: 10),
+            "Anki settings entry did not appear"
+        )
+        ankiButton.tap()
     }
 
     private func openBook(_ titleSubstring: String) {
