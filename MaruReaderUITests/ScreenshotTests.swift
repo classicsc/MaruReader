@@ -46,7 +46,7 @@ final class ScreenshotTests: XCTestCase {
     @MainActor
     func testScreenshot_BookDictionary() {
         openBook("こころ")
-        sleep(3)
+        sleep(10)
 
         // In screenshot mode, dictionary mode is auto-enabled and a lookup
         // for "常に" is auto-triggered.
@@ -146,6 +146,23 @@ final class ScreenshotTests: XCTestCase {
 
         takeScreenshot(named: "05-AnkiSettings")
     }
+    
+    // MARK: - Dictionary Screenshots
+
+    @MainActor
+    func testScreenshot_DictionarySettings() {
+        openDictionarySettings()
+        
+        let bccwjDictionaryRow = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS %@", "BCCWJ")
+        ).firstMatch
+        XCTAssertTrue(
+            bccwjDictionaryRow.waitForExistence(timeout: 15),
+            "BCCWJ dictionary entry did not appear"
+        )
+
+        takeScreenshot(named: "06-DictionarySettings")
+    }
 
     // MARK: - Locale-Independent Element Lookup
 
@@ -199,6 +216,17 @@ final class ScreenshotTests: XCTestCase {
             "Anki settings entry did not appear"
         )
         ankiButton.tap()
+    }
+    
+    private func openDictionarySettings() {
+        navigateToTab(english: "Settings", japanese: "設定")
+
+        let dictionaryButton = button(english: "Dictionaries & Audio", japanese: "辞書と音声")
+        XCTAssertTrue(
+            dictionaryButton.waitForExistence(timeout: 10),
+            "Dictionary settings entry did not appear"
+        )
+        dictionaryButton.tap()
     }
 
     private func openBook(_ titleSubstring: String) {
