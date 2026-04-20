@@ -52,7 +52,7 @@ struct BookReaderNavigatorOverlaySurface: View {
         ) {
             WebView(popupPage)
                 .background(popupBackgroundColor)
-                .frame(minWidth: 250, idealWidth: 300, maxWidth: 400, minHeight: 150, idealHeight: 200, maxHeight: 300)
+                .frame(minWidth: 250, idealWidth: 300, maxWidth: 300, minHeight: 150, idealHeight: 200, maxHeight: 200)
                 .presentationCompactAdaptation(.popover)
                 .accessibilityIdentifier("bookReader.dictionaryPopover")
         }

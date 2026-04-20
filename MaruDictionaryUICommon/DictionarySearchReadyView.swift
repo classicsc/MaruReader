@@ -38,10 +38,10 @@ struct DictionarySearchReadyView: View {
                     .frame(
                         minWidth: 250,
                         idealWidth: 300,
-                        maxWidth: 400,
+                        maxWidth: 300,
                         minHeight: 150,
                         idealHeight: 200,
-                        maxHeight: 300
+                        maxHeight: 200
                     )
                     .presentationCompactAdaptation(.popover)
             }
