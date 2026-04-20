@@ -72,18 +72,16 @@ final class ScreenshotTests: XCTestCase {
 
         // In screenshot mode, the manga viewer auto-triggers a dictionary lookup
         // using the OCR cluster that begins with "教授の実験" when available.
-        // Wait for the sheet to appear.
+        // Wait for the sheet and dictionary results page to appear.
         let dictionarySheet = app.otherElements["mangaReader.dictionarySheet"].firstMatch
-        if dictionarySheet.waitForExistence(timeout: 10) {
-            takeScreenshot(named: "02-MangaDictionary")
-        } else {
+        if !dictionarySheet.waitForExistence(timeout: 10) {
             // Fallback: tap in the center of the page where OCR text clusters are likely
             let pageArea = app.windows.firstMatch
             let center = pageArea.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4))
             center.tap()
-            sleep(2)
-            takeScreenshot(named: "02-MangaDictionary")
         }
+        waitForDictionaryResultsToLoad(dictionarySheet, timeout: 30)
+        takeScreenshot(named: "02-MangaDictionary")
         // Now dismiss the sheet, turn on bounding box display (button labeled "Show text regions"), and take another screenshot.
         if dictionarySheet.exists {
             let dismissButton = button(english: "Done", japanese: "完了")
@@ -122,7 +120,7 @@ final class ScreenshotTests: XCTestCase {
                 }
             }
         }
-        sleep(2)
+        waitForDictionaryResultsToLoad(dictionarySheet, timeout: 30)
         takeScreenshot(named: "04-WebDictionary")
     }
 
@@ -146,13 +144,13 @@ final class ScreenshotTests: XCTestCase {
 
         takeScreenshot(named: "05-AnkiSettings")
     }
-    
+
     // MARK: - Dictionary Screenshots
 
     @MainActor
     func testScreenshot_DictionarySettings() {
         openDictionarySettings()
-        
+
         let bccwjDictionaryRow = app.staticTexts.containing(
             NSPredicate(format: "label CONTAINS %@", "BCCWJ")
         ).firstMatch
@@ -217,7 +215,7 @@ final class ScreenshotTests: XCTestCase {
         )
         ankiButton.tap()
     }
-    
+
     private func openDictionarySettings() {
         navigateToTab(english: "Settings", japanese: "設定")
 
@@ -280,5 +278,34 @@ final class ScreenshotTests: XCTestCase {
         // Add the attachment to the test log,
         // so we can retrieve it later
         add(screenshotAttachment)
+    }
+
+    private func waitForDictionaryResultsToLoad(_ dictionarySheet: XCUIElement, timeout: TimeInterval) {
+        XCTAssertTrue(
+            dictionarySheet.waitForExistence(timeout: timeout),
+            "Dictionary sheet did not appear within timeout"
+        )
+
+        let resultsWebView = dictionarySheet.webViews.firstMatch
+        XCTAssertTrue(
+            resultsWebView.waitForExistence(timeout: timeout),
+            "Dictionary results web view did not appear within timeout"
+        )
+
+        let statusLabels = [
+            "Loading results...",
+            "結果を読み込み中...",
+            "No results found.",
+            "結果が見つかりません。",
+            "Unable to load results.",
+            "結果を読み込めません。",
+        ]
+        let renderedContent = resultsWebView.staticTexts.matching(
+            NSPredicate(format: "NOT (label IN %@)", statusLabels)
+        ).firstMatch
+        XCTAssertTrue(
+            renderedContent.waitForExistence(timeout: timeout),
+            "Dictionary results page did not render content within timeout"
+        )
     }
 }
