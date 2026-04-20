@@ -633,47 +633,11 @@ final class WebViewerViewModel {
 
     private func loadScreenshotContent() {
         guard let page else { return }
-        page.loadHTML(Self.screenshotSampleHTML, baseURL: Self.screenshotBaseURL)
+        page.loadHTML(WebViewerScreenshotPage.html, baseURL: Self.screenshotBaseURL)
         addressBarText = Self.screenshotBaseURL?.absoluteString ?? ""
     }
 
     func triggerScreenshotDictionaryLookup() {
         handleEditMenuLookup(Self.screenshotLookupText)
     }
-
-    // swiftlint:disable line_length
-    private static let screenshotSampleHTML = """
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>お花見ガイド – 日本の春を楽しむ</title>
-    <style>
-    body {
-        font-family: "Hiragino Kaku Gothic ProN";
-        line-height: 1.9;
-        padding: 24px 20px;
-        color: #1a1a1a;
-        background: #fff;
-        -webkit-text-size-adjust: 100%;
-    }
-    h1 { font-size: 26px; margin-bottom: 16px; }
-    h2 { font-size: 20px; margin-top: 28px; margin-bottom: 10px; }
-    p { font-size: 18px; margin-bottom: 18px; }
-    </style>
-    </head>
-    <body>
-    <h1>お花見ガイド</h1>
-    <p>春になると、日本全国の公園や川沿いに桜が咲き誇り、人々はお花見を楽しみます。お花見は古くから続く日本の伝統的な行事で、桜の美しさを愛でながら、家族や友人と食事を楽しむ習慣です。</p>
-    <h2>桜の名所</h2>
-    <p>東京の上野公園や目黒川沿いの桜並木は、毎年多くの花見客で賑わいます。京都の嵐山や奈良の吉野山も、古くから桜の名所として知られています。満開の時期には、花びらが風に舞い散る様子が格別の美しさです。</p>
-    <h2>花見の準備</h2>
-    <p>お花見には、レジャーシートやお弁当を持参するのが一般的です。花見団子や桜餅などの和菓子も人気があります。夜桜を楽しむ場合は、暖かい服装と懐中電灯を忘れずに持って行きましょう。</p>
-    <h2>桜の種類</h2>
-    <p>日本には数百種類の桜があります。最も一般的なのは染井吉野で、淡いピンク色の花を咲かせます。八重桜は花びらが多く、豪華な印象を与えます。枝垂桜の優雅に垂れ下がる枝も、多くの人を魅了しています。</p>
-    </body>
-    </html>
-    """
-    // swiftlint:enable line_length
 }
