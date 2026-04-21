@@ -185,14 +185,10 @@ public struct WebViewerView: View {
     }
 
     private func handleAddressFocusChange(_: Bool, _ newValue: Bool) {
+        viewModel.setAddressBarEditing(newValue)
+
         if isEditingAddress != newValue {
             isEditingAddress = newValue
-        }
-
-        if newValue, viewModel.overlayState != .showingToolbars {
-            withAnimation(.easeInOut(duration: 0.25)) {
-                viewModel.overlayState = .showingToolbars
-            }
         }
 
         if newValue, !viewModel.addressBarText.isEmpty {
@@ -277,7 +273,7 @@ public struct WebViewerView: View {
 
     private func beginAddressEditing() {
         withAnimation(.easeInOut(duration: 0.25)) {
-            viewModel.overlayState = .showingToolbars
+            viewModel.setAddressBarEditing(true)
         }
         addressSnapshot = viewModel.addressBarText
         isEditingAddress = true

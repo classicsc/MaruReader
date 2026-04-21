@@ -118,6 +118,7 @@ final class WebViewerViewModel {
     var bookmarks: [WebBookmarkSnapshot] = []
     var overlayState: WebOverlayState = .showingToolbars
     var toolbarCollapsedByUser = false
+    var isAddressBarEditing = false
     var editMenuSelection: WebTextSelection?
 
     private var initialURL: URL?
@@ -177,6 +178,14 @@ final class WebViewerViewModel {
         overlayState = .showingToolbars
     }
 
+    func setAddressBarEditing(_ isEditing: Bool) {
+        isAddressBarEditing = isEditing
+
+        if isEditing, overlayState != .showingToolbars {
+            overlayState = .showingToolbars
+        }
+    }
+
     /// Handles scroll offset changes to show/hide toolbars based on scroll direction.
     /// Scrolling down hides toolbars, scrolling up shows them.
     func handleScrollOffsetChange(from oldOffset: CGFloat, to newOffset: CGFloat) {
@@ -189,6 +198,8 @@ final class WebViewerViewModel {
             }
             return
         }
+
+        guard !isAddressBarEditing else { return }
 
         // User locked the toolbar collapsed — skip auto show/hide
         guard !toolbarCollapsedByUser else { return }
@@ -229,6 +240,7 @@ final class WebViewerViewModel {
         showBoundingBoxes = false
         highlightedCluster = nil
         toolbarCollapsedByUser = false
+        isAddressBarEditing = false
         ocrViewModel.reset()
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)
@@ -257,6 +269,7 @@ final class WebViewerViewModel {
         showBoundingBoxes = false
         highlightedCluster = nil
         toolbarCollapsedByUser = false
+        isAddressBarEditing = false
         ocrViewModel.reset()
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)

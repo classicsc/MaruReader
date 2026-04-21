@@ -518,6 +518,18 @@ struct MaruWebTests {
         #expect(viewModel.overlayState == .none)
     }
 
+    @Test @MainActor func addressBarEditingKeepsToolbarsVisible() {
+        let viewModel = WebViewerViewModel()
+        viewModel.overlayState = .none
+
+        viewModel.setAddressBarEditing(true)
+
+        #expect(viewModel.overlayState == .showingToolbars)
+
+        viewModel.handleScrollOffsetChange(from: 0, to: 24)
+        #expect(viewModel.overlayState == .showingToolbars)
+    }
+
     @Test @MainActor func scrollInReadingModeInvalidatesOCRCache() {
         let viewModel = WebViewerViewModel()
         viewModel.readingModeEnabled = true
