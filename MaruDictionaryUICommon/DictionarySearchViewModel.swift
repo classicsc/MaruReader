@@ -95,6 +95,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
     private var popupAnkiSchemeHandler: AnkiURLSchemeHandler = .init()
     @ObservationIgnored
+    private var pageSecuritySetupTask: Task<Void, Error>?
+    @ObservationIgnored
+    private var popupPageSecuritySetupTask: Task<Void, Error>?
+    @ObservationIgnored
     var resultsPageLoadHandler: ResultsPageLoadHandler?
     @ObservationIgnored
     var resultsPageJavaScriptHandler: ResultsPageJavaScriptHandler?
@@ -173,13 +177,34 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         return URLRequest(url: URL(string: urlString)!)
     }
 
+    private func popupResultsPageURLRequest(requestID: UUID) -> URLRequest {
+        resultsPageURLRequest(requestID: requestID, mode: .popup)
+    }
+
     private func loadResultsPage(_ request: URLRequest) async throws {
+        if resultsPageLoadHandler == nil {
+            try await ensureResultsPageSecurityReady()
+        }
+
         if let resultsPageLoadHandler {
             try await resultsPageLoadHandler(page, request)
             return
         }
 
         let loadSequence = page.load(request)
+        for try await value in loadSequence {
+            if value == WebPage.NavigationEvent.finished {
+                return
+            }
+        }
+
+        throw ResultsPageError.navigationDidNotFinish
+    }
+
+    private func loadPopupPage(_ request: URLRequest) async throws {
+        try await ensurePopupPageSecurityReady()
+
+        let loadSequence = popupPage.load(request)
         for try await value in loadSequence {
             if value == WebPage.NavigationEvent.finished {
                 return
@@ -260,15 +285,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         Task {
             await currentPopupSession.resetRenderCursor()
             let requestId = await currentPopupSession.requestId
-            let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(requestId.uuidString)"
-            let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
 
             do {
-                for try await value in loadSequence {
-                    if value == WebPage.NavigationEvent.finished {
-                        return
-                    }
-                }
+                try await loadPopupPage(popupResultsPageURLRequest(requestID: requestId))
+                return
             } catch {
                 self.logger.error("Failed to reload dictionary popup page for theme update: \(error.localizedDescription)")
             }
@@ -290,8 +310,11 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         userContentController.add(self, name: "tooltip")
         userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
-        page = WebPage(configuration: config)
+        page = WebPage(configuration: config, navigationDecider: DictionaryRendererNavigationDecider())
         page.isInspectable = true
+        pageSecuritySetupTask = Task { @MainActor in
+            try await DictionaryRendererSecurity.installContentRuleList(on: userContentController)
+        }
     }
 
     private func initializePopupPage() {
@@ -306,8 +329,19 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         userContentController.add(self, name: "navigateToTerm")
         userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
-        popupPage = WebPage(configuration: config)
+        popupPage = WebPage(configuration: config, navigationDecider: DictionaryRendererNavigationDecider())
         popupPage.isInspectable = true
+        popupPageSecuritySetupTask = Task { @MainActor in
+            try await DictionaryRendererSecurity.installContentRuleList(on: userContentController)
+        }
+    }
+
+    private func ensureResultsPageSecurityReady() async throws {
+        try await pageSecuritySetupTask?.value
+    }
+
+    private func ensurePopupPageSecurityReady() async throws {
+        try await popupPageSecuritySetupTask?.value
     }
 
     private func searchService() -> DictionarySearchService {
@@ -586,42 +620,38 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
                 await self.popupResultsSchemeHandler.setSession(session)
                 try Task.checkCancellation()
 
-                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
-                let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
-                for try await value in loadSequence {
+                try await self.loadPopupPage(self.popupResultsPageURLRequest(requestID: lookupRequest.id))
+                try Task.checkCancellation()
+
+                do {
+                    try await page.clearHighlights()
                     try Task.checkCancellation()
-                    if value == WebPage.NavigationEvent.finished {
-                        do {
-                            try await page.clearHighlights()
-                            try Task.checkCancellation()
 
-                            let highlightBoundingRects = try await page.highlightTextByContextRange(
-                                cssSelector: cssSelector,
-                                contextStartOffset: snapshot.contextStartOffset,
-                                matchStartInContext: snapshot.matchStartInContext,
-                                matchEndInContext: snapshot.matchEndInContext,
-                                styles: self.highlightStylesAsJSObject()
-                            )
-                            try Task.checkCancellation()
+                    let highlightBoundingRects = try await page.highlightTextByContextRange(
+                        cssSelector: cssSelector,
+                        contextStartOffset: snapshot.contextStartOffset,
+                        matchStartInContext: snapshot.matchStartInContext,
+                        matchEndInContext: snapshot.matchEndInContext,
+                        styles: self.highlightStylesAsJSObject()
+                    )
+                    try Task.checkCancellation()
 
-                            let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
-                            if let firstRect = boundingRects.first {
-                                self.popupAnchorPosition = firstRect
-                            } else {
-                                self.popupAnchorPosition = .zero
-                            }
-                            self.currentPopupSession = session
-                            self.currentPopupResponse = snapshot
-                            self.showPopup = true
-                        } catch is CancellationError {
-                            return
-                        } catch {
-                            logger.error("Failed to highlight text: \(error.localizedDescription)")
-                        }
-                        logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
-                        return
+                    let boundingRects = getBoundingRects(highlightBoundingRects: highlightBoundingRects)
+                    if let firstRect = boundingRects.first {
+                        self.popupAnchorPosition = firstRect
+                    } else {
+                        self.popupAnchorPosition = .zero
                     }
+                    self.currentPopupSession = session
+                    self.currentPopupResponse = snapshot
+                    self.showPopup = true
+                } catch is CancellationError {
+                    return
+                } catch {
+                    logger.error("Failed to highlight text: \(error.localizedDescription)")
                 }
+                logger.debug("Highlighted range: \(snapshot.matchStartInContext)..<\(snapshot.matchEndInContext) in context starting at \(snapshot.contextStartOffset)")
+                return
             } catch is CancellationError {
                 return
             } catch {

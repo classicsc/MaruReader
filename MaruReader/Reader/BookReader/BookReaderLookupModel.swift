@@ -60,6 +60,8 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
     private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
+    @ObservationIgnored
+    private var popupPageSecuritySetupTask: Task<Void, Error>?
 
     private let highlightStyles = [
         "background-color": "inherit",
@@ -77,6 +79,10 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         self.searchServiceFactory = searchServiceFactory
         super.init()
         initializePopupPage()
+    }
+
+    private enum PopupPageError: Error {
+        case navigationDidNotFinish
     }
 
     private func searchService() -> DictionarySearchService {
@@ -127,13 +133,8 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
                 guard self.showPopup, let currentPopupSession = self.currentPopupSession else { return }
                 await currentPopupSession.resetRenderCursor()
                 let requestId = await currentPopupSession.requestId
-                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(requestId.uuidString)"
-                let loadSequence = self.popupPage.load(URLRequest(url: URL(string: urlString)!))
-                for try await value in loadSequence {
-                    if value == WebPage.NavigationEvent.finished {
-                        return
-                    }
-                }
+                try await self.loadPopupPage(self.popupPageURLRequest(requestID: requestId))
+                return
             } catch {
                 logger.error("Failed to reload book reader dictionary popup for theme update: \(error.localizedDescription)")
             }
@@ -189,30 +190,26 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
                 await resultsSchemeHandler.setSession(lookupSession)
                 try Task.checkCancellation()
 
-                let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(lookupRequest.id.uuidString)"
-                let loadSequence = popupPage.load(URLRequest(url: URL(string: urlString)!))
-                for try await value in loadSequence {
-                    try Task.checkCancellation()
-                    if value == WebPage.NavigationEvent.finished {
-                        await clearHighlights()
-                        try Task.checkCancellation()
+                try await self.loadPopupPage(self.popupPageURLRequest(requestID: lookupRequest.id))
+                try Task.checkCancellation()
 
-                        let boundingRects = await highlightTextByContextRange(
-                            cssSelector: cssSelector,
-                            contextStartOffset: snapshot.contextStartOffset,
-                            matchStartInContext: snapshot.matchStartInContext,
-                            matchEndInContext: snapshot.matchEndInContext,
-                            styles: highlightStylesAsJSObject()
-                        )
-                        try Task.checkCancellation()
+                await clearHighlights()
+                try Task.checkCancellation()
 
-                        let rects = makeBoundingRects(from: boundingRects)
-                        currentPopupSession = lookupSession
-                        popupAnchorPosition = rects.first ?? .zero
-                        showPopup = true
-                        return
-                    }
-                }
+                let boundingRects = await highlightTextByContextRange(
+                    cssSelector: cssSelector,
+                    contextStartOffset: snapshot.contextStartOffset,
+                    matchStartInContext: snapshot.matchStartInContext,
+                    matchEndInContext: snapshot.matchEndInContext,
+                    styles: highlightStylesAsJSObject()
+                )
+                try Task.checkCancellation()
+
+                let rects = makeBoundingRects(from: boundingRects)
+                currentPopupSession = lookupSession
+                popupAnchorPosition = rects.first ?? .zero
+                showPopup = true
+                return
             } catch is CancellationError {
                 return
             } catch {
@@ -375,6 +372,28 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    private func popupPageURLRequest(requestID: UUID) -> URLRequest {
+        let urlString = "marureader-resource://dictionary.html?mode=popup&requestId=\(requestID.uuidString)"
+        return URLRequest(url: URL(string: urlString)!)
+    }
+
+    private func ensurePopupPageSecurityReady() async throws {
+        try await popupPageSecuritySetupTask?.value
+    }
+
+    private func loadPopupPage(_ request: URLRequest) async throws {
+        try await ensurePopupPageSecurityReady()
+
+        let loadSequence = popupPage.load(request)
+        for try await value in loadSequence {
+            if value == WebPage.NavigationEvent.finished {
+                return
+            }
+        }
+
+        throw PopupPageError.navigationDidNotFinish
+    }
+
     private func initializePopupPage() {
         var config = WebPage.Configuration()
         config.urlSchemeHandlers[URLScheme("marureader-media")!] = mediaSchemeHandler
@@ -387,8 +406,11 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         userContentController.add(self, name: "navigateToTerm")
         userContentController.addUserScript(makeDictionaryLocalizedStringsScript())
         config.userContentController = userContentController
-        popupPage = WebPage(configuration: config)
+        popupPage = WebPage(configuration: config, navigationDecider: DictionaryRendererNavigationDecider())
         popupPage.isInspectable = true
+        popupPageSecuritySetupTask = Task { @MainActor in
+            try await DictionaryRendererSecurity.installContentRuleList(on: userContentController)
+        }
     }
 
     private func makeBoundingRects(from highlightBoundingRects: [[String: Double]]) -> [CGRect] {
