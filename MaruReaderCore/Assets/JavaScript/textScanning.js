@@ -559,30 +559,12 @@ window.MaruReader.textScanning = {
         for (var i = startCheck; i < endCheck; i++) {
             if (i >= text.length) break;
 
-            // Create a range for this character
-            var testRange = document.createRange();
-            testRange.setStart(node, i);
-            testRange.setEnd(node, i + 1);
-
-            var rect = testRange.getBoundingClientRect();
-            if (rect.width === 0 && rect.height === 0) {
+            var characterGeometry = this.getCharacterGeometry(node, i, x, y);
+            if (!characterGeometry) {
                 continue; // Skip invisible characters
             }
-
-            // Check if the tap point is within or very close to this character's bounds
-            var charCenterX = rect.left + rect.width / 2;
-            var charCenterY = rect.top + rect.height / 2;
-
-            // Calculate distance from tap point to character center
-            var distance = Math.sqrt(
-                Math.pow(x - charCenterX, 2) + Math.pow(y - charCenterY, 2)
-            );
-
-            // Also check if tap is within the character bounds
-            var withinBounds = (
-                x >= rect.left && x <= rect.right &&
-                y >= rect.top && y <= rect.bottom
-            );
+            var distance = characterGeometry.distance;
+            var withinBounds = characterGeometry.withinBounds;
 
             if (withinBounds || distance < bestDistance) {
                 bestDistance = distance;
@@ -602,6 +584,76 @@ window.MaruReader.textScanning = {
         }
 
         return null;
+    },
+
+    /**
+     * Finds the closest rendered rect for a character in a text node.
+     * getClientRects() preserves wrapped-line fragments better than a single
+     * bounding box, which avoids taps near line breaks snapping to the next line.
+     * @param {Node} node - Text node
+     * @param {number} offset - Character offset in the text node
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @returns {Object|null} Geometry info for the closest rect fragment
+     */
+    getCharacterGeometry: function(node, offset, x, y) {
+        var testRange = document.createRange();
+        testRange.setStart(node, offset);
+        testRange.setEnd(node, offset + 1);
+
+        var rects = Array.from(testRange.getClientRects());
+        if (rects.length === 0) {
+            var boundingRect = testRange.getBoundingClientRect();
+            if (boundingRect.width === 0 && boundingRect.height === 0) {
+                return null;
+            }
+            rects = [boundingRect];
+        }
+
+        var bestRect = null;
+        var bestDistance = Infinity;
+
+        for (var i = 0; i < rects.length; i++) {
+            var rect = rects[i];
+            var distance = this.distanceToRect(x, y, rect);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                bestRect = rect;
+            }
+        }
+
+        return {
+            rect: bestRect,
+            distance: bestDistance,
+            withinBounds: bestDistance === 0
+        };
+    },
+
+    /**
+     * Calculates the shortest distance from a point to a rect.
+     * Returns 0 when the point is inside the rect.
+     * @param {number} x - X coordinate
+     * @param {number} y - Y coordinate
+     * @param {DOMRect} rect - Rect to measure against
+     * @returns {number} Distance in CSS pixels
+     */
+    distanceToRect: function(x, y, rect) {
+        var dx = 0;
+        var dy = 0;
+
+        if (x < rect.left) {
+            dx = rect.left - x;
+        } else if (x > rect.right) {
+            dx = x - rect.right;
+        }
+
+        if (y < rect.top) {
+            dy = rect.top - y;
+        } else if (y > rect.bottom) {
+            dy = y - rect.bottom;
+        }
+
+        return Math.sqrt(dx * dx + dy * dy);
     },
 
     /**
