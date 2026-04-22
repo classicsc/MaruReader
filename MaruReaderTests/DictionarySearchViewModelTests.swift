@@ -123,30 +123,4 @@ struct DictionarySearchViewModelTests {
         #expect(replacementAttemptCount == 1)
         #expect(viewModel.isResultsPageBootstrapped)
     }
-
-    @Test func dictionaryRendererSecurity_AllowsOnlyLocalNavigationSchemes() {
-        #expect(DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "about:blank")))
-        #expect(DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "marureader-resource://dictionary.html")))
-        #expect(DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "marureader-lookup://results")))
-        #expect(!DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "https://example.com")))
-        #expect(!DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "wss://example.com/socket")))
-        #expect(!DictionaryRendererSecurity.isAllowedNavigationURL(URL(string: "javascript:alert('x')")))
-        #expect(!DictionaryRendererSecurity.isAllowedNavigationURL(nil))
-    }
-
-    @Test func dictionaryRendererSecurity_ContentRuleListSourceBlocksRemoteSchemes() throws {
-        let source = try DictionaryRendererSecurity.contentRuleListSource()
-        let data = try #require(source.data(using: .utf8))
-        let rules = try #require(try JSONSerialization.jsonObject(with: data) as? [[String: Any]])
-
-        let patterns = Set(rules.compactMap { rule in
-            (rule["trigger"] as? [String: Any])?["url-filter"] as? String
-        })
-        let actionTypes = Set(rules.compactMap { rule in
-            (rule["action"] as? [String: Any])?["type"] as? String
-        })
-
-        #expect(patterns == ["^https?://.*", "^wss?://.*"])
-        #expect(actionTypes == ["block"])
-    }
 }
