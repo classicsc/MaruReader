@@ -6,6 +6,8 @@
 
 MaruReader is a free, open source dictionary and reading application for learning Japanese, which runs on iOS and iPadOS. You can use MaruReader to look up unfamiliar words across multiple dictionaries while reading eBooks, manga, and websites, or even from photos and screenshots. When you want to commit a new term to memory, instantly create an Anki note with rich formatting and full context.
 
+[![Download](https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg)](https://apps.apple.com/app/marureader-learn-japanese/id6760981845)
+
 ## Key Features
 
 ### 1. Fast, customizable dictionary
