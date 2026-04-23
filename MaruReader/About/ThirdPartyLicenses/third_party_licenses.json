@@ -108,8 +108,24 @@
         }
       ],
       "name" : "uBlock Origin Lite",
-      "notes" : "Bundled as uBOLite.safari from External\/uBlock\/dist\/build.",
+      "notes" : "Used as extension in web viewer.",
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock"
+    },
+    {
+      "attribution" : "Yomitan Authors",
+      "category" : "dictionaryData",
+      "homepageURL" : "https:\/\/yomitan.wiki",
+      "id" : "manual-yomitan",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-yomitan-license.txt",
+          "referenceURL" : "https:\/\/github.com\/yomidevs\/yomitan\/blob\/master\/LICENSE",
+          "title" : "GPLv3"
+        }
+      ],
+      "name" : "yomitan",
+      "notes" : "Source of the deinflection data and dictionary stylesheets.",
+      "sourceURL" : "https:\/\/github.com\/yomidevs\/yomitan"
     },
     {
       "attribution" : "Meta Platforms, Inc. and affiliates",
@@ -1624,6 +1640,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-22T22:48:06.337Z",
+  "generatedAt" : "2026-04-23T20:54:51.136Z",
   "schemaVersion" : 1
 }

@@ -8,7 +8,7 @@
       "homepageURL": "https://github.com/gorhill/uBlock",
       "sourceURL": "https://github.com/gorhill/uBlock",
       "attribution": "Raymond Hill",
-      "notes": "Bundled as uBOLite.safari from External/uBlock/dist/build.",
+      "notes": "Used as extension in web viewer.",
       "licenses": [
         {
           "title": "uBlock Origin Lite License",
@@ -101,6 +101,24 @@
           "snapshotPath": "scripts/third-party-license-snapshots/kanji-processor/LICENSE.txt",
           "referenceURL": "https://github.com/Lyroxide/kanji-processor/blob/main/LICENSE",
           "refreshURL": "https://raw.githubusercontent.com/Lyroxide/kanji-processor/main/LICENSE"
+        }
+      ]
+    },
+    {
+      "id": "manual-yomitan",
+      "name": "yomitan",
+      "category": "dictionaryData",
+      "homepageURL": "https://yomitan.wiki",
+      "sourceURL": "https://github.com/yomidevs/yomitan",
+      "attribution": "Yomitan Authors",
+      "notes": "Source of the deinflection data and dictionary stylesheets.",
+      "licenses": [
+        {
+          "title": "GPLv3",
+          "outputPath": "manual/manual-yomitan-license.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/yomitan/LICENSE.txt",
+          "referenceURL": "https://github.com/yomidevs/yomitan/blob/master/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/yomidevs/yomitan/refs/heads/master/LICENSE"
         }
       ]
     },
