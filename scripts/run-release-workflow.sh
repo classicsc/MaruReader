@@ -249,11 +249,14 @@ run_release() {
   local tag_name="v$release_version"
   local archive_path
 
+  [[ "$current_build_number_value" =~ ^[0-9]+$ ]] || die "Current build number must be numeric."
+  next_build_number=$((current_build_number_value + 1))
+
   validate_release_version "$release_version"
   ensure_clean_worktree
   ensure_tag_absent "$tag_name"
   run_release_prep
-  set_synced_versions "$release_version" "1"
+  set_synced_versions "$release_version" "$next_build_number"
   archive_path="$(archive_for_tag "$tag_name")"
   commit_and_tag "Release $tag_name" "$tag_name"
 

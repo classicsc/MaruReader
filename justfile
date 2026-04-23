@@ -52,7 +52,7 @@ release-status:
 prerelease:
   ./scripts/run-release-workflow.sh prerelease
 
-# creates a release archive by setting the marketing version, resetting build to 1, then commits and tags it
+# creates a release archive by setting the marketing version, incrementin build, then commits and tags it
 release version:
   ./scripts/run-release-workflow.sh release "{{version}}"
 
