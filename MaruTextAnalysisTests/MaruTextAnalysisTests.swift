@@ -19,30 +19,8 @@ import Foundation
 @testable import MaruTextAnalysis
 import Testing
 
-private final class InstalledTokenizerDictionaryFixtureState: @unchecked Sendable {
-    let lock = NSLock()
-    var url: URL?
-}
-
 struct MaruTextAnalysisTests {
-    private static let installedTokenizerDictionaryFixtureState = InstalledTokenizerDictionaryFixtureState()
-
-    @Test func installedTokenizerDictionary_isPresentAtOverrideLocation() throws {
-        let directoryURL = try makeInstalledTokenizerDictionaryFixture()
-        InstalledTokenizerDictionary.overrideDirectoryURL = directoryURL
-
-        let resolvedDirectoryURL = try InstalledTokenizerDictionary.directoryURL()
-
-        #expect(FileManager.default.fileExists(atPath: resolvedDirectoryURL.appendingPathComponent("char.def").path))
-        #expect(FileManager.default.fileExists(atPath: resolvedDirectoryURL.appendingPathComponent("rewrite.def").path))
-        #expect(FileManager.default.fileExists(atPath: resolvedDirectoryURL.appendingPathComponent("sudachi.json").path))
-        #expect(FileManager.default.fileExists(atPath: resolvedDirectoryURL.appendingPathComponent("system_full.dic").path))
-        #expect(FileManager.default.fileExists(atPath: resolvedDirectoryURL.appendingPathComponent("unk.def").path))
-        #expect(InstalledTokenizerDictionary.version() == nil)
-    }
-
     @Test func sharedAnalyzer_warmsUpSuccessfully() throws {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try makeInstalledTokenizerDictionaryFixture()
         let analyzer = try #require(try? SharedSudachiAnalyzer.result.get())
         #expect(throws: Never.self) {
             try analyzer.warmUp()
@@ -50,19 +28,16 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func emptyString_returnsEmpty() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let result = FuriganaGenerator.generateSegments(from: "")
         #expect(result.isEmpty)
     }
 
     @Test func kanaOnly_hasNoReadings() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let segments = FuriganaGenerator.generateSegments(from: "これはひらがなです")
         #expect(segments.allSatisfy { $0.reading == nil })
     }
 
     @Test func okurigana_isSplitFromKanjiReading() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let segments = FuriganaGenerator.generateSegments(from: "食べる")
 
         #expect(segments.count == 2)
@@ -73,7 +48,6 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func allKanjiWord_keepsFullReading() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let segments = FuriganaGenerator.generateSegments(from: "日本語")
 
         #expect(segments.count == 1)
@@ -82,7 +56,6 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func punctuationAndMixedLatinText_arePreserved() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let segments = FuriganaGenerator.generateSegments(from: "ABCは日本語です。")
         let formatted = FuriganaGenerator.formatAnkiStyle(segments)
 
@@ -92,7 +65,6 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func segmentRanges_coverEntireSourceText() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let text = "私は学生です"
         let segments = FuriganaGenerator.generateSegments(from: text)
 
@@ -107,7 +79,6 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func formatAnkiStyle_stripsOkuriganaFromReading() {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try? makeInstalledTokenizerDictionaryFixture()
         let segments = FuriganaGenerator.generateSegments(from: "食べる")
         let formatted = FuriganaGenerator.formatAnkiStyle(segments)
 
@@ -115,7 +86,6 @@ struct MaruTextAnalysisTests {
     }
 
     @Test func formatCloze_splitsAroundSelection() throws {
-        InstalledTokenizerDictionary.overrideDirectoryURL = try makeInstalledTokenizerDictionaryFixture()
         let text = "私は学校へ行く"
         let segments = FuriganaGenerator.generateSegments(from: text)
         let selectionRange = try #require(text.range(of: "学校"))
@@ -125,26 +95,5 @@ struct MaruTextAnalysisTests {
         #expect(cloze.prefix.contains("私"))
         #expect(cloze.body.contains("学校"))
         #expect(cloze.suffix.contains("行"))
-    }
-
-    private func makeInstalledTokenizerDictionaryFixture() throws -> URL {
-        Self.installedTokenizerDictionaryFixtureState.lock.lock()
-        if let cachedInstalledTokenizerDirectory = Self.installedTokenizerDictionaryFixtureState.url {
-            Self.installedTokenizerDictionaryFixtureState.lock.unlock()
-            return cachedInstalledTokenizerDirectory
-        }
-        Self.installedTokenizerDictionaryFixtureState.lock.unlock()
-
-        let repoRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let resourceDirectory = repoRoot.appendingPathComponent("build/sudachi/v20260116-full", isDirectory: true)
-
-        #expect(FileManager.default.fileExists(atPath: resourceDirectory.appendingPathComponent("system_full.dic").path))
-
-        Self.installedTokenizerDictionaryFixtureState.lock.lock()
-        Self.installedTokenizerDictionaryFixtureState.url = resourceDirectory
-        Self.installedTokenizerDictionaryFixtureState.lock.unlock()
-        return resourceDirectory
     }
 }
