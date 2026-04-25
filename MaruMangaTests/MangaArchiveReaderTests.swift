@@ -76,6 +76,37 @@ struct MangaArchiveReaderTests {
         return archiveURL
     }
 
+    private func createMangaArchiveWithMacOSArtifacts() throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
+
+        let macOSXDir = contentsDir.appendingPathComponent("__MACOSX")
+        try FileManager.default.createDirectory(at: macOSXDir, withIntermediateDirectories: true)
+
+        try makeImageData().write(to: contentsDir.appendingPathComponent("001.jpg"))
+        try Data().write(to: contentsDir.appendingPathComponent("002.jpg"))
+        try makeImageData().write(to: contentsDir.appendingPathComponent("003.jpg"))
+        try Data("AppleDouble metadata".utf8).write(to: macOSXDir.appendingPathComponent("._001.jpg"))
+        try Data("AppleDouble metadata".utf8).write(to: macOSXDir.appendingPathComponent("._003.jpg"))
+
+        let archiveURL = tempDir.appendingPathComponent("macos-artifacts.cbz")
+        try Zip.zipFiles(paths: [contentsDir], zipFilePath: archiveURL, password: nil, progress: nil)
+
+        return archiveURL
+    }
+
+    private func makeImageData() -> Data {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 100, height: 100))
+        let image = renderer.image { context in
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 100, height: 100))
+        }
+        return image.jpegData(compressionQuality: 0.8)!
+    }
+
     /// Creates an archive with no images
     private func createEmptyArchive() throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -146,6 +177,18 @@ struct MangaArchiveReaderTests {
                 Issue.record("Expected noImagesFound, got \(error)")
             }
         }
+    }
+
+    @Test func init_archiveWithMacOSArtifacts_ignoresSidecarsAndEmptyImages() async throws {
+        let archiveURL = try createMangaArchiveWithMacOSArtifacts()
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let reader = try await MangaArchiveReader(url: archiveURL)
+
+        #expect(await reader.pageCount == 2)
+        let paths = await reader.sortedPagePaths
+        let filenames = paths.map { ($0 as NSString).lastPathComponent }
+        #expect(filenames == ["001.jpg", "003.jpg"])
     }
 
     @Test func init_missingFile_throwsError() async throws {

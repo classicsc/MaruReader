@@ -115,6 +115,41 @@ struct MangaImportTests {
         return archiveURL
     }
 
+    private func createMangaArchiveWithMacOSArtifacts() throws -> URL {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+
+        let contentsDir = tempDir.appendingPathComponent("contents")
+        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
+
+        let macOSXDir = contentsDir.appendingPathComponent("__MACOSX")
+        try FileManager.default.createDirectory(at: macOSXDir, withIntermediateDirectories: true)
+
+        try makeImageData(color: .green).write(to: contentsDir.appendingPathComponent("001.jpg"))
+        try Data().write(to: contentsDir.appendingPathComponent("002.jpg"))
+        try makeImageData(color: .blue).write(to: contentsDir.appendingPathComponent("003.jpg"))
+        try Data("AppleDouble metadata".utf8).write(to: macOSXDir.appendingPathComponent("._001.jpg"))
+        try Data("AppleDouble metadata".utf8).write(to: macOSXDir.appendingPathComponent("._003.jpg"))
+
+        let archiveURL = tempDir.appendingPathComponent("macos_artifacts.cbz")
+        try Zip.zipFiles(paths: [contentsDir], zipFilePath: archiveURL, password: nil, progress: nil)
+
+        guard FileManager.default.fileExists(atPath: archiveURL.path) else {
+            throw MockArchiveError.fileNotFound(archiveURL)
+        }
+
+        return archiveURL
+    }
+
+    private func makeImageData(color: UIColor) -> Data {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 10, height: 10))
+        let image = renderer.image { context in
+            color.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
+        }
+        return image.jpegData(compressionQuality: 0.8)!
+    }
+
     /// Creates an archive with no images (only directories/non-image files)
     private func createEmptyMangaArchive() throws -> URL {
         let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -321,6 +356,25 @@ struct MangaImportTests {
         #expect(mangaDTO?.totalPages == 3)
 
         // Assert: Cover was extracted (should be page_01 which is green)
+        try verifyCoverExtracted(mangaDTO: mangaDTO)
+    }
+
+    @Test func importManga_IgnoresMacOSArtifactsAndEmptyImages() async throws {
+        let archiveURL = try createMangaArchiveWithMacOSArtifacts()
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let persistenceController = makeMangaPersistenceController()
+        let importManager = MangaImportManager(container: persistenceController.container)
+
+        let mangaID = try await importManager.enqueueImport(from: archiveURL)
+
+        await importManager.waitForCompletion(jobID: mangaID)
+
+        let context = persistenceController.container.viewContext
+        let mangaDTO = await getMangaDTO(from: context, mangaID: mangaID)
+        verifyImportCompleted(mangaDTO)
+
+        #expect(mangaDTO?.totalPages == 2)
         try verifyCoverExtracted(mangaDTO: mangaDTO)
     }
 

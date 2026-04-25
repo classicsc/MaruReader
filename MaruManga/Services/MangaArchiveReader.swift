@@ -178,14 +178,27 @@ public actor MangaArchiveReader {
     /// Filters and naturally sorts image entries from the archive.
     private static func sortedImageEntries(_ entries: [Entry]) -> [Entry] {
         entries
-            .filter { $0.type == .file && isImageFile($0.path) }
+            .filter(isImageEntry)
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+    }
+
+    private static func isImageEntry(_ entry: Entry) -> Bool {
+        entry.type == .file
+            && entry.uncompressedSize > 0
+            && isImageFile(entry.path)
+            && !isAppleDoublePath(entry.path)
     }
 
     /// Checks if a file path represents an image file based on its extension.
     private static func isImageFile(_ path: String) -> Bool {
         let ext = (path as NSString).pathExtension.lowercased()
         return imageExtensions.contains(ext)
+    }
+
+    private static func isAppleDoublePath(_ path: String) -> Bool {
+        let path = path as NSString
+        return path.pathComponents.contains("__MACOSX")
+            || path.lastPathComponent.hasPrefix("._")
     }
 
     /// Checks if a page is already in the cache.

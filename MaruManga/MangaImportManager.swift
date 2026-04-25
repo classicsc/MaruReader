@@ -456,8 +456,21 @@ public actor MangaImportManager {
 
     private func sortedImageEntries(_ entries: [Entry]) -> [Entry] {
         entries
-            .filter { $0.type == .file && isImageFile($0.path) }
+            .filter(isImageEntry)
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+    }
+
+    private func isImageEntry(_ entry: Entry) -> Bool {
+        entry.type == .file
+            && entry.uncompressedSize > 0
+            && isImageFile(entry.path)
+            && !isAppleDoublePath(entry.path)
+    }
+
+    private func isAppleDoublePath(_ path: String) -> Bool {
+        let path = path as NSString
+        return path.pathComponents.contains("__MACOSX")
+            || path.lastPathComponent.hasPrefix("._")
     }
 
     private static let coverMaxPixelSize: CGFloat = 512
