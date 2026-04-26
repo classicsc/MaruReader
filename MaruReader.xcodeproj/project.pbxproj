@@ -2785,7 +2785,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruAssetDownloader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -2816,7 +2816,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruAssetDownloader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -2843,7 +2843,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -2886,7 +2889,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -3380,7 +3386,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -3416,7 +3422,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -3513,7 +3519,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -3641,7 +3650,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -3671,7 +3680,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruReader.MaruShareExtension;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
@@ -3701,7 +3710,10 @@
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -3754,7 +3766,10 @@
 				ENABLE_MODULE_VERIFIER = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -3800,7 +3815,10 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruTextAnalysisTests;
@@ -3824,7 +3842,10 @@
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = net.undefinedstar.MaruTextAnalysisTests;
@@ -4424,7 +4445,10 @@
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
 				ENABLE_MODULE_VERIFIER = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
@@ -4472,7 +4496,10 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
@@ -4501,7 +4528,10 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = H4RNAHR5B8;
 				GENERATE_INFOPLIST_FILE = YES;
-				HEADER_SEARCH_PATHS = "$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI $(SRCROOT)/MaruMark/Generated/UniFFI";
+				HEADER_SEARCH_PATHS = (
+					"$(SRCROOT)/MaruTextAnalysis/Generated/UniFFI",
+					"$(SRCROOT)/MaruMark/Generated/UniFFI",
+				);
 				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
 				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
