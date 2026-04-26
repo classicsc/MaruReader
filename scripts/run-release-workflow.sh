@@ -248,6 +248,12 @@ run_release() {
   local release_version="$1"
   local tag_name="v$release_version"
   local archive_path
+  local current_build_number_value
+  local json
+
+  json="$(project_json)"
+  config_ids_json="$(target_config_ids_json "$json")"
+  current_build_number_value="$(current_build_number "$json" "$config_ids_json")"
 
   [[ "$current_build_number_value" =~ ^[0-9]+$ ]] || die "Current build number must be numeric."
   next_build_number=$((current_build_number_value + 1))
