@@ -70,6 +70,7 @@ Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
   - MaruReader uses the same dictionary format as [Yomitan](https://yomitan.wiki/). Term, frequency, and pitch accent dictionaries are supported.
   - Add as many custom dictionaries as you like, search is fast even with many large dictionaries.
   - Learn more in the [Dictionary Guide](doc/Dictionaries.md)
+- **Grammar Dictionaries** Understand how words are conjugated with links to relevant grammar lessons in results. See [the schema](doc/grammar-dictionary-v1.schema.json) if you'd like to make your own. 
 - **Search Within Definitions** Tap on words in dictionary definitions to search in a compact popup, and tap in the popup to open those results in the full dictionary search page. This is a must-have feature for learners using monolingual (Japanese-Japanese) dictionaries.
 
 ### Manga Reader
@@ -103,7 +104,7 @@ See the [FAQ](doc/FAQ.md), or open a thread in the Discussions tab.
 
 ## Acknowledgements
 
-The MaruReader dictionary system is based on [Yomitan](https://yomitan.wiki/). Third-party libraries are listed in the About section of the app.
+The MaruReader dictionary system is based on [Yomitan](https://yomitan.wiki/). The deconjugation rules are based on [Jiten](https://github.com/Sirush/Jiten). Third-party libraries are listed in the About section of the app.
 
 If you download MaruReader from the App Store, you'll also get a package of the best freely licensed dictionaries and audio available, listed below:
 
@@ -111,6 +112,7 @@ If you download MaruReader from the App Store, you'll also get a package of the 
 - [BCCWJ Frequency Dictionary](https://github.com/Kuuuube/yomitan-dictionaries?tab=readme-ov-file#bccwj-suw-luw-combined) by National Institute for Japanese Language and Linguistics
 - [Wadoku Pitch Accent Dictionary](https://github.com/classicsc/wadoku-pitch-dictionary-for-yomitan) by Wadoku.de
 - [Kanji alive Audio](https://github.com/classicsc/kanji-alive-indexer) by Harumi Hibino Lory and Arno Bosse
+- [Yokubi Grammar Guide](https://yoku.bi) by Yokubi Authors
 
 The manga shown in the screenshots is used under the terms listed on [the author's website](https://densho810.com/free/).
 
