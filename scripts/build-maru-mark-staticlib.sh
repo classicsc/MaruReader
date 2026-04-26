@@ -71,6 +71,32 @@ if ! command -v rustup >/dev/null 2>&1; then
   exit 1
 fi
 
+rust_target_is_installed() {
+  rustup target list --installed | grep -Fqx "$1"
+}
+
+ensure_rust_target_installed() {
+  local rust_target="$1"
+
+  if rust_target_is_installed "$rust_target"; then
+    return 0
+  fi
+
+  (
+    local lock_dir="${TMPDIR:-/tmp}/marureader-rustup-target-install.lock"
+
+    while ! mkdir "$lock_dir" 2>/dev/null; do
+      sleep 1
+    done
+
+    trap 'rmdir "$lock_dir"' EXIT
+
+    if ! rust_target_is_installed "$rust_target"; then
+      rustup target add "$rust_target" >/dev/null
+    fi
+  )
+}
+
 cargo_target_dir="$PROJECT_TEMP_DIR/cargo"
 output_dir="$PROJECT_TEMP_DIR/RustStaticLibs"
 mkdir -p "$output_dir"
@@ -83,7 +109,7 @@ fi
 staticlib_paths=()
 for arch in "${resolved_archs[@]}"; do
   rust_target="$(rust_target_for_arch "$arch")"
-  rustup target add "$rust_target" >/dev/null
+  ensure_rust_target_installed "$rust_target"
 
   build_args=(
     --manifest-path "$CRATE_DIR/Cargo.toml"
