@@ -64,6 +64,10 @@ For example, using a tokenizer dictionary that is old or does not contain proper
 
 Currently only the system dictionary is supported. Support for Sudachi user dictionaries could be added in the future if there is interest.
 
+The MaruReader-maintained tokenizer package is published from the standalone
+[`classicsc/sudachidict-for-marureader`](https://github.com/classicsc/sudachidict-for-marureader)
+repository.
+
 If you build a new tokenizer dictionary, put it in a ZIP with the required files: `char.def`, `rewrite.def`, `sudachi.json`, `system_full.dic`, `unk.def`.
 
 The ZIP must also contain `index.json` which is similar to a Yomitan index. Example:
@@ -74,10 +78,10 @@ The ZIP must also contain `index.json` which is similar to a Yomitan index. Exam
   "format": 1,
   "name": "SudachiDict Full",
   "version": "20260116",
-  "isUpdatable": false,
+  "isUpdatable": true,
   "attribution": "SudachiDict by Works Applications Co., Ltd. is licensed under the [Apache License, Version2.0](http://www.apache.org/licenses/LICENSE-2.0.html)\n\n   Copyright (c) 2017-2023 Works Applications Co., Ltd.\n\n   Licensed under the Apache License, Version 2.0 (the \"License\");\n   you may not use this file except in compliance with the License.\n   You may obtain a copy of the License at\n\n       http://www.apache.org/licenses/LICENSE-2.0\n\n   Unless required by applicable law or agreed to in writing, software\n   distributed under the License is distributed on an \"AS IS\" BASIS,\n   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n   See the License for the specific language governing permissions and\n   limitations under the License.\n\nThis project includes UniDic and a part of NEologd.\n- http://unidic.ninjal.ac.jp/\n- https://github.com/neologd/mecab-ipadic-neologd",
-  "indexUrl": null,
-  "downloadUrl": null
+  "indexUrl": "https://github.com/classicsc/sudachidict-for-marureader/releases/latest/download/index.json",
+  "downloadUrl": "https://github.com/classicsc/sudachidict-for-marureader/releases/latest/download/sudachi-tokenizer-dictionary.zip"
 }
 ```
 

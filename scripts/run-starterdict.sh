@@ -72,8 +72,8 @@ curl --fail --location --output "$GRAMMAR_DICTIONARY_ZIP_PATH" "$GRAMMAR_DICTION
 echo "Adding attribution metadata to Kanji Alive audio source..."
 add_audio_source_attribution "$KANJI_ALIVE_ZIP_PATH" "$KANJI_ALIVE_ATTRIBUTION"
 
-echo "Building tokenizer dictionary package..."
-"$ROOT_DIR/scripts/build-tokenizer-dictionary-package.sh" "$TOKENIZER_ZIP_PATH"
+echo "Downloading tokenizer dictionary package..."
+"$ROOT_DIR/scripts/download-tokenizer-dictionary-package.sh" "$TOKENIZER_ZIP_PATH"
 
 echo "Building DictionarySeeder..."
 "$ROOT_DIR/scripts/run-xcodebuild-with-logs.sh" "build-dictionaryseeder-debug" \

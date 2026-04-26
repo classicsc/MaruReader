@@ -35,8 +35,8 @@ jobs:
         with:
           targets: aarch64-apple-ios-sim,x86_64-apple-ios
 
-      - name: Build content blocker
-        run: just contentblocker
+      - name: Prepare test prerequisites
+        run: just prepare
 
       - name: Build
         run: just build

@@ -16,6 +16,11 @@ build configuration="Debug" destination="":
 test destination="":
   ./scripts/run-all-test-plans.sh "{{destination}}"
 
+# prepares local prerequisites for clean debug/test runs
+prepare:
+  just contentblocker
+  ./scripts/stage-debug-tokenizer-dictionary.sh
+
 # runs a specific test plan, optionally specify a destination
 test-plan plan destination="":
   ./scripts/run-test-plan.sh "{{plan}}" "{{destination}}"

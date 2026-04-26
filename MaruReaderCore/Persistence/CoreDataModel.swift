@@ -192,15 +192,20 @@ public final class DictionaryPersistenceController: Sendable {
     /// The completion marker is written only after all copy work succeeds.
     /// - Parameter baseDirectory: The app group container URL to seed into.
     public static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) async {
-        guard isBundledDatabaseSeedingNeeded(at: baseDirectory) else { return }
+        guard let baseDirectory else { return }
+        guard isBundledDatabaseSeedingNeeded(at: baseDirectory)
+            || isBundledTokenizerSeedingNeeded(at: baseDirectory)
+        else {
+            return
+        }
 
         await Task.detached(priority: .utility) {
-            guard let baseDirectory else { return }
-
             let fileManager = FileManager.default
 
             let completionMarkerURL = bundledDatabaseSeedCompletionMarkerURL(in: baseDirectory)
-            guard !fileManager.fileExists(atPath: completionMarkerURL.path) else { return }
+            let needsDatabaseSeed = !fileManager.fileExists(atPath: completionMarkerURL.path)
+            let needsTokenizerSeed = isBundledTokenizerSeedingNeeded(at: baseDirectory, fileManager: fileManager)
+            guard needsDatabaseSeed || needsTokenizerSeed else { return }
 
             let starterDictionaryDirectory: URL
             var shouldRemoveAssetPack = false
@@ -244,6 +249,27 @@ public final class DictionaryPersistenceController: Sendable {
                     }
                 }
             }
+
+            let starterDictionaryHasDatabase = starterDictionaryContainsDatabase(
+                starterDictionaryDirectory,
+                fileManager: fileManager
+            )
+
+            if needsTokenizerSeed, !starterDictionaryHasDatabase {
+                do {
+                    try copyBundledTokenizerDictionaryIfPresent(
+                        from: starterDictionaryDirectory,
+                        to: baseDirectory,
+                        fileManager: fileManager
+                    )
+                } catch {
+                    Self.logger.warning(
+                        "Failed to seed bundled tokenizer dictionary: \(error.localizedDescription, privacy: .public)"
+                    )
+                }
+            }
+
+            guard needsDatabaseSeed, starterDictionaryHasDatabase else { return }
 
             do {
                 try performBundledSeedCopy(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
@@ -300,12 +326,11 @@ public final class DictionaryPersistenceController: Sendable {
             try fileManager.copyItem(at: sourceCompressionDictionaryDir, to: destinationCompressionDictionaryDir)
         }
 
-        if let sourceTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: starterDictionaryDirectory),
-           fileManager.fileExists(atPath: sourceTokenizerDictionaryDir.path),
-           let destinationTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory)
-        {
-            try fileManager.copyItem(at: sourceTokenizerDictionaryDir, to: destinationTokenizerDictionaryDir)
-        }
+        try copyBundledTokenizerDictionaryIfPresent(
+            from: starterDictionaryDirectory,
+            to: baseDirectory,
+            fileManager: fileManager
+        )
 
         if let sourceGrammarDictionaryDir = GrammarDictionaryStorage.rootDirectoryURL(in: starterDictionaryDirectory),
            fileManager.fileExists(atPath: sourceGrammarDictionaryDir.path),
@@ -355,6 +380,45 @@ public final class DictionaryPersistenceController: Sendable {
         if fileManager.fileExists(atPath: markerURL.path) {
             try fileManager.removeItem(at: markerURL)
         }
+    }
+
+    static func isBundledTokenizerSeedingNeeded(at baseDirectory: URL?, fileManager: FileManager = .default) -> Bool {
+        guard let installedDirectory = TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory) else {
+            return false
+        }
+
+        let requiredFiles = TokenizerDictionaryStorage.requiredResourceFiles + [TokenizerDictionaryStorage.manifestFileName]
+        for requiredFile in requiredFiles {
+            let fileURL = installedDirectory.appendingPathComponent(requiredFile)
+            if !fileManager.fileExists(atPath: fileURL.path) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    static func copyBundledTokenizerDictionaryIfPresent(
+        from starterDictionaryDirectory: URL,
+        to baseDirectory: URL,
+        fileManager: FileManager = .default
+    ) throws {
+        guard let sourceTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: starterDictionaryDirectory),
+              fileManager.fileExists(atPath: sourceTokenizerDictionaryDir.path),
+              let destinationTokenizerDictionaryDir = TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory)
+        else {
+            return
+        }
+
+        if fileManager.fileExists(atPath: destinationTokenizerDictionaryDir.path) {
+            try fileManager.removeItem(at: destinationTokenizerDictionaryDir)
+        }
+        try fileManager.copyItem(at: sourceTokenizerDictionaryDir, to: destinationTokenizerDictionaryDir)
+    }
+
+    private static func starterDictionaryContainsDatabase(_ starterDictionaryDirectory: URL, fileManager: FileManager) -> Bool {
+        let sourceDB = starterDictionaryDirectory.appendingPathComponent("MaruDictionary.sqlite")
+        return fileManager.fileExists(atPath: sourceDB.path)
     }
 
     #if DEBUG

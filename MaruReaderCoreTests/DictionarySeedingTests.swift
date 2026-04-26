@@ -49,6 +49,25 @@ struct DictionarySeedingTests {
         #expect(DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory))
     }
 
+    @Test func tokenizerSeedingNeededWhenTokenizerFilesMissing() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(baseDirectory) }
+
+        #expect(DictionaryPersistenceController.isBundledTokenizerSeedingNeeded(at: baseDirectory))
+    }
+
+    @Test func tokenizerSeedingNotNeededWhenTokenizerFilesExist() throws {
+        let baseDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(baseDirectory) }
+
+        let tokenizerDirectory = try makeTokenizerDictionaryDirectory(in: baseDirectory)
+
+        for fileName in TokenizerDictionaryStorage.requiredResourceFiles + [TokenizerDictionaryStorage.manifestFileName] {
+            #expect(FileManager.default.fileExists(atPath: tokenizerDirectory.appendingPathComponent(fileName).path))
+        }
+        #expect(!DictionaryPersistenceController.isBundledTokenizerSeedingNeeded(at: baseDirectory))
+    }
+
     @Test func performBundledSeedCopy_copiesDatabaseMediaCompressionDictionariesAndCreatesMarker() throws {
         UserDefaults.standard.removeObject(forKey: DictionaryPersistenceController.defaultGrammarDictionaryImportCompletionKey)
         defer {
@@ -112,6 +131,42 @@ struct DictionarySeedingTests {
         #expect(FileManager.default.fileExists(atPath: copiedGrammarURL.path))
         #expect(FileManager.default.fileExists(atPath: markerURL.path))
         #expect(UserDefaults.standard.bool(forKey: DictionaryPersistenceController.defaultGrammarDictionaryImportCompletionKey))
+    }
+
+    @Test func copyBundledTokenizerDictionaryIfPresent_copiesTokenizerWithoutDatabaseMarker() throws {
+        let starterDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(starterDirectory) }
+
+        let destinationDirectory = try makeTemporaryDirectory()
+        defer { cleanupTemporaryDirectory(destinationDirectory) }
+
+        let sourceTokenizerDirectory = try makeTokenizerDictionaryDirectory(in: starterDirectory)
+
+        try DictionaryPersistenceController.copyBundledTokenizerDictionaryIfPresent(
+            from: starterDirectory,
+            to: destinationDirectory
+        )
+
+        let destinationTokenizerDirectory = try #require(TokenizerDictionaryStorage.installedDirectoryURL(in: destinationDirectory))
+        let markerURL = DictionaryPersistenceController.bundledDatabaseSeedCompletionMarkerURL(in: destinationDirectory)
+
+        for fileName in TokenizerDictionaryStorage.requiredResourceFiles + [TokenizerDictionaryStorage.manifestFileName] {
+            #expect(
+                FileManager.default.fileExists(
+                    atPath: destinationTokenizerDirectory.appendingPathComponent(fileName).path
+                )
+            )
+            #expect(
+                try String(
+                    contentsOf: sourceTokenizerDirectory.appendingPathComponent(fileName),
+                    encoding: .utf8
+                ) == String(
+                    contentsOf: destinationTokenizerDirectory.appendingPathComponent(fileName),
+                    encoding: .utf8
+                )
+            )
+        }
+        #expect(!FileManager.default.fileExists(atPath: markerURL.path))
     }
 
     @Test func performBundledSeedCopy_failureCleansPartialSeedOutputAndDoesNotLeaveMarker() throws {
@@ -209,5 +264,21 @@ struct DictionarySeedingTests {
 
     private func cleanupTemporaryDirectory(_ url: URL) {
         try? FileManager.default.removeItem(at: url)
+    }
+
+    private func makeTokenizerDictionaryDirectory(in baseDirectory: URL) throws -> URL {
+        let tokenizerDirectory = try #require(TokenizerDictionaryStorage.installedDirectoryURL(in: baseDirectory))
+        try FileManager.default.createDirectory(at: tokenizerDirectory, withIntermediateDirectories: true)
+
+        for fileName in TokenizerDictionaryStorage.requiredResourceFiles + [TokenizerDictionaryStorage.manifestFileName] {
+            #expect(
+                FileManager.default.createFile(
+                    atPath: tokenizerDirectory.appendingPathComponent(fileName).path,
+                    contents: Data(fileName.utf8)
+                )
+            )
+        }
+
+        return tokenizerDirectory
     }
 }
