@@ -33,6 +33,10 @@ struct UnifiedGrammarDictionaryManagementRow: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(grammarDictionary.title ?? String(localized: "Unknown Grammar Dictionary"))
                 .font(.headline)
+                .transaction { transaction in
+                    // Prevent the title text from bouncing when the disclosure group expands/collapses
+                    transaction.animation = .none
+                }
 
             HStack(spacing: 12) {
                 Label("\(grammarDictionary.entryCount.formatted()) entries", systemImage: "doc.text")
@@ -40,6 +44,10 @@ struct UnifiedGrammarDictionaryManagementRow: View {
             }
             .font(.caption2)
             .foregroundStyle(.secondary)
+            .transaction { transaction in
+                // Prevent the count text from bouncing when the disclosure group expands/collapses
+                transaction.animation = .none
+            }
 
             if hasMetadata {
                 DisclosureGroup("Details", isExpanded: $isMetadataExpanded) {
