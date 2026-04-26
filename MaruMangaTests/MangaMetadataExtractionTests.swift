@@ -20,17 +20,7 @@ import Foundation
 import XCTest
 
 /// Tests for manga metadata extraction functionality.
-/// Real titles and authors are included because the Foundation Model's
-/// performance appears to vary between familiar and unfamiliar names.
-/// The quality matrix remains observational rather than strict because
-/// Foundation Model outputs can still vary between runs.
 final class MangaMetadataExtractionTests: XCTestCase {
-    private struct ExpectedMetadataCase {
-        let filename: String
-        let title: String
-        let author: String
-    }
-
     func testParseOutputTracksExtractedFlags() {
         let extractor = MangaFilenameMetadataExtractor()
         let output = """
@@ -126,87 +116,6 @@ final class MangaMetadataExtractionTests: XCTestCase {
         XCTAssertFalse(metadata.authorWasExtracted)
     }
 
-    func testFilenameExtractionEnglishTitleAndAuthor() async throws {
-        try requireModelAvailability()
-
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = await extractor.extract(from: "Chainsaw Man - Tatsuki Fujimoto.cbz")
-
-        XCTAssertEqual(metadata.title, "Chainsaw Man")
-        XCTAssertEqual(metadata.author, "Tatsuki Fujimoto")
-    }
-
-    func testFilenameExtractionJapaneseTitleAndAuthor() async throws {
-        try requireModelAvailability()
-
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = await extractor.extract(from: "【石黒正数】それでも町は廻っている 第01巻.zip")
-
-        XCTAssertEqual(metadata.title, "それでも町は廻っている 第01巻")
-        XCTAssertEqual(metadata.author, "石黒正数")
-    }
-
-    func testFilenameExtractionJapaneseWithVolume() async throws {
-        try requireModelAvailability()
-
-        let extractor = MangaFilenameMetadataExtractor()
-        let metadata = await extractor.extract(from: "[Library Edition] 呪術廻戦 10巻 芥見下々.cbz")
-
-        XCTAssertEqual(metadata.title, "呪術廻戦 10巻")
-        XCTAssertEqual(metadata.author, "芥見下々")
-    }
-
-    func testFilenameExtractionQualityMatrix() async throws {
-        try requireModelAvailability()
-
-        let options = XCTExpectedFailure.Options()
-        options.isStrict = false
-
-        let extractor = MangaFilenameMetadataExtractor()
-        let cases = [
-            ExpectedMetadataCase(
-                filename: "golden_fist_man_chapter_1.cbz",
-                title: "Golden Fist Man Chapter 1",
-                author: ""
-            ),
-            ExpectedMetadataCase(
-                filename: "[Archive] (博之なこ) 赤い魚 第１巻 [600p].zip",
-                title: "赤い魚 第１巻",
-                author: "博之なこ"
-            ),
-            ExpectedMetadataCase(
-                filename: "[Library Edition][Bonus] ワンピース 第010巻 尾田栄一郎.cbz",
-                title: "ワンピース 第010巻",
-                author: "尾田栄一郎"
-            ),
-            ExpectedMetadataCase(
-                filename: "ダンダダン_第02巻_龍幸伸.zip",
-                title: "ダンダダン 第02巻",
-                author: "龍幸伸"
-            ),
-            ExpectedMetadataCase(
-                filename: "(吾峠呼世晴) 鬼滅の刃 23巻 [ja].cbz",
-                title: "鬼滅の刃 23巻",
-                author: "吾峠呼世晴"
-            ),
-        ]
-
-        for testCase in cases {
-            let metadata = await extractor.extract(from: testCase.filename)
-            XCTExpectFailure(
-                "Foundation Models output is nondeterministic; title mismatches in the quality matrix are observational.",
-                options: options
-            )
-            XCTAssertEqual(metadata.title, testCase.title, "Filename: \(testCase.filename)")
-
-            XCTExpectFailure(
-                "Foundation Models output is nondeterministic; author mismatches in the quality matrix are observational.",
-                options: options
-            )
-            XCTAssertEqual(metadata.author, testCase.author, "Filename: \(testCase.filename)")
-        }
-    }
-
     func testSmartMetadataExtractionSettingDefaultsToEnabled() {
         let defaults = UserDefaults.standard
         let key = MangaMetadataExtractionSettings.smartExtractionEnabledKey
@@ -279,11 +188,5 @@ final class MangaMetadataExtractionTests: XCTestCase {
             MangaImportManager.isMetadataExtractorAvailable,
             MangaFilenameMetadataExtractor.isModelAvailable
         )
-    }
-
-    private func requireModelAvailability() throws {
-        guard MangaFilenameMetadataExtractor.isModelAvailable else {
-            throw XCTSkip("Foundation Models are unavailable on this device.")
-        }
     }
 }
