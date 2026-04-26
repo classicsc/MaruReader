@@ -113,6 +113,24 @@ impl SudachiAnalyzer {
 
         Ok(spans)
     }
+
+    pub fn normalized_form(&self, text: String) -> Result<String, SudachiAnalyzerError> {
+        if text.is_empty() {
+            return Ok(String::new());
+        }
+
+        let tokenizer = StatelessTokenizer::new(self.dictionary()?);
+        let morphemes = tokenizer
+            .tokenize(&text, Mode::C, false)
+            .map_err(|error| SudachiAnalyzerError::Tokenization(error.to_string()))?;
+
+        let mut normalized = String::new();
+        for morpheme in morphemes.iter() {
+            normalized.push_str(morpheme.normalized_form());
+        }
+
+        Ok(normalized)
+    }
 }
 
 impl SudachiAnalyzer {
@@ -430,6 +448,47 @@ mod tests {
         }
 
         assert_eq!(expected_start, text.len());
+        Ok(())
+    }
+
+    #[test]
+    fn normalized_form_converts_itaiji() -> Result<(), SudachiAnalyzerError> {
+        let analyzer = test_analyzer()?;
+        assert_eq!(analyzer.normalized_form("附属".to_string())?, "付属");
+        Ok(())
+    }
+
+    #[test]
+    fn normalized_form_converts_latin_loanwords() -> Result<(), SudachiAnalyzerError> {
+        let analyzer = test_analyzer()?;
+        assert_eq!(analyzer.normalized_form("SUMMER".to_string())?, "サマー");
+        Ok(())
+    }
+
+    #[test]
+    fn normalized_form_handles_halfwidth_kana_and_combining_marks(
+    ) -> Result<(), SudachiAnalyzerError> {
+        let analyzer = test_analyzer()?;
+        assert_eq!(analyzer.normalized_form("ﾊﾟーティー".to_string())?, "パーティー");
+        assert_eq!(analyzer.normalized_form("ハ\u{309A}ーティー".to_string())?, "パーティー");
+        Ok(())
+    }
+
+    #[test]
+    fn normalized_form_handles_repeated_prolonged_sound_marks() -> Result<(), SudachiAnalyzerError>
+    {
+        let analyzer = test_analyzer()?;
+        assert_eq!(analyzer.normalized_form("すごーーい".to_string())?, "凄い");
+        Ok(())
+    }
+
+    #[test]
+    fn normalized_form_preserves_oov_text_sensibly() -> Result<(), SudachiAnalyzerError> {
+        let analyzer = test_analyzer()?;
+        assert_eq!(
+            analyzer.normalized_form("未登録zzzzzz".to_string())?,
+            "未登録zzzzzz"
+        );
         Ok(())
     }
 

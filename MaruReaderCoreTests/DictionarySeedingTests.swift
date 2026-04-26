@@ -50,6 +50,11 @@ struct DictionarySeedingTests {
     }
 
     @Test func performBundledSeedCopy_copiesDatabaseMediaCompressionDictionariesAndCreatesMarker() throws {
+        UserDefaults.standard.removeObject(forKey: DictionaryPersistenceController.defaultGrammarDictionaryImportCompletionKey)
+        defer {
+            UserDefaults.standard.removeObject(forKey: DictionaryPersistenceController.defaultGrammarDictionaryImportCompletionKey)
+        }
+
         let starterDirectory = try makeTemporaryDirectory()
         defer { cleanupTemporaryDirectory(starterDirectory) }
 
@@ -80,6 +85,13 @@ struct DictionarySeedingTests {
         )
         #expect(FileManager.default.createFile(atPath: compressionDictionaryURL.path, contents: Data("dict".utf8)))
 
+        let grammarDictionaryDirectory = starterDirectory.appendingPathComponent(
+            GrammarDictionaryStorage.installationDirectoryName
+        )
+        try FileManager.default.createDirectory(at: grammarDictionaryDirectory, withIntermediateDirectories: true)
+        let grammarFileURL = grammarDictionaryDirectory.appendingPathComponent("grammar.txt")
+        #expect(FileManager.default.createFile(atPath: grammarFileURL.path, contents: Data("grammar".utf8)))
+
         try DictionaryPersistenceController.performBundledSeedCopy(from: starterDirectory, to: destinationDirectory)
 
         let copiedDatabaseURL = destinationDirectory.appendingPathComponent("MaruDictionary.sqlite")
@@ -88,13 +100,18 @@ struct DictionarySeedingTests {
         let copiedCompressionDictionaryURL = destinationDirectory
             .appendingPathComponent(GlossaryCompressionCodec.zstdDictionaryDirectoryName)
             .appendingPathComponent("\(dictionaryIdentifier).\(GlossaryCompressionCodec.zstdDictionaryFileExtension)")
+        let copiedGrammarURL = destinationDirectory.appendingPathComponent(
+            "\(GrammarDictionaryStorage.installationDirectoryName)/grammar.txt"
+        )
         let markerURL = DictionaryPersistenceController.bundledDatabaseSeedCompletionMarkerURL(in: destinationDirectory)
 
         #expect(FileManager.default.fileExists(atPath: copiedDatabaseURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedMediaURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedAudioURL.path))
         #expect(FileManager.default.fileExists(atPath: copiedCompressionDictionaryURL.path))
+        #expect(FileManager.default.fileExists(atPath: copiedGrammarURL.path))
         #expect(FileManager.default.fileExists(atPath: markerURL.path))
+        #expect(UserDefaults.standard.bool(forKey: DictionaryPersistenceController.defaultGrammarDictionaryImportCompletionKey))
     }
 
     @Test func performBundledSeedCopy_failureCleansPartialSeedOutputAndDoesNotLeaveMarker() throws {
@@ -126,6 +143,13 @@ struct DictionarySeedingTests {
         )
         #expect(FileManager.default.createFile(atPath: staleCompressionFileURL.path, contents: Data("stale-dict".utf8)))
 
+        let staleGrammarDictionaryDirectory = destinationDirectory.appendingPathComponent(
+            GrammarDictionaryStorage.installationDirectoryName
+        )
+        try FileManager.default.createDirectory(at: staleGrammarDictionaryDirectory, withIntermediateDirectories: true)
+        let staleGrammarFileURL = staleGrammarDictionaryDirectory.appendingPathComponent("grammar.txt")
+        #expect(FileManager.default.createFile(atPath: staleGrammarFileURL.path, contents: Data("stale-grammar".utf8)))
+
         try DictionaryPersistenceController.writeBundledDatabaseSeedCompletionMarker(at: destinationDirectory)
 
         #expect(throws: Error.self) {
@@ -138,6 +162,7 @@ struct DictionarySeedingTests {
         #expect(!FileManager.default.fileExists(atPath: staleMediaDirectory.path))
         #expect(!FileManager.default.fileExists(atPath: staleAudioDirectory.path))
         #expect(!FileManager.default.fileExists(atPath: staleCompressionDirectory.path))
+        #expect(!FileManager.default.fileExists(atPath: staleGrammarDictionaryDirectory.path))
         #expect(!FileManager.default.fileExists(atPath: markerURL.path))
     }
 

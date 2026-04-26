@@ -97,13 +97,14 @@ struct ThirdPartyLicenseCatalogTests {
         #expect(names.contains("js-beautify"))
     }
 
-    @Test func rustCatalogIncludesSudachiAndDependencies() throws {
+    @Test func rustCatalogIncludesSudachiMaruMarkAndDependencies() throws {
         let catalog = try loadCatalog()
         let rustComponents = catalog.components.filter { $0.category == .rustCrate }
 
         #expect(!rustComponents.isEmpty)
         #expect(rustComponents.count > 1)
         #expect(rustComponents.contains { $0.name == "sudachi" })
+        #expect(rustComponents.contains { $0.name == "mdbook-markdown" })
     }
 
     private func loadCatalog() throws -> ThirdPartyLicenseCatalog {

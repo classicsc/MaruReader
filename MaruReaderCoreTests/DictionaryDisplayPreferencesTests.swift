@@ -56,8 +56,6 @@ struct DictionaryDisplayPreferencesTests {
             #expect(DictionaryDisplayPreferences.fontFamily == DictionaryDisplayPreferences.fontFamilyDefault)
             #expect(DictionaryDisplayPreferences.fontSize == DictionaryDisplayPreferences.fontSizeDefault)
             #expect(DictionaryDisplayPreferences.popupFontSize == DictionaryDisplayPreferences.popupFontSizeDefault)
-            #expect(DictionaryDisplayPreferences.showDeinflection == DictionaryDisplayPreferences.showDeinflectionDefault)
-            #expect(DictionaryDisplayPreferences.deinflectionDescriptionLanguage == DictionaryDisplayPreferences.deinflectionDescriptionLanguageDefault)
             #expect(DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabled == DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabledDefault)
             #expect(DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplay == DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplayDefault)
             #expect(DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabled == DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabledDefault)
@@ -73,8 +71,6 @@ struct DictionaryDisplayPreferencesTests {
             DictionaryDisplayPreferences.fontFamily = "Test Font Stack"
             DictionaryDisplayPreferences.fontSize = 1.7
             DictionaryDisplayPreferences.popupFontSize = 1.4
-            DictionaryDisplayPreferences.showDeinflection = false
-            DictionaryDisplayPreferences.deinflectionDescriptionLanguage = DeinflectionLanguage.en.rawValue
             DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabled = false
             DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplay = true
             DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabled = true
@@ -87,8 +83,6 @@ struct DictionaryDisplayPreferencesTests {
             #expect(DictionaryDisplayPreferences.fontFamily == "Test Font Stack")
             #expect(DictionaryDisplayPreferences.fontSize == 1.7)
             #expect(DictionaryDisplayPreferences.popupFontSize == 1.4)
-            #expect(!DictionaryDisplayPreferences.showDeinflection)
-            #expect(DictionaryDisplayPreferences.deinflectionDescriptionLanguage == DeinflectionLanguage.en.rawValue)
             #expect(!DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabled)
             #expect(DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplay)
             #expect(DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabled)
@@ -124,8 +118,6 @@ struct DictionaryDisplayPreferencesTests {
             DictionaryDisplayPreferences.fontFamily = "Display Font"
             DictionaryDisplayPreferences.fontSize = 1.25
             DictionaryDisplayPreferences.popupFontSize = 0.9
-            DictionaryDisplayPreferences.showDeinflection = false
-            DictionaryDisplayPreferences.deinflectionDescriptionLanguage = DeinflectionLanguage.ja.rawValue
             DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabled = false
             DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplay = true
             DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabled = true
@@ -137,8 +129,6 @@ struct DictionaryDisplayPreferencesTests {
             #expect(styles.fontFamily == "Display Font")
             #expect(styles.contentFontSize == 1.25)
             #expect(styles.popupFontSize == 0.9)
-            #expect(!styles.showDeinflection)
-            #expect(styles.deinflectionDescriptionLanguage == DeinflectionLanguage.ja.rawValue)
             #expect(!styles.pitchDownstepNotationInHeaderEnabled)
             #expect(styles.pitchResultsAreaCollapsedDisplay)
             #expect(styles.pitchResultsAreaDownstepNotationEnabled)
@@ -163,8 +153,6 @@ struct DictionaryDisplayPreferencesTests {
             DictionaryDisplayPreferences.fontFamily = "Lookup Font"
             DictionaryDisplayPreferences.fontSize = 1.33
             DictionaryDisplayPreferences.popupFontSize = 1.11
-            DictionaryDisplayPreferences.showDeinflection = false
-            DictionaryDisplayPreferences.deinflectionDescriptionLanguage = DeinflectionLanguage.en.rawValue
             DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabled = false
             DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplay = true
             DictionaryDisplayPreferences.pitchResultsAreaDownstepNotationEnabled = true
@@ -182,8 +170,6 @@ struct DictionaryDisplayPreferencesTests {
             #expect(styles.fontFamily == "Lookup Font")
             #expect(styles.contentFontSize == 1.33)
             #expect(styles.popupFontSize == 1.11)
-            #expect(!styles.showDeinflection)
-            #expect(styles.deinflectionDescriptionLanguage == DeinflectionLanguage.en.rawValue)
             #expect(!styles.pitchDownstepNotationInHeaderEnabled)
             #expect(styles.pitchResultsAreaCollapsedDisplay)
             #expect(styles.pitchResultsAreaDownstepNotationEnabled)

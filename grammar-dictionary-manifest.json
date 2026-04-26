@@ -1,0 +1,15 @@
+{
+	"assetPackID": "YokubiGrammarDictionary",
+	"downloadPolicy": {
+		"onDemand": {}
+	},
+	"fileSelectors": [
+		{
+			"directory": "build/GrammarDictionary"
+		}
+	],
+	"platforms": [
+		"iOS",
+		"macOS"
+	]
+}

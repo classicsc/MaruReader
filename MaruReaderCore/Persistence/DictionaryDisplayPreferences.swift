@@ -21,8 +21,6 @@ public enum DictionaryDisplayPreferences {
     public static let fontFamilyKey = "dictionaryDisplay.fontFamily"
     public static let fontSizeKey = "dictionaryDisplay.fontSize"
     public static let popupFontSizeKey = "dictionaryDisplay.popupFontSize"
-    public static let showDeinflectionKey = "dictionaryDisplay.showDeinflection"
-    public static let deinflectionDescriptionLanguageKey = "dictionaryDisplay.deinflectionDescriptionLanguage"
     public static let pitchDownstepNotationInHeaderEnabledKey = "dictionaryDisplay.pitchDownstepNotationInHeaderEnabled"
     public static let pitchResultsAreaCollapsedDisplayKey = "dictionaryDisplay.pitchResultsAreaCollapsedDisplay"
     public static let pitchResultsAreaDownstepNotationEnabledKey = "dictionaryDisplay.pitchResultsAreaDownstepNotationEnabled"
@@ -34,8 +32,6 @@ public enum DictionaryDisplayPreferences {
     public static let fontFamilyDefault = DictionaryDisplayDefaults.defaultFontFamily
     public static let fontSizeDefault = DictionaryDisplayDefaults.defaultFontSize
     public static let popupFontSizeDefault = DictionaryDisplayDefaults.defaultPopupFontSize
-    public static let showDeinflectionDefault = DictionaryDisplayDefaults.defaultShowDeinflection
-    public static let deinflectionDescriptionLanguageDefault = DictionaryDisplayDefaults.defaultDeinflectionDescriptionLanguage
     public static let pitchDownstepNotationInHeaderEnabledDefault = DictionaryDisplayDefaults.defaultPitchDownstepNotationInHeaderEnabled
     public static let pitchResultsAreaCollapsedDisplayDefault = DictionaryDisplayDefaults.defaultPitchResultsAreaCollapsedDisplay
     public static let pitchResultsAreaDownstepNotationEnabledDefault = DictionaryDisplayDefaults.defaultPitchResultsAreaDownstepNotationEnabled
@@ -48,8 +44,6 @@ public enum DictionaryDisplayPreferences {
         fontFamilyKey,
         fontSizeKey,
         popupFontSizeKey,
-        showDeinflectionKey,
-        deinflectionDescriptionLanguageKey,
         pitchDownstepNotationInHeaderEnabledKey,
         pitchResultsAreaCollapsedDisplayKey,
         pitchResultsAreaDownstepNotationEnabledKey,
@@ -93,26 +87,6 @@ public enum DictionaryDisplayPreferences {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: popupFontSizeKey)
-        }
-    }
-
-    public static var showDeinflection: Bool {
-        get {
-            let stored = UserDefaults.standard.object(forKey: showDeinflectionKey) as? Bool
-            return stored ?? showDeinflectionDefault
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: showDeinflectionKey)
-        }
-    }
-
-    public static var deinflectionDescriptionLanguage: String {
-        get {
-            let stored = UserDefaults.standard.string(forKey: deinflectionDescriptionLanguageKey)
-            return stored ?? deinflectionDescriptionLanguageDefault
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: deinflectionDescriptionLanguageKey)
         }
     }
 
@@ -191,8 +165,6 @@ public enum DictionaryDisplayPreferences {
             fontFamily: fontFamily,
             contentFontSize: fontSize,
             popupFontSize: popupFontSize,
-            showDeinflection: showDeinflection,
-            deinflectionDescriptionLanguage: deinflectionDescriptionLanguage,
             pitchDownstepNotationInHeaderEnabled: pitchDownstepNotationInHeaderEnabled,
             pitchResultsAreaCollapsedDisplay: pitchResultsAreaCollapsedDisplay,
             pitchResultsAreaDownstepNotationEnabled: pitchResultsAreaDownstepNotationEnabled,

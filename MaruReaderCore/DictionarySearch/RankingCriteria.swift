@@ -17,7 +17,7 @@
 
 import Foundation
 
-/// Encapsulates the 9-tier ranking criteria for search results
+/// Encapsulates the 10-tier ranking criteria for search results.
 public struct RankingCriteria: Comparable, Sendable {
     // MARK: - Ranking Criteria (in order of precedence)
 
@@ -27,34 +27,37 @@ public struct RankingCriteria: Comparable, Sendable {
     /// 2. Text processing chain length - shorter minimum chain length wins
     let textProcessingChainLength: Int
 
-    /// 3. Inflection chain length - shorter minimum chain length wins
+    /// 3. Deconjugation priority - lower generated candidate priority wins
     let inflectionChainLength: Int
 
-    /// 4. Source term exact match - more deinflection chains wins
+    /// 4. Source term exact match - exact forms win, then more compatible paths win
     let deinflectionChainCount: Int
 
-    /// 5. Frequency order - depends on frequency mode
+    /// 5. Candidate term length - longer generated lookup terms win
+    let candidateTermLength: Int
+
+    /// 6. Frequency order - depends on frequency mode
     let frequencyValue: Double?
     let frequencyMode: String?
 
-    /// 6. Dictionary order - higher termDisplayPriority wins
+    /// 7. Dictionary order - higher termDisplayPriority wins
     let dictionaryPriority: Int
 
-    /// 7. Term score - higher score wins (only comparable within same dictionary)
+    /// 8. Term score - higher score wins (only comparable within same dictionary)
     let termScore: Double
     let dictionaryTitle: String // For ensuring scores are only compared within same dictionary
 
-    /// 8. Definition count - more definitions wins
+    /// 9. Definition count - more definitions wins
     let definitionCount: Int
 
-    /// 9. Lexicographic order - fallback comparison
+    /// 10. Lexicographic order - fallback comparison
     let term: String
 
     // MARK: - Initialization
 
     init(
         candidate: LookupCandidate,
-        validatedDeinflectionChains: [[String]],
+        validatedDeconjugationPaths: [LookupCandidateDeconjugation],
         term: String,
         termScore: Double,
         definitionCount: Int,
@@ -70,29 +73,32 @@ public struct RankingCriteria: Comparable, Sendable {
             ? 0
             : candidate.preprocessorRules.map(\.count).min() ?? 0
 
-        // 3. Inflection chain length (minimum of all chain lengths)
-        self.inflectionChainLength = validatedDeinflectionChains.isEmpty
+        // 3. Deconjugation priority
+        self.inflectionChainLength = validatedDeconjugationPaths.isEmpty
             ? 0
-            : validatedDeinflectionChains.map(\.count).min() ?? 0
+            : validatedDeconjugationPaths.map(\.priority).min() ?? 0
 
-        // 4. Deinflection chain count
-        self.deinflectionChainCount = validatedDeinflectionChains.count
+        // 4. Deconjugation path count
+        self.deinflectionChainCount = validatedDeconjugationPaths.count
 
-        // 5. Frequency
+        // 5. Candidate term length
+        self.candidateTermLength = candidate.text.count
+
+        // 6. Frequency
         self.frequencyValue = frequency.value
         self.frequencyMode = frequency.mode
 
-        // 6. Dictionary priority
+        // 7. Dictionary priority
         self.dictionaryPriority = dictionaryPriority
 
-        // 7. Term score and dictionary
+        // 8. Term score and dictionary
         self.termScore = termScore
         self.dictionaryTitle = dictionaryTitle
 
-        // 8. Definition count
+        // 9. Definition count
         self.definitionCount = definitionCount
 
-        // 9. Term for lexicographic comparison
+        // 10. Term for lexicographic comparison
         self.term = term
     }
 
@@ -107,7 +113,31 @@ public struct RankingCriteria: Comparable, Sendable {
     ) {
         self.init(
             candidate: candidate,
-            validatedDeinflectionChains: candidate.deinflectionInputRules,
+            validatedDeconjugationPaths: candidate.deconjugationPaths,
+            term: term,
+            termScore: termScore,
+            definitionCount: definitionCount,
+            frequency: frequency,
+            dictionaryTitle: dictionaryTitle,
+            dictionaryPriority: dictionaryPriority
+        )
+    }
+
+    init(
+        candidate: LookupCandidate,
+        validatedDeinflectionChains: [[String]],
+        term: String,
+        termScore: Double,
+        definitionCount: Int,
+        frequency: (value: Double?, mode: String?),
+        dictionaryTitle: String,
+        dictionaryPriority: Int
+    ) {
+        self.init(
+            candidate: candidate,
+            validatedDeconjugationPaths: validatedDeinflectionChains.map {
+                LookupCandidateDeconjugation(process: $0, tags: [], priority: $0.count)
+            },
             term: term,
             termScore: termScore,
             definitionCount: definitionCount,
@@ -129,12 +159,14 @@ public struct RankingCriteria: Comparable, Sendable {
         termScore: Double,
         dictionaryTitle: String,
         definitionCount: Int,
-        term: String
+        term: String,
+        candidateTermLength: Int? = nil
     ) {
         self.sourceTermLength = sourceTermLength
         self.textProcessingChainLength = textProcessingChainLength
         self.inflectionChainLength = inflectionChainLength
         self.deinflectionChainCount = deinflectionChainCount
+        self.candidateTermLength = candidateTermLength ?? term.count
         self.frequencyValue = frequencyValue
         self.frequencyMode = frequencyMode
         self.dictionaryPriority = dictionaryPriority
@@ -157,7 +189,7 @@ public struct RankingCriteria: Comparable, Sendable {
             return lhs.textProcessingChainLength > rhs.textProcessingChainLength
         }
 
-        // 3. Inflection chain length - shorter wins
+        // 3. Deconjugation priority - lower wins
         if lhs.inflectionChainLength != rhs.inflectionChainLength {
             return lhs.inflectionChainLength > rhs.inflectionChainLength
         }
@@ -175,7 +207,12 @@ public struct RankingCriteria: Comparable, Sendable {
             return lhs.deinflectionChainCount < rhs.deinflectionChainCount
         }
 
-        // 5. Frequency order - depends on mode
+        // 5. Candidate term length - longer generated lookup terms win
+        if lhs.candidateTermLength != rhs.candidateTermLength {
+            return lhs.candidateTermLength < rhs.candidateTermLength
+        }
+
+        // 6. Frequency order - depends on mode
         let lhsFreq = lhs.frequencyValue
         let rhsFreq = rhs.frequencyValue
 
@@ -210,33 +247,34 @@ public struct RankingCriteria: Comparable, Sendable {
             }
         }
 
-        // 6. Dictionary order - higher priority wins (reverse comparison)
+        // 7. Dictionary order - higher priority wins (reverse comparison)
         if lhs.dictionaryPriority != rhs.dictionaryPriority {
             return lhs.dictionaryPriority < rhs.dictionaryPriority
         }
 
-        // 7. Term score - only compare if from same dictionary
+        // 8. Term score - only compare if from same dictionary
         if lhs.dictionaryTitle == rhs.dictionaryTitle, lhs.termScore != rhs.termScore {
             return lhs.termScore < rhs.termScore // Higher score wins
         }
 
-        // 8. Definition count - more wins (reverse comparison)
+        // 9. Definition count - more wins (reverse comparison)
         if lhs.definitionCount != rhs.definitionCount {
             return lhs.definitionCount < rhs.definitionCount
         }
 
-        // 9. Lexicographic order - fallback (earlier terms display first)
+        // 10. Lexicographic order - fallback (earlier terms display first)
         return lhs.term > rhs.term
     }
 
     public static func == (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
         // Check criteria in the same order as the < comparison
 
-        // 1-6: Check all criteria before term score
+        // 1-7: Check all criteria before term score
         if lhs.sourceTermLength != rhs.sourceTermLength ||
             lhs.textProcessingChainLength != rhs.textProcessingChainLength ||
             lhs.inflectionChainLength != rhs.inflectionChainLength ||
             lhs.deinflectionChainCount != rhs.deinflectionChainCount ||
+            lhs.candidateTermLength != rhs.candidateTermLength ||
             lhs.frequencyValue != rhs.frequencyValue ||
             lhs.frequencyMode != rhs.frequencyMode ||
             lhs.dictionaryPriority != rhs.dictionaryPriority
@@ -244,12 +282,12 @@ public struct RankingCriteria: Comparable, Sendable {
             return false
         }
 
-        // 7: Term score - only compare if from same dictionary
+        // 8: Term score - only compare if from same dictionary
         if lhs.dictionaryTitle == rhs.dictionaryTitle, lhs.termScore != rhs.termScore {
             return false
         }
 
-        // 8-9: Check remaining criteria
+        // 9-10: Check remaining criteria
         return lhs.definitionCount == rhs.definitionCount &&
             lhs.term == rhs.term
     }

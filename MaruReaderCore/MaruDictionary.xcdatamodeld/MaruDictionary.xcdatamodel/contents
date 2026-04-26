@@ -164,6 +164,48 @@
         <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="totalBytes" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
     </entity>
+    <entity name="GrammarDictionary" representedClassName="GrammarDictionary" syncable="YES" codeGenerationType="class">
+        <attribute name="attribution" optional="YES" attributeType="String"/>
+        <attribute name="author" optional="YES" attributeType="String"/>
+        <attribute name="displayDescription" optional="YES" attributeType="String"/>
+        <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>
+        <attribute name="downloadURL" optional="YES" attributeType="String"/>
+        <attribute name="entryCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="errorMessage" optional="YES" attributeType="String"/>
+        <attribute name="file" optional="YES" attributeType="URI"/>
+        <attribute name="formTagCount" attributeType="Integer 64" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="format" attributeType="Integer 64" defaultValueString="1" usesScalarValueType="YES"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="indexURL" optional="YES" attributeType="String"/>
+        <attribute name="isCancelled" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isComplete" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isFailed" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isStarted" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="isUpdatable" optional="YES" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="license" optional="YES" attributeType="String"/>
+        <attribute name="pendingDeletion" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
+        <attribute name="revision" optional="YES" attributeType="String"/>
+        <attribute name="timeCancelled" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeCompleted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeFailed" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeQueued" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="timeStarted" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="title" attributeType="String"/>
+    </entity>
+    <entity name="GrammarDictionaryEntry" representedClassName="GrammarDictionaryEntry" syncable="YES" codeGenerationType="class">
+        <attribute name="dictionaryID" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="entryID" attributeType="String"/>
+        <attribute name="formTags" attributeType="String"/>
+        <attribute name="id" attributeType="UUID" usesScalarValueType="NO"/>
+        <attribute name="path" attributeType="String"/>
+        <attribute name="title" attributeType="String"/>
+        <fetchIndex name="byDictionaryID">
+            <fetchIndexElement property="dictionaryID" type="Binary" order="ascending"/>
+        </fetchIndex>
+        <fetchIndex name="byEntryID">
+            <fetchIndexElement property="entryID" type="Binary" order="ascending"/>
+        </fetchIndex>
+    </entity>
     <entity name="TokenizerDictionary" representedClassName="TokenizerDictionary" syncable="YES" codeGenerationType="class">
         <attribute name="attribution" optional="YES" attributeType="String"/>
         <attribute name="displayProgressMessage" optional="YES" attributeType="String"/>

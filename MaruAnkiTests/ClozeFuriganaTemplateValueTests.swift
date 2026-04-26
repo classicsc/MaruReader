@@ -32,8 +32,6 @@ struct ClozeFuriganaTemplateValueTests {
             fontFamily: "sans-serif",
             contentFontSize: 1.0,
             popupFontSize: 1.0,
-            showDeinflection: false,
-            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,
@@ -47,8 +45,7 @@ struct ClozeFuriganaTemplateValueTests {
             reading: nil,
             dictionariesResults: [],
             pitchAccentResults: [],
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
 
         let response = TextLookupResponse(

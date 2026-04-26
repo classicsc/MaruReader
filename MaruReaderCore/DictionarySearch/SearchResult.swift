@@ -32,6 +32,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
     public let termTags: [Tag]
     public let definitionTags: [Tag]
     public let deinflectionRules: [[String]]
+    public let grammarMatches: [GrammarEntryMatch]
     public let sequence: Int64
     public let score: Double
 
@@ -50,6 +51,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
         termTags: [Tag],
         definitionTags: [Tag],
         deinflectionRules: [[String]],
+        grammarMatches: [GrammarEntryMatch] = [],
         sequence: Int64,
         score: Double
     ) {
@@ -67,6 +69,7 @@ public struct SearchResult: Identifiable, Comparable, Sendable {
         self.termTags = termTags
         self.definitionTags = definitionTags
         self.deinflectionRules = deinflectionRules
+        self.grammarMatches = grammarMatches
         self.sequence = sequence
         self.score = score
     }

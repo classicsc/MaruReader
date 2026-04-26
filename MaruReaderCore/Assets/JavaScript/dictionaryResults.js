@@ -237,7 +237,6 @@ window.MaruReader.dictionaryResults = {
         if (styles.popupFontSize) {
             document.documentElement.style.setProperty('--popup-font-size-multiplier', String(styles.popupFontSize));
         }
-        document.documentElement.style.setProperty('--deinflection-display', styles.showDeinflection ? 'inline-block' : 'none');
     },
 
     setupObserver: function() {

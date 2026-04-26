@@ -93,7 +93,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         // MARK: - Conjugation/deinflection
 
         case .conjugation:
-            return .text(selectedGroup.deinflectionInfo)
+            return .text(nil)
 
         // MARK: - Furigana
 

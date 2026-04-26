@@ -282,6 +282,9 @@ struct SampleContentSeederTests {
                     cleanupInterruptedImportsAndPendingDeletions: {
                         await recorder.record("cleanup")
                     },
+                    startDefaultGrammarDictionaryImportIfNeeded: {
+                        await recorder.record("grammar")
+                    },
                     importSampleContentIfAvailable: {
                         await recorder.record("sample")
                     },
@@ -297,7 +300,7 @@ struct SampleContentSeederTests {
 
         await coordinator.waitUntilComplete()
         let events = await recorder.snapshot()
-        #expect(events == ["anki", "cleanup", "sample", "updates", "screenshot"])
+        #expect(events == ["anki", "cleanup", "grammar", "sample", "updates", "screenshot"])
     }
 
     @Test func requiresWelcomeScreen_OnlyDictionarySeeding_ReturnsFalse() async {
@@ -309,6 +312,7 @@ struct SampleContentSeederTests {
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
                     importSampleContentIfAvailable: {},
                     resumePendingDictionaryUpdates: {},
                     configureScreenshotStateIfNeeded: {}
@@ -329,6 +333,7 @@ struct SampleContentSeederTests {
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
                     importSampleContentIfAvailable: {},
                     resumePendingDictionaryUpdates: {},
                     configureScreenshotStateIfNeeded: {}
@@ -349,6 +354,7 @@ struct SampleContentSeederTests {
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
                     importSampleContentIfAvailable: {},
                     resumePendingDictionaryUpdates: {},
                     configureScreenshotStateIfNeeded: {}
@@ -369,6 +375,7 @@ struct SampleContentSeederTests {
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
                     importSampleContentIfAvailable: {},
                     resumePendingDictionaryUpdates: {},
                     configureScreenshotStateIfNeeded: {}
@@ -389,6 +396,7 @@ struct SampleContentSeederTests {
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
                     importSampleContentIfAvailable: {},
                     resumePendingDictionaryUpdates: {},
                     configureScreenshotStateIfNeeded: {}

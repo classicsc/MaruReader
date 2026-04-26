@@ -87,31 +87,13 @@
       ]
     },
     {
-      "id": "manual-kanji-processor",
-      "name": "kanji-processor",
-      "category": "dictionaryData",
-      "homepageURL": "https://www.npmjs.com/package/kanji-processor",
-      "sourceURL": "https://github.com/Lyroxide/kanji-processor",
-      "attribution": "Lyroxide",
-      "notes": "Source of the kanji list files used in text preprocessors.",
-      "licenses": [
-        {
-          "title": "kanji-processor License (MIT)",
-          "outputPath": "manual/manual-kanji-processor-license.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/kanji-processor/LICENSE.txt",
-          "referenceURL": "https://github.com/Lyroxide/kanji-processor/blob/main/LICENSE",
-          "refreshURL": "https://raw.githubusercontent.com/Lyroxide/kanji-processor/main/LICENSE"
-        }
-      ]
-    },
-    {
       "id": "manual-yomitan",
       "name": "yomitan",
       "category": "dictionaryData",
       "homepageURL": "https://yomitan.wiki",
       "sourceURL": "https://github.com/yomidevs/yomitan",
       "attribution": "Yomitan Authors",
-      "notes": "Source of the deinflection data and dictionary stylesheets.",
+      "notes": "Source of dictionary stylesheets.",
       "licenses": [
         {
           "title": "GPLv3",
@@ -119,6 +101,24 @@
           "snapshotPath": "scripts/third-party-license-snapshots/yomitan/LICENSE.txt",
           "referenceURL": "https://github.com/yomidevs/yomitan/blob/master/LICENSE",
           "refreshURL": "https://raw.githubusercontent.com/yomidevs/yomitan/refs/heads/master/LICENSE"
+        }
+      ]
+    },
+    {
+      "id": "manual-jiten",
+      "name": "Jiten",
+      "category": "dictionaryData",
+      "homepageURL": "https://github.com/Sirush/Jiten",
+      "sourceURL": "https://github.com/Sirush/Jiten",
+      "attribution": "Jiten contributors",
+      "notes": "Source of deconjugation rule data and implementation reference.",
+      "licenses": [
+        {
+          "title": "Apache License 2.0",
+          "outputPath": "manual/manual-common-apache-2.0.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/common/apache-2.0.txt",
+          "referenceURL": "https://www.apache.org/licenses/LICENSE-2.0.txt",
+          "refreshURL": "https://www.apache.org/licenses/LICENSE-2.0.txt"
         }
       ]
     },

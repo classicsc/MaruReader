@@ -88,14 +88,27 @@
     --glass-shadow-dark: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
-/* Frequency display styles */
-.frequency-display {
+.term-meta-row {
     display: flex;
-    flex-direction: column;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-bottom: 6px;
 }
 
-.freq-button {
+/* Frequency and grammar display styles */
+.frequency-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.grammar-display {
+    display: flex;
+    flex-direction: column;
+}
+
+.freq-button,
+.grammar-button {
     background: var(--glass-bg-light);
     backdrop-filter: var(--glass-blur);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -128,32 +141,48 @@
     color: var(--frequency-color);
 }
 
-.freq-button:hover {
+.grammar-button::before {
+    content: 'school';
+    font-family: 'Material Symbols Outlined';
+    font-size: 14px;
+    font-weight: normal;
+    font-style: normal;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--accent-color);
+}
+
+.freq-button:hover,
+.grammar-button:hover {
     background: var(--glass-bg-light-hover);
 }
 
-.freq-button:active {
+.freq-button:active,
+.grammar-button:active {
     background: var(--glass-bg-light-active);
     transform: scale(0.98);
 }
 
-.freq-button:disabled {
+.freq-button:disabled,
+.grammar-button:disabled {
     cursor: default;
     opacity: 0.8;
 }
 
-.freq-button:disabled:hover {
+.freq-button:disabled:hover,
+.grammar-button:disabled:hover {
     background: var(--glass-bg-light);
     transform: none;
 }
 
 /* When expanded, flatten bottom corners to connect with expanded area */
-.freq-button[aria-expanded="true"] {
+.freq-button[aria-expanded="true"],
+.grammar-button[aria-expanded="true"] {
     border-radius: 14px 14px 0 0;
 }
 
 /* Expand indicator icon */
-.freq-button:not(:disabled)::after {
+.freq-button:not(:disabled)::after,
+.grammar-button:not(:disabled)::after {
     content: 'expand_more';
     font-family: 'Material Symbols Outlined';
     font-size: 14px;
@@ -163,11 +192,13 @@
     transition: transform 0.2s ease;
 }
 
-.freq-button[aria-expanded="true"]::after {
+.freq-button[aria-expanded="true"]::after,
+.grammar-button[aria-expanded="true"]::after {
     transform: rotate(180deg);
 }
 
-.freq-expanded {
+.freq-expanded,
+.grammar-expanded {
     display: none;
     flex-direction: column;
     gap: 4px;
@@ -182,15 +213,50 @@
     display: flex;
 }
 
-.freq-dict-group {
+.grammar-expanded {
+    background: color-mix(in srgb, var(--accent-color) 8%, var(--background-color));
+    border-color: color-mix(in srgb, var(--accent-color) 15%, transparent);
+    min-width: 220px;
+    max-width: min(420px, calc(100vw - 2rem));
+}
+
+.grammar-expanded.visible {
+    display: flex;
+}
+
+.freq-dict-group,
+.grammar-dict-group {
     font-size: 0.75em;
     line-height: 1.4;
 }
 
-.freq-dict-name {
+.freq-dict-name,
+.grammar-dict-name {
     font-weight: 600;
     color: var(--text-color);
     margin-right: 0.3em;
+}
+
+.grammar-form-section + .grammar-form-section {
+    border-top: 1px solid color-mix(in srgb, var(--accent-color) 15%, transparent);
+    margin-top: 6px;
+    padding-top: 6px;
+}
+
+.grammar-form-heading {
+    font-size: 0.75em;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.grammar-entry-list {
+    margin: 2px 0 6px 1.2em;
+    padding: 0;
+}
+
+.grammar-entry-link {
+    color: var(--link-color);
+    text-decoration: underline;
 }
 
 .freq-dict-values {
@@ -200,26 +266,35 @@
 
 /* Dark mode frequency button */
 @media (prefers-color-scheme: dark) {
-    .freq-button {
+    .freq-button,
+    .grammar-button {
         background: var(--glass-bg-dark);
         box-shadow: var(--glass-shadow-dark);
     }
 
-    .freq-button:hover {
+    .freq-button:hover,
+    .grammar-button:hover {
         background: var(--glass-bg-dark-hover);
     }
 
-    .freq-button:active {
+    .freq-button:active,
+    .grammar-button:active {
         background: var(--glass-bg-dark-active);
     }
 
-    .freq-button:disabled:hover {
+    .freq-button:disabled:hover,
+    .grammar-button:disabled:hover {
         background: var(--glass-bg-dark);
     }
 
     .freq-expanded {
         background: color-mix(in srgb, var(--frequency-color) 10%, var(--background-color));
         border-color: color-mix(in srgb, var(--frequency-color) 20%, transparent);
+    }
+
+    .grammar-expanded {
+        background: color-mix(in srgb, var(--accent-color) 10%, var(--background-color));
+        border-color: color-mix(in srgb, var(--accent-color) 20%, transparent);
     }
 }
 
@@ -394,12 +469,6 @@ body {
 .gloss-definition-text {
     margin: 0.25em 0;
     line-height: var(--line-height);
-}
-
-.gloss-deinflection {
-    font-style: italic;
-    opacity: 0.7;
-    margin: 0.25em 0;
 }
 
 /* Structured content tables */
@@ -1169,18 +1238,6 @@ body:not([data-links-active="true"]) .gloss-link {
 
 .tag.tag-category-unknown {
     color: #8a8a91;
-}
-
-/* Deinflection info display */
-.deinflection-info {
-    margin: 0.25em 0 0.375em 0;
-    font-size: 0.6875em;
-    color: var(--text-color-light1);
-    font-style: italic;
-    padding: 0.1875em 0.375em;
-    background: var(--background-color-dark1);
-    border-radius: 0.1875em;
-    display: var(--deinflection-display, inline-block);
 }
 
 /* Pitch Accent Notation */

@@ -64,10 +64,11 @@ public actor ImportManager {
         case dictionary(NSManagedObjectID)
         case audioSource(NSManagedObjectID)
         case tokenizerDictionary(NSManagedObjectID)
+        case grammarDictionary(NSManagedObjectID)
 
         var jobID: NSManagedObjectID {
             switch self {
-            case let .dictionary(id), let .audioSource(id), let .tokenizerDictionary(id): id
+            case let .dictionary(id), let .audioSource(id), let .tokenizerDictionary(id), let .grammarDictionary(id): id
             }
         }
     }
@@ -90,6 +91,10 @@ public actor ImportManager {
         "IPAEntry",
         "PitchAccentEntry",
         "DictionaryTagMeta",
+    ]
+
+    private static let grammarDictionaryEntryEntityNames = [
+        "GrammarDictionaryEntry",
     ]
 
     private var queue: [QueuedImport] = []
@@ -160,6 +165,8 @@ public actor ImportManager {
                 queuedDisplayName: originalDisplayName,
                 updateTaskID: nil
             )
+        case .grammarDictionary:
+            return try await enqueueGrammarDictionaryImport(from: localURL, queuedDisplayName: originalDisplayName)
         }
     }
 
@@ -333,6 +340,36 @@ public actor ImportManager {
         return importJob
     }
 
+    public func enqueueGrammarDictionaryImport(from zipURL: URL) async throws -> NSManagedObjectID {
+        try await enqueueGrammarDictionaryImport(from: zipURL, queuedDisplayName: nil)
+    }
+
+    private func enqueueGrammarDictionaryImport(from zipURL: URL, queuedDisplayName: String?) async throws -> NSManagedObjectID {
+        backgroundExpired = false
+        let context = container.newBackgroundContext()
+        let importJob = try await context.perform {
+            let grammarDictionary = GrammarDictionary(context: context)
+            let jobID = UUID()
+            grammarDictionary.id = jobID
+            grammarDictionary.file = zipURL
+            let baseName = queuedDisplayName ?? zipURL.deletingPathExtension().lastPathComponent
+            grammarDictionary.title = baseName.isEmpty ? "Imported Grammar Dictionary" : baseName
+            grammarDictionary.timeQueued = Date()
+            grammarDictionary.displayProgressMessage = FrameworkLocalization.string("Queued for import.")
+            grammarDictionary.isComplete = false
+            grammarDictionary.isFailed = false
+            grammarDictionary.isCancelled = false
+            grammarDictionary.isStarted = false
+            grammarDictionary.pendingDeletion = false
+            grammarDictionary.errorMessage = nil
+            try context.save()
+            return grammarDictionary.objectID
+        }
+        queue.append(.grammarDictionary(importJob))
+        processNextIfIdle()
+        return importJob
+    }
+
     // MARK: - Public API: Cancel / Wait
 
     /// Cancel an ongoing or queued import job.
@@ -364,6 +401,12 @@ public actor ImportManager {
                     tokenizerDictionary.file = nil
                     try? context.save()
                     return fileURL
+                } else if let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary {
+                    Self.markGrammarDictionaryCancelled(grammarDictionary)
+                    let fileURL = grammarDictionary.file
+                    grammarDictionary.file = nil
+                    try? context.save()
+                    return fileURL
                 }
                 return nil
             }
@@ -392,6 +435,7 @@ public actor ImportManager {
         await cleanupInterruptedDictionaryImports()
         await cleanupInterruptedAudioSourceImports()
         await cleanupInterruptedTokenizerDictionaryImports()
+        await cleanupInterruptedGrammarDictionaryImports()
     }
 
     /// Clean up entities marked for deletion but not yet removed.
@@ -399,6 +443,7 @@ public actor ImportManager {
         await cleanupPendingDictionaryDeletions(batchSize: batchSize)
         await cleanupPendingAudioSourceDeletions(batchSize: batchSize)
         await cleanupPendingTokenizerDictionaryDeletions()
+        await cleanupPendingGrammarDictionaryDeletions()
     }
 
     // MARK: - Public API: Deletion
@@ -543,6 +588,44 @@ public actor ImportManager {
         deletionTasks[tokenizerDictionaryID] = task
     }
 
+    public func deleteGrammarDictionary(grammarDictionaryID: NSManagedObjectID) async {
+        guard deletionTasks[grammarDictionaryID] == nil else { return }
+
+        let taskContext = container.newBackgroundContext()
+        taskContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        taskContext.undoManager = nil
+
+        do {
+            try await taskContext.perform {
+                guard let grammarDictionary = try? taskContext.existingObject(with: grammarDictionaryID) as? GrammarDictionary else {
+                    throw ImportError.databaseError
+                }
+                grammarDictionary.pendingDeletion = true
+                grammarDictionary.errorMessage = nil
+                try taskContext.save()
+            }
+        } catch {
+            logger.error("Failed to mark grammar dictionary for deletion \(grammarDictionaryID): \(error.localizedDescription)")
+            return
+        }
+
+        let runner = backgroundTaskRunner
+        let task = Task {
+            await runner.run("Grammar Dictionary Delete", {
+                Task {
+                    await self.handleDeletionExpiration(for: grammarDictionaryID)
+                }
+            }, {
+                await self.runGrammarDictionaryDeletion(
+                    grammarDictionaryID: grammarDictionaryID,
+                    taskContext: taskContext
+                )
+            })
+            finishDeletionTask(for: grammarDictionaryID)
+        }
+        deletionTasks[grammarDictionaryID] = task
+    }
+
     // MARK: - Queue Lifecycle (Shared)
 
     private func processNextIfIdle() {
@@ -631,6 +714,13 @@ public actor ImportManager {
                         fileURLs.append(fileURL)
                     }
                     tokenizerDictionary.file = nil
+                case let .grammarDictionary(jobID):
+                    guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else { continue }
+                    Self.markGrammarDictionaryCancelled(grammarDictionary)
+                    if let fileURL = grammarDictionary.file {
+                        fileURLs.append(fileURL)
+                    }
+                    grammarDictionary.file = nil
                 }
             }
             try? context.save()
@@ -689,6 +779,19 @@ public actor ImportManager {
         tokenizerDictionary.updateReady = false
     }
 
+    private static func markGrammarDictionaryCancelled(_ grammarDictionary: GrammarDictionary) {
+        let cancelledAt = Date()
+        grammarDictionary.isCancelled = true
+        grammarDictionary.isFailed = false
+        grammarDictionary.isComplete = false
+        grammarDictionary.isStarted = false
+        grammarDictionary.timeCancelled = cancelledAt
+        grammarDictionary.displayProgressMessage = FrameworkLocalization.string("Import cancelled.")
+        grammarDictionary.errorMessage = nil
+        grammarDictionary.entryCount = 0
+        grammarDictionary.formTagCount = 0
+    }
+
     private func takeDictionaryImportArchiveURL(
         jobID: NSManagedObjectID,
         in context: NSManagedObjectContext
@@ -734,6 +837,21 @@ public actor ImportManager {
         }
     }
 
+    private func takeGrammarDictionaryImportArchiveURL(
+        jobID: NSManagedObjectID,
+        in context: NSManagedObjectContext
+    ) async -> URL? {
+        await context.perform {
+            guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else {
+                return nil
+            }
+            let fileURL = grammarDictionary.file
+            grammarDictionary.file = nil
+            try? context.save()
+            return fileURL
+        }
+    }
+
     // MARK: - Import Dispatch
 
     private func runImport(for job: QueuedImport) async {
@@ -744,6 +862,8 @@ public actor ImportManager {
             await runAudioSourceImport(for: jobID)
         case let .tokenizerDictionary(jobID):
             await runTokenizerDictionaryImport(for: jobID)
+        case let .grammarDictionary(jobID):
+            await runGrammarDictionaryImport(for: jobID)
         }
     }
 
@@ -1181,6 +1301,101 @@ public actor ImportManager {
         }
     }
 
+    // MARK: - Grammar Dictionary Import Pipeline
+
+    private func runGrammarDictionaryImport(for jobID: NSManagedObjectID) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        var grammarDictionaryID: UUID?
+        var scratchSpace: ImportScratchSpace?
+        defer {
+            scratchSpace?.cleanupBestEffort()
+        }
+
+        do {
+            grammarDictionaryID = try await context.perform {
+                guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else {
+                    throw ImportError.databaseError
+                }
+                if grammarDictionary.id == nil {
+                    grammarDictionary.id = UUID()
+                }
+                grammarDictionary.isComplete = false
+                grammarDictionary.isFailed = false
+                grammarDictionary.isCancelled = false
+                grammarDictionary.isStarted = true
+                grammarDictionary.timeStarted = Date()
+                grammarDictionary.displayProgressMessage = FrameworkLocalization.string("Starting import...")
+                grammarDictionary.errorMessage = nil
+                try context.save()
+                guard let grammarDictionaryID = grammarDictionary.id else {
+                    throw ImportError.databaseError
+                }
+                return grammarDictionaryID
+            }
+            if let grammarDictionaryID {
+                scratchSpace = ImportScratchSpace(kind: .grammar, jobUUID: grammarDictionaryID)
+            }
+
+            try Task.checkCancellation()
+            try testErrorInjection?()
+
+            let importTask = GrammarDictionaryImportTask(
+                jobID: jobID,
+                container: container,
+                baseDirectory: baseDirectory
+            )
+            grammarDictionaryID = try await importTask.start()
+
+            let stagedArchiveURL = await takeGrammarDictionaryImportArchiveURL(jobID: jobID, in: context)
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
+        } catch is CancellationError {
+            let cleanupInfo: (UUID?, URL?) = await context.perform {
+                guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else {
+                    return (nil, nil)
+                }
+                Self.markGrammarDictionaryCancelled(grammarDictionary)
+                let fileURL = grammarDictionary.file
+                grammarDictionary.file = nil
+                try? context.save()
+                return (grammarDictionary.id, fileURL)
+            }
+            Self.cleanupImportStagingFileIfNeeded(at: cleanupInfo.1)
+            if let uuid = cleanupInfo.0 {
+                cleanGrammarDictionaryDirectory(grammarDictionaryID: uuid)
+            }
+        } catch {
+            let cleanupInfo: (UUID?, URL?) = await context.perform {
+                guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else {
+                    return (nil, nil)
+                }
+                grammarDictionary.isFailed = true
+                grammarDictionary.isCancelled = false
+                grammarDictionary.isComplete = false
+                grammarDictionary.displayProgressMessage = FrameworkLocalization.string("Import failed.")
+                grammarDictionary.errorMessage = error.localizedDescription
+                grammarDictionary.timeFailed = Date()
+                grammarDictionary.entryCount = 0
+                grammarDictionary.formTagCount = 0
+                let fileURL = grammarDictionary.file
+                grammarDictionary.file = nil
+                try? context.save()
+                return (grammarDictionary.id, fileURL)
+            }
+            Self.cleanupImportStagingFileIfNeeded(at: cleanupInfo.1)
+            if let uuid = cleanupInfo.0 {
+                cleanGrammarDictionaryDirectory(grammarDictionaryID: uuid)
+            }
+        }
+
+        await context.perform {
+            _ = try? context.existingObject(with: jobID) as? GrammarDictionary
+        }
+    }
+
     // MARK: - Dictionary Cleanup
 
     private func cleanupInterruptedDictionaryImports() async {
@@ -1425,6 +1640,75 @@ public actor ImportManager {
         }
     }
 
+    // MARK: - Grammar Dictionary Cleanup
+
+    private func cleanupInterruptedGrammarDictionaryImports() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let cleanupEntries: [(UUID, URL?)] = await context.perform {
+            let request: NSFetchRequest<GrammarDictionary> = GrammarDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "isComplete == NO AND isFailed == NO AND isCancelled == NO AND pendingDeletion == NO")
+            let grammarDictionaries = (try? context.fetch(request)) ?? []
+            guard !grammarDictionaries.isEmpty else { return [] }
+
+            let now = Date()
+            var entries: [(UUID, URL?)] = []
+            for grammarDictionary in grammarDictionaries {
+                if let grammarDictionaryID = grammarDictionary.id {
+                    entries.append((grammarDictionaryID, grammarDictionary.file))
+                }
+                grammarDictionary.isFailed = true
+                grammarDictionary.isCancelled = false
+                grammarDictionary.isComplete = false
+                grammarDictionary.isStarted = false
+                grammarDictionary.timeFailed = now
+                grammarDictionary.displayProgressMessage = FrameworkLocalization.string("Import interrupted.")
+                grammarDictionary.errorMessage = FrameworkLocalization.string("Import interrupted.")
+                grammarDictionary.entryCount = 0
+                grammarDictionary.formTagCount = 0
+                grammarDictionary.file = nil
+                if let grammarDictionaryID = grammarDictionary.id {
+                    for entityName in Self.grammarDictionaryEntryEntityNames {
+                        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+                        fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", grammarDictionaryID as CVarArg)
+                        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                        _ = try? context.execute(deleteRequest)
+                    }
+                }
+            }
+
+            try? context.save()
+            return entries
+        }
+
+        for (grammarDictionaryID, stagedArchiveURL) in cleanupEntries {
+            cleanGrammarDictionaryDirectory(grammarDictionaryID: grammarDictionaryID)
+            ImportScratchSpace(kind: .grammar, jobUUID: grammarDictionaryID).cleanupBestEffort()
+            Self.cleanupImportStagingFileIfNeeded(at: stagedArchiveURL)
+        }
+    }
+
+    private func cleanupPendingGrammarDictionaryDeletions() async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let pendingIDs: [NSManagedObjectID] = await context.perform {
+            let request: NSFetchRequest<GrammarDictionary> = GrammarDictionary.fetchRequest()
+            request.predicate = NSPredicate(format: "pendingDeletion == YES")
+            let grammarDictionaries = (try? context.fetch(request)) ?? []
+            return grammarDictionaries.map(\.objectID)
+        }
+
+        for grammarDictionaryID in pendingIDs {
+            await deleteGrammarDictionary(grammarDictionaryID: grammarDictionaryID)
+        }
+    }
+
     // MARK: - Deletion Workers
 
     private func handleDeletionExpiration(for entityID: NSManagedObjectID) {
@@ -1622,6 +1906,61 @@ public actor ImportManager {
                 }
                 tokenizerDictionary.pendingDeletion = false
                 tokenizerDictionary.errorMessage = error.localizedDescription
+                try? taskContext.save()
+            }
+        }
+    }
+
+    private func runGrammarDictionaryDeletion(
+        grammarDictionaryID: NSManagedObjectID,
+        taskContext: NSManagedObjectContext
+    ) async {
+        do {
+            try Task.checkCancellation()
+
+            let grammarInfo = try await taskContext.perform {
+                guard let grammarDictionary = try? taskContext.existingObject(with: grammarDictionaryID) as? GrammarDictionary else {
+                    throw ImportError.databaseError
+                }
+                let fileURL = grammarDictionary.file
+                grammarDictionary.file = nil
+                try taskContext.save()
+                return (grammarDictionary.id, fileURL)
+            }
+
+            try Task.checkCancellation()
+
+            Self.cleanupImportStagingFileIfNeeded(at: grammarInfo.1)
+
+            if let uuid = grammarInfo.0 {
+                cleanGrammarDictionaryDirectory(grammarDictionaryID: uuid)
+                ImportScratchSpace(kind: .grammar, jobUUID: uuid).cleanupBestEffort()
+                try await deleteGrammarDictionaryEntitiesInBatches(grammarDictionaryID: uuid)
+            }
+
+            try Task.checkCancellation()
+
+            let finalContext = container.newBackgroundContext()
+            finalContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            finalContext.undoManager = nil
+
+            try await finalContext.perform {
+                guard let grammarDictionary = try? finalContext.existingObject(with: grammarDictionaryID) as? GrammarDictionary else {
+                    throw ImportError.databaseError
+                }
+                finalContext.delete(grammarDictionary)
+                try finalContext.save()
+            }
+        } catch is CancellationError {
+            logger.error("Grammar dictionary deletion cancelled for \(grammarDictionaryID); cleanup will resume later")
+        } catch {
+            logger.error("Grammar dictionary deletion failed for \(grammarDictionaryID): \(error.localizedDescription)")
+            await taskContext.perform {
+                guard let grammarDictionary = try? taskContext.existingObject(with: grammarDictionaryID) as? GrammarDictionary else {
+                    return
+                }
+                grammarDictionary.pendingDeletion = false
+                grammarDictionary.errorMessage = error.localizedDescription
                 try? taskContext.save()
             }
         }
@@ -1846,6 +2185,23 @@ public actor ImportManager {
         try await deleteAudioSourceEntityBatches(entityName: "AudioFile", sourceID: sourceID, batchSize: batchSize)
     }
 
+    private func deleteGrammarDictionaryEntitiesInBatches(grammarDictionaryID: UUID) async throws {
+        for entityName in Self.grammarDictionaryEntryEntityNames {
+            let context = container.newBackgroundContext()
+            context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+            context.undoManager = nil
+            context.shouldDeleteInaccessibleFaults = true
+
+            try await context.perform {
+                let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: entityName)
+                fetchRequest.predicate = NSPredicate(format: "dictionaryID == %@", grammarDictionaryID as CVarArg)
+                let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+                _ = try context.execute(deleteRequest)
+                try context.save()
+            }
+        }
+    }
+
     private func deleteAudioSourceEntityBatches(entityName: String, sourceID: UUID, batchSize: Int) async throws {
         while true {
             try Task.checkCancellation()
@@ -1920,6 +2276,19 @@ public actor ImportManager {
 
     private func cleanAudioSourceScratchDirectory(sourceID: UUID) {
         ImportScratchSpace(kind: .audio, jobUUID: sourceID).cleanupBestEffort()
+    }
+
+    private func cleanGrammarDictionaryDirectory(grammarDictionaryID: UUID) {
+        guard let installDirectory = GrammarDictionaryStorage.installedDirectoryURL(
+            grammarDictionaryID: grammarDictionaryID,
+            in: baseDirectory
+        ) else {
+            return
+        }
+
+        if FileManager.default.fileExists(atPath: installDirectory.path) {
+            try? FileManager.default.removeItem(at: installDirectory)
+        }
     }
 
     /// Check if media directory exists for a given dictionary import

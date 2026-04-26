@@ -43,20 +43,20 @@
       "sourceURL" : "https:\/\/github.com\/easylist\/easylist"
     },
     {
-      "attribution" : "Lyroxide",
+      "attribution" : "Jiten contributors",
       "category" : "dictionaryData",
-      "homepageURL" : "https:\/\/www.npmjs.com\/package\/kanji-processor",
-      "id" : "manual-kanji-processor",
+      "homepageURL" : "https:\/\/github.com\/Sirush\/Jiten",
+      "id" : "manual-jiten",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-kanji-processor-license.txt",
-          "referenceURL" : "https:\/\/github.com\/Lyroxide\/kanji-processor\/blob\/main\/LICENSE",
-          "title" : "kanji-processor License (MIT)"
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-apache-2.0.txt",
+          "referenceURL" : "https:\/\/www.apache.org\/licenses\/LICENSE-2.0.txt",
+          "title" : "Apache License 2.0"
         }
       ],
-      "name" : "kanji-processor",
-      "notes" : "Source of the kanji list files used in text preprocessors.",
-      "sourceURL" : "https:\/\/github.com\/Lyroxide\/kanji-processor"
+      "name" : "Jiten",
+      "notes" : "Source of deconjugation rule data and implementation reference.",
+      "sourceURL" : "https:\/\/github.com\/Sirush\/Jiten"
     },
     {
       "attribution" : "Google LLC",
@@ -124,7 +124,7 @@
         }
       ],
       "name" : "yomitan",
-      "notes" : "Source of the deinflection data and dictionary stylesheets.",
+      "notes" : "Source of dictionary stylesheets.",
       "sourceURL" : "https:\/\/github.com\/yomidevs\/yomitan"
     },
     {
@@ -156,7 +156,7 @@
         }
       ],
       "name" : "aho-corasick",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
       "version" : "1.1.4"
     },
@@ -173,7 +173,7 @@
         }
       ],
       "name" : "anyhow",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/anyhow",
       "version" : "1.0.102"
     },
@@ -224,7 +224,7 @@
         }
       ],
       "name" : "bitflags",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/bitflags\/bitflags",
       "version" : "2.11.1"
     },
@@ -241,7 +241,7 @@
         }
       ],
       "name" : "bytes",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/tokio-rs\/bytes",
       "version" : "1.11.1"
     },
@@ -258,7 +258,7 @@
         }
       ],
       "name" : "camino",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/camino-rs\/camino",
       "version" : "1.2.2"
     },
@@ -275,7 +275,7 @@
         }
       ],
       "name" : "cargo_metadata",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/oli-obk\/cargo_metadata",
       "version" : "0.19.2"
     },
@@ -291,7 +291,7 @@
         }
       ],
       "name" : "cargo-platform",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/cargo",
       "version" : "0.1.9"
     },
@@ -308,7 +308,7 @@
         }
       ],
       "name" : "cfg-if",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/cfg-if",
       "version" : "1.0.4"
     },
@@ -375,7 +375,7 @@
         }
       ],
       "name" : "equivalent",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/indexmap-rs\/equivalent",
       "version" : "1.0.2"
     },
@@ -392,7 +392,7 @@
         }
       ],
       "name" : "errno",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/lambda-fairy\/rust-errno",
       "version" : "0.3.14"
     },
@@ -426,7 +426,7 @@
         }
       ],
       "name" : "fastrand",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/smol-rs\/fastrand",
       "version" : "2.4.1"
     },
@@ -443,7 +443,7 @@
         }
       ],
       "name" : "fs-err",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/andrewhickman\/fs-err",
       "version" : "2.11.0"
     },
@@ -460,7 +460,7 @@
         }
       ],
       "name" : "getrandom",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-random\/getrandom",
       "version" : "0.4.2"
     },
@@ -477,7 +477,7 @@
         }
       ],
       "name" : "hashbrown",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/hashbrown",
       "version" : "0.17.0"
     },
@@ -493,7 +493,7 @@
         }
       ],
       "name" : "heck",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/withoutboats\/heck",
       "version" : "0.5.0"
     },
@@ -509,7 +509,7 @@
         }
       ],
       "name" : "indexmap",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/indexmap-rs\/indexmap",
       "version" : "2.14.0"
     },
@@ -543,7 +543,7 @@
         }
       ],
       "name" : "itoa",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/itoa",
       "version" : "1.0.18"
     },
@@ -582,6 +582,23 @@
       "version" : "0.2.185"
     },
     {
+      "attribution" : "The Rust Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/libc",
+      "id" : "rust-libc-0-2-186",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-libc-0-2-186-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/libc",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "libc",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/libc",
+      "version" : "0.2.186"
+    },
+    {
       "attribution" : "Simonas Kazlauskas <libloading@kazlauskas.me>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/nagisa\/rust_libloading\/",
@@ -599,6 +616,22 @@
       "version" : "0.8.9"
     },
     {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/mdBook",
+      "id" : "rust-mdbook-markdown-0-5-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-mdbook-markdown-0-5-2-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/mdBook",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "mdbook-markdown",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/mdBook",
+      "version" : "0.5.2"
+    },
+    {
       "attribution" : "Andrew Gallant <jamslam@gmail.com>, bluss",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/BurntSushi\/memchr",
@@ -611,7 +644,7 @@
         }
       ],
       "name" : "memchr",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/BurntSushi\/memchr",
       "version" : "2.8.0"
     },
@@ -679,9 +712,25 @@
         }
       ],
       "name" : "once_cell",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/matklad\/once_cell",
       "version" : "1.21.4"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/taiki-e\/pin-project-lite",
+      "id" : "rust-pin-project-lite-0-2-17",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-pin-project-lite-0-2-17-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/taiki-e\/pin-project-lite",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "pin-project-lite",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/taiki-e\/pin-project-lite",
+      "version" : "0.2.17"
     },
     {
       "attribution" : "David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>",
@@ -696,9 +745,43 @@
         }
       ],
       "name" : "proc-macro2",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
       "version" : "1.0.106"
+    },
+    {
+      "attribution" : "Raph Levien <raph.levien@gmail.com>, Marcus Klaas de Vries <mail@marcusklaas.nl>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+      "id" : "rust-pulldown-cmark-0-13-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-pulldown-cmark-0-13-3-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "pulldown-cmark",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+      "version" : "0.13.3"
+    },
+    {
+      "attribution" : "Raph Levien <raph.levien@gmail.com>, Marcus Klaas de Vries <mail@marcusklaas.nl>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+      "id" : "rust-pulldown-cmark-escape-0-11-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-pulldown-cmark-escape-0-11-0-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "pulldown-cmark-escape",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
+      "version" : "0.11.0"
     },
     {
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
@@ -713,7 +796,7 @@
         }
       ],
       "name" : "quote",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/quote",
       "version" : "1.0.45"
     },
@@ -730,7 +813,7 @@
         }
       ],
       "name" : "regex",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "1.12.3"
     },
@@ -747,7 +830,7 @@
         }
       ],
       "name" : "regex-automata",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "0.4.14"
     },
@@ -764,7 +847,7 @@
         }
       ],
       "name" : "regex-syntax",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "0.8.10"
     },
@@ -781,7 +864,7 @@
         }
       ],
       "name" : "rustix",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
       "version" : "1.1.4"
     },
@@ -815,7 +898,7 @@
         }
       ],
       "name" : "semver",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/semver",
       "version" : "1.0.28"
     },
@@ -832,7 +915,7 @@
         }
       ],
       "name" : "serde",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
       "version" : "1.0.228"
     },
@@ -849,7 +932,7 @@
         }
       ],
       "name" : "serde_core",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
       "version" : "1.0.228"
     },
@@ -866,7 +949,7 @@
         }
       ],
       "name" : "serde_json",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
       "version" : "1.0.149"
     },
@@ -882,7 +965,7 @@
         }
       ],
       "name" : "serde_spanned",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.1"
     },
@@ -899,7 +982,7 @@
         }
       ],
       "name" : "siphasher",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/jedisct1\/rust-siphash",
       "version" : "1.0.2"
     },
@@ -916,7 +999,7 @@
         }
       ],
       "name" : "static_assertions",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/nvzqz\/static-assertions-rs",
       "version" : "1.1.0"
     },
@@ -951,7 +1034,7 @@
         }
       ],
       "name" : "syn",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/syn",
       "version" : "2.0.117"
     },
@@ -968,7 +1051,7 @@
         }
       ],
       "name" : "tempfile",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/Stebalien\/tempfile",
       "version" : "3.27.0"
     },
@@ -1002,7 +1085,7 @@
         }
       ],
       "name" : "thiserror",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
       "version" : "2.0.18"
     },
@@ -1052,7 +1135,7 @@
         }
       ],
       "name" : "toml",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "0.9.12+spec-1.1.0"
     },
@@ -1068,7 +1151,7 @@
         }
       ],
       "name" : "toml_datetime",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "0.7.5+spec-1.1.0"
     },
@@ -1084,7 +1167,7 @@
         }
       ],
       "name" : "toml_parser",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.2+spec-1.1.0"
     },
@@ -1100,9 +1183,60 @@
         }
       ],
       "name" : "toml_writer",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.1+spec-1.1.0"
+    },
+    {
+      "attribution" : "Eliza Weisman <eliza@buoyant.io>, Tokio Contributors <team@tokio.rs>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/tokio.rs",
+      "id" : "rust-tracing-0-1-44",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tracing-0-1-44-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "tracing",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
+      "version" : "0.1.44"
+    },
+    {
+      "attribution" : "Tokio Contributors <team@tokio.rs>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/tokio.rs",
+      "id" : "rust-tracing-core-0-1-36",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tracing-core-0-1-36-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "tracing-core",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
+      "version" : "0.1.36"
+    },
+    {
+      "attribution" : "Sean McArthur <sean@seanmonstar.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/seanmonstar\/unicase",
+      "id" : "rust-unicase-2-9-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-unicase-2-9-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/seanmonstar\/unicase",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "unicase",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/seanmonstar\/unicase",
+      "version" : "2.9.0"
     },
     {
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
@@ -1122,7 +1256,7 @@
         }
       ],
       "name" : "unicode-ident",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
       "version" : "1.0.24"
     },
@@ -1155,7 +1289,7 @@
         }
       ],
       "name" : "uniffi",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1171,7 +1305,7 @@
         }
       ],
       "name" : "uniffi_core",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1187,7 +1321,7 @@
         }
       ],
       "name" : "uniffi_meta",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1203,7 +1337,7 @@
         }
       ],
       "name" : "uniffi_pipeline",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1219,7 +1353,7 @@
         }
       ],
       "name" : "winnow",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
       "version" : "0.7.15"
     },
@@ -1238,6 +1372,22 @@
       "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
       "version" : "1.0.1"
+    },
+    {
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "id" : "rust-winnow-1-0-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-winnow-1-0-2-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "winnow",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
+      "version" : "1.0.2"
     },
     {
       "attribution" : "Takuya Asano <takuya.a@gmail.com>",
@@ -1269,7 +1419,7 @@
         }
       ],
       "name" : "zmij",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/zmij",
       "version" : "1.0.21"
     },
@@ -1640,6 +1790,6 @@
       "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-23T20:54:51.136Z",
+  "generatedAt" : "2026-04-26T00:03:40.673Z",
   "schemaVersion" : 1
 }

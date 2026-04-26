@@ -30,6 +30,7 @@ final class StartupPreparationCoordinator {
         let seedDictionaryIfNeeded: () async -> Void
         let setAnkiPreferencesUpdater: () async -> Void
         let cleanupInterruptedImportsAndPendingDeletions: () async -> Void
+        let startDefaultGrammarDictionaryImportIfNeeded: () async -> Void
         let importSampleContentIfAvailable: () async throws -> Void
         let resumePendingDictionaryUpdates: () async -> Void
         let configureScreenshotStateIfNeeded: () async throws -> Void
@@ -54,6 +55,9 @@ final class StartupPreparationCoordinator {
                     await BookImportManager.shared.cleanupPendingDeletions()
                     await ImportManager.shared.cleanupPendingDeletions()
                     await MangaImportManager.shared.cleanupPendingDeletions()
+                },
+                startDefaultGrammarDictionaryImportIfNeeded: {
+                    DefaultGrammarDictionaryInstaller.startIfNeeded()
                 },
                 importSampleContentIfAvailable: {
                     try await sampleContentSeeder.seedIfAvailable()
@@ -179,6 +183,7 @@ final class StartupPreparationCoordinator {
 
         phase = .cleaningUp
         await operations.cleanupInterruptedImportsAndPendingDeletions()
+        await operations.startDefaultGrammarDictionaryImportIfNeeded()
 
         if sampleContentAvailable {
             phase = .importingSampleContent

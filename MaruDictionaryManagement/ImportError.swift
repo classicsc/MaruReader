@@ -51,7 +51,7 @@ public enum ImportError: Error, Equatable, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .unrecognizedArchive:
-            FrameworkLocalization.string("The selected file is not a recognized dictionary or audio source.")
+            FrameworkLocalization.string("The selected file is not a recognized dictionary, grammar dictionary, tokenizer dictionary, or audio source.")
         case .notADictionary:
             FrameworkLocalization.string("The selected file is not a valid dictionary.")
         case .notAnAudioSource:

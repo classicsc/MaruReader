@@ -152,8 +152,7 @@ struct FrequencyDisplayPriorityTests {
             reading: "ねこ",
             dictionariesResults: [dictionaryResults],
             pitchAccentResults: [],
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
 
         let renderer = DictionaryResultsHTMLRenderer(
@@ -161,8 +160,6 @@ struct FrequencyDisplayPriorityTests {
                 fontFamily: "Test",
                 contentFontSize: 1,
                 popupFontSize: 1,
-                showDeinflection: false,
-                deinflectionDescriptionLanguage: "system",
                 pitchDownstepNotationInHeaderEnabled: false,
                 pitchResultsAreaCollapsedDisplay: false,
                 pitchResultsAreaDownstepNotationEnabled: false,
@@ -248,8 +245,7 @@ struct FrequencyDisplayPriorityTests {
             reading: "ねこ",
             dictionariesResults: [dictionaryResults],
             pitchAccentResults: [],
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
 
         let renderer = DictionaryResultsHTMLRenderer(
@@ -257,8 +253,6 @@ struct FrequencyDisplayPriorityTests {
                 fontFamily: "Test",
                 contentFontSize: 1,
                 popupFontSize: 1,
-                showDeinflection: false,
-                deinflectionDescriptionLanguage: "system",
                 pitchDownstepNotationInHeaderEnabled: false,
                 pitchResultsAreaCollapsedDisplay: false,
                 pitchResultsAreaDownstepNotationEnabled: false,

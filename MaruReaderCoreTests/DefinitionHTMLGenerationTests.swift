@@ -148,28 +148,20 @@ struct DefinitionHTMLGenerationTests {
         #expect(!html.contains("style=\"border:"))
     }
 
-    @Test func deinflectionDefinition_toHTML_rendersInformationalParagraph() {
+    @Test func deinflectionDefinition_toHTML_rendersNothing() {
         let definition = Definition.deinflection(uninflected: "食べる", rules: ["past", "polite"])
 
         let html = definition.toHTML()
 
-        let summary = FrameworkLocalization.string(
-            "dictionary.deinflection.summary",
-            defaultValue: "Uninflected: \("食べる") (Rules: \("past, polite"))"
-        )
-        #expect(html == "<p class=\"gloss-deinflection\" data-uninflected=\"食べる\" data-rules=\"past, polite\">\(summary)</p>")
+        #expect(html.isEmpty)
     }
 
-    @Test func deinflectionDefinition_toAnkiHTML_usesLocalizedSummary() {
+    @Test func deinflectionDefinition_toAnkiHTML_rendersNothing() {
         let definition = Definition.deinflection(uninflected: "食べる", rules: ["past", "polite"])
 
         let html = definition.toAnkiHTML()
-        let summary = FrameworkLocalization.string(
-            "dictionary.deinflection.summary",
-            defaultValue: "Uninflected: \("食べる") (Rules: \("past, polite"))"
-        )
 
-        #expect(html == "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">\(summary)</p>")
+        #expect(html.isEmpty)
     }
 
     @Test func arrayOfDefinitions_toHTML_wrapsInGlossaryList() {

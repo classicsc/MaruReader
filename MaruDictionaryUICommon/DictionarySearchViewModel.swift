@@ -57,6 +57,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var dictionaryWebTheme: DictionaryWebTheme?
     @ObservationIgnored
     private(set) var isResultsPageBootstrapped: Bool = false
+    private var pageNavigationRevision: Int = 0
+    @ObservationIgnored
+    private var pageNavigationTask: Task<Void, Never>?
 
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
@@ -84,6 +87,30 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     /// Navigation history for back/forward functionality
     let history = NavigationHistory()
 
+    var canNavigateBack: Bool {
+        _ = pageNavigationRevision
+
+        if let previous = previousWebPageHistoryItem,
+           Self.shouldNavigateBackInWebPage(currentURL: page.url, backURL: previous.url)
+        {
+            return true
+        }
+
+        return history.canGoBack
+    }
+
+    var canNavigateForward: Bool {
+        _ = pageNavigationRevision
+
+        if let next = nextWebPageHistoryItem,
+           Self.shouldNavigateForwardInWebPage(forwardURL: next.url)
+        {
+            return true
+        }
+
+        return history.canGoForward
+    }
+
     private let searchServiceFactory: () -> DictionarySearchService
     private var resolvedSearchService: DictionarySearchService?
 
@@ -92,6 +119,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
     private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
     private var popupResultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
+    private var grammarSchemeHandler: GrammarDictionaryURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
     private var popupAnkiSchemeHandler: AnkiURLSchemeHandler = .init()
     @ObservationIgnored
@@ -117,6 +145,10 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         initializeWebPage()
         initializePopupPage()
         applyDictionaryWebTheme()
+    }
+
+    deinit {
+        pageNavigationTask?.cancel()
     }
 
     /// Initialize with an existing lookup session to preserve context/results.
@@ -166,6 +198,22 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     private enum ResultsPageError: Error {
         case navigationDidNotFinish
+    }
+
+    private var previousWebPageHistoryItem: WebPage.BackForwardList.Item? {
+        page.backForwardList[-1]
+    }
+
+    private var nextWebPageHistoryItem: WebPage.BackForwardList.Item? {
+        page.backForwardList[1]
+    }
+
+    static func shouldNavigateBackInWebPage(currentURL: URL?, backURL: URL?) -> Bool {
+        currentURL?.scheme == "marureader-grammar" && backURL != nil
+    }
+
+    static func shouldNavigateForwardInWebPage(forwardURL: URL?) -> Bool {
+        forwardURL?.scheme == "marureader-grammar"
     }
 
     private func resultsPageURLRequest(requestID: UUID, mode: ResultsPageMode) -> URLRequest {
@@ -225,6 +273,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         Task {
             await resultsSchemeHandler.setWebTheme(theme)
             await popupResultsSchemeHandler.setWebTheme(theme)
+            await grammarSchemeHandler.setWebTheme(theme)
         }
     }
 
@@ -281,6 +330,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = resultsSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-grammar")!] = grammarSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
 
         let userContentController = WKUserContentController()
@@ -292,6 +342,21 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.userContentController = userContentController
         page = WebPage(configuration: config)
         page.isInspectable = true
+        observePageNavigations()
+    }
+
+    private func observePageNavigations() {
+        pageNavigationTask?.cancel()
+        let page = page
+        pageNavigationTask = Task { [weak self, page] in
+            do {
+                for try await _ in page.navigations {
+                    self?.pageNavigationRevision &+= 1
+                }
+            } catch {
+                return
+            }
+        }
     }
 
     private func initializePopupPage() {
@@ -300,6 +365,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = popupResultsSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-grammar")!] = grammarSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = popupAnkiSchemeHandler
 
         let userContentController = WKUserContentController()
@@ -758,6 +824,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     /// Navigate backwards in history
     public func navigateBack() {
+        if let previous = previousWebPageHistoryItem,
+           Self.shouldNavigateBackInWebPage(currentURL: page.url, backURL: previous.url)
+        {
+            navigateWebPageHistory(to: previous, direction: "backwards")
+            return
+        }
+
         guard let entry = history.goBack() else {
             logger.warning("Cannot navigate back: no history available")
             return
@@ -791,6 +864,13 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
 
     /// Navigate forwards in history
     public func navigateForward() {
+        if let next = nextWebPageHistoryItem,
+           Self.shouldNavigateForwardInWebPage(forwardURL: next.url)
+        {
+            navigateWebPageHistory(to: next, direction: "forwards")
+            return
+        }
+
         guard let entry = history.goForward() else {
             logger.warning("Cannot navigate forward: no history available")
             return
@@ -818,6 +898,28 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
             } catch {
                 self.resultState = .error(error)
                 self.logger.error("Failed to navigate dictionary history forwards: \(error.localizedDescription)")
+            }
+        }
+    }
+
+    private func navigateWebPageHistory(to item: WebPage.BackForwardList.Item, direction: String) {
+        searchTask?.cancel()
+        hidePopup()
+
+        Task {
+            do {
+                let loadSequence = page.load(item)
+                for try await value in loadSequence {
+                    if value == WebPage.NavigationEvent.finished {
+                        if page.url?.scheme == "marureader-resource" {
+                            updateLinksActiveState()
+                        }
+                        return
+                    }
+                }
+            } catch {
+                self.resultState = .error(error)
+                self.logger.error("Failed to navigate dictionary web page history \(direction): \(error.localizedDescription)")
             }
         }
     }

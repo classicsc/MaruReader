@@ -71,16 +71,13 @@ private func makeResponse() -> TextLookupResponse {
         reading: "ねこ",
         dictionariesResults: [],
         pitchAccentResults: [],
-        termTags: [],
-        deinflectionInfo: nil
+        termTags: []
     )
 
     let styles = DisplayStyles(
         fontFamily: "Test",
         contentFontSize: 14,
         popupFontSize: 14,
-        showDeinflection: true,
-        deinflectionDescriptionLanguage: "system",
         pitchDownstepNotationInHeaderEnabled: false,
         pitchResultsAreaCollapsedDisplay: false,
         pitchResultsAreaDownstepNotationEnabled: false,

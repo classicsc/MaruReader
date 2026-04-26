@@ -127,13 +127,9 @@ extension Definition {
                 return "<div class=\"gloss-image-def\">\(html)</div>"
             }
         case let .deinflection(uninflected, rules):
-            let escapedUninflected = escapeHTML(uninflected)
-            let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
-            let summary = FrameworkLocalization.string(
-                "dictionary.deinflection.summary",
-                defaultValue: "Uninflected: \(escapedUninflected) (Rules: \(escapedRules))"
-            )
-            return "<p class=\"gloss-deinflection\" data-uninflected=\"\(escapedUninflected)\" data-rules=\"\(escapedRules)\">\(summary)</p>"
+            _ = uninflected
+            _ = rules
+            return ""
         }
     }
 
@@ -159,13 +155,9 @@ extension Definition {
                 return "<div style=\"display: block; margin: 0.5em 0;\">\(html)</div>"
             }
         case let .deinflection(uninflected, rules):
-            let escapedUninflected = escapeHTML(uninflected)
-            let escapedRules = rules.map { escapeHTML($0) }.joined(separator: ", ")
-            let summary = FrameworkLocalization.string(
-                "dictionary.deinflection.summary",
-                defaultValue: "Uninflected: \(escapedUninflected) (Rules: \(escapedRules))"
-            )
-            return "<p style=\"margin: 0.25em 0; color: #666; font-size: 0.9em;\">\(summary)</p>"
+            _ = uninflected
+            _ = rules
+            return ""
         }
     }
 

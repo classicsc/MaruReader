@@ -22,28 +22,35 @@ window.MaruReader.frequencyDisplay = {
      */
     initialize: function() {
         document.addEventListener('click', function(event) {
-            var button = event.target.closest('.freq-button');
+            var button = event.target.closest('.freq-button, .grammar-button');
             if (!button || button.disabled) return;
 
             event.preventDefault();
             event.stopPropagation();
 
-            var display = button.closest('.frequency-display');
+            var display = button.closest('.frequency-display, .grammar-display');
             if (!display) return;
 
-            var expanded = display.querySelector('.freq-expanded');
+            var expanded = display.querySelector('.freq-expanded, .grammar-expanded');
             if (!expanded) return;
 
             var isExpanded = button.getAttribute('aria-expanded') === 'true';
+            var isGrammar = button.classList.contains('grammar-button');
+            var showLabel = isGrammar ?
+                window.MaruReader.localizedStrings.showGrammarDetails :
+                window.MaruReader.localizedStrings.showFrequencyDetails;
+            var hideLabel = isGrammar ?
+                window.MaruReader.localizedStrings.hideGrammarDetails :
+                window.MaruReader.localizedStrings.hideFrequencyDetails;
 
             if (isExpanded) {
                 expanded.classList.remove('visible');
                 button.setAttribute('aria-expanded', 'false');
-                button.setAttribute('aria-label', window.MaruReader.localizedStrings.showFrequencyDetails);
+                button.setAttribute('aria-label', showLabel);
             } else {
                 expanded.classList.add('visible');
                 button.setAttribute('aria-expanded', 'true');
-                button.setAttribute('aria-label', window.MaruReader.localizedStrings.hideFrequencyDetails);
+                button.setAttribute('aria-label', hideLabel);
             }
         }, true);
     }

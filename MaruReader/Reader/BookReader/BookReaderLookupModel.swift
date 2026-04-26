@@ -59,6 +59,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
     private var resourceSchemeHandler: ResourceURLSchemeHandler = .init()
     private var audioSchemeHandler: AudioURLSchemeHandler = .init()
     private var resultsSchemeHandler: DictionaryResultsURLSchemeHandler = .init()
+    private var grammarSchemeHandler: GrammarDictionaryURLSchemeHandler = .init()
     private var ankiSchemeHandler: AnkiURLSchemeHandler = .init()
 
     private let highlightStyles = [
@@ -124,6 +125,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         Task {
             do {
                 await self.resultsSchemeHandler.setWebTheme(theme)
+                await self.grammarSchemeHandler.setWebTheme(theme)
                 guard self.showPopup, let currentPopupSession = self.currentPopupSession else { return }
                 await currentPopupSession.resetRenderCursor()
                 let requestId = await currentPopupSession.requestId
@@ -381,6 +383,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         config.urlSchemeHandlers[URLScheme("marureader-resource")!] = resourceSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-audio")!] = audioSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-lookup")!] = resultsSchemeHandler
+        config.urlSchemeHandlers[URLScheme("marureader-grammar")!] = grammarSchemeHandler
         config.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
 
         let userContentController = WKUserContentController()

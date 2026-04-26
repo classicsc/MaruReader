@@ -480,6 +480,8 @@ public protocol SudachiAnalyzerProtocol: AnyObject, Sendable {
     
     func generateSegments(text: String) throws  -> [FuriganaSpan]
     
+    func normalizedForm(text: String) throws  -> String
+    
     func warmUp() throws 
     
 }
@@ -547,6 +549,15 @@ public convenience init(resourceDir: String)throws  {
 open func generateSegments(text: String)throws  -> [FuriganaSpan]  {
     return try  FfiConverterSequenceTypeFuriganaSpan.lift(try rustCallWithError(FfiConverterTypeSudachiAnalyzerError_lift) {
     uniffi_maru_sudachi_ffi_fn_method_sudachianalyzer_generate_segments(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(text),$0
+    )
+})
+}
+    
+open func normalizedForm(text: String)throws  -> String  {
+    return try  FfiConverterString.lift(try rustCallWithError(FfiConverterTypeSudachiAnalyzerError_lift) {
+    uniffi_maru_sudachi_ffi_fn_method_sudachianalyzer_normalized_form(
             self.uniffiCloneHandle(),
         FfiConverterString.lower(text),$0
     )
@@ -848,6 +859,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.contractVersionMismatch
     }
     if (uniffi_maru_sudachi_ffi_checksum_method_sudachianalyzer_generate_segments() != 20863) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_maru_sudachi_ffi_checksum_method_sudachianalyzer_normalized_form() != 47849) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_maru_sudachi_ffi_checksum_method_sudachianalyzer_warm_up() != 13849) {

@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+internal import MaruTextAnalysis
 import Foundation
 
 /// Generates `LookupCandidate` objects from user input through substring generation,
@@ -123,27 +124,43 @@ struct DictionaryCandidateGenerator {
     /// - Parameter candidate: Base lookup candidate
     /// - Returns: Array of candidates with preprocessing applied
     private func applyPreprocessing(to candidate: LookupCandidate) -> [LookupCandidate] {
-        // Preprocessor config for Japanese, currently all rules enabled
-        let defaultTextPreprocessorRules: [TextPreprocessorRule] = [
-            NormalizeCJKCompatibilityCharactersRule(),
-            NormalizeCombiningCharactersRule(),
-            ConvertKanjiVariantsRule(),
-            CollapseEmphaticSequencesRule(),
-            ConvertHalfWidthCharactersRule(),
-            ConvertAlphabeticToKanaRule(),
-            ConvertHiraganaToKatakanaRule(),
-            ConvertKatakanaToHiraganaRule(),
-            ConvertFullWidthAlphanumericToNormalRule(),
-            ConvertAlphanumericToFullWidthRule(),
-        ]
-        return JapaneseTextPreprocessor.generateVariants(candidate, using: defaultTextPreprocessorRules, maxVariants: maxPreprocessorVariants)
+        JapaneseTextNormalization.generateLookupVariants(
+            for: candidate.text,
+            maxVariants: maxPreprocessorVariants
+        ).map { variant in
+            LookupCandidate(
+                text: variant.text,
+                originalSubstring: candidate.originalSubstring,
+                preprocessorRules: candidate.preprocessorRules + [variant.transformationChain],
+                deconjugationPaths: candidate.deconjugationPaths
+            )
+        }
     }
 
     /// Apply deinflection rules to generate potential dictionary forms
     /// - Parameter candidate: Preprocessed lookup candidate
     /// - Returns: Array of candidates with deinflection applied
     private func applyDeinflection(to candidate: LookupCandidate) -> [LookupCandidate] {
-        JapaneseDeinflector.deinflect(candidate)
+        JapaneseDeconjugator.deconjugate(candidate.text).map { deconjugationCandidate in
+            let deconjugationPaths = if deconjugationCandidate.process.isEmpty {
+                candidate.deconjugationPaths
+            } else {
+                candidate.deconjugationPaths + [
+                    LookupCandidateDeconjugation(
+                        process: deconjugationCandidate.process,
+                        tags: deconjugationCandidate.tags,
+                        priority: deconjugationCandidate.priority
+                    ),
+                ]
+            }
+
+            return LookupCandidate(
+                text: deconjugationCandidate.text,
+                originalSubstring: candidate.originalSubstring,
+                preprocessorRules: candidate.preprocessorRules,
+                deconjugationPaths: deconjugationPaths
+            )
+        }
     }
 
     /// Preserve separate source/trace combinations while still deduplicating
@@ -153,8 +170,13 @@ struct DictionaryCandidateGenerator {
             candidate.text,
             candidate.originalSubstring,
             candidate.preprocessorRules.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
-            candidate.deinflectionInputRules.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
-            candidate.deinflectionOutputRulesPerChain.map { $0.joined(separator: "\u{1F}") }.joined(separator: "\u{1E}"),
+            candidate.deconjugationPaths.map { path in
+                [
+                    path.process.joined(separator: "\u{1F}"),
+                    path.tags.joined(separator: "\u{1F}"),
+                    String(path.priority),
+                ].joined(separator: "\u{1C}")
+            }.joined(separator: "\u{1E}"),
         ].joined(separator: "\u{1D}")
     }
 }

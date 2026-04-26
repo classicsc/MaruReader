@@ -285,7 +285,6 @@ public actor TextLookupSession {
 
         if !toMaterialize.isEmpty {
             let context = persistenceController.newBackgroundContext()
-            let deinflectionLanguage = DeinflectionLanguage(rawValue: styles.deinflectionDescriptionLanguage) ?? .followSystem
 
             // Fetch and cache tag metadata before materialization to avoid a redundant fetch
             if cachedTagMetadata == nil {
@@ -300,7 +299,6 @@ public actor TextLookupSession {
                 toMaterialize,
                 dictionaryMetadata: dictionaryMetadata,
                 context: context,
-                deinflectionLanguage: deinflectionLanguage,
                 tagMetadataMap: cachedTagMetadata
             )
 

@@ -138,26 +138,30 @@ public struct DictionarySearchService: Sendable {
         )
     }
 
-    static func groupResults(_ results: [SearchResult], deinflectionLanguage: DeinflectionLanguage = .en) -> [GroupedSearchResults] {
+    static func groupResults(_ results: [SearchResult]) -> [GroupedSearchResults] {
         let grouped = Swift.Dictionary(grouping: results, by: { result in
             "\(result.term)|\(result.reading ?? "")"
         })
 
         return grouped.map { termKey, termResults in
-            let firstResult = termResults.first!
-            let dictionaryGroups = Swift.Dictionary(grouping: termResults, by: { "\($0.dictionaryUUID)|\($0.sequence)|\($0.definitionTags)|\($0.score)" })
+            let sortedTermResults = termResults.sorted(by: >)
+            let firstResult = sortedTermResults.first!
+            let dictionaryGroups = Swift.Dictionary(grouping: sortedTermResults) {
+                "\($0.dictionaryUUID)|\($0.sequence)|\($0.definitionTags)|\($0.score)"
+            }
 
             let dictionaryResults = dictionaryGroups.map { _, dictResults in
-                let dictionaryTitle = dictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
-                let dictionaryUUID = dictResults.first?.dictionaryUUID ?? UUID()
-                let sequence = dictResults.first?.sequence ?? 0
-                let score = dictResults.first?.score ?? 0.0
+                let sortedDictResults = dictResults.sorted(by: >)
+                let dictionaryTitle = sortedDictResults.first?.dictionaryTitle ?? "Unknown Dictionary"
+                let dictionaryUUID = sortedDictResults.first?.dictionaryUUID ?? UUID()
+                let sequence = sortedDictResults.first?.sequence ?? 0
+                let score = sortedDictResults.first?.score ?? 0.0
                 return DictionaryResults(
                     dictionaryTitle: dictionaryTitle,
                     dictionaryUUID: dictionaryUUID,
                     sequence: sequence,
                     score: score,
-                    results: dictResults
+                    results: sortedDictResults
                 )
             }.sorted { (lhs: DictionaryResults, rhs: DictionaryResults) in
                 let lhsPriority = lhs.results.first?.displayPriority ?? 0
@@ -172,8 +176,9 @@ public struct DictionarySearchService: Sendable {
             }
 
             // Aggregate term tags from all results for this term
-            let allTermTags = termResults.map(\.termTags)
+            let allTermTags = sortedTermResults.map(\.termTags)
             let mergedTermTags = [Tag].merge(allTermTags)
+            let grammarMatches = mergeGrammarMatches(sortedTermResults.flatMap(\.grammarMatches))
 
             // Aggregate pitch accents from all results for this term
             let allPitchAccents = firstResult.pitchAccents
@@ -190,10 +195,6 @@ public struct DictionarySearchService: Sendable {
                 )
             }.sorted { $0.priority < $1.priority }
 
-            // Format deinflection info from top result
-            let deinflectionInfo = formatDeinflectionInfo(from: firstResult.deinflectionRules, language: deinflectionLanguage)
-            let deinflectionInfoHTML = formatDeinflectionInfoHTML(from: firstResult.deinflectionRules, language: deinflectionLanguage)
-
             return GroupedSearchResults(
                 termKey: termKey,
                 expression: firstResult.term,
@@ -201,8 +202,7 @@ public struct DictionarySearchService: Sendable {
                 dictionariesResults: dictionaryResults,
                 pitchAccentResults: pitchAccentResults,
                 termTags: mergedTermTags,
-                deinflectionInfo: deinflectionInfo,
-                deinflectionInfoHTML: deinflectionInfoHTML
+                grammarMatches: grammarMatches
             )
         }.sorted { lhs, rhs in
             guard let lhsFirst = lhs.dictionariesResults.first?.results.first,
@@ -222,21 +222,23 @@ public struct DictionarySearchService: Sendable {
         }
 
         return grouped.map { termKey, termMatches in
-            let firstMatch = termMatches.first!
+            let sortedTermMatches = termMatches.sorted(by: >)
+            let firstMatch = sortedTermMatches.first!
 
-            let dictionaryGroups = Swift.Dictionary(grouping: termMatches) {
+            let dictionaryGroups = Swift.Dictionary(grouping: sortedTermMatches) {
                 "\($0.dictionaryUUID)|\($0.sequence)|\($0.definitionTagsRaw ?? "")|\($0.score)"
             }
 
             let dictionaryMatchesList = dictionaryGroups.map { _, dictMatches in
-                let first = dictMatches.first!
+                let sortedDictMatches = dictMatches.sorted(by: >)
+                let first = sortedDictMatches.first!
                 return DictionaryTermMatches(
                     dictionaryTitle: first.dictionaryTitle,
                     dictionaryUUID: first.dictionaryUUID,
                     displayPriority: first.displayPriority,
                     sequence: first.sequence,
                     score: first.score,
-                    matches: dictMatches
+                    matches: sortedDictMatches
                 )
             }.sorted { (lhs: DictionaryTermMatches, rhs: DictionaryTermMatches) in
                 if lhs.displayPriority != rhs.displayPriority {
@@ -304,63 +306,27 @@ public struct DictionarySearchService: Sendable {
         )
     }
 
-    /// Format deinflection rules into a human-readable string using localized display names.
-    private static func formatDeinflectionInfo(from rules: [[String]], language: DeinflectionLanguage) -> String? {
-        guard !rules.isEmpty else { return nil }
+    private static func mergeGrammarMatches(_ matches: [GrammarEntryMatch]) -> [GrammarEntryMatch] {
+        var formTagOrder: [String] = []
+        var entriesByFormTag: [String: [GrammarEntryLink]] = [:]
+        var seenEntriesByFormTag: [String: Set<String>] = [:]
 
-        let localizeRule: (String) -> String = { name in
-            JapaneseDeinflector.transforms[name]?.localization.displayName(for: language) ?? name
+        for match in matches {
+            if entriesByFormTag[match.formTag] == nil {
+                formTagOrder.append(match.formTag)
+                entriesByFormTag[match.formTag] = []
+            }
+
+            for entry in match.entries where seenEntriesByFormTag[match.formTag, default: []].insert(entry.id).inserted {
+                entriesByFormTag[match.formTag, default: []].append(entry)
+            }
         }
 
-        // Each inner array is a chain of rules that were applied
-        // If there's only one chain with one rule, show it simply
-        if rules.count == 1, let chain = rules.first {
-            if chain.isEmpty {
+        return formTagOrder.compactMap { formTag in
+            guard let entries = entriesByFormTag[formTag], !entries.isEmpty else {
                 return nil
-            } else if chain.count == 1 {
-                return localizeRule(chain[0])
-            } else {
-                return chain.map(localizeRule).joined(separator: " \u{2192} ")
             }
+            return GrammarEntryMatch(formTag: formTag, entries: entries)
         }
-
-        // Multiple chains - show them as alternatives
-        let chainDescriptions = rules.map { chain in
-            chain.isEmpty ? "" : chain.map(localizeRule).joined(separator: " \u{2192} ")
-        }.filter { !$0.isEmpty }
-
-        return chainDescriptions.joined(separator: " | ")
-    }
-
-    /// Format deinflection rules as HTML, wrapping each rule name in a span with its description as a tooltip title.
-    private static func formatDeinflectionInfoHTML(from rules: [[String]], language: DeinflectionLanguage) -> String? {
-        guard !rules.isEmpty else { return nil }
-
-        let ruleHTML: (String) -> String = { name in
-            let localization = JapaneseDeinflector.transforms[name]?.localization
-            let displayName = localization?.displayName(for: language) ?? name
-            let description = localization?.description(for: language) ?? ""
-            let escapedName = escapeHTML(displayName)
-            if description.isEmpty {
-                return escapedName
-            }
-            return "<span class=\"deinflection-rule\" title=\"\(escapeHTML(description))\">\(escapedName)</span>"
-        }
-
-        if rules.count == 1, let chain = rules.first {
-            if chain.isEmpty {
-                return nil
-            } else if chain.count == 1 {
-                return ruleHTML(chain[0])
-            } else {
-                return chain.map(ruleHTML).joined(separator: " \u{2192} ")
-            }
-        }
-
-        let chainDescriptions = rules.map { chain in
-            chain.isEmpty ? "" : chain.map(ruleHTML).joined(separator: " \u{2192} ")
-        }.filter { !$0.isEmpty }
-
-        return chainDescriptions.joined(separator: " | ")
     }
 }

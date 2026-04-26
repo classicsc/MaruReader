@@ -43,8 +43,7 @@ struct PitchAccentCategoryCalculatorTests {
             reading: "たべる",
             dictionariesResults: [],
             pitchAccentResults: pitchResults,
-            termTags: tags,
-            deinflectionInfo: nil
+            termTags: tags
         )
 
         let categories = PitchAccentCategoryCalculator.categories(for: group)
@@ -62,8 +61,7 @@ struct PitchAccentCategoryCalculatorTests {
             reading: "あるく",
             dictionariesResults: [],
             pitchAccentResults: pitchResults,
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
 
         let categories = PitchAccentCategoryCalculator.categories(for: group)

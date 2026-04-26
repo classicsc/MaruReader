@@ -31,10 +31,6 @@ struct DictionaryDisplaySettingsView: View {
     private var fontSize = DictionaryDisplayPreferences.fontSizeDefault
     @AppStorage(DictionaryDisplayPreferences.popupFontSizeKey)
     private var popupFontSize = DictionaryDisplayPreferences.popupFontSizeDefault
-    @AppStorage(DictionaryDisplayPreferences.showDeinflectionKey)
-    private var showDeinflection = DictionaryDisplayPreferences.showDeinflectionDefault
-    @AppStorage(DictionaryDisplayPreferences.deinflectionDescriptionLanguageKey)
-    private var deinflectionDescriptionLanguageRawValue = DictionaryDisplayPreferences.deinflectionDescriptionLanguageDefault
     @AppStorage(DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabledKey)
     private var pitchDownstepNotationInHeaderEnabled = DictionaryDisplayPreferences.pitchDownstepNotationInHeaderEnabledDefault
     @AppStorage(DictionaryDisplayPreferences.pitchResultsAreaCollapsedDisplayKey)
@@ -60,17 +56,6 @@ struct DictionaryDisplaySettingsView: View {
         fontOptions.firstIndex(where: { $0.family == family }) ?? 0
     }
 
-    private var deinflectionDescriptionLanguage: Binding<DeinflectionLanguage> {
-        Binding(
-            get: {
-                DeinflectionLanguage(rawValue: deinflectionDescriptionLanguageRawValue) ?? .followSystem
-            },
-            set: { newValue in
-                deinflectionDescriptionLanguageRawValue = newValue.rawValue
-            }
-        )
-    }
-
     init() {
         let defaultFamily = DictionaryDisplayPreferences.fontFamily
         let defaultIndex = Self.fontIndex(for: defaultFamily)
@@ -91,17 +76,6 @@ struct DictionaryDisplaySettingsView: View {
             Section("Font Size Scale") {
                 Stepper("Content: \(fontSize.formatted(.number.precision(.fractionLength(2))))x", value: $fontSize, in: 0.5 ... 3.0, step: 0.05)
                 Stepper("Popup: \(popupFontSize.formatted(.number.precision(.fractionLength(2))))x", value: $popupFontSize, in: 0.5 ... 3.0, step: 0.05)
-            }
-
-            Section("Display Options") {
-                Toggle("Show Deinflection Info", isOn: $showDeinflection)
-                if showDeinflection {
-                    Picker("Deinflection Language", selection: deinflectionDescriptionLanguage) {
-                        ForEach(DeinflectionLanguage.allCases, id: \.self) { language in
-                            Text(language.displayLabel).tag(language)
-                        }
-                    }
-                }
             }
 
             Section("Pitch Accent") {

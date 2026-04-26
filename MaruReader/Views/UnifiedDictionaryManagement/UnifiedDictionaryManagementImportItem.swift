@@ -23,6 +23,7 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
     case dictionary(Dictionary)
     case audioSource(AudioSource)
     case tokenizerDictionary(TokenizerDictionary)
+    case grammarDictionary(GrammarDictionary)
 
     var id: NSManagedObjectID {
         objectID
@@ -36,6 +37,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.objectID
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.objectID
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.objectID
         }
     }
 
@@ -61,6 +64,13 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             }
 
             return tokenizerDictionary.file?.deletingPathExtension().lastPathComponent ?? String(localized: "Unknown Tokenizer Dictionary")
+
+        case let .grammarDictionary(grammarDictionary):
+            if let title = grammarDictionary.title, !title.isEmpty {
+                return title
+            }
+
+            return grammarDictionary.file?.deletingPathExtension().lastPathComponent ?? String(localized: "Unknown Grammar Dictionary")
         }
     }
 
@@ -72,6 +82,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.isStarted
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.isStarted
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.isStarted
         }
     }
 
@@ -83,6 +95,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.isFailed
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.isFailed
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.isFailed
         }
     }
 
@@ -94,6 +108,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.isCancelled
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.isCancelled
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.isCancelled
         }
     }
 
@@ -105,6 +121,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.pendingDeletion
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.pendingDeletion
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.pendingDeletion
         }
     }
 
@@ -116,6 +134,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.displayProgressMessage
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.displayProgressMessage
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.displayProgressMessage
         }
     }
 
@@ -127,6 +147,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.displayProgressMessage
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.errorMessage
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.errorMessage
         }
     }
 
@@ -138,6 +160,8 @@ enum UnifiedDictionaryManagementImportItem: Identifiable {
             audioSource.timeQueued
         case let .tokenizerDictionary(tokenizerDictionary):
             tokenizerDictionary.timeQueued
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.timeQueued
         }
     }
 

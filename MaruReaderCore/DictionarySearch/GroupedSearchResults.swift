@@ -22,8 +22,7 @@ public struct GroupedSearchResults: Identifiable, Sendable {
     public let dictionariesResults: [DictionaryResults]
     public let pitchAccentResults: [PitchAccentResults]
     public let termTags: [Tag]
-    public let deinflectionInfo: String?
-    public let deinflectionInfoHTML: String?
+    public let grammarMatches: [GrammarEntryMatch]
 
     public var id: String {
         termKey
@@ -43,8 +42,7 @@ public struct GroupedSearchResults: Identifiable, Sendable {
         dictionariesResults: [DictionaryResults],
         pitchAccentResults: [PitchAccentResults],
         termTags: [Tag],
-        deinflectionInfo: String?,
-        deinflectionInfoHTML: String? = nil
+        grammarMatches: [GrammarEntryMatch] = []
     ) {
         self.termKey = termKey
         self.expression = expression
@@ -52,7 +50,6 @@ public struct GroupedSearchResults: Identifiable, Sendable {
         self.dictionariesResults = dictionariesResults
         self.pitchAccentResults = pitchAccentResults
         self.termTags = termTags
-        self.deinflectionInfo = deinflectionInfo
-        self.deinflectionInfoHTML = deinflectionInfoHTML
+        self.grammarMatches = grammarMatches
     }
 }

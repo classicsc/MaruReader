@@ -86,7 +86,7 @@ enum TermFetcher {
                     continue
                 }
 
-                guard let validatedChains = Self.validateDeinflectionChains(
+                guard let validatedPaths = Self.validateDeconjugationPaths(
                     candidate: candidate,
                     entryRulesRaw: entry.rules,
                     logger: logger,
@@ -104,7 +104,7 @@ enum TermFetcher {
 
                 let rankingCriteria = RankingCriteria(
                     candidate: candidate,
-                    validatedDeinflectionChains: validatedChains,
+                    validatedDeconjugationPaths: validatedPaths,
                     term: expression,
                     termScore: entry.score,
                     definitionCount: entry.definitionCount,
@@ -126,7 +126,8 @@ enum TermFetcher {
                     rankingCriteria: rankingCriteria,
                     termTagsRaw: entry.termTags,
                     definitionTagsRaw: entry.definitionTags,
-                    deinflectionRules: validatedChains,
+                    deinflectionRules: validatedPaths.map(\.process),
+                    deconjugationPaths: validatedPaths,
                     sequence: entry.sequence,
                     score: entry.score
                 ))
@@ -190,9 +191,20 @@ enum TermFetcher {
             )
         }()
 
+        let grammarFormTags = Set(matches.flatMap { match in
+            match.deconjugationPaths.flatMap(\.process)
+        })
+
+        async let grammarEntryMap = try fetchGrammarEntryMap(
+            formTags: grammarFormTags,
+            context: context,
+            logger: logger
+        )
+
         let frequencyMapValue = try await frequencyMap
         let pitchAccentMapValue = try await pitchAccentMap
         let tagMetadataMapValue = try await fetchedTagMetadataMap
+        let grammarEntryMapValue = try await grammarEntryMap
 
         // Decompress glossaries and build SearchResults concurrently
         return await withTaskGroup(of: SearchResult?.self) { group in
@@ -236,6 +248,10 @@ enum TermFetcher {
                         termTags: termTags,
                         definitionTags: definitionTags,
                         deinflectionRules: match.deinflectionRules,
+                        grammarMatches: buildGrammarMatches(
+                            formTags: match.deconjugationPaths.flatMap(\.process),
+                            grammarEntryMap: grammarEntryMapValue
+                        ),
                         sequence: match.sequence,
                         score: match.score
                     )
@@ -258,7 +274,6 @@ enum TermFetcher {
         _ groups: [GroupedTermMatches],
         dictionaryMetadata: [UUID: DictionaryMetadata],
         context: NSManagedObjectContext,
-        deinflectionLanguage: DeinflectionLanguage = .en,
         tagMetadataMap: [String: TagMetaData]? = nil
     ) async throws -> [GroupedSearchResults] {
         let allMatches = groups.flatMap { $0.dictionaryMatches.flatMap(\.matches) }
@@ -270,7 +285,7 @@ enum TermFetcher {
             tagMetadataMap: tagMetadataMap
         )
 
-        return DictionarySearchService.groupResults(searchResults, deinflectionLanguage: deinflectionLanguage)
+        return DictionarySearchService.groupResults(searchResults)
     }
 
     // MARK: Intermediate result types
@@ -300,44 +315,143 @@ enum TermFetcher {
         let reading: String
     }
 
+    private struct GrammarDictionaryMetadata {
+        let id: UUID
+        let title: String
+    }
+
     // MARK: - Helper Methods
 
-    /// Validates deinflection chains for a candidate against the dictionary entry's POS rules.
-    /// Returns validated chains, or `nil` if the entry should be skipped entirely.
-    static func validateDeinflectionChains(
+    /// Validates deconjugation paths for a candidate against the dictionary entry's POS rules.
+    /// Returns validated paths, or `nil` if the entry should be skipped entirely.
+    static func validateDeconjugationPaths(
         candidate: LookupCandidate,
         entryRulesRaw: String?,
         logger: Logger,
         expression: String
-    ) -> [[String]]? {
+    ) -> [LookupCandidateDeconjugation]? {
         let entryRules = decodeStringArray(from: entryRulesRaw) ?? []
 
-        let validatedChains: [[String]] = if entryRules.isEmpty {
-            candidate.deinflectionInputRules
-        } else {
-            zip(candidate.deinflectionInputRules, candidate.deinflectionOutputRulesPerChain)
-                .compactMap { inputChain, outputConditions in
-                    if outputConditions.isEmpty { return inputChain }
-                    if JapaneseDeinflector.conditionsMatch(
-                        currentConditionStrings: outputConditions,
-                        requiredConditionStrings: entryRules
-                    ) {
-                        return inputChain
-                    }
-                    return nil
-                }
+        if candidate.deconjugationPaths.isEmpty {
+            return []
         }
 
-        if validatedChains.isEmpty, !candidate.deinflectionInputRules.isEmpty {
-            let allOutputRules = candidate.deinflectionOutputRulesPerChain.flatMap(\.self)
-            if !allOutputRules.isEmpty {
-                logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to rule mismatch. Entry rules: \(entryRules, privacy: .public), Candidate output rules: \(allOutputRules, privacy: .public)")
-                return nil
+        let validatedPaths: [LookupCandidateDeconjugation] = if entryRules.isEmpty {
+            candidate.deconjugationPaths.filter { path in
+                guard let lastTag = path.tags.last else {
+                    return true
+                }
+                return !nonDictionaryDeconjugationTags.contains(lastTag.lowercased())
+            }
+        } else {
+            candidate.deconjugationPaths.compactMap { path in
+                guard let lastTag = lastValidatableDeconjugationTag(in: path.tags) else {
+                    return path
+                }
+                return isDeconjugationTag(lastTag, compatibleWith: entryRules) ? path : nil
             }
         }
 
-        return validatedChains
+        if validatedPaths.isEmpty {
+            let allTags = candidate.deconjugationPaths.flatMap(\.tags)
+            logger.debug("Skipping entry for term '\(expression, privacy: .public)' due to deconjugation tag mismatch. Entry rules: \(entryRules, privacy: .public), Candidate tags: \(allTags, privacy: .public)")
+            return nil
+        }
+
+        return validatedPaths
     }
+
+    private static func lastValidatableDeconjugationTag(in tags: [String]) -> String? {
+        tags.last { deconjugationTagsRequiringValidation.contains($0.lowercased()) }
+    }
+
+    private static func isDeconjugationTag(_ deconjugationTag: String, compatibleWith entryRules: [String]) -> Bool {
+        let normalizedEntryRules = Set(entryRules.map { $0.lowercased() })
+        let normalizedTag = deconjugationTag.lowercased()
+
+        if normalizedEntryRules.contains(normalizedTag) {
+            return true
+        }
+
+        if let compatibleTags = deconjugationToDictionaryRuleCompatibility[normalizedTag],
+           !compatibleTags.isDisjoint(with: normalizedEntryRules)
+        {
+            return true
+        }
+
+        return false
+    }
+
+    private static let deconjugationTagsRequiringValidation: Set<String> = [
+        "v1", "v1-s",
+        "vs-s", "vs-i", "vs-c",
+        "vk",
+        "v5aru", "v5b", "v5g", "v5k", "v5k-s",
+        "v5m", "v5n", "v5r", "v5r-i", "v5s", "v5t", "v5u", "v5u-s", "v5uru",
+        "adj-i", "adj-na", "adj-ix",
+        "aux",
+        "stem-past", "stem-te", "stem-te-defective", "stem-te-verbal", "stem-ren-less", "stem-ren-less-v",
+    ]
+
+    private static let nonDictionaryDeconjugationTags: Set<String> = [
+        "form-volition",
+        "stem-a", "stem-adj-base", "stem-e", "stem-izenkei", "stem-ka", "stem-ke", "stem-ku",
+        "stem-mizenkei", "stem-past", "stem-ren", "stem-ren-less", "stem-ren-less-v",
+        "stem-te", "stem-te-defective", "stem-te-verbal",
+        "topic-condition",
+        "uninflectable",
+    ]
+
+    private static let directConjugationVerbTags: Set<String> = [
+        "v1", "v1-s", "v5aru", "v5b", "v5g", "v5k", "v5k-s", "v5m", "v5n",
+        "v5r", "v5r-i", "v5s", "v5t", "v5u", "v5u-s", "v5uru",
+        "vk", "vz",
+        "v4k", "v4g", "v4s", "v4t", "v4n", "v4b", "v4m", "v4r", "v4h",
+        "v2a-s", "v2b-k", "v2d-s", "v2g-k", "v2g-s", "v2h-k", "v2h-s",
+        "v2k-k", "v2k-s", "v2m-k", "v2m-s", "v2n-s", "v2r-k", "v2r-s",
+        "v2s-s", "v2t-k", "v2t-s", "v2w-s", "v2y-k", "v2y-s", "v2z-s",
+        "vn", "vr", "aux-v",
+    ]
+
+    private static let godanConjugationVerbTags: Set<String> = [
+        "v5aru", "v5b", "v5g", "v5k", "v5k-s", "v5m", "v5n",
+        "v5r", "v5r-i", "v5s", "v5t", "v5u", "v5u-s", "v5uru",
+    ]
+
+    private static let deconjugationToDictionaryRuleCompatibility: [String: Set<String>] = {
+        let directConjugationVerbTags = Self.directConjugationVerbTags
+        let godanConjugationVerbTags = Self.godanConjugationVerbTags
+
+        var compatibility: [String: Set<String>] = [
+            "vs-i": ["vs-i", "vs", "vs-s"],
+            "vs-s": ["vs-s", "vs", "vs-i"],
+            "vs-c": ["vs-c", "vs"],
+            "v1-s": ["v1-s", "v1"],
+            "adj-i": ["adj-i", "exp"],
+            "adj-ix": ["adj-ix", "adj-i"],
+            "v5r-i": ["v5r-i", "v5r"],
+            "v5k-s": ["v5k-s", "v5k"],
+            "v5u-s": ["v5u-s", "v5u"],
+            "stem-past": directConjugationVerbTags,
+            "stem-te": directConjugationVerbTags,
+            "stem-te-defective": directConjugationVerbTags,
+            "stem-te-verbal": directConjugationVerbTags,
+            "stem-ren-less": directConjugationVerbTags,
+            "stem-ren-less-v": directConjugationVerbTags,
+        ]
+
+        for tag in directConjugationVerbTags {
+            compatibility[tag, default: [tag]].insert("v")
+        }
+        for tag in ["vs-i", "vs-s", "vs-c", "vk", "vz"] {
+            compatibility[tag, default: [tag]].insert("v")
+        }
+        for tag in godanConjugationVerbTags {
+            compatibility[tag, default: [tag]].insert("v5")
+        }
+
+        return compatibility
+    }()
 
     /// Fetch TermEntry entities matching the candidate texts
     private static func fetchTermEntries(
@@ -580,6 +694,107 @@ enum TermFetcher {
 
     private static func termReadingKey(expression: String, reading: String) -> TermReadingKey {
         TermReadingKey(expression: expression, reading: reading)
+    }
+
+    static func fetchGrammarEntryMap(
+        formTags: Set<String>,
+        context: NSManagedObjectContext,
+        logger: Logger = Self.logger
+    ) async throws -> [String: [GrammarEntryLink]] {
+        let formTags = Set(formTags.filter { !$0.isEmpty })
+        guard !formTags.isEmpty else {
+            return [:]
+        }
+
+        return try await context.perform {
+            let dictionaryRequest: NSFetchRequest<GrammarDictionary> = GrammarDictionary.fetchRequest()
+            dictionaryRequest.predicate = NSPredicate(format: "isComplete == YES AND pendingDeletion == NO")
+
+            let dictionaries = try context.fetch(dictionaryRequest)
+            let dictionaryMetadata: [UUID: GrammarDictionaryMetadata] = Swift.Dictionary(uniqueKeysWithValues: dictionaries.compactMap { dictionary -> (UUID, GrammarDictionaryMetadata)? in
+                guard let id = dictionary.id else { return nil }
+                return (id, GrammarDictionaryMetadata(id: id, title: dictionary.title ?? ""))
+            })
+
+            guard !dictionaryMetadata.isEmpty else {
+                return [:]
+            }
+
+            let entryRequest: NSFetchRequest<GrammarDictionaryEntry> = GrammarDictionaryEntry.fetchRequest()
+            let dictionaryIDs = Array(dictionaryMetadata.keys)
+            let tagPredicates = formTags.map {
+                NSPredicate(format: "formTags CONTAINS %@", $0)
+            }
+            entryRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "dictionaryID IN %@", dictionaryIDs),
+                NSCompoundPredicate(orPredicateWithSubpredicates: tagPredicates),
+            ])
+            entryRequest.sortDescriptors = [
+                NSSortDescriptor(key: "title", ascending: true),
+                NSSortDescriptor(key: "entryID", ascending: true),
+            ]
+
+            let entries = try context.fetch(entryRequest)
+            logger.debug("Found \(entries.count) grammar entries for form tags")
+
+            var map: [String: [GrammarEntryLink]] = [:]
+            var seen: [String: Set<String>] = [:]
+
+            for entry in entries {
+                guard let dictionaryID = entry.dictionaryID,
+                      let metadata = dictionaryMetadata[dictionaryID],
+                      let entryID = entry.entryID,
+                      let entryTitle = entry.title
+                else {
+                    continue
+                }
+
+                let entryFormTags = Set((entry.formTags ?? "")
+                    .split(separator: "\n")
+                    .map(String.init))
+                let matchedTags = formTags.intersection(entryFormTags).sorted()
+
+                for formTag in matchedTags {
+                    let link = GrammarEntryLink(
+                        dictionaryID: metadata.id,
+                        dictionaryTitle: metadata.title,
+                        entryID: entryID,
+                        entryTitle: entryTitle
+                    )
+                    if seen[formTag, default: []].insert(link.id).inserted {
+                        map[formTag, default: []].append(link)
+                    }
+                }
+            }
+
+            for formTag in map.keys {
+                map[formTag]?.sort {
+                    if $0.dictionaryTitle != $1.dictionaryTitle {
+                        return $0.dictionaryTitle < $1.dictionaryTitle
+                    }
+                    return $0.entryTitle < $1.entryTitle
+                }
+            }
+
+            return map
+        }
+    }
+
+    private static func buildGrammarMatches(
+        formTags: [String],
+        grammarEntryMap: [String: [GrammarEntryLink]]
+    ) -> [GrammarEntryMatch] {
+        var seenTags: Set<String> = []
+        var matches: [GrammarEntryMatch] = []
+
+        for formTag in formTags where seenTags.insert(formTag).inserted {
+            guard let entries = grammarEntryMap[formTag], !entries.isEmpty else {
+                continue
+            }
+            matches.append(GrammarEntryMatch(formTag: formTag, entries: entries))
+        }
+
+        return matches
     }
 
     private static func exactPairPredicate(

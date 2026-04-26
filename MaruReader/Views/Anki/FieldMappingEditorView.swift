@@ -450,7 +450,7 @@ enum TemplateValueCategory: CaseIterable {
     var values: [TemplateValue] {
         switch self {
         case .text:
-            [.expression, .furigana, .conjugation, .partOfSpeech, .tags]
+            [.expression, .furigana, .partOfSpeech, .tags]
         case .reading:
             [.reading]
         case .glossary:

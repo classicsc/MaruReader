@@ -34,8 +34,7 @@ struct PitchAccentCategoriesResolverTests {
             reading: "ほん",
             dictionariesResults: [],
             pitchAccentResults: pitchResults,
-            termTags: tags,
-            deinflectionInfo: nil
+            termTags: tags
         )
         let response = makeResponse(primaryResult: "本", group: group)
         let resolver = TextLookupResponseTemplateResolver(response: response, selectedGroup: group)
@@ -55,8 +54,7 @@ struct PitchAccentCategoriesResolverTests {
             reading: "たべる",
             dictionariesResults: [],
             pitchAccentResults: pitchResults,
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
         let response = makeResponse(primaryResult: "食べる", group: group)
         let resolver = TextLookupResponseTemplateResolver(response: response, selectedGroup: group)
@@ -71,8 +69,6 @@ struct PitchAccentCategoriesResolverTests {
             fontFamily: DictionaryDisplayFontFamilyStacks.sansSerif,
             contentFontSize: 1,
             popupFontSize: 1,
-            showDeinflection: false,
-            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,

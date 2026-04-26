@@ -68,9 +68,16 @@ struct TokenizerDictionaryResult {
     let status: String
 }
 
+struct GrammarDictionaryResult {
+    let name: String
+    let entries: Int64
+    let status: String
+}
+
 enum PendingSeedArgument {
     case audio
     case tokenizer
+    case grammar
     case glossaryCodec
     case glossaryTrainingProfile
 
@@ -80,6 +87,8 @@ enum PendingSeedArgument {
             "--audio"
         case .tokenizer:
             "--tokenizer"
+        case .grammar:
+            "--grammar"
         case .glossaryCodec:
             "--glossary-codec"
         case .glossaryTrainingProfile:
@@ -93,6 +102,7 @@ struct SeedArguments {
     let dictionaryPaths: [URL]
     let audioSourcePaths: [URL]
     let tokenizerDictionaryPaths: [URL]
+    let grammarDictionaryPaths: [URL]
     let glossaryCompressionVersion: GlossaryCompressionCodecVersion
     let glossaryCompressionTrainingProfile: GlossaryCompressionTrainingProfile
 }
@@ -142,6 +152,7 @@ struct DictionarySeeder {
               dictionary.zip                One or more Yomitan dictionary ZIP files to import
               --audio <file>                Specify the next ZIP file as an indexed audio source
               --tokenizer <file>            Specify the next ZIP file as a tokenizer dictionary package
+              --grammar <file>              Specify the next ZIP file as a grammar dictionary package
               --glossary-codec <version>    Supported codecs: \(supportedCodecs)
                                             Default: \(GlossaryCompressionCodec.defaultImportVersion.rawValue)
               --glossary-training-profile   Supported profiles: \(GlossaryCompressionTrainingProfile.allCases.map(\.rawValue).joined(separator: ", "))
@@ -180,6 +191,7 @@ struct DictionarySeeder {
         var dictionaryPaths: [URL] = []
         var audioSourcePaths: [URL] = []
         var tokenizerDictionaryPaths: [URL] = []
+        var grammarDictionaryPaths: [URL] = []
         var glossaryCompressionVersion = GlossaryCompressionCodec.defaultImportVersion
         var glossaryCompressionTrainingProfile = GlossaryCompressionTrainingProfile.runtime
         var pendingArgument: PendingSeedArgument?
@@ -191,6 +203,8 @@ struct DictionarySeeder {
                     audioSourcePaths.append(URL(fileURLWithPath: arg))
                 case .tokenizer:
                     tokenizerDictionaryPaths.append(URL(fileURLWithPath: arg))
+                case .grammar:
+                    grammarDictionaryPaths.append(URL(fileURLWithPath: arg))
                 case .glossaryCodec:
                     glossaryCompressionVersion = try parseGlossaryCompressionVersion(arg)
                 case .glossaryTrainingProfile:
@@ -205,6 +219,8 @@ struct DictionarySeeder {
                 pendingArgument = .audio
             case "--tokenizer":
                 pendingArgument = .tokenizer
+            case "--grammar":
+                pendingArgument = .grammar
             case "--glossary-codec":
                 pendingArgument = .glossaryCodec
             case "--glossary-training-profile":
@@ -230,6 +246,7 @@ struct DictionarySeeder {
             dictionaryPaths: dictionaryPaths,
             audioSourcePaths: audioSourcePaths,
             tokenizerDictionaryPaths: tokenizerDictionaryPaths,
+            grammarDictionaryPaths: grammarDictionaryPaths,
             glossaryCompressionVersion: glossaryCompressionVersion,
             glossaryCompressionTrainingProfile: glossaryCompressionTrainingProfile
         )
@@ -252,7 +269,7 @@ struct DictionarySeeder {
     }
 
     static func runSeedCommand(_ arguments: SeedArguments) async throws {
-        try validateInputFiles(arguments.dictionaryPaths + arguments.audioSourcePaths + arguments.tokenizerDictionaryPaths)
+        try validateInputFiles(arguments.dictionaryPaths + arguments.audioSourcePaths + arguments.tokenizerDictionaryPaths + arguments.grammarDictionaryPaths)
 
         try FileManager.default.createDirectory(at: arguments.outputDir, withIntermediateDirectories: true)
 
@@ -270,6 +287,7 @@ struct DictionarySeeder {
         var dictionaryResults: [ImportResult] = []
         var audioResults: [AudioSourceResult] = []
         var tokenizerResults: [TokenizerDictionaryResult] = []
+        var grammarResults: [GrammarDictionaryResult] = []
 
         print("Glossary codec: \(arguments.glossaryCompressionVersion.rawValue)")
         print("Glossary training profile: \(arguments.glossaryCompressionTrainingProfile.rawValue)")
@@ -338,10 +356,37 @@ struct DictionarySeeder {
             }
         }
 
+        if !arguments.grammarDictionaryPaths.isEmpty {
+            let grammarImportManager = ImportManager(
+                container: container,
+                baseDirectory: arguments.outputDir
+            )
+
+            for zipURL in arguments.grammarDictionaryPaths {
+                print("Importing grammar dictionary: \(zipURL.lastPathComponent)...")
+
+                let jobID = try await grammarImportManager.enqueueGrammarDictionaryImport(from: zipURL)
+                await grammarImportManager.waitForCompletion(jobID: jobID)
+
+                let result = try await getGrammarDictionaryResult(container: container, jobID: jobID)
+                grammarResults.append(result)
+                print("  \(result.status): \(result.name) (\(result.entries) entries)")
+
+                if result.status != "Completed" {
+                    throw SeederError.importFailed("\(result.name): \(result.status)")
+                }
+            }
+        }
+
         if arguments.glossaryCompressionVersion == .zstdRuntimeV1 {
             try validateCompressionDictionaries(for: dictionaryResults, in: arguments.outputDir)
         }
-        printSummary(dictionaryResults: dictionaryResults, audioResults: audioResults, tokenizerResults: tokenizerResults)
+        printSummary(
+            dictionaryResults: dictionaryResults,
+            audioResults: audioResults,
+            tokenizerResults: tokenizerResults,
+            grammarResults: grammarResults
+        )
         try verifyNoWAL(at: storeURL)
 
         print("\nOutput written to: \(arguments.outputDir.path)")
@@ -461,6 +506,31 @@ struct DictionarySeeder {
         }
     }
 
+    static func getGrammarDictionaryResult(container: NSPersistentContainer, jobID: NSManagedObjectID) async throws -> GrammarDictionaryResult {
+        let context = container.newBackgroundContext()
+        return try await context.perform {
+            guard let grammarDictionary = try? context.existingObject(with: jobID) as? GrammarDictionary else {
+                throw SeederError.importFailed("Could not fetch grammar dictionary record")
+            }
+
+            let status = if grammarDictionary.isComplete {
+                "Completed"
+            } else if grammarDictionary.isFailed {
+                "Failed: \(grammarDictionary.errorMessage ?? "Unknown error")"
+            } else if grammarDictionary.isCancelled {
+                "Cancelled"
+            } else {
+                "Unknown"
+            }
+
+            return GrammarDictionaryResult(
+                name: grammarDictionary.title ?? "Unknown",
+                entries: grammarDictionary.entryCount,
+                status: status
+            )
+        }
+    }
+
     static func validateCompressionDictionaries(for dictionaryResults: [ImportResult], in outputDir: URL) throws {
         let termDictionaries = dictionaryResults.filter { $0.status == "Completed" && $0.terms > 0 }
         guard !termDictionaries.isEmpty else {
@@ -489,7 +559,8 @@ struct DictionarySeeder {
     static func printSummary(
         dictionaryResults: [ImportResult],
         audioResults: [AudioSourceResult],
-        tokenizerResults: [TokenizerDictionaryResult]
+        tokenizerResults: [TokenizerDictionaryResult],
+        grammarResults: [GrammarDictionaryResult]
     ) {
         print("\n--- Summary ---")
 
@@ -537,6 +608,23 @@ struct DictionarySeeder {
                     print("  - \(result.name): \(result.status)")
                 }
             }
+        }
+
+        if !grammarResults.isEmpty {
+            let completed = grammarResults.filter { $0.status == "Completed" }
+            let failed = grammarResults.filter { $0.status != "Completed" }
+
+            print("Grammar dictionaries: \(completed.count)/\(grammarResults.count) imported")
+
+            if !failed.isEmpty {
+                print("\nFailed grammar dictionary imports:")
+                for result in failed {
+                    print("  - \(result.name): \(result.status)")
+                }
+            }
+
+            let totalEntries = completed.reduce(0) { $0 + $1.entries }
+            print("Total grammar entries: \(totalEntries)")
         }
     }
 

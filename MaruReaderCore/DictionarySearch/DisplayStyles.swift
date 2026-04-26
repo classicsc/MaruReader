@@ -21,8 +21,6 @@ public struct DisplayStyles: Sendable, Codable {
     public let fontFamily: String
     public let contentFontSize: Double
     public let popupFontSize: Double
-    public let showDeinflection: Bool
-    public let deinflectionDescriptionLanguage: String
     public let pitchDownstepNotationInHeaderEnabled: Bool
     public let pitchResultsAreaCollapsedDisplay: Bool
     public let pitchResultsAreaDownstepNotationEnabled: Bool
@@ -33,8 +31,6 @@ public struct DisplayStyles: Sendable, Codable {
         fontFamily: String,
         contentFontSize: Double,
         popupFontSize: Double,
-        showDeinflection: Bool,
-        deinflectionDescriptionLanguage: String,
         pitchDownstepNotationInHeaderEnabled: Bool,
         pitchResultsAreaCollapsedDisplay: Bool,
         pitchResultsAreaDownstepNotationEnabled: Bool,
@@ -44,8 +40,6 @@ public struct DisplayStyles: Sendable, Codable {
         self.fontFamily = fontFamily
         self.contentFontSize = contentFontSize
         self.popupFontSize = popupFontSize
-        self.showDeinflection = showDeinflection
-        self.deinflectionDescriptionLanguage = deinflectionDescriptionLanguage
         self.pitchDownstepNotationInHeaderEnabled = pitchDownstepNotationInHeaderEnabled
         self.pitchResultsAreaCollapsedDisplay = pitchResultsAreaCollapsedDisplay
         self.pitchResultsAreaDownstepNotationEnabled = pitchResultsAreaDownstepNotationEnabled

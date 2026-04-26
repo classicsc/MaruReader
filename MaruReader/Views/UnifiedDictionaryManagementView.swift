@@ -72,6 +72,14 @@ struct UnifiedDictionaryManagementView: View {
     private var tokenizerDictionaries: FetchedResults<TokenizerDictionary>
 
     @FetchRequest(
+        entity: GrammarDictionary.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \GrammarDictionary.title, ascending: true)],
+        predicate: NSPredicate(format: "isComplete == YES AND pendingDeletion == NO", NSNumber(value: true)),
+        animation: .default
+    )
+    private var grammarDictionaries: FetchedResults<GrammarDictionary>
+
+    @FetchRequest(
         entity: Dictionary.entity(),
         sortDescriptors: [NSSortDescriptor(keyPath: \Dictionary.kanjiDisplayPriority, ascending: true)],
         predicate: NSPredicate(format: "isComplete == %@ AND pendingDeletion == NO AND kanjiCount > 0", NSNumber(value: true)),
@@ -118,6 +126,14 @@ struct UnifiedDictionaryManagementView: View {
         animation: .default
     )
     private var incompleteTokenizerDictionaries: FetchedResults<TokenizerDictionary>
+
+    @FetchRequest(
+        entity: GrammarDictionary.entity(),
+        sortDescriptors: [NSSortDescriptor(keyPath: \GrammarDictionary.timeQueued, ascending: true)],
+        predicate: NSPredicate(format: "isComplete == NO AND pendingDeletion == NO"),
+        animation: .default
+    )
+    private var incompleteGrammarDictionaries: FetchedResults<GrammarDictionary>
 
     @FetchRequest(
         entity: DictionaryUpdateTask.entity(),
@@ -167,6 +183,7 @@ struct UnifiedDictionaryManagementView: View {
         !incompleteDictionaries.isEmpty
             || !incompleteAudioSources.isEmpty
             || !incompleteTokenizerDictionaries.isEmpty
+            || !incompleteGrammarDictionaries.isEmpty
             || !updateTaskItems.isEmpty
     }
 
@@ -180,8 +197,9 @@ struct UnifiedDictionaryManagementView: View {
         let dictionaries = incompleteDictionaries.map(UnifiedDictionaryManagementImportItem.dictionary)
         let audioSources = incompleteAudioSources.map(UnifiedDictionaryManagementImportItem.audioSource)
         let tokenizerDictionaries = incompleteTokenizerDictionaries.map(UnifiedDictionaryManagementImportItem.tokenizerDictionary)
+        let grammarDictionaries = incompleteGrammarDictionaries.map(UnifiedDictionaryManagementImportItem.grammarDictionary)
 
-        return (dictionaries + audioSources + tokenizerDictionaries).sorted { lhs, rhs in
+        return (dictionaries + audioSources + tokenizerDictionaries + grammarDictionaries).sorted { lhs, rhs in
             if lhs.isStarted != rhs.isStarted {
                 return lhs.isStarted
             }
@@ -199,7 +217,7 @@ struct UnifiedDictionaryManagementView: View {
     private var allSectionsEmpty: Bool {
         termDictionaries.isEmpty && frequencyDictionaries.isEmpty && pitchDictionaries.isEmpty
             && audioSources.isEmpty && kanjiDictionaries.isEmpty && kanjiFrequencyDictionaries.isEmpty
-            && ipaDictionaries.isEmpty && tokenizerDictionaries.isEmpty
+            && ipaDictionaries.isEmpty && tokenizerDictionaries.isEmpty && grammarDictionaries.isEmpty
             && !hasImportActivity && updatableDictionaries.isEmpty && updatableTokenizerDictionaries.isEmpty
     }
 
@@ -290,6 +308,25 @@ struct UnifiedDictionaryManagementView: View {
                 },
                 onMove: reorderAudioSources
             )
+
+            if !grammarDictionaries.isEmpty {
+                Section {
+                    ForEach(grammarDictionaries, id: \.objectID) { grammarDictionary in
+                        UnifiedGrammarDictionaryManagementRow(grammarDictionary: grammarDictionary)
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    showDeletionConfirmation(for: .grammarDictionary(grammarDictionary))
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                } header: {
+                    Text("Grammar Dictionaries")
+                } footer: {
+                    Text("Grammar dictionaries explain the structure of the language.")
+                }
+            }
 
             UnifiedDictionaryManagementDictionarySection(
                 title: "Kanji Dictionaries",
@@ -524,6 +561,8 @@ struct UnifiedDictionaryManagementView: View {
                 await ImportManager.shared.deleteAudioSource(sourceID: audioSource.objectID)
             case let .tokenizerDictionary(tokenizerDictionary):
                 await ImportManager.shared.deleteTokenizerDictionary(tokenizerDictionaryID: tokenizerDictionary.objectID)
+            case let .grammarDictionary(grammarDictionary):
+                await ImportManager.shared.deleteGrammarDictionary(grammarDictionaryID: grammarDictionary.objectID)
             }
         }
     }
@@ -535,6 +574,8 @@ struct UnifiedDictionaryManagementView: View {
                 await ImportManager.shared.deleteDictionary(dictionaryID: dictionary.objectID)
             case let .audioSource(audioSource):
                 await ImportManager.shared.deleteAudioSource(sourceID: audioSource.objectID)
+            case let .grammarDictionary(grammarDictionary):
+                await ImportManager.shared.deleteGrammarDictionary(grammarDictionaryID: grammarDictionary.objectID)
             }
         }
     }

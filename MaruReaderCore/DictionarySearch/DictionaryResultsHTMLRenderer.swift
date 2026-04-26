@@ -65,14 +65,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         </div>
         """
 
-        // Generate deinflection info HTML
-        let deinflectionHTML = (termGroup.deinflectionInfoHTML ?? termGroup.deinflectionInfo?.escapeHTML()).map { info in
-            """
-            <div class=\"deinflection-info\">\(info)</div>
-            """
-        } ?? ""
-
-        let frequencyHTML = termFrequencyHTML(for: termGroup)
+        let metadataHTML = termMetadataHTML(for: termGroup)
 
         // Generate pitch results area with audio buttons
         let pitchHTML = pitchResultsAreaHTML(for: termGroup, includeAudio: true)
@@ -81,8 +74,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         <section class=\"term-group\" data-term-key=\"\(termGroup.termKey.escapeHTML())\">
             \(headerHTML)
             \(tagsHTML)
-            \(deinflectionHTML)
-            \(frequencyHTML)
+            \(metadataHTML)
             \(pitchHTML)
             \(termGroup.dictionariesResults.map { dictionaryResult in
                 // Use first result's definition tags for header
@@ -140,14 +132,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         </div>
         """
 
-        // Generate deinflection info HTML
-        let deinflectionHTML = (termGroup.deinflectionInfoHTML ?? termGroup.deinflectionInfo?.escapeHTML()).map { info in
-            """
-            <div class=\"popup-deinflection-info\">\(info)</div>
-            """
-        } ?? ""
-
-        let frequencyHTML = termFrequencyHTML(for: termGroup, compactOnly: true)
+        let metadataHTML = termMetadataHTML(for: termGroup, compactOnly: true)
 
         // Generate pitch results area (compact for popup)
         let pitchHTML = pitchResultsAreaHTML(for: termGroup, compactOnly: true)
@@ -157,8 +142,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         <div class=\"popup-term-group\" data-term-key=\"\(termGroup.termKey.escapeHTML())\" data-expression=\"\(expressionEscaped)\">
             \(headerSectionHTML)
             \(tagsHTML)
-            \(deinflectionHTML)
-            \(frequencyHTML)
+            \(metadataHTML)
             \(pitchHTML)
             \(termGroup.dictionariesResults.map { dictionaryResult in
                 // Use first result's definition tags for header
@@ -274,6 +258,22 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         groups.map { popupTermGroupHTML($0) }.joined()
     }
 
+    private func termMetadataHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
+        let frequencyHTML = termFrequencyHTML(for: termGroup, compactOnly: compactOnly)
+        let grammarHTML = grammarDisplayHTML(for: termGroup, compactOnly: compactOnly)
+
+        guard !frequencyHTML.isEmpty || !grammarHTML.isEmpty else {
+            return ""
+        }
+
+        return """
+        <div class=\"term-meta-row\">
+            \(frequencyHTML)
+            \(grammarHTML)
+        </div>
+        """
+    }
+
     private func termFrequencyHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
         guard let firstDict = termGroup.dictionariesResults.first,
               let firstResult = firstDict.results.first,
@@ -338,6 +338,84 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
             </div>
         </div>
         """
+    }
+
+    private func grammarDisplayHTML(for termGroup: GroupedSearchResults, compactOnly: Bool = false) -> String {
+        guard !termGroup.grammarMatches.isEmpty else {
+            return ""
+        }
+
+        let firstLabel = Self.localizedGrammarFormTag(termGroup.grammarMatches[0].formTag)
+        let displayValue: String = if termGroup.grammarMatches.count == 1 {
+            firstLabel
+        } else {
+            FrameworkLocalization.string(
+                "dictionary.grammar.badgeMultiple",
+                defaultValue: "\(firstLabel) +\(termGroup.grammarMatches.count - 1)"
+            )
+        }
+
+        if compactOnly {
+            return """
+            <div class=\"grammar-display\">
+                <button type=\"button\" class=\"grammar-button\" aria-expanded=\"false\" disabled>\(displayValue.escapeHTML())</button>
+            </div>
+            """
+        }
+
+        let sectionsHTML = termGroup.grammarMatches.map { match in
+            let heading = Self.localizedGrammarFormTag(match.formTag).escapeHTML()
+            let entriesByDictionary = Swift.Dictionary(grouping: match.entries, by: \.dictionaryTitle)
+            let dictionaryTitles = entriesByDictionary.keys.sorted()
+            let dictionarySections = dictionaryTitles.compactMap { dictionaryTitle -> String? in
+                guard let entries = entriesByDictionary[dictionaryTitle] else { return nil }
+                let linksHTML = entries.map { entry in
+                    let href = Self.grammarEntryURL(dictionaryID: entry.dictionaryID, entryID: entry.entryID)
+                    return """
+                    <li><a class=\"grammar-entry-link\" href=\"\(href.escapeHTML())\">\(entry.entryTitle.escapeHTML())</a></li>
+                    """
+                }.joined(separator: "\n")
+
+                return """
+                <div class=\"grammar-dict-group\">
+                    <div class=\"grammar-dict-name\">\(dictionaryTitle.escapeHTML())</div>
+                    <ul class=\"grammar-entry-list\">
+                        \(linksHTML)
+                    </ul>
+                </div>
+                """
+            }.joined(separator: "\n")
+
+            return """
+            <section class=\"grammar-form-section\">
+                <div class=\"grammar-form-heading\">\(heading)</div>
+                \(dictionarySections)
+            </section>
+            """
+        }.joined(separator: "\n")
+
+        return """
+        <div class=\"grammar-display\">
+            <button type=\"button\" class=\"grammar-button\" aria-expanded=\"false\" aria-label=\"\(FrameworkLocalization.string("dictionary.grammarDetails.show").escapeHTML())\">\(displayValue.escapeHTML())</button>
+            <div class=\"grammar-expanded\">
+                \(sectionsHTML)
+            </div>
+        </div>
+        """
+    }
+
+    private static func grammarEntryURL(dictionaryID: UUID, entryID: String) -> String {
+        let encodedEntryID = entryID.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? entryID
+        return "marureader-grammar://entry/\(dictionaryID.uuidString)/\(encodedEntryID)"
+    }
+
+    private static func localizedGrammarFormTag(_ formTag: String) -> String {
+        let key = "dictionary.grammar.formTag.\(formTag.localizationKeyComponent())"
+        return FrameworkLocalization.string(
+            key,
+            defaultValue: formTag.friendlyGrammarFormTag(),
+            localization: Locale.current.language
+        )
     }
 
     /// Splits a reading string into individual mora.
@@ -720,5 +798,31 @@ private extension String {
         var result = self.replacingOccurrences(of: "\\", with: "\\\\")
         result = result.replacingOccurrences(of: "\"", with: "\\\"")
         return result
+    }
+
+    func localizationKeyComponent() -> String {
+        lowercased().map { character in
+            if character.isLetter || character.isNumber {
+                return String(character)
+            }
+            return "_"
+        }
+        .joined()
+        .replacingOccurrences(of: "_+", with: "_", options: .regularExpression)
+        .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
+    }
+
+    func friendlyGrammarFormTag() -> String {
+        var value = self
+        if value.hasPrefix("("), value.hasSuffix(")") {
+            value.removeFirst()
+            value.removeLast()
+        }
+        return value
+            .split(separator: " ")
+            .map { word in
+                word.prefix(1).uppercased() + String(word.dropFirst())
+            }
+            .joined(separator: " ")
     }
 }

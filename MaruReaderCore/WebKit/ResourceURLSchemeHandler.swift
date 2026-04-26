@@ -34,6 +34,7 @@ public struct ResourceURLSchemeHandler: URLSchemeHandler {
         "domUtilities.js",
         "textScanning.js",
         "textHighlighting.js",
+        "grammarEntry.js",
         "frequencyDisplay.js",
         "pitchDisplay.js",
         "audioDisplay.js",

@@ -34,6 +34,33 @@ struct DictionarySearchViewModelTests {
         #expect(viewModel.linksActiveEnabled)
     }
 
+    @Test func grammarEntryPageBackUsesWebPageHistory() throws {
+        let grammarURL = try #require(URL(string: "marureader-grammar://entry/ABCD/passive"))
+        let resultsURL = try #require(URL(string: "marureader-resource://dictionary.html?mode=results&requestId=ABCD"))
+
+        #expect(DictionarySearchViewModel.shouldNavigateBackInWebPage(
+            currentURL: grammarURL,
+            backURL: resultsURL
+        ))
+    }
+
+    @Test func resultsPageBackDoesNotUseWebPageHistory() throws {
+        let resultsURL = try #require(URL(string: "marureader-resource://dictionary.html?mode=results&requestId=ABCD"))
+
+        #expect(!DictionarySearchViewModel.shouldNavigateBackInWebPage(
+            currentURL: resultsURL,
+            backURL: resultsURL
+        ))
+    }
+
+    @Test func grammarEntryForwardUsesWebPageHistory() throws {
+        let grammarURL = try #require(URL(string: "marureader-grammar://entry/ABCD/passive"))
+        let resultsURL = try #require(URL(string: "marureader-resource://dictionary.html?mode=results&requestId=ABCD"))
+
+        #expect(DictionarySearchViewModel.shouldNavigateForwardInWebPage(forwardURL: grammarURL))
+        #expect(!DictionarySearchViewModel.shouldNavigateForwardInWebPage(forwardURL: resultsURL))
+    }
+
     @Test func searchServiceFactory_IsLazyUntilSearchRuns() async {
         var factoryInvocationCount = 0
         let viewModel = DictionarySearchViewModel(

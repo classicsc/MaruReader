@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "grammar-dictionary-v1",
+  "title": "MaruReader Grammar Dictionary v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["type", "format", "title", "entries", "formTags"],
+  "properties": {
+    "type": {
+      "const": "maru-grammar-dictionary"
+    },
+    "format": {
+      "const": 1
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "string"
+    },
+    "author": {
+      "type": "string"
+    },
+    "attribution": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "license": {
+      "type": "string"
+    },
+    "indexUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "downloadUrl": {
+      "type": "string",
+      "format": "uri"
+    },
+    "isUpdatable": {
+      "type": "boolean"
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "path"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "path": {
+            "type": "string",
+            "pattern": "^(?!/)(?!.*\\.\\.).*\\.md$",
+            "description": "Markdown entry path inside the ZIP. Markdown media references must point under the root media/ folder."
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "formTags": {
+      "type": "object",
+      "description": "Maps MaruReader deconjugation form tags to related entry ids.",
+      "propertyNames": {
+        "enum": [
+          "('a' stem)",
+          "(adverbial stem)",
+          "(infinitive)",
+          "(izenkei)",
+          "(ka stem)",
+          "(ke stem)",
+          "(mizenkei)",
+          "(stem)",
+          "(suru verb noun stem)",
+          "(te form)",
+          "(unstressed infinitive)",
+          "adverbial negative",
+          "archaic negative",
+          "casual kind request",
+          "causative",
+          "classical attributive",
+          "classical hypothetical conditional",
+          "colloquial negative conditional",
+          "conditional",
+          "contracted",
+          "contracted -te yarou (kansaiben)",
+          "contracted conditional (te-ireba)",
+          "dialectal",
+          "do for me",
+          "do for someone",
+          "do for someone (casual)",
+          "do for someone (humble)",
+          "excess",
+          "finish/completely/end up",
+          "for now",
+          "formal conditional",
+          "formal negative",
+          "formal negative past",
+          "garu",
+          "have someone do",
+          "imperative",
+          "kind request",
+          "mai",
+          "negative",
+          "negative (kansaiben)",
+          "negative appearance",
+          "negative conditional",
+          "negative past (kansaiben)",
+          "negative polite",
+          "negative volition/conjecture",
+          "noun form",
+          "passive",
+          "passive/potential",
+          "past",
+          "past negative polite",
+          "past polite",
+          "polite",
+          "polite (childish)",
+          "polite command",
+          "polite request",
+          "polite volitional",
+          "potential",
+          "presumptive",
+          "provisional conditional",
+          "seeming",
+          "seemingness",
+          "short causative",
+          "shortened volitional",
+          "slang (ee/ii)",
+          "slang (irregular)",
+          "slang negative",
+          "slang negative conditional",
+          "slurred",
+          "slurred negative",
+          "slurred negative conditional",
+          "tari",
+          "te polite",
+          "tearu",
+          "teiku",
+          "teiru",
+          "teku (teiku)",
+          "tekuru",
+          "temiru",
+          "teoru",
+          "teru (teiru)",
+          "toku (for now)",
+          "too much",
+          "topic/condition",
+          "toru (teoru)",
+          "volitional",
+          "want",
+          "while",
+          "without doing so"
+        ]
+      },
+      "additionalProperties": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true
+      }
+    }
+  }
+}

@@ -46,6 +46,11 @@ window.MaruReader.textScanning = {
             return;
         }
 
+        var grammarControl = event.target.closest('.grammar-button, .grammar-entry-link');
+        if (grammarControl) {
+            return;
+        }
+
         var collapsibleImage = event.target.closest(
             '.gloss-image-link[data-collapsible="true"], .gloss-image-link[data-collapsed="true"]'
         );

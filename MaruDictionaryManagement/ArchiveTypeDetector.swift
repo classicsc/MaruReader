@@ -26,6 +26,8 @@ public enum ArchiveContentType: Sendable {
     case audioSource
     /// A tokenizer dictionary archive containing Sudachi resources and manifest metadata.
     case tokenizerDictionary
+    /// A Maru grammar dictionary archive containing Markdown entries and form-tag mappings.
+    case grammarDictionary
 }
 
 /// Detects whether a ZIP archive contains a Yomitan dictionary, an AJT audio source,
@@ -122,15 +124,6 @@ enum ArchiveTypeDetector {
             throw ImportError.unrecognizedArchive
         }
 
-        // Yomitan dictionary: must have "title" (String) and "revision" (String),
-        // plus at least one of "format" or "version" (Int).
-        if root["title"] is String,
-           root["revision"] is String,
-           root["format"] is Int || root["version"] is Int
-        {
-            return .dictionary
-        }
-
         // AJT audio source: must have "meta" (Object with "name" String),
         // plus "headwords" and "files" top-level objects.
         if let meta = root["meta"] as? [String: Any],
@@ -147,6 +140,27 @@ enum ArchiveTypeDetector {
            root["format"] is Int
         {
             return .tokenizerDictionary
+        }
+
+        // Maru grammar dictionaries intentionally share Yomitan-like metadata keys
+        // such as title/revision/format, so check the explicit package type before
+        // the looser Yomitan dictionary probe.
+        if root["type"] as? String == GrammarDictionaryIndex.packageType,
+           root["title"] is String,
+           root["format"] is Int,
+           root["entries"] is [[String: Any]],
+           root["formTags"] is [String: Any]
+        {
+            return .grammarDictionary
+        }
+
+        // Yomitan dictionary: must have "title" (String) and "revision" (String),
+        // plus at least one of "format" or "version" (Int).
+        if root["title"] is String,
+           root["revision"] is String,
+           root["format"] is Int || root["version"] is Int
+        {
+            return .dictionary
         }
 
         throw ImportError.unrecognizedArchive

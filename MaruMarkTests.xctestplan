@@ -1,0 +1,24 @@
+{
+  "configurations" : [
+    {
+      "id" : "9DF9C436-2251-417F-A8D6-A6EBD36E355A",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DB1EC39C2F9D2B3F00A86C23",
+        "name" : "MaruMarkTests"
+      }
+    }
+  ],
+  "version" : 1
+}

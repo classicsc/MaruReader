@@ -22,6 +22,7 @@ import MaruReaderCore
 enum UnifiedDictionaryManagementDeletionTarget: Identifiable {
     case dictionary(Dictionary)
     case audioSource(AudioSource)
+    case grammarDictionary(GrammarDictionary)
 
     var id: NSManagedObjectID {
         switch self {
@@ -29,6 +30,8 @@ enum UnifiedDictionaryManagementDeletionTarget: Identifiable {
             dictionary.objectID
         case let .audioSource(audioSource):
             audioSource.objectID
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.objectID
         }
     }
 
@@ -38,6 +41,8 @@ enum UnifiedDictionaryManagementDeletionTarget: Identifiable {
             dictionary.title ?? AppLocalization.unknownDictionary
         case let .audioSource(audioSource):
             audioSource.name ?? AppLocalization.unknownSource
+        case let .grammarDictionary(grammarDictionary):
+            grammarDictionary.title ?? String(localized: "Unknown Grammar Dictionary")
         }
     }
 
@@ -75,6 +80,10 @@ enum UnifiedDictionaryManagementDeletionTarget: Identifiable {
         case let .audioSource(audioSource):
             let name = audioSource.name ?? AppLocalization.unknownSource
             return String(localized: "This will delete the audio source \"\(name)\" and all its data. This action cannot be undone.")
+
+        case let .grammarDictionary(grammarDictionary):
+            let name = grammarDictionary.title ?? String(localized: "Unknown Grammar Dictionary")
+            return String(localized: "This will delete the grammar dictionary \"\(name)\" and its Markdown and media files. This action cannot be undone.")
         }
     }
 }

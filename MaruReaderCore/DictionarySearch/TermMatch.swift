@@ -34,6 +34,7 @@ public struct TermMatch: Comparable, Sendable {
     public let termTagsRaw: String?
     public let definitionTagsRaw: String?
     public let deinflectionRules: [[String]]
+    public let deconjugationPaths: [LookupCandidateDeconjugation]
     public let sequence: Int64
     public let score: Double
 
@@ -51,6 +52,7 @@ public struct TermMatch: Comparable, Sendable {
         termTagsRaw: String?,
         definitionTagsRaw: String?,
         deinflectionRules: [[String]],
+        deconjugationPaths: [LookupCandidateDeconjugation]? = nil,
         sequence: Int64,
         score: Double
     ) {
@@ -67,6 +69,9 @@ public struct TermMatch: Comparable, Sendable {
         self.termTagsRaw = termTagsRaw
         self.definitionTagsRaw = definitionTagsRaw
         self.deinflectionRules = deinflectionRules
+        self.deconjugationPaths = deconjugationPaths ?? deinflectionRules.map {
+            LookupCandidateDeconjugation(process: $0, tags: [], priority: $0.count)
+        }
         self.sequence = sequence
         self.score = score
     }

@@ -297,7 +297,7 @@ struct TermFetcherTests {
                 reading: "いく",
                 definition: "to go",
                 sequence: 1,
-                rules: ["v5"]
+                rules: ["v5k"]
             )
             try context.save()
         }
@@ -306,8 +306,10 @@ struct TermFetcherTests {
             text: "行く",
             originalSubstring: "行きましょう",
             preprocessorRules: [[]],
-            deinflectionInputRules: [["continuative"], ["volitional", "-ます"]],
-            deinflectionOutputRulesPerChain: [["v1d"], ["v5d"]]
+            deconjugationPaths: [
+                LookupCandidateDeconjugation(process: ["continuative"], tags: ["v1"], priority: 1),
+                LookupCandidateDeconjugation(process: ["volitional", "-ます"], tags: ["v5k"], priority: 2),
+            ]
         )
 
         let fetchContext = persistenceController.newBackgroundContext()
@@ -325,7 +327,7 @@ struct TermFetcherTests {
         #expect(match.rankingCriteria.deinflectionChainCount == 1)
     }
 
-    @Test func materializeGrouped_prefersLongerSourceChainForDeinflectionDisplay() async throws {
+    @Test func materializeGrouped_handlesDeconjugatedMatchWithoutDisplayInfo() async throws {
         let persistenceController = makeDictionaryPersistenceController()
         let dictionaryID = UUID()
         let context = persistenceController.newBackgroundContext()
@@ -338,7 +340,7 @@ struct TermFetcherTests {
                 reading: "いく",
                 definition: "to go",
                 sequence: 1,
-                rules: ["v5"]
+                rules: ["v5k"]
             )
             try context.save()
         }
@@ -365,7 +367,140 @@ struct TermFetcherTests {
         #expect(materializedGroups.count == 1)
         let firstGroup = try #require(materializedGroups.first)
         #expect(firstGroup.expression == "行く")
-        #expect(firstGroup.deinflectionInfo == "volitional → -ます")
+    }
+
+    @Test func fetchMatches_acceptsSpecificGodanPathForGenericV5DictionaryRule() async throws {
+        let persistenceController = makeDictionaryPersistenceController()
+        let dictionaryID = UUID()
+        let context = persistenceController.newBackgroundContext()
+
+        try await context.perform {
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "残す",
+                reading: "のこす",
+                definition: "to leave behind",
+                sequence: 1,
+                rules: ["v5"]
+            )
+            try context.save()
+        }
+
+        let generator = DictionaryCandidateGenerator()
+        let candidates = generator.generateCandidates(from: "残された")
+
+        let fetchContext = persistenceController.newBackgroundContext()
+        let matches = try await TermFetcher.fetchMatches(
+            candidates: candidates,
+            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            context: fetchContext
+        )
+
+        let match = try #require(matches.first(where: { $0.term == "残す" }))
+        #expect(match.deconjugationPaths.contains { path in
+            path.tags.contains("v5s") &&
+                path.process.contains("passive") &&
+                path.process.contains("past")
+        })
+    }
+
+    @Test func fetchMatches_prioritizesValidatedGodanPathOverOverstrippedKanji() async throws {
+        let persistenceController = makeDictionaryPersistenceController()
+        let dictionaryID = UUID()
+        let context = persistenceController.newBackgroundContext()
+
+        try await context.perform {
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "住",
+                reading: "じゅう",
+                definition: "dwelling",
+                sequence: 1
+            )
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "住む",
+                reading: "すむ",
+                definition: "to live",
+                sequence: 2,
+                rules: ["v5"]
+            )
+            try context.save()
+        }
+
+        let generator = DictionaryCandidateGenerator()
+        let candidates = generator.generateCandidates(from: "住んでいる")
+
+        let fetchContext = persistenceController.newBackgroundContext()
+        let matches = try await TermFetcher.fetchMatches(
+            candidates: candidates,
+            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            context: fetchContext
+        )
+
+        let grouped = DictionarySearchService.groupMatches(matches)
+
+        #expect(grouped.first?.expression == "住む")
+    }
+
+    @Test func fetchMatches_prioritizesDictionaryFormsOverIntermediateStemMatches() async throws {
+        let cases: [(
+            query: String,
+            stem: String,
+            stemReading: String,
+            dictionaryForm: String,
+            dictionaryReading: String,
+            rules: [String]
+        )] = [
+            ("上げた", "上げ", "あげ", "上げる", "あげる", ["v1"]),
+            ("知っています", "知", "ち", "知る", "しる", ["v5r"]),
+            ("建っていた", "建", "けん", "建つ", "たつ", ["v5t"]),
+            ("作った", "作", "さく", "作る", "つくる", ["v5r"]),
+        ]
+
+        for testCase in cases {
+            let persistenceController = makeDictionaryPersistenceController()
+            let dictionaryID = UUID()
+            let context = persistenceController.newBackgroundContext()
+
+            try await context.perform {
+                try insertTermEntry(
+                    in: context,
+                    dictionaryID: dictionaryID,
+                    expression: testCase.stem,
+                    reading: testCase.stemReading,
+                    definition: "intermediate stem",
+                    sequence: 1
+                )
+                try insertTermEntry(
+                    in: context,
+                    dictionaryID: dictionaryID,
+                    expression: testCase.dictionaryForm,
+                    reading: testCase.dictionaryReading,
+                    definition: "dictionary form",
+                    sequence: 2,
+                    rules: testCase.rules
+                )
+                try context.save()
+            }
+
+            let generator = DictionaryCandidateGenerator()
+            let candidates = generator.generateCandidates(from: testCase.query)
+
+            let fetchContext = persistenceController.newBackgroundContext()
+            let matches = try await TermFetcher.fetchMatches(
+                candidates: candidates,
+                dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+                context: fetchContext
+            )
+
+            let grouped = DictionarySearchService.groupMatches(matches)
+
+            #expect(grouped.first?.expression == testCase.dictionaryForm)
+        }
     }
 
     private func makeDictionaryMetadata(dictionaryID: UUID) -> [UUID: DictionaryMetadata] {

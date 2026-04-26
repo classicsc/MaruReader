@@ -16,6 +16,18 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 /// A string candidate for dictionary lookup, along with metadata about its origin.
+public struct LookupCandidateDeconjugation: Sendable, Hashable {
+    public let process: [String]
+    public let tags: [String]
+    public let priority: Int
+
+    public init(process: [String], tags: [String], priority: Int) {
+        self.process = process
+        self.tags = tags
+        self.priority = priority
+    }
+}
+
 public struct LookupCandidate: Sendable {
     /// The candidate string to look up.
     public let text: String
@@ -23,26 +35,25 @@ public struct LookupCandidate: Sendable {
     public let originalSubstring: String
     /// The preprocessing rule chains that produced this candidate.
     public let preprocessorRules: [[String]]
-    /// The deinflection rule chains that produced this candidate.
-    public let deinflectionInputRules: [[String]]
-    /// Per-chain output conditions for POS matching against dictionary entries.
-    /// Parallel to `deinflectionInputRules`: element at index `i` contains the output
-    /// conditions for the chain at `deinflectionInputRules[i]`.
-    public let deinflectionOutputRulesPerChain: [[String]]
+    /// The deconjugation paths that produced this candidate.
+    public let deconjugationPaths: [LookupCandidateDeconjugation]
 
     public init(from text: String) {
         self.text = text
         self.originalSubstring = text
         self.preprocessorRules = []
-        self.deinflectionInputRules = []
-        self.deinflectionOutputRulesPerChain = []
+        self.deconjugationPaths = []
     }
 
-    public init(text: String, originalSubstring: String, preprocessorRules: [[String]], deinflectionInputRules: [[String]], deinflectionOutputRulesPerChain: [[String]]) {
+    public init(
+        text: String,
+        originalSubstring: String,
+        preprocessorRules: [[String]],
+        deconjugationPaths: [LookupCandidateDeconjugation]
+    ) {
         self.text = text
         self.originalSubstring = originalSubstring
         self.preprocessorRules = preprocessorRules
-        self.deinflectionInputRules = deinflectionInputRules
-        self.deinflectionOutputRulesPerChain = deinflectionOutputRulesPerChain
+        self.deconjugationPaths = deconjugationPaths
     }
 }

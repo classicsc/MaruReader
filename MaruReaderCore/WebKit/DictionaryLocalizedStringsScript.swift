@@ -28,6 +28,8 @@ public func makeDictionaryLocalizedStringsScript() -> WKUserScript {
         "unableToLoadResults": FrameworkLocalization.string("dictionary.status.error"),
         "showFrequencyDetails": FrameworkLocalization.string("dictionary.frequencyDetails.show"),
         "hideFrequencyDetails": FrameworkLocalization.string("dictionary.frequencyDetails.hide"),
+        "showGrammarDetails": FrameworkLocalization.string("dictionary.grammarDetails.show"),
+        "hideGrammarDetails": FrameworkLocalization.string("dictionary.grammarDetails.hide"),
         "showMorePitchResults": FrameworkLocalization.string("dictionary.pitchResults.showMore"),
         "showFewerPitchResults": FrameworkLocalization.string("dictionary.pitchResults.showFewer"),
         "playAudio": FrameworkLocalization.string("dictionary.audio.play"),

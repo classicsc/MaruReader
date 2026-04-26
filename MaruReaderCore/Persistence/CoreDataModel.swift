@@ -27,6 +27,7 @@ public final class DictionaryPersistenceController: Sendable {
     public static let shared = DictionaryPersistenceController()
     private static let logger = Logger.maru(category: "DictionaryPersistenceController")
     private static let bundledDatabaseSeedCompletionMarkerFileName = ".bundled-dictionary-seed-complete"
+    public static let defaultGrammarDictionaryImportCompletionKey = "dictionary.defaultGrammarDictionary.v1.importComplete"
     #if DEBUG
         private static let suppressBundledStarterDictionaryLaunchArgument = "--disableBundledStarterDictionaryFallback"
     #endif
@@ -259,6 +260,9 @@ public final class DictionaryPersistenceController: Sendable {
         do {
             try copyStarterDictionaryContents(from: starterDictionaryDirectory, to: baseDirectory, fileManager: fileManager)
             try writeBundledDatabaseSeedCompletionMarker(at: baseDirectory, fileManager: fileManager)
+            if starterDictionaryContainsGrammarDictionaries(starterDictionaryDirectory, fileManager: fileManager) {
+                markDefaultGrammarDictionaryImportComplete()
+            }
         } catch {
             try? removeBundledSeedContents(at: baseDirectory, fileManager: fileManager)
             throw error
@@ -302,6 +306,24 @@ public final class DictionaryPersistenceController: Sendable {
         {
             try fileManager.copyItem(at: sourceTokenizerDictionaryDir, to: destinationTokenizerDictionaryDir)
         }
+
+        if let sourceGrammarDictionaryDir = GrammarDictionaryStorage.rootDirectoryURL(in: starterDictionaryDirectory),
+           fileManager.fileExists(atPath: sourceGrammarDictionaryDir.path),
+           let destinationGrammarDictionaryDir = GrammarDictionaryStorage.rootDirectoryURL(in: baseDirectory)
+        {
+            try fileManager.copyItem(at: sourceGrammarDictionaryDir, to: destinationGrammarDictionaryDir)
+        }
+    }
+
+    public static func markDefaultGrammarDictionaryImportComplete(defaults: UserDefaults = .standard) {
+        defaults.set(true, forKey: defaultGrammarDictionaryImportCompletionKey)
+    }
+
+    private static func starterDictionaryContainsGrammarDictionaries(_ starterDictionaryDirectory: URL, fileManager: FileManager) -> Bool {
+        guard let sourceGrammarDictionaryDir = GrammarDictionaryStorage.rootDirectoryURL(in: starterDictionaryDirectory) else {
+            return false
+        }
+        return fileManager.fileExists(atPath: sourceGrammarDictionaryDir.path)
     }
 
     static func writeBundledDatabaseSeedCompletionMarker(at baseDirectory: URL, fileManager: FileManager = .default) throws {
@@ -321,6 +343,7 @@ public final class DictionaryPersistenceController: Sendable {
             "AudioMedia",
             GlossaryCompressionCodec.zstdDictionaryDirectoryName,
             TokenizerDictionaryStorage.installationDirectoryName,
+            GrammarDictionaryStorage.installationDirectoryName,
         ] {
             let directoryURL = baseDirectory.appendingPathComponent(directoryName, isDirectory: true)
             if fileManager.fileExists(atPath: directoryURL.path) {

@@ -52,8 +52,8 @@ struct DictionarySearchContentView: View {
 
             if showToolbar {
                 DictionarySearchToolbarView(
-                    canGoBack: viewModel.history.canGoBack,
-                    canGoForward: viewModel.history.canGoForward,
+                    canGoBack: viewModel.canNavigateBack,
+                    canGoForward: viewModel.canNavigateForward,
                     linksActiveEnabled: viewModel.linksActiveEnabled,
                     showsContextActions: viewModel.currentRequest != nil,
                     furiganaEnabled: presentationState.furiganaEnabled,
@@ -82,7 +82,7 @@ struct DictionarySearchContentView: View {
     }
 
     private var showToolbar: Bool {
-        viewModel.currentRequest != nil || viewModel.history.canGoBack || viewModel.history.canGoForward
+        viewModel.currentRequest != nil || viewModel.canNavigateBack || viewModel.canNavigateForward
     }
 
     private var themedBackgroundColor: Color {

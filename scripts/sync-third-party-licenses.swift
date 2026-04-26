@@ -201,6 +201,17 @@ private struct CargoAboutSnapshot: Decodable {
     let crates: [CrateEntry]
 }
 
+private struct RustLicenseSource {
+    let crateDirectoryPath: String
+    let snapshotPath: String
+    let lockfilePath: String
+}
+
+private struct RustComponentAccumulator {
+    let component: CatalogComponent
+    var lockfilePaths: Set<String>
+}
+
 private let requiredManualComponentIDs: Set<String> = [
     "manual-ublock-origin-lite",
     "manual-uassets-filters",
@@ -210,7 +221,19 @@ private let requiredManualComponentIDs: Set<String> = [
 ]
 
 private let resourcePrefix = "About/ThirdPartyLicenses/Documents"
-private let rustSnapshotPath = "scripts/third-party-license-snapshots/rust/maru-sudachi-ffi-cargo-about.json"
+private let rustAboutConfigPath = "MaruSudachiFFI/about.toml"
+private let rustLicenseSources: [RustLicenseSource] = [
+    RustLicenseSource(
+        crateDirectoryPath: "MaruSudachiFFI",
+        snapshotPath: "scripts/third-party-license-snapshots/rust/maru-sudachi-ffi-cargo-about.json",
+        lockfilePath: "MaruSudachiFFI/Cargo.lock"
+    ),
+    RustLicenseSource(
+        crateDirectoryPath: "MaruMarkFFI",
+        snapshotPath: "scripts/third-party-license-snapshots/rust/maru-mark-ffi-cargo-about.json",
+        lockfilePath: "MaruMarkFFI/Cargo.lock"
+    ),
+]
 
 private func run() throws {
     let refreshSnapshots = CommandLine.arguments.contains("--refresh-snapshots")
@@ -440,30 +463,34 @@ private func refreshManualSnapshots(_ manualSources: ManualSourceMap, rootURL: U
 
 private func refreshRustSnapshots(rootURL: URL) throws {
     let fileManager = FileManager.default
-    let crateURL = rootURL.appendingPathComponent("MaruSudachiFFI")
-    let configURL = crateURL.appendingPathComponent("about.toml")
-    let snapshotURL = rootURL.appendingPathComponent(rustSnapshotPath)
+    let configURL = rootURL.appendingPathComponent(rustAboutConfigPath)
 
     try requireFile(configURL.path)
-    try fileManager.createDirectory(at: snapshotURL.deletingLastPathComponent(), withIntermediateDirectories: true)
 
-    try runCommand(
-        [
-            "cargo",
-            "about",
-            "-L",
-            "error",
-            "generate",
-            "--format",
-            "json",
-            "--locked",
-            "-c",
-            configURL.lastPathComponent,
-            "-o",
-            snapshotURL.path,
-        ],
-        currentDirectoryURL: crateURL
-    )
+    for source in rustLicenseSources {
+        let crateURL = rootURL.appendingPathComponent(source.crateDirectoryPath)
+        let snapshotURL = rootURL.appendingPathComponent(source.snapshotPath)
+
+        try fileManager.createDirectory(at: snapshotURL.deletingLastPathComponent(), withIntermediateDirectories: true)
+
+        try runCommand(
+            [
+                "cargo",
+                "about",
+                "-L",
+                "error",
+                "generate",
+                "--format",
+                "json",
+                "--locked",
+                "-c",
+                configURL.path,
+                "-o",
+                snapshotURL.path,
+            ],
+            currentDirectoryURL: crateURL
+        )
+    }
 }
 
 private func buildManualComponents(
@@ -549,29 +576,33 @@ private func buildRustComponents(
     rootURL: URL,
     documentsRootURL: URL
 ) throws -> [CatalogComponent] {
-    let snapshotURL = rootURL.appendingPathComponent(rustSnapshotPath)
-    guard FileManager.default.fileExists(atPath: snapshotURL.path) else {
-        throw ScriptError.missingGeneratedSnapshot(path: rustSnapshotPath)
-    }
+    var componentsByID: [String: RustComponentAccumulator] = [:]
 
-    let snapshot = try decode(CargoAboutSnapshot.self, from: snapshotURL)
-    var licensesByPackageKey: [String: [CargoAboutSnapshot.License]] = [:]
-
-    for license in snapshot.licenses {
-        for usage in license.usedBy {
-            licensesByPackageKey[packageKey(name: usage.krate.name, version: usage.krate.version), default: []].append(license)
+    for source in rustLicenseSources {
+        let snapshotURL = rootURL.appendingPathComponent(source.snapshotPath)
+        guard FileManager.default.fileExists(atPath: snapshotURL.path) else {
+            throw ScriptError.missingGeneratedSnapshot(path: source.snapshotPath)
         }
-    }
 
-    return try snapshot.crates
-        .filter { $0.license != "Unknown" && hasLibraryLikeTarget($0.package.targets) }
-        .sorted { lhs, rhs in
-            if lhs.package.name != rhs.package.name {
-                return lhs.package.name < rhs.package.name
+        let snapshot = try decode(CargoAboutSnapshot.self, from: snapshotURL)
+        var licensesByPackageKey: [String: [CargoAboutSnapshot.License]] = [:]
+
+        for license in snapshot.licenses {
+            for usage in license.usedBy {
+                licensesByPackageKey[packageKey(name: usage.krate.name, version: usage.krate.version), default: []].append(license)
             }
-            return lhs.package.version < rhs.package.version
         }
-        .map { crate in
+
+        let crates = snapshot.crates
+            .filter { $0.license != "Unknown" && hasLibraryLikeTarget($0.package.targets) }
+            .sorted { lhs, rhs in
+                if lhs.package.name != rhs.package.name {
+                    return lhs.package.name < rhs.package.name
+                }
+                return lhs.package.version < rhs.package.version
+            }
+
+        for crate in crates {
             let package = crate.package
             let key = packageKey(name: package.name, version: package.version)
             guard let crateLicenses = licensesByPackageKey[key], !crateLicenses.isEmpty else {
@@ -590,6 +621,13 @@ private func buildRustComponents(
                 return lhs.text < rhs.text
             }
 
+            let componentID = "rust-\(slug(package.name))-\(slug(package.version))"
+            if var existing = componentsByID[componentID] {
+                existing.lockfilePaths.insert(source.lockfilePath)
+                componentsByID[componentID] = existing
+                continue
+            }
+
             let componentSourceURL = preferredRustSourceURL(for: package)
             let componentHomepageURL = preferredRustHomepageURL(for: package)
             let baseOutputPath = "rust/rust-\(slug(package.name))-\(slug(package.version))"
@@ -605,8 +643,8 @@ private func buildRustComponents(
                 )
             }
 
-            return CatalogComponent(
-                id: "rust-\(slug(package.name))-\(slug(package.version))",
+            let component = CatalogComponent(
+                id: componentID,
                 name: package.name,
                 category: .rustCrate,
                 homepageURL: componentHomepageURL,
@@ -614,9 +652,39 @@ private func buildRustComponents(
                 version: package.version,
                 revision: gitRevision(from: package.source),
                 attribution: package.authors.isEmpty ? nil : package.authors.joined(separator: ", "),
-                notes: "Generated from MaruSudachiFFI/Cargo.lock using cargo-about.",
+                notes: nil,
                 licenses: licenses
             )
+
+            componentsByID[componentID] = RustComponentAccumulator(
+                component: component,
+                lockfilePaths: Set([source.lockfilePath])
+            )
+        }
+    }
+
+    return componentsByID.values
+        .map { entry in
+            let component = entry.component
+            let lockfileList = entry.lockfilePaths.sorted().joined(separator: " and ")
+            return CatalogComponent(
+                id: component.id,
+                name: component.name,
+                category: component.category,
+                homepageURL: component.homepageURL,
+                sourceURL: component.sourceURL,
+                version: component.version,
+                revision: component.revision,
+                attribution: component.attribution,
+                notes: "Generated from \(lockfileList) using cargo-about.",
+                licenses: component.licenses
+            )
+        }
+        .sorted { lhs, rhs in
+            if lhs.name != rhs.name {
+                return lhs.name < rhs.name
+            }
+            return (lhs.version ?? "") < (rhs.version ?? "")
         }
 }
 

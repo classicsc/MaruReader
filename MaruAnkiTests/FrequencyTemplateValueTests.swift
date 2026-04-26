@@ -83,8 +83,7 @@ struct FrequencyTemplateValueTests {
             reading: "かたる",
             dictionariesResults: [dictionaryResults],
             pitchAccentResults: [],
-            termTags: [],
-            deinflectionInfo: nil
+            termTags: []
         )
     }
 
@@ -94,8 +93,6 @@ struct FrequencyTemplateValueTests {
             fontFamily: "sans-serif",
             contentFontSize: 1.0,
             popupFontSize: 1.0,
-            showDeinflection: false,
-            deinflectionDescriptionLanguage: "system",
             pitchDownstepNotationInHeaderEnabled: false,
             pitchResultsAreaCollapsedDisplay: false,
             pitchResultsAreaDownstepNotationEnabled: false,

@@ -21,18 +21,20 @@ import Foundation
 struct CandidateRankingKey: Hashable, Comparable {
     let sourceTermLength: Int
     let textProcessingChainLength: Int
-    let inflectionChainLength: Int
-    let deinflectionChainCount: Int
+    let deconjugationPriority: Int
+    let deconjugationPathCount: Int
+    let candidateTermLength: Int
 
     init(candidate: LookupCandidate) {
         sourceTermLength = candidate.originalSubstring.count
         textProcessingChainLength = candidate.preprocessorRules.isEmpty
             ? 0
             : candidate.preprocessorRules.map(\.count).min() ?? 0
-        inflectionChainLength = candidate.deinflectionInputRules.isEmpty
+        deconjugationPriority = candidate.deconjugationPaths.isEmpty
             ? 0
-            : candidate.deinflectionInputRules.map(\.count).min() ?? 0
-        deinflectionChainCount = candidate.deinflectionInputRules.count
+            : candidate.deconjugationPaths.map(\.priority).min() ?? 0
+        deconjugationPathCount = candidate.deconjugationPaths.count
+        candidateTermLength = candidate.text.count
     }
 
     static func < (lhs: CandidateRankingKey, rhs: CandidateRankingKey) -> Bool {
@@ -46,20 +48,25 @@ struct CandidateRankingKey: Hashable, Comparable {
             return lhs.textProcessingChainLength > rhs.textProcessingChainLength
         }
 
-        // 3. Inflection chain length - shorter wins
-        if lhs.inflectionChainLength != rhs.inflectionChainLength {
-            return lhs.inflectionChainLength > rhs.inflectionChainLength
+        // 3. Deconjugation priority - lower wins
+        if lhs.deconjugationPriority != rhs.deconjugationPriority {
+            return lhs.deconjugationPriority > rhs.deconjugationPriority
         }
 
-        // 4. Deinflection chain count - exact matches (0) win, then more chains win
-        if lhs.deinflectionChainCount != rhs.deinflectionChainCount {
-            if lhs.deinflectionChainCount == 0 {
+        // 4. Deconjugation path count - exact matches (0) win, then more paths win
+        if lhs.deconjugationPathCount != rhs.deconjugationPathCount {
+            if lhs.deconjugationPathCount == 0 {
                 return false
             }
-            if rhs.deinflectionChainCount == 0 {
+            if rhs.deconjugationPathCount == 0 {
                 return true
             }
-            return lhs.deinflectionChainCount < rhs.deinflectionChainCount
+            return lhs.deconjugationPathCount < rhs.deconjugationPathCount
+        }
+
+        // 5. Candidate term length - longer generated lookup terms win
+        if lhs.candidateTermLength != rhs.candidateTermLength {
+            return lhs.candidateTermLength < rhs.candidateTermLength
         }
 
         return false
