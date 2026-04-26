@@ -11,6 +11,8 @@ plans=(
   MaruMangaTests
   MaruAnkiTests
   MaruWebTests
+  MaruMarkTests
+  MaruTextAnalysisTests
 )
 
 for plan in "${plans[@]}"; do
