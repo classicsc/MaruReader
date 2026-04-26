@@ -16,9 +16,9 @@ fi
 
 if [[ -z "$destination_input" ]]; then
   if [[ "$mode" == "build" ]]; then
-    echo "generic/platform=iOS"
+    echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4.1"
   else
-    echo "platform=iOS Simulator,name=iPhone 17 Pro"
+    echo "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4.1"
   fi
   exit 0
 fi

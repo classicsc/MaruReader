@@ -33,9 +33,6 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Install xcbeautify
-        run: brew install xcbeautify
-
       - name: Build content blocker
         run: just contentblocker
 
