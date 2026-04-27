@@ -25,7 +25,7 @@ final class ScreenshotTests: XCTestCase {
         continueAfterFailure = false
 
         app = XCUIApplication()
-        app.launchArguments += ["--screenshotMode"]
+        app.launchArguments += ["--screenshotMode", "--disableWebFilterMaintenance"]
         app.launch()
 
         // Wait for startup to complete and main UI to appear.

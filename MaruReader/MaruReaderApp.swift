@@ -26,6 +26,7 @@ import SwiftUI
 @main
 struct MaruReaderApp: App {
     static let isScreenshotMode = ProcessInfo.processInfo.arguments.contains("--screenshotMode")
+    nonisolated static let disableWebFilterMaintenanceArgument = "--disableWebFilterMaintenance"
 
     @State private var startupPreparationCoordinator: StartupPreparationCoordinator
     @State private var didContinueFromWelcome = false
@@ -41,7 +42,9 @@ struct MaruReaderApp: App {
 
         _startupPreparationCoordinator = State(initialValue: StartupPreparationCoordinator())
 
-        WebFilterListUpdateScheduler.shared.registerBackgroundTask()
+        if Self.shouldStartWebFilterMaintenance() {
+            WebFilterListUpdateScheduler.shared.registerBackgroundTask()
+        }
 
         Task { @MainActor in
             let returnURL = URL(string: "marureader://anki/x-success")
@@ -50,11 +53,13 @@ struct MaruReaderApp: App {
                 returnURL: returnURL
             )
 
-            WebFilterListStorage.shared.start()
-            WebFilterListStorage.shared.seedDefaultsIfNeeded()
-            WebContentBlockerProvider.shared.start()
-            WebFilterListUpdateScheduler.shared.scheduleNextRefresh()
-            WebFilterListUpdateScheduler.shared.refreshIfStale()
+            if Self.shouldStartWebFilterMaintenance() {
+                WebFilterListStorage.shared.start()
+                WebFilterListStorage.shared.seedDefaultsIfNeeded()
+                WebContentBlockerProvider.shared.start()
+                WebFilterListUpdateScheduler.shared.scheduleNextRefresh()
+                WebFilterListUpdateScheduler.shared.refreshIfStale()
+            }
         }
     }
 
@@ -86,5 +91,13 @@ struct MaruReaderApp: App {
             return true
         }
         return didContinueFromWelcome && startupPreparationCoordinator.isPreparationComplete
+    }
+
+    nonisolated static func shouldStartWebFilterMaintenance(
+        arguments: [String] = ProcessInfo.processInfo.arguments,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Bool {
+        guard environment["XCTestConfigurationFilePath"] == nil else { return false }
+        return !arguments.contains(disableWebFilterMaintenanceArgument)
     }
 }
