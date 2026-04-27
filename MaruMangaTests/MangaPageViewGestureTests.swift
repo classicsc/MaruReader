@@ -63,4 +63,26 @@ struct MangaPageViewGestureTests {
 
         #expect(adjusted == CGSize(width: 30, height: 8))
     }
+
+    @Test func adjustedPointForZoom_LeftToRight_IsUnchanged() {
+        let point = CGPoint(x: 40, y: 12)
+
+        let adjusted = MangaPageView.adjustedPointForZoom(
+            point,
+            containerSize: CGSize(width: 200, height: 100),
+            layoutDirection: .leftToRight
+        )
+
+        #expect(adjusted == point)
+    }
+
+    @Test func adjustedPointForZoom_RightToLeft_FlipsHorizontal() {
+        let adjusted = MangaPageView.adjustedPointForZoom(
+            CGPoint(x: 40, y: 12),
+            containerSize: CGSize(width: 200, height: 100),
+            layoutDirection: .rightToLeft
+        )
+
+        #expect(adjusted == CGPoint(x: 160, y: 12))
+    }
 }
