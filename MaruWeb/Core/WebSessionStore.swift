@@ -21,45 +21,7 @@ import Foundation
 final class WebSessionStore {
     static let shared = WebSessionStore()
 
-    private let extensionManager = WebExtensionManager()
-    private var prewarmTask: Task<WebSession, Never>?
-    private var prewarmContentBlockingEnabled: Bool?
-
-    func prewarm(enableContentBlocking: Bool) {
-        if let currentSetting = prewarmContentBlockingEnabled,
-           currentSetting != enableContentBlocking
-        {
-            prewarmTask?.cancel()
-            prewarmTask = nil
-            prewarmContentBlockingEnabled = nil
-        }
-        guard prewarmTask == nil else { return }
-        prewarmContentBlockingEnabled = enableContentBlocking
-        prewarmTask = Task {
-            let controller = enableContentBlocking
-                ? await extensionManager.extensionController()
-                : nil
-            return WebSession.make(extensionController: controller)
-        }
-    }
-
-    func makeSession(enableContentBlocking: Bool) async -> WebSession {
-        if let task = prewarmTask,
-           prewarmContentBlockingEnabled == enableContentBlocking
-        {
-            let session = await task.value
-            prewarmTask = nil
-            prewarmContentBlockingEnabled = nil
-            return session
-        }
-
-        prewarmTask?.cancel()
-        prewarmTask = nil
-        prewarmContentBlockingEnabled = nil
-
-        let controller = enableContentBlocking
-            ? await extensionManager.extensionController()
-            : nil
-        return WebSession.make(extensionController: controller)
+    func makeSession() async -> WebSession {
+        WebSession.make()
     }
 }

@@ -29,10 +29,6 @@ private struct PackageResolvedForTests: Decodable {
 
 struct ThirdPartyLicenseCatalogTests {
     private static let requiredManualIDs: Set<String> = [
-        "manual-ublock-origin-lite",
-        "manual-uassets-filters",
-        "manual-easylist-easyprivacy",
-        "manual-adguard-filters",
         "manual-material-symbols-outlined",
     ]
 
@@ -84,17 +80,6 @@ struct ThirdPartyLicenseCatalogTests {
         for requiredID in Self.requiredManualIDs {
             #expect(componentIDs.contains(requiredID), "Missing required manual component: \(requiredID)")
         }
-    }
-
-    @Test func ublockEmbeddedCoverageHasBaselineEntries() throws {
-        let catalog = try loadCatalog()
-        let embedded = catalog.components.filter { $0.category == .ublockEmbedded }
-
-        #expect(!embedded.isEmpty)
-
-        let names = Set(embedded.map(\.name))
-        #expect(names.contains("codemirror"))
-        #expect(names.contains("js-beautify"))
     }
 
     @Test func rustCatalogIncludesSudachiMaruMarkAndDependencies() throws {

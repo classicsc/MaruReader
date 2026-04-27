@@ -19,8 +19,6 @@ import MaruWeb
 import SwiftUI
 
 struct WebSettingsView: View {
-    @AppStorage(WebContentBlockingSettings.contentBlockingEnabledKey)
-    private var webContentBlockingEnabled = WebContentBlockingSettings.contentBlockingEnabledDefault
     @AppStorage(WebSearchEngineSettings.searchSuggestionsEnabledKey)
     private var searchSuggestionsEnabled = WebSearchEngineSettings.searchSuggestionsEnabledDefault
     @State private var selectedEngineKind: SearchEngineKind = WebSearchEngineSettings.searchEngine.kind
@@ -57,17 +55,18 @@ struct WebSettingsView: View {
 
                 Toggle("Search Suggestions", isOn: $searchSuggestionsEnabled)
             }
-            Section(
-                header: Text("Privacy"),
-                footer: Text("Blocks distracting ads and trackers in the web reader.")
-            ) {
-                Toggle("Content Blocking", isOn: $webContentBlockingEnabled)
-            }
             Section("Data") {
                 NavigationLink {
                     WebDataManagementView()
                 } label: {
                     Label("Website Data", systemImage: "tray.and.arrow.down")
+                }
+            }
+            Section("Privacy") {
+                NavigationLink {
+                    WebContentBlockerSettingsView()
+                } label: {
+                    Label("Content Blocker", systemImage: "shield.lefthalf.filled")
                 }
             }
         }

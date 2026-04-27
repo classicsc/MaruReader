@@ -15,7 +15,6 @@ Run builds and tests unsandboxed if your environment has sandboxing. Tests can t
 ```bash
 Available recipes:
     build configuration="Debug" destination=""   # builds the project, optionally specify a build configuration and destination
-    contentblocker                               # builds the optional uBOL content blocker extension bundle
     default                                      # list the available recipes
     format                                       # runs swiftformat on the entire project
     licenses                                     # syncs bundled third-party license documents and catalog

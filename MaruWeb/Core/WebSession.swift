@@ -33,11 +33,11 @@ final class WebSession {
 
     static func make(
         dataStore: WKWebsiteDataStore = WebsiteDataStore.main,
-        extensionController: WKWebExtensionController? = nil
+        contentBlocker: WebContentBlockerProvider = .shared
     ) -> WebSession {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
-        configuration.webExtensionController = extensionController
+        contentBlocker.install(into: configuration)
 
         let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
         webView.isInspectable = true

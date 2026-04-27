@@ -72,9 +72,6 @@ public struct WebBookmarksView: View {
                 }
             }
             .onAppear {
-                WebSessionStore.shared.prewarm(
-                    enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
-                )
                 if ProcessInfo.processInfo.arguments.contains("--screenshotMode") {
                     if let url = URL(string: "about:blank") {
                         navigationTarget = WebNavigationTarget(url: url)

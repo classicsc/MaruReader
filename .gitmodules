@@ -1,3 +1,0 @@
-[submodule "External/uBlock"]
-	path = External/uBlock
-	url = https://github.com/gorhill/uBlock.git
