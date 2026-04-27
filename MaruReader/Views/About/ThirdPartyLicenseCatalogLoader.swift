@@ -20,10 +20,7 @@ import Foundation
 enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
     case spm
     case rustCrate
-    case contentBlocker
-    case filterList
     case dictionaryData
-    case ublockEmbedded
 
     var displayName: String {
         switch self {
@@ -31,31 +28,19 @@ enum ThirdPartyComponentCategory: String, Codable, CaseIterable {
             String(localized: "Swift Packages")
         case .rustCrate:
             String(localized: "Rust Crates")
-        case .contentBlocker:
-            String(localized: "Content Blocking")
-        case .filterList:
-            String(localized: "Filter Lists")
         case .dictionaryData:
             String(localized: "Dictionary Data")
-        case .ublockEmbedded:
-            String(localized: "uBlock Embedded Components")
         }
     }
 
     var sortOrder: Int {
         switch self {
-        case .contentBlocker:
-            0
-        case .filterList:
-            1
         case .dictionaryData:
-            2
+            1
         case .rustCrate:
-            3
+            2
         case .spm:
-            4
-        case .ublockEmbedded:
-            5
+            3
         }
     }
 }
@@ -110,7 +95,7 @@ enum ThirdPartyLicenseCatalogError: LocalizedError {
 
 enum ThirdPartyLicenseCatalogLoader {
     static let catalogPath = "About/ThirdPartyLicenses/third_party_licenses.json"
-    static let appLicensePath = "About/ThirdPartyLicenses/Documents/app/marureader-gpl-3.0.txt"
+    static let appLicensePath = "About/ThirdPartyLicenses/Documents/app/marureader-license.txt"
 
     static func loadCatalog(in bundle: Bundle = .main) throws -> ThirdPartyLicenseCatalog {
         guard let catalogURL = resourceURL(for: catalogPath, in: bundle) else {

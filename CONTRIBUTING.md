@@ -42,12 +42,6 @@ Accepted device specifier formats:
 - Simulator UDID: `76252478-5498-412D-9417-76009568896C`
 - Raw xcodebuild destination: `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
 
-#### Content Blocker Extension
-
-`just contentblocker`
-
-This pulls the uBOL submodule and builds the extension with the latest filter lists. Extension persists for future builds unless you run `git submodule deinit`. Run again to build with updated filter lists.
-
 #### Release build checklist
 
 ```bash
@@ -64,6 +58,5 @@ To save some frustration: If you want to work on MaruReader with a coding agent,
 
 ## Licensing Note
 
-If you distribute a derivative work, note that the `just starterdict` output is not GPL3 due to the BCCWJ (CC-BY-NC) and Wadoku (incompatible custom license). This project distributes the package as a separate App Store-managed asset.
+If you distribute a derivative work, note that the `just starterdict` output is not under the same license due to the BCCWJ (CC-BY-NC) and Wadoku (incompatible custom license). This project distributes the package as a separate App Store-managed asset.
 
-If you have questions or concerns about GPL compliance, please open a discussion.

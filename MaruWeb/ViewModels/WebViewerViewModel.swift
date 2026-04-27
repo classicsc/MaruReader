@@ -498,9 +498,7 @@ final class WebViewerViewModel {
         initialRequest: URLRequest? = nil,
         select: Bool
     ) async -> UUID? {
-        let session = await sessionStore.makeSession(
-            enableContentBlocking: WebContentBlockingSettings.contentBlockingEnabled
-        )
+        let session = await sessionStore.makeSession()
         guard !Task.isCancelled else { return nil }
         let page = session.page
         configureHandlers(for: page)

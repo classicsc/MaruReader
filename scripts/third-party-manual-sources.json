@@ -2,109 +2,6 @@
   "schemaVersion": 1,
   "components": [
     {
-      "id": "manual-ublock-origin-lite",
-      "name": "uBlock Origin Lite",
-      "category": "contentBlocker",
-      "homepageURL": "https://github.com/gorhill/uBlock",
-      "sourceURL": "https://github.com/gorhill/uBlock",
-      "attribution": "Raymond Hill",
-      "notes": "Used as extension in web viewer.",
-      "licenses": [
-        {
-          "title": "uBlock Origin Lite License",
-          "outputPath": "manual/manual-ublock-origin-lite-license.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/ublock/LICENSE.txt",
-          "referenceURL": "https://github.com/gorhill/uBlock/blob/master/LICENSE.txt",
-          "refreshLocalPath": "External/uBlock/LICENSE.txt"
-        }
-      ]
-    },
-    {
-      "id": "manual-uassets-filters",
-      "name": "uAssets Filters",
-      "category": "filterList",
-      "homepageURL": "https://github.com/uBlockOrigin/uAssets",
-      "sourceURL": "https://github.com/uBlockOrigin/uAssets",
-      "attribution": "Raymond Hill",
-      "notes": "Provides uBlock-maintained rulesets used by content blocking.",
-      "licenses": [
-        {
-          "title": "uAssets License (GPLv3)",
-          "outputPath": "manual/manual-uassets-license.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/uassets/LICENSE.txt",
-          "referenceURL": "https://github.com/uBlockOrigin/uAssets/blob/master/LICENSE",
-          "refreshURL": "https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/LICENSE"
-        }
-      ]
-    },
-    {
-      "id": "manual-easylist-easyprivacy",
-      "name": "EasyList + EasyPrivacy",
-      "category": "filterList",
-      "homepageURL": "https://easylist.to/",
-      "sourceURL": "https://github.com/easylist/easylist",
-      "attribution": "The EasyList authors",
-      "notes": "Includes EasyList and EasyPrivacy ruleset subscriptions.",
-      "licenses": [
-        {
-          "title": "EasyList License Statement",
-          "outputPath": "manual/manual-easylist-licence-statement.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/easylist/licence-statement.txt",
-          "referenceURL": "https://easylist.to/pages/licence.html"
-        },
-        {
-          "title": "GNU GPL v3 Legalcode",
-          "outputPath": "manual/manual-common-gpl-3.0.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/common/gpl-3.0.txt",
-          "referenceURL": "https://www.gnu.org/licenses/gpl-3.0.txt",
-          "refreshURL": "https://www.gnu.org/licenses/gpl-3.0.txt"
-        },
-        {
-          "title": "Creative Commons BY-SA 3.0 Legalcode",
-          "outputPath": "manual/manual-common-cc-by-sa-3.0.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/creativecommons/cc-by-sa-3.0.txt",
-          "referenceURL": "https://creativecommons.org/licenses/by-sa/3.0/legalcode.txt",
-          "refreshURL": "https://creativecommons.org/licenses/by-sa/3.0/legalcode.txt"
-        }
-      ]
-    },
-    {
-      "id": "manual-adguard-filters",
-      "name": "AdGuard Filters (Mobile + Japanese)",
-      "category": "filterList",
-      "homepageURL": "https://github.com/AdguardTeam/AdguardFilters",
-      "sourceURL": "https://github.com/AdguardTeam/AdguardFilters",
-      "attribution": "AdGuard",
-      "notes": "Includes AdGuard Mobile and AdGuard Japanese rulesets.",
-      "licenses": [
-        {
-          "title": "AdGuard Filters License (GPLv3)",
-          "outputPath": "manual/manual-adguard-license.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/adguard/LICENSE.txt",
-          "referenceURL": "https://github.com/AdguardTeam/AdguardFilters/blob/master/LICENSE",
-          "refreshURL": "https://raw.githubusercontent.com/AdguardTeam/AdguardFilters/master/LICENSE"
-        }
-      ]
-    },
-    {
-      "id": "manual-yomitan",
-      "name": "yomitan",
-      "category": "dictionaryData",
-      "homepageURL": "https://yomitan.wiki",
-      "sourceURL": "https://github.com/yomidevs/yomitan",
-      "attribution": "Yomitan Authors",
-      "notes": "Source of dictionary stylesheets.",
-      "licenses": [
-        {
-          "title": "GPLv3",
-          "outputPath": "manual/manual-yomitan-license.txt",
-          "snapshotPath": "scripts/third-party-license-snapshots/yomitan/LICENSE.txt",
-          "referenceURL": "https://github.com/yomidevs/yomitan/blob/master/LICENSE",
-          "refreshURL": "https://raw.githubusercontent.com/yomidevs/yomitan/refs/heads/master/LICENSE"
-        }
-      ]
-    },
-    {
       "id": "manual-jiten",
       "name": "Jiten",
       "category": "dictionaryData",
@@ -119,6 +16,24 @@
           "snapshotPath": "scripts/third-party-license-snapshots/common/apache-2.0.txt",
           "referenceURL": "https://www.apache.org/licenses/LICENSE-2.0.txt",
           "refreshURL": "https://www.apache.org/licenses/LICENSE-2.0.txt"
+        }
+      ]
+    },
+    {
+      "id": "manual-yomitan",
+      "name": "yomitan",
+      "category": "dictionaryData",
+      "homepageURL": "https://yomitan.wiki",
+      "sourceURL": "https://github.com/yomidevs/yomitan",
+      "attribution": "Yomitan Authors",
+      "notes": "Original dictionary format and stylesheets.",
+      "licenses": [
+        {
+          "title": "GPLv3",
+          "outputPath": "manual/manual-yomitan-license.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/yomitan/LICENSE.txt",
+          "referenceURL": "https://github.com/yomidevs/yomitan/blob/master/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/yomidevs/yomitan/refs/heads/master/LICENSE"
         }
       ]
     },

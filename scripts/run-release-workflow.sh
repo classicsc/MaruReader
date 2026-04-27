@@ -151,7 +151,6 @@ validate_release_version() {
 }
 
 run_release_prep() {
-  "$ROOT_DIR/scripts/run-contentblocker.sh"
   swift "$ROOT_DIR/scripts/sync-third-party-licenses.swift" --refresh-snapshots
 }
 

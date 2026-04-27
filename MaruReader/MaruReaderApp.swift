@@ -20,6 +20,7 @@ import MaruAnki
 import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
+import MaruWeb
 import SwiftUI
 
 @main
@@ -40,12 +41,20 @@ struct MaruReaderApp: App {
 
         _startupPreparationCoordinator = State(initialValue: StartupPreparationCoordinator())
 
+        WebFilterListUpdateScheduler.shared.registerBackgroundTask()
+
         Task { @MainActor in
             let returnURL = URL(string: "marureader://anki/x-success")
             await AnkiMobileURLOpenerStore.shared.configure(
                 opener: UIApplicationURLOpener(),
                 returnURL: returnURL
             )
+
+            WebFilterListStorage.shared.start()
+            WebFilterListStorage.shared.seedDefaultsIfNeeded()
+            WebContentBlockerProvider.shared.start()
+            WebFilterListUpdateScheduler.shared.scheduleNextRefresh()
+            WebFilterListUpdateScheduler.shared.refreshIfStale()
         }
     }
 

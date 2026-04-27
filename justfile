@@ -18,7 +18,6 @@ test destination="":
 
 # prepares local prerequisites for clean debug/test runs
 prepare:
-  just contentblocker
   ./scripts/stage-debug-tokenizer-dictionary.sh
 
 # runs a specific test plan, optionally specify a destination
@@ -33,13 +32,13 @@ test-one only_testing plan="" destination="":
 starterdict:
   ./scripts/run-starterdict.sh
 
-# builds the optional uBOL content blocker extension bundle
-contentblocker:
-  ./scripts/run-contentblocker.sh
-
 # regenerates committed UniFFI Swift bindings for MaruSudachiFFI
 sudachi-bindings:
   ./scripts/generate-sudachi-uniffi-bindings.sh
+
+# regenerates committed UniFFI Swift bindings for MaruAdblockFFI
+adblock-bindings:
+  ./scripts/generate-adblock-uniffi-bindings.sh
 
 # syncs bundled third-party license documents and catalog
 licenses:

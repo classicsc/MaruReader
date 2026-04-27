@@ -66,10 +66,7 @@ private enum ScriptError: LocalizedError {
 private enum ComponentCategory: String, Codable {
     case spm
     case rustCrate
-    case contentBlocker
-    case filterList
     case dictionaryData
-    case ublockEmbedded
 }
 
 private struct Catalog: Codable {
@@ -213,16 +210,17 @@ private struct RustComponentAccumulator {
 }
 
 private let requiredManualComponentIDs: Set<String> = [
-    "manual-ublock-origin-lite",
-    "manual-uassets-filters",
-    "manual-easylist-easyprivacy",
-    "manual-adguard-filters",
     "manual-material-symbols-outlined",
 ]
 
 private let resourcePrefix = "About/ThirdPartyLicenses/Documents"
 private let rustAboutConfigPath = "MaruSudachiFFI/about.toml"
 private let rustLicenseSources: [RustLicenseSource] = [
+    RustLicenseSource(
+        crateDirectoryPath: "MaruAdblockFFI",
+        snapshotPath: "scripts/third-party-license-snapshots/rust/maru-adblock-ffi-cargo-about.json",
+        lockfilePath: "MaruAdblockFFI/Cargo.lock"
+    ),
     RustLicenseSource(
         crateDirectoryPath: "MaruSudachiFFI",
         snapshotPath: "scripts/third-party-license-snapshots/rust/maru-sudachi-ffi-cargo-about.json",
@@ -242,7 +240,6 @@ private func run() throws {
 
     let packageResolvedURL = rootURL.appendingPathComponent("MaruReader.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")
     let manualSourcesURL = rootURL.appendingPathComponent("scripts/third-party-manual-sources.json")
-    let ublockRulesetsURL = rootURL.appendingPathComponent("External/ublock-rulesets.json")
     let appCopyingURL = rootURL.appendingPathComponent("COPYING")
 
     let aboutRootURL = rootURL.appendingPathComponent("MaruReader/About/ThirdPartyLicenses")
@@ -251,7 +248,6 @@ private func run() throws {
 
     try requireFile(packageResolvedURL.path)
     try requireFile(manualSourcesURL.path)
-    try requireFile(ublockRulesetsURL.path)
     try requireFile(appCopyingURL.path)
 
     if fileManager.fileExists(atPath: documentsRootURL.path) {
@@ -259,12 +255,11 @@ private func run() throws {
     }
     try fileManager.createDirectory(at: documentsRootURL, withIntermediateDirectories: true)
 
-    let appLicenseOutput = documentsRootURL.appendingPathComponent("app/marureader-gpl-3.0.txt")
+    let appLicenseOutput = documentsRootURL.appendingPathComponent("app/marureader-license.txt")
     try copyDocument(from: appCopyingURL, to: appLicenseOutput)
 
     let packageResolved = try decode(PackageResolved.self, from: packageResolvedURL)
     let manualSources = try decode(ManualSourceMap.self, from: manualSourcesURL)
-    let rulesets = try decode([Ruleset].self, from: ublockRulesetsURL)
 
     if refreshSnapshots {
         try refreshManualSnapshots(manualSources, rootURL: rootURL)
@@ -279,18 +274,12 @@ private func run() throws {
         documentsRootURL: documentsRootURL
     )
 
-    let providerNotes = try buildProviderNotes(rulesets: rulesets)
     let manualComponents = try buildManualComponents(
         manualSources: manualSources,
         rootURL: rootURL,
-        documentsRootURL: documentsRootURL,
-        providerNotes: providerNotes
-    )
-
-    let ublockEmbeddedComponents = try buildUBLockEmbeddedComponents(
-        rootURL: rootURL,
         documentsRootURL: documentsRootURL
     )
+
     let rustComponents = try buildRustComponents(
         rootURL: rootURL,
         documentsRootURL: documentsRootURL
@@ -314,7 +303,7 @@ private func run() throws {
         }
     }
 
-    let components = (manualComponents + spmComponents + rustComponents + ublockEmbeddedComponents)
+    let components = (manualComponents + spmComponents + rustComponents)
         .sorted { lhs, rhs in
             lhs.id < rhs.id
         }
@@ -338,7 +327,6 @@ private func run() throws {
     print("SPM components: \(spmComponents.count)")
     print("Rust components: \(rustComponents.count)")
     print("Manual components: \(manualComponents.count)")
-    print("uBlock embedded components: \(ublockEmbeddedComponents.count)")
 }
 
 private func requireFile(_ path: String) throws {
@@ -496,13 +484,11 @@ private func refreshRustSnapshots(rootURL: URL) throws {
 private func buildManualComponents(
     manualSources: ManualSourceMap,
     rootURL: URL,
-    documentsRootURL: URL,
-    providerNotes: [String: String]
+    documentsRootURL: URL
 ) throws -> [CatalogComponent] {
     try manualSources.components.sorted { $0.id < $1.id }.map { component in
         let notes = [
             component.notes,
-            providerNotes[component.id],
         ]
         .compactMap(\.self)
         .joined(separator: "\n")
@@ -535,40 +521,6 @@ private func buildManualComponents(
             notes: notes.isEmpty ? nil : notes,
             licenses: licenses
         )
-    }
-}
-
-private func buildProviderNotes(rulesets: [Ruleset]) throws -> [String: String] {
-    var groupedNames: [String: [String]] = [
-        "manual-uassets-filters": [],
-        "manual-easylist-easyprivacy": [],
-        "manual-adguard-filters": [],
-    ]
-
-    for ruleset in rulesets where ruleset.enabled ?? false {
-        guard let homeURLValue = ruleset.homeURL else {
-            continue
-        }
-
-        guard let homeURL = URL(string: homeURLValue) else {
-            throw ScriptError.invalidRulesetURL(homeURLValue)
-        }
-
-        let descriptor = "\(ruleset.name) (\(ruleset.id))"
-
-        if homeURLValue.contains("uBlockOrigin/uAssets") {
-            groupedNames["manual-uassets-filters", default: []].append(descriptor)
-        } else if homeURL.host == "easylist.to" {
-            groupedNames["manual-easylist-easyprivacy", default: []].append(descriptor)
-        } else if homeURLValue.lowercased().contains("adguardteam/adguardfilters") {
-            groupedNames["manual-adguard-filters", default: []].append(descriptor)
-        }
-    }
-
-    return groupedNames.compactMapValues { values in
-        guard !values.isEmpty else { return nil }
-        let sortedValues = values.sorted()
-        return "Enabled rulesets from External/ublock-rulesets.json: \(sortedValues.joined(separator: ", "))."
     }
 }
 
@@ -686,53 +638,6 @@ private func buildRustComponents(
             }
             return (lhs.version ?? "") < (rhs.version ?? "")
         }
-}
-
-private func buildUBLockEmbeddedComponents(
-    rootURL: URL,
-    documentsRootURL: URL
-) throws -> [CatalogComponent] {
-    let ublockRoot = rootURL.appendingPathComponent("External/uBlock")
-    try requireFile(ublockRoot.path)
-
-    let licenseFiles = try findLicenseLikeFiles(in: ublockRoot, maxDepth: Int.max)
-        .filter { fileURL in
-            let relative = fileURL.path.replacingOccurrences(of: ublockRoot.path + "/", with: "")
-            return relative != "LICENSE.txt" && !relative.hasPrefix("dist/build/")
-        }
-        .sorted { lhs, rhs in
-            lhs.path < rhs.path
-        }
-
-    return try licenseFiles.map { licenseFile in
-        let relativePath = licenseFile.path.replacingOccurrences(of: ublockRoot.path + "/", with: "")
-        let outputPath = "ublock-embedded/ublock-embedded-\(slug(relativePath)).txt"
-        let outputURL = documentsRootURL.appendingPathComponent(outputPath)
-        try copyDocument(from: licenseFile, to: outputURL)
-
-        let id = "ublock-embedded-\(slug(relativePath))"
-        let sourceURL = URL(string: "https://github.com/gorhill/uBlock/blob/master/\(relativePath)")
-        let embeddedName = embeddedComponentName(for: relativePath)
-
-        return CatalogComponent(
-            id: id,
-            name: embeddedName,
-            category: .ublockEmbedded,
-            homepageURL: URL(string: "https://github.com/gorhill/uBlock"),
-            sourceURL: sourceURL,
-            version: nil,
-            revision: nil,
-            attribution: "See license text",
-            notes: "Discovered automatically from External/uBlock.",
-            licenses: [
-                CatalogLicense(
-                    title: licenseFile.lastPathComponent,
-                    path: "\(resourcePrefix)/\(outputPath)",
-                    referenceURL: sourceURL
-                ),
-            ]
-        )
-    }
 }
 
 private func copyDocument(from sourceURL: URL, to destinationURL: URL) throws {

@@ -1,48 +1,6 @@
 {
   "components" : [
     {
-      "attribution" : "AdGuard",
-      "category" : "filterList",
-      "homepageURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters",
-      "id" : "manual-adguard-filters",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-adguard-license.txt",
-          "referenceURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters\/blob\/master\/LICENSE",
-          "title" : "AdGuard Filters License (GPLv3)"
-        }
-      ],
-      "name" : "AdGuard Filters (Mobile + Japanese)",
-      "notes" : "Includes AdGuard Mobile and AdGuard Japanese rulesets.\nEnabled rulesets from External\/ublock-rulesets.json: AdGuard\/uBO – Mobile Ads (adguard-mobile), 🇯🇵jp: AdGuard Japanese (jpn-1).",
-      "sourceURL" : "https:\/\/github.com\/AdguardTeam\/AdguardFilters"
-    },
-    {
-      "attribution" : "The EasyList authors",
-      "category" : "filterList",
-      "homepageURL" : "https:\/\/easylist.to\/",
-      "id" : "manual-easylist-easyprivacy",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-easylist-licence-statement.txt",
-          "referenceURL" : "https:\/\/easylist.to\/pages\/licence.html",
-          "title" : "EasyList License Statement"
-        },
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-gpl-3.0.txt",
-          "referenceURL" : "https:\/\/www.gnu.org\/licenses\/gpl-3.0.txt",
-          "title" : "GNU GPL v3 Legalcode"
-        },
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-common-cc-by-sa-3.0.txt",
-          "referenceURL" : "https:\/\/creativecommons.org\/licenses\/by-sa\/3.0\/legalcode.txt",
-          "title" : "Creative Commons BY-SA 3.0 Legalcode"
-        }
-      ],
-      "name" : "EasyList + EasyPrivacy",
-      "notes" : "Includes EasyList and EasyPrivacy ruleset subscriptions.\nEnabled rulesets from External\/ublock-rulesets.json: EasyList (easylist), EasyPrivacy (easyprivacy).",
-      "sourceURL" : "https:\/\/github.com\/easylist\/easylist"
-    },
-    {
       "attribution" : "Jiten contributors",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/github.com\/Sirush\/Jiten",
@@ -80,38 +38,6 @@
       "sourceURL" : "https:\/\/fonts.google.com\/icons"
     },
     {
-      "attribution" : "Raymond Hill",
-      "category" : "filterList",
-      "homepageURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets",
-      "id" : "manual-uassets-filters",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-uassets-license.txt",
-          "referenceURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets\/blob\/master\/LICENSE",
-          "title" : "uAssets License (GPLv3)"
-        }
-      ],
-      "name" : "uAssets Filters",
-      "notes" : "Provides uBlock-maintained rulesets used by content blocking.\nEnabled rulesets from External\/ublock-rulesets.json: uBlock filters – Ads, trackers, and more (ublock-filters), uBlock filters – Badware risks (ublock-badware).",
-      "sourceURL" : "https:\/\/github.com\/uBlockOrigin\/uAssets"
-    },
-    {
-      "attribution" : "Raymond Hill",
-      "category" : "contentBlocker",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "manual-ublock-origin-lite",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-ublock-origin-lite-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/LICENSE.txt",
-          "title" : "uBlock Origin Lite License"
-        }
-      ],
-      "name" : "uBlock Origin Lite",
-      "notes" : "Used as extension in web viewer.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock"
-    },
-    {
       "attribution" : "Yomitan Authors",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/yomitan.wiki",
@@ -124,7 +50,7 @@
         }
       ],
       "name" : "yomitan",
-      "notes" : "Source of dictionary stylesheets.",
+      "notes" : "Original dictionary format and stylesheets.",
       "sourceURL" : "https:\/\/github.com\/yomidevs\/yomitan"
     },
     {
@@ -144,6 +70,40 @@
       "sourceURL" : "https:\/\/github.com\/facebook\/zstd"
     },
     {
+      "attribution" : "Anton Lazarev <alazarev@brave.com>, Andrius Aucinas",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
+      "id" : "rust-adblock-0-12-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-adblock-0-12-2-mpl-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "adblock",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
+      "version" : "0.12.2"
+    },
+    {
+      "attribution" : "rushmorem <rushmore@webenchanter.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/addr-rs\/addr",
+      "id" : "rust-addr-0-15-6",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-addr-0-15-6-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/addr-rs\/addr",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "addr",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/addr-rs\/addr",
+      "version" : "0.15.6"
+    },
+    {
       "attribution" : "Andrew Gallant <jamslam@gmail.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
@@ -156,7 +116,7 @@
         }
       ],
       "name" : "aho-corasick",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/BurntSushi\/aho-corasick",
       "version" : "1.1.4"
     },
@@ -173,9 +133,43 @@
         }
       ],
       "name" : "anyhow",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/anyhow",
       "version" : "1.0.102"
+    },
+    {
+      "attribution" : "bluss",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/bluss\/arrayvec",
+      "id" : "rust-arrayvec-0-7-6",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-arrayvec-0-7-6-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/bluss\/arrayvec",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "arrayvec",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/bluss\/arrayvec",
+      "version" : "0.7.6"
+    },
+    {
+      "attribution" : "Marshall Pierce <marshall@mpierce.org>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/marshallpierce\/rust-base64",
+      "id" : "rust-base64-0-22-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-base64-0-22-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/marshallpierce\/rust-base64",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "base64",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/marshallpierce\/rust-base64",
+      "version" : "0.22.1"
     },
     {
       "attribution" : "Alexis Beingessner <a.beingessner@gmail.com>",
@@ -224,7 +218,7 @@
         }
       ],
       "name" : "bitflags",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/bitflags\/bitflags",
       "version" : "2.11.1"
     },
@@ -241,7 +235,7 @@
         }
       ],
       "name" : "bytes",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/tokio-rs\/bytes",
       "version" : "1.11.1"
     },
@@ -258,7 +252,7 @@
         }
       ],
       "name" : "camino",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/camino-rs\/camino",
       "version" : "1.2.2"
     },
@@ -275,7 +269,7 @@
         }
       ],
       "name" : "cargo_metadata",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/oli-obk\/cargo_metadata",
       "version" : "0.19.2"
     },
@@ -291,7 +285,7 @@
         }
       ],
       "name" : "cargo-platform",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/cargo",
       "version" : "0.1.9"
     },
@@ -308,7 +302,7 @@
         }
       ],
       "name" : "cfg-if",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/cfg-if",
       "version" : "1.0.4"
     },
@@ -359,7 +353,7 @@
         }
       ],
       "name" : "either",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rayon-rs\/either",
       "version" : "1.15.0"
     },
@@ -375,7 +369,7 @@
         }
       ],
       "name" : "equivalent",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/indexmap-rs\/equivalent",
       "version" : "1.0.2"
     },
@@ -392,7 +386,7 @@
         }
       ],
       "name" : "errno",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/lambda-fairy\/rust-errno",
       "version" : "0.3.14"
     },
@@ -426,9 +420,43 @@
         }
       ],
       "name" : "fastrand",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/smol-rs\/fastrand",
       "version" : "2.4.1"
+    },
+    {
+      "attribution" : "Robert Winslow <hello@rwinslow.com>, FlatBuffers Maintainers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/google.github.io\/flatbuffers\/",
+      "id" : "rust-flatbuffers-25-12-19",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-flatbuffers-25-12-19-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/google\/flatbuffers",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "flatbuffers",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/google\/flatbuffers",
+      "version" : "25.12.19"
+    },
+    {
+      "attribution" : "The rust-url developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/servo\/rust-url",
+      "id" : "rust-form-urlencoded-1-2-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-form-urlencoded-1-2-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/servo\/rust-url",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "form_urlencoded",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/servo\/rust-url",
+      "version" : "1.2.2"
     },
     {
       "attribution" : "Andrew Hickman <andrew.hickman1@sky.com>",
@@ -443,7 +471,7 @@
         }
       ],
       "name" : "fs-err",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/andrewhickman\/fs-err",
       "version" : "2.11.0"
     },
@@ -460,7 +488,7 @@
         }
       ],
       "name" : "getrandom",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-random\/getrandom",
       "version" : "0.4.2"
     },
@@ -477,7 +505,7 @@
         }
       ],
       "name" : "hashbrown",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/hashbrown",
       "version" : "0.17.0"
     },
@@ -493,9 +521,162 @@
         }
       ],
       "name" : "heck",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/withoutboats\/heck",
       "version" : "0.5.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-collections-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-collections-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_collections",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-locale-core-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-locale-core-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_locale_core",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-normalizer-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-normalizer-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_normalizer",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-normalizer-data-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-normalizer-data-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_normalizer_data",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-properties-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-properties-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_properties",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-properties-data-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-properties-data-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_properties_data",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-icu-provider-2-2-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-icu-provider-2-2-0-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "icu_provider",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "2.2.0"
+    },
+    {
+      "attribution" : "The rust-url developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/servo\/rust-url\/",
+      "id" : "rust-idna-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-idna-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/servo\/rust-url\/",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "idna",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/servo\/rust-url\/",
+      "version" : "1.1.0"
+    },
+    {
+      "attribution" : "The rust-url developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/docs.rs\/crate\/idna_adapter\/latest",
+      "id" : "rust-idna-adapter-1-2-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-idna-adapter-1-2-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/hsivonen\/idna_adapter",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "idna_adapter",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/hsivonen\/idna_adapter",
+      "version" : "1.2.1"
     },
     {
       "category" : "rustCrate",
@@ -509,7 +690,7 @@
         }
       ],
       "name" : "indexmap",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/indexmap-rs\/indexmap",
       "version" : "2.14.0"
     },
@@ -526,7 +707,7 @@
         }
       ],
       "name" : "itertools",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
       "version" : "0.13.0"
     },
@@ -543,7 +724,7 @@
         }
       ],
       "name" : "itoa",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/itoa",
       "version" : "1.0.18"
     },
@@ -594,7 +775,7 @@
         }
       ],
       "name" : "libc",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/libc",
       "version" : "0.2.186"
     },
@@ -614,6 +795,23 @@
       "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/nagisa\/rust_libloading\/",
       "version" : "0.8.9"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-litemap-0-8-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-litemap-0-8-2-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "litemap",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.8.2"
     },
     {
       "category" : "rustCrate",
@@ -644,7 +842,7 @@
         }
       ],
       "name" : "memchr",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/BurntSushi\/memchr",
       "version" : "2.8.0"
     },
@@ -712,9 +910,26 @@
         }
       ],
       "name" : "once_cell",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/matklad\/once_cell",
       "version" : "1.21.4"
+    },
+    {
+      "attribution" : "The rust-url developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/servo\/rust-url\/",
+      "id" : "rust-percent-encoding-2-3-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-percent-encoding-2-3-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/servo\/rust-url\/",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "percent-encoding",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/servo\/rust-url\/",
+      "version" : "2.3.2"
     },
     {
       "category" : "rustCrate",
@@ -733,6 +948,40 @@
       "version" : "0.2.17"
     },
     {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-potential-utf-0-1-5",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-potential-utf-0-1-5-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "potential_utf",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.1.5"
+    },
+    {
+      "attribution" : "Emilio Cobos Álvarez <emilio@crisal.io>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/emilio\/precomputed-hash",
+      "id" : "rust-precomputed-hash-0-1-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-precomputed-hash-0-1-1-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/emilio\/precomputed-hash",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "precomputed-hash",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/emilio\/precomputed-hash",
+      "version" : "0.1.1"
+    },
+    {
       "attribution" : "David Tolnay <dtolnay@gmail.com>, Alex Crichton <alex@alexcrichton.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
@@ -745,9 +994,43 @@
         }
       ],
       "name" : "proc-macro2",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/proc-macro2",
       "version" : "1.0.106"
+    },
+    {
+      "attribution" : "rushmorem <rushmore@webenchanter.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/addr-rs\/psl",
+      "id" : "rust-psl-2-1-205",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-psl-2-1-205-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/addr-rs\/psl",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "psl",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/addr-rs\/psl",
+      "version" : "2.1.205"
+    },
+    {
+      "attribution" : "rushmorem <rushmore@webenchanter.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/addr-rs\/psl-types",
+      "id" : "rust-psl-types-2-0-11",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-psl-types-2-0-11-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/addr-rs\/psl-types",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "psl-types",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/addr-rs\/psl-types",
+      "version" : "2.0.11"
     },
     {
       "attribution" : "Raph Levien <raph.levien@gmail.com>, Marcus Klaas de Vries <mail@marcusklaas.nl>",
@@ -796,7 +1079,7 @@
         }
       ],
       "name" : "quote",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/quote",
       "version" : "1.0.45"
     },
@@ -813,7 +1096,7 @@
         }
       ],
       "name" : "regex",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "1.12.3"
     },
@@ -830,7 +1113,7 @@
         }
       ],
       "name" : "regex-automata",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "0.4.14"
     },
@@ -847,9 +1130,26 @@
         }
       ],
       "name" : "regex-syntax",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "0.8.10"
+    },
+    {
+      "attribution" : "The Rust Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
+      "id" : "rust-rustc-hash-1-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustc-hash-1-1-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "rustc-hash",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
+      "version" : "1.1.0"
     },
     {
       "attribution" : "Dan Gohman <dev@sunfishcode.online>, Jakub Konka <kubkon@jakubkonka.com>",
@@ -864,7 +1164,7 @@
         }
       ],
       "name" : "rustix",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
       "version" : "1.1.4"
     },
@@ -886,6 +1186,23 @@
       "version" : "1.0.23"
     },
     {
+      "attribution" : "ticki <ticki@users.noreply.github.com>, Tom Almeida <tom@tommoa.me>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/gitlab.redox-os.org\/redox-os\/seahash",
+      "id" : "rust-seahash-4-1-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-seahash-4-1-0-mit-1.txt",
+          "referenceURL" : "https:\/\/gitlab.redox-os.org\/redox-os\/seahash",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "seahash",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/gitlab.redox-os.org\/redox-os\/seahash",
+      "version" : "4.1.0"
+    },
+    {
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/dtolnay\/semver",
@@ -898,7 +1215,7 @@
         }
       ],
       "name" : "semver",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/semver",
       "version" : "1.0.28"
     },
@@ -915,7 +1232,7 @@
         }
       ],
       "name" : "serde",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
       "version" : "1.0.228"
     },
@@ -932,7 +1249,7 @@
         }
       ],
       "name" : "serde_core",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/serde",
       "version" : "1.0.228"
     },
@@ -949,7 +1266,7 @@
         }
       ],
       "name" : "serde_json",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
       "version" : "1.0.149"
     },
@@ -965,7 +1282,7 @@
         }
       ],
       "name" : "serde_spanned",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.1"
     },
@@ -982,9 +1299,43 @@
         }
       ],
       "name" : "siphasher",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/jedisct1\/rust-siphash",
       "version" : "1.0.2"
+    },
+    {
+      "attribution" : "The Servo Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/servo\/rust-smallvec",
+      "id" : "rust-smallvec-1-15-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-smallvec-1-15-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/servo\/rust-smallvec",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "smallvec",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/servo\/rust-smallvec",
+      "version" : "1.15.1"
+    },
+    {
+      "attribution" : "Robert Grosse <n210241048576@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/storyyeller\/stable_deref_trait",
+      "id" : "rust-stable-deref-trait-1-2-1",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-stable-deref-trait-1-2-1-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/storyyeller\/stable_deref_trait",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "stable_deref_trait",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/storyyeller\/stable_deref_trait",
+      "version" : "1.2.1"
     },
     {
       "attribution" : "Nikolai Vazquez",
@@ -999,7 +1350,7 @@
         }
       ],
       "name" : "static_assertions",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/nvzqz\/static-assertions-rs",
       "version" : "1.1.0"
     },
@@ -1034,9 +1385,26 @@
         }
       ],
       "name" : "syn",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/syn",
       "version" : "2.0.117"
+    },
+    {
+      "attribution" : "Nika Layzell <nika@thelayzells.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/mystor\/synstructure",
+      "id" : "rust-synstructure-0-13-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-synstructure-0-13-2-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/mystor\/synstructure",
+          "title" : "MIT License"
+        }
+      ],
+      "name" : "synstructure",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/mystor\/synstructure",
+      "version" : "0.13.2"
     },
     {
       "attribution" : "Steven Allen <steven@stebalien.com>, The Rust Project Developers, Ashley Mannix <ashleymannix@live.com.au>, Jason White <me@jasonwhite.io>",
@@ -1051,7 +1419,7 @@
         }
       ],
       "name" : "tempfile",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/Stebalien\/tempfile",
       "version" : "3.27.0"
     },
@@ -1068,7 +1436,7 @@
         }
       ],
       "name" : "thiserror",
-      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
       "version" : "1.0.69"
     },
@@ -1085,9 +1453,26 @@
         }
       ],
       "name" : "thiserror",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
       "version" : "2.0.18"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-tinystr-0-8-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tinystr-0-8-3-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "tinystr",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.8.3"
     },
     {
       "attribution" : "Lokathor <zefria@gmail.com>",
@@ -1135,7 +1520,7 @@
         }
       ],
       "name" : "toml",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "0.9.12+spec-1.1.0"
     },
@@ -1151,7 +1536,7 @@
         }
       ],
       "name" : "toml_datetime",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "0.7.5+spec-1.1.0"
     },
@@ -1167,7 +1552,7 @@
         }
       ],
       "name" : "toml_parser",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.2+spec-1.1.0"
     },
@@ -1183,7 +1568,7 @@
         }
       ],
       "name" : "toml_writer",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/toml-rs\/toml",
       "version" : "1.1.1+spec-1.1.0"
     },
@@ -1256,7 +1641,7 @@
         }
       ],
       "name" : "unicode-ident",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/unicode-ident",
       "version" : "1.0.24"
     },
@@ -1289,7 +1674,7 @@
         }
       ],
       "name" : "uniffi",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1305,7 +1690,7 @@
         }
       ],
       "name" : "uniffi_core",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1321,7 +1706,7 @@
         }
       ],
       "name" : "uniffi_meta",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
     },
@@ -1337,9 +1722,43 @@
         }
       ],
       "name" : "uniffi_pipeline",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/mozilla\/uniffi-rs",
       "version" : "0.31.1"
+    },
+    {
+      "attribution" : "The rust-url developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/servo\/rust-url",
+      "id" : "rust-url-2-5-8",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-url-2-5-8-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/servo\/rust-url",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "url",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/servo\/rust-url",
+      "version" : "2.5.8"
+    },
+    {
+      "attribution" : "Henri Sivonen <hsivonen@hsivonen.fi>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/docs.rs\/utf8_iter\/",
+      "id" : "rust-utf8-iter-1-0-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-utf8-iter-1-0-4-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/hsivonen\/utf8_iter",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "utf8_iter",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/hsivonen\/utf8_iter",
+      "version" : "1.0.4"
     },
     {
       "category" : "rustCrate",
@@ -1353,7 +1772,7 @@
         }
       ],
       "name" : "winnow",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
       "version" : "0.7.15"
     },
@@ -1385,9 +1804,26 @@
         }
       ],
       "name" : "winnow",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/winnow-rs\/winnow",
       "version" : "1.0.2"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-writeable-0-6-3",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-writeable-0-6-3-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "writeable",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.6.3"
     },
     {
       "attribution" : "Takuya Asano <takuya.a@gmail.com>",
@@ -1407,6 +1843,74 @@
       "version" : "0.5.1"
     },
     {
+      "attribution" : "Manish Goregaokar <manishsmail@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-yoke-0-8-2",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-yoke-0-8-2-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "yoke",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.8.2"
+    },
+    {
+      "attribution" : "Manish Goregaokar <manishsmail@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-zerofrom-0-1-7",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-zerofrom-0-1-7-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "zerofrom",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.1.7"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/icu4x.unicode.org",
+      "id" : "rust-zerotrie-0-2-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-zerotrie-0-2-4-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "zerotrie",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.2.4"
+    },
+    {
+      "attribution" : "The ICU4X Project Developers",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "id" : "rust-zerovec-0-11-6",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-zerovec-0-11-6-unicode-3-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+          "title" : "Unicode License v3"
+        }
+      ],
+      "name" : "zerovec",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/unicode-org\/icu4x",
+      "version" : "0.11.6"
+    },
+    {
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/dtolnay\/zmij",
@@ -1419,7 +1923,7 @@
         }
       ],
       "name" : "zmij",
-      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/zmij",
       "version" : "1.0.21"
     },
@@ -1644,152 +2148,8 @@
       "revision" : "adb49c8bfe060cc187370b12fa081012a6440b86",
       "sourceURL" : "https:\/\/github.com\/readium\/ZIPFoundation.git",
       "version" : "3.0.1"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-platform-mv3-extension-lib-codemirror-codemirror-ubol-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-platform-mv3-extension-lib-codemirror-codemirror-ubol-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/platform\/mv3\/extension\/lib\/codemirror\/codemirror-ubol\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "codemirror-ubol",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/platform\/mv3\/extension\/lib\/codemirror\/codemirror-ubol\/LICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-publish-extension-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-publish-extension-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/publish-extension\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "publish-extension",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/publish-extension\/LICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-css-fonts-inter-license-txt",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-css-fonts-inter-license-txt.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Inter\/LICENSE.txt",
-          "title" : "LICENSE.txt"
-        }
-      ],
-      "name" : "Inter",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Inter\/LICENSE.txt"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-css-fonts-metropolis-unlicense",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-css-fonts-metropolis-unlicense.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Metropolis\/UNLICENSE",
-          "title" : "UNLICENSE"
-        }
-      ],
-      "name" : "Metropolis",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/css\/fonts\/Metropolis\/UNLICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-img-fontawesome-license-txt",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-img-fontawesome-license-txt.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/img\/fontawesome\/LICENSE.txt",
-          "title" : "LICENSE.txt"
-        }
-      ],
-      "name" : "fontawesome",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/img\/fontawesome\/LICENSE.txt"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-lib-codemirror-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-codemirror-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/codemirror\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "codemirror",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/codemirror\/LICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-lib-csstree-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-csstree-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/csstree\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "csstree",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/csstree\/LICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-lib-hsluv-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-hsluv-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/hsluv\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "hsluv",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/hsluv\/LICENSE"
-    },
-    {
-      "attribution" : "See license text",
-      "category" : "ublockEmbedded",
-      "homepageURL" : "https:\/\/github.com\/gorhill\/uBlock",
-      "id" : "ublock-embedded-src-lib-js-beautify-license",
-      "licenses" : [
-        {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/ublock-embedded\/ublock-embedded-src-lib-js-beautify-license.txt",
-          "referenceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE",
-          "title" : "LICENSE"
-        }
-      ],
-      "name" : "js-beautify",
-      "notes" : "Discovered automatically from External\/uBlock.",
-      "sourceURL" : "https:\/\/github.com\/gorhill\/uBlock\/blob\/master\/src\/lib\/js-beautify\/LICENSE"
     }
   ],
-  "generatedAt" : "2026-04-26T01:56:29.376Z",
+  "generatedAt" : "2026-04-27T22:08:17.260Z",
   "schemaVersion" : 1
 }
