@@ -31,6 +31,8 @@ struct MangaPageView: View {
     private let maxScale: CGFloat = 5.0
     private let swipeThreshold: CGFloat = 50.0
 
+    @State private var dragZoomBaseline: MangaZoomState?
+
     var body: some View {
         GeometryReader { geometry in
             let containerSize = geometry.size
@@ -44,21 +46,13 @@ struct MangaPageView: View {
             .scaleEffect(viewModel.scale)
             .offset(viewModel.offset)
             .contentShape(Rectangle())
+            .gesture(dragZoomGesture(containerSize: containerSize))
             .gesture(
-                combinedGesture(containerSize: containerSize, imageRect: imageRect)
+                combinedGesture(containerSize: containerSize)
             )
-            .onTapGesture(count: 2) {
-                viewModel.resetZoom()
-            }
-            .onTapGesture { location in
-                handleTap(
-                    at: location,
-                    containerSize: containerSize,
-                    imageRect: imageRect
-                )
-            }
+            .simultaneousGesture(tapGesture(containerSize: containerSize, imageRect: imageRect))
             .accessibilityLabel(MangaLocalization.string("Manga page"))
-            .accessibilityHint(MangaLocalization.string("Double-tap to show or hide reader controls."))
+            .accessibilityHint(MangaLocalization.string("Double-tap to zoom in or reset zoom. Double-tap and hold, then drag up or down to adjust zoom smoothly."))
             .accessibilityAddTraits(.isButton)
             .accessibilityAction {
                 viewModel.toggleToolbars()
@@ -83,18 +77,24 @@ struct MangaPageView: View {
 
     // MARK: - Gesture Handling
 
-    private func combinedGesture(containerSize: CGSize, imageRect: CGRect) -> some Gesture {
-        let magnificationGesture = MagnificationGesture()
+    private func combinedGesture(containerSize: CGSize) -> some Gesture {
+        let magnificationGesture = MagnifyGesture()
             .onChanged { value in
-                let newScale = viewModel.lastScale * value
-                viewModel.scale = min(max(newScale, minScale), maxScale)
-                // Re-clamp offset when scale changes
-                viewModel.offset = clampOffset(
-                    viewModel.offset,
-                    scale: viewModel.scale,
+                let zoom = MangaZoomState(
+                    scale: viewModel.lastScale,
+                    offset: viewModel.lastOffset
+                ).scaled(
+                    by: value.magnification,
+                    around: Self.adjustedPointForZoom(
+                        value.startLocation,
+                        containerSize: containerSize,
+                        layoutDirection: layoutDirection
+                    ),
                     containerSize: containerSize,
-                    imageRect: imageRect
+                    minScale: minScale,
+                    maxScale: maxScale
                 )
+                applyZoomState(zoom, updateLastState: false)
             }
             .onEnded { _ in
                 viewModel.lastScale = viewModel.scale
@@ -112,19 +112,22 @@ struct MangaPageView: View {
                         value.translation.width,
                         layoutDirection: layoutDirection
                     )
-                    let newOffset = CGSize(
-                        width: viewModel.lastOffset.width + horizontalTranslation,
-                        height: viewModel.lastOffset.height + value.translation.height
-                    )
-                    viewModel.offset = clampOffset(
-                        newOffset,
+                    let zoom = MangaZoomState(
                         scale: viewModel.scale,
-                        containerSize: containerSize,
-                        imageRect: imageRect
+                        offset: viewModel.lastOffset
+                    ).panned(
+                        by: CGSize(width: horizontalTranslation, height: value.translation.height),
+                        containerSize: containerSize
                     )
+                    applyZoomState(zoom, updateLastState: false)
                 }
             }
             .onEnded { value in
+                // If a drag-zoom gesture was active during this drag, the SwiftUI drag
+                // also received the same touch sequence; suppress its swipe/pan handling.
+                if dragZoomBaseline != nil {
+                    return
+                }
                 if viewModel.isAtBaseZoom {
                     // At base zoom, check for page swipe
                     let horizontalDistance = value.translation.width
@@ -173,6 +176,85 @@ struct MangaPageView: View {
         return SimultaneousGesture(magnificationGesture, dragGesture)
     }
 
+    private func dragZoomGesture(containerSize: CGSize) -> MangaDoubleTapDragZoomGesture {
+        MangaDoubleTapDragZoomGesture(
+            onChanged: { startLocation, translation in
+                let baseline = dragZoomBaseline ?? MangaZoomState(
+                    scale: viewModel.scale,
+                    offset: viewModel.offset
+                )
+                if dragZoomBaseline == nil {
+                    dragZoomBaseline = baseline
+                }
+                let zoom = MangaZoomState.dragZoomed(
+                    verticalTranslation: translation.height,
+                    around: Self.adjustedPointForZoom(
+                        startLocation,
+                        containerSize: containerSize,
+                        layoutDirection: layoutDirection
+                    ),
+                    fromBaseline: baseline,
+                    containerSize: containerSize,
+                    minScale: minScale,
+                    maxScale: maxScale
+                )
+                applyZoomState(zoom, updateLastState: false)
+            },
+            onEnded: { _, _ in
+                viewModel.lastScale = viewModel.scale
+                viewModel.lastOffset = viewModel.offset
+                dragZoomBaseline = nil
+            },
+            onCancelled: {
+                dragZoomBaseline = nil
+            }
+        )
+    }
+
+    private func tapGesture(containerSize: CGSize, imageRect: CGRect) -> some Gesture {
+        SpatialTapGesture(count: 2)
+            .exclusively(before: SpatialTapGesture(count: 1))
+            .onEnded { value in
+                switch value {
+                case let .first(tap):
+                    handleDoubleTap(at: tap.location, containerSize: containerSize)
+                case let .second(tap):
+                    handleTap(
+                        at: tap.location,
+                        containerSize: containerSize,
+                        imageRect: imageRect
+                    )
+                }
+            }
+    }
+
+    private func handleDoubleTap(at tapPoint: CGPoint, containerSize: CGSize) {
+        withAnimation(.easeOut(duration: 0.25)) {
+            let zoom = MangaZoomState(
+                scale: viewModel.scale,
+                offset: viewModel.offset
+            ).doubleTapped(
+                around: Self.adjustedPointForZoom(
+                    tapPoint,
+                    containerSize: containerSize,
+                    layoutDirection: layoutDirection
+                ),
+                containerSize: containerSize
+            )
+            applyZoomState(zoom, updateLastState: true)
+        }
+    }
+
+    private func applyZoomState(_ zoom: MangaZoomState, updateLastState: Bool) {
+        viewModel.scale = zoom.scale
+        viewModel.offset = zoom.offset
+
+        if updateLastState {
+            viewModel.lastScale = zoom.scale
+            viewModel.lastOffset = zoom.offset
+        }
+    }
+
     // MARK: - Coordinate Calculations
 
     nonisolated static func adjustedHorizontalTranslation(
@@ -191,25 +273,14 @@ struct MangaPageView: View {
             : offset
     }
 
-    /// Clamps the offset to keep the image within visible bounds
-    private func clampOffset(
-        _ proposedOffset: CGSize,
-        scale: CGFloat,
+    nonisolated static func adjustedPointForZoom(
+        _ point: CGPoint,
         containerSize: CGSize,
-        imageRect _: CGRect
-    ) -> CGSize {
-        // Calculate how much the scaled image extends beyond the container
-        let scaledWidth = containerSize.width * scale
-        let scaledHeight = containerSize.height * scale
-
-        // Calculate maximum allowed offset in each direction
-        let maxOffsetX = max(0, (scaledWidth - containerSize.width) / 2)
-        let maxOffsetY = max(0, (scaledHeight - containerSize.height) / 2)
-
-        return CGSize(
-            width: min(max(proposedOffset.width, -maxOffsetX), maxOffsetX),
-            height: min(max(proposedOffset.height, -maxOffsetY), maxOffsetY)
-        )
+        layoutDirection: LayoutDirection
+    ) -> CGPoint {
+        layoutDirection == .rightToLeft
+            ? CGPoint(x: containerSize.width - point.x, y: point.y)
+            : point
     }
 
     // MARK: - Hit Testing
@@ -227,11 +298,12 @@ struct MangaPageView: View {
             viewModel.offset,
             layoutDirection: layoutDirection
         )
-        // Apply inverse transform to get the untransformed tap point
-        let center = CGPoint(x: containerSize.width / 2, y: containerSize.height / 2)
-        let untransformed = CGPoint(
-            x: (tapPoint.x - center.x - hitTestOffset.width) / viewModel.scale + center.x,
-            y: (tapPoint.y - center.y - hitTestOffset.height) / viewModel.scale + center.y
+        let untransformed = MangaZoomState(
+            scale: viewModel.scale,
+            offset: hitTestOffset
+        ).untransformedPoint(
+            from: tapPoint,
+            containerSize: containerSize
         )
 
         // Check if tap is within the image rect

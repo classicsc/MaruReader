@@ -36,6 +36,7 @@ struct MangaSpreadView: View {
     @State private var spreadLastScale: CGFloat = 1.0
     @State private var spreadOffset: CGSize = .zero
     @State private var spreadLastOffset: CGSize = .zero
+    @State private var dragZoomBaseline: MangaZoomState?
 
     private var isAtBaseZoom: Bool {
         spreadScale <= 1.01
@@ -49,15 +50,11 @@ struct MangaSpreadView: View {
                 .scaleEffect(spreadScale)
                 .offset(spreadOffset)
                 .contentShape(Rectangle())
+                .gesture(dragZoomGesture(containerSize: containerSize))
                 .gesture(combinedGesture(containerSize: containerSize))
-                .onTapGesture(count: 2) {
-                    resetSpreadZoom()
-                }
-                .onTapGesture { location in
-                    handleSpreadTap(at: location, containerSize: containerSize)
-                }
+                .simultaneousGesture(tapGesture(containerSize: containerSize))
                 .accessibilityLabel(MangaLocalization.string("Manga spread"))
-                .accessibilityHint(MangaLocalization.string("Double-tap to show or hide reader controls."))
+                .accessibilityHint(MangaLocalization.string("Double-tap to zoom in or reset zoom. Double-tap and hold, then drag up or down to adjust zoom smoothly."))
                 .accessibilityAddTraits(.isButton)
                 .accessibilityAction {
                     viewModel.toggleToolbars()
@@ -128,16 +125,59 @@ struct MangaSpreadView: View {
 
     // MARK: - Gesture Handling
 
-    private func combinedGesture(containerSize: CGSize) -> some Gesture {
-        let magnificationGesture = MagnificationGesture()
-            .onChanged { value in
-                let newScale = spreadLastScale * value
-                spreadScale = min(max(newScale, minScale), maxScale)
-                spreadOffset = clampOffset(
-                    spreadOffset,
+    private func dragZoomGesture(containerSize: CGSize) -> MangaDoubleTapDragZoomGesture {
+        MangaDoubleTapDragZoomGesture(
+            onChanged: { startLocation, translation in
+                let baseline = dragZoomBaseline ?? MangaZoomState(
                     scale: spreadScale,
-                    containerSize: containerSize
+                    offset: spreadOffset
                 )
+                if dragZoomBaseline == nil {
+                    dragZoomBaseline = baseline
+                }
+                let zoom = MangaZoomState.dragZoomed(
+                    verticalTranslation: translation.height,
+                    around: Self.adjustedPointForZoom(
+                        startLocation,
+                        containerSize: containerSize,
+                        readingDirection: viewModel.readingDirection
+                    ),
+                    fromBaseline: baseline,
+                    containerSize: containerSize,
+                    minScale: minScale,
+                    maxScale: maxScale
+                )
+                applySpreadZoomState(zoom, updateLastState: false)
+            },
+            onEnded: { _, _ in
+                spreadLastScale = spreadScale
+                spreadLastOffset = spreadOffset
+                dragZoomBaseline = nil
+            },
+            onCancelled: {
+                dragZoomBaseline = nil
+            }
+        )
+    }
+
+    private func combinedGesture(containerSize: CGSize) -> some Gesture {
+        let magnificationGesture = MagnifyGesture()
+            .onChanged { value in
+                let zoom = MangaZoomState(
+                    scale: spreadLastScale,
+                    offset: spreadLastOffset
+                ).scaled(
+                    by: value.magnification,
+                    around: Self.adjustedPointForZoom(
+                        value.startLocation,
+                        containerSize: containerSize,
+                        readingDirection: viewModel.readingDirection
+                    ),
+                    containerSize: containerSize,
+                    minScale: minScale,
+                    maxScale: maxScale
+                )
+                applySpreadZoomState(zoom, updateLastState: false)
             }
             .onEnded { _ in
                 spreadLastScale = spreadScale
@@ -154,18 +194,20 @@ struct MangaSpreadView: View {
                         value.translation.width,
                         readingDirection: viewModel.readingDirection
                     )
-                    let newOffset = CGSize(
-                        width: spreadLastOffset.width + horizontalTranslation,
-                        height: spreadLastOffset.height + value.translation.height
-                    )
-                    spreadOffset = clampOffset(
-                        newOffset,
+                    let zoom = MangaZoomState(
                         scale: spreadScale,
+                        offset: spreadLastOffset
+                    ).panned(
+                        by: CGSize(width: horizontalTranslation, height: value.translation.height),
                         containerSize: containerSize
                     )
+                    applySpreadZoomState(zoom, updateLastState: false)
                 }
             }
             .onEnded { value in
+                if dragZoomBaseline != nil {
+                    return
+                }
                 if isAtBaseZoom {
                     // At base zoom, check for page swipe (horizontal only for spreads)
                     let horizontalDistance = value.translation.width
@@ -196,6 +238,46 @@ struct MangaSpreadView: View {
         return SimultaneousGesture(magnificationGesture, dragGesture)
     }
 
+    private func tapGesture(containerSize: CGSize) -> some Gesture {
+        SpatialTapGesture(count: 2)
+            .exclusively(before: SpatialTapGesture(count: 1))
+            .onEnded { value in
+                switch value {
+                case let .first(tap):
+                    handleSpreadDoubleTap(at: tap.location, containerSize: containerSize)
+                case let .second(tap):
+                    handleSpreadTap(at: tap.location, containerSize: containerSize)
+                }
+            }
+    }
+
+    private func handleSpreadDoubleTap(at tapPoint: CGPoint, containerSize: CGSize) {
+        withAnimation(.easeOut(duration: 0.25)) {
+            let zoom = MangaZoomState(
+                scale: spreadScale,
+                offset: spreadOffset
+            ).doubleTapped(
+                around: Self.adjustedPointForZoom(
+                    tapPoint,
+                    containerSize: containerSize,
+                    readingDirection: viewModel.readingDirection
+                ),
+                containerSize: containerSize
+            )
+            applySpreadZoomState(zoom, updateLastState: true)
+        }
+    }
+
+    private func applySpreadZoomState(_ zoom: MangaZoomState, updateLastState: Bool) {
+        spreadScale = zoom.scale
+        spreadOffset = zoom.offset
+
+        if updateLastState {
+            spreadLastScale = zoom.scale
+            spreadLastOffset = zoom.offset
+        }
+    }
+
     nonisolated static func adjustedHorizontalTranslation(
         _ translation: CGFloat,
         readingDirection: MangaReadingDirection
@@ -212,21 +294,14 @@ struct MangaSpreadView: View {
             : offset
     }
 
-    private func clampOffset(
-        _ proposedOffset: CGSize,
-        scale: CGFloat,
-        containerSize: CGSize
-    ) -> CGSize {
-        let scaledWidth = containerSize.width * scale
-        let scaledHeight = containerSize.height * scale
-
-        let maxOffsetX = max(0, (scaledWidth - containerSize.width) / 2)
-        let maxOffsetY = max(0, (scaledHeight - containerSize.height) / 2)
-
-        return CGSize(
-            width: min(max(proposedOffset.width, -maxOffsetX), maxOffsetX),
-            height: min(max(proposedOffset.height, -maxOffsetY), maxOffsetY)
-        )
+    nonisolated static func adjustedPointForZoom(
+        _ point: CGPoint,
+        containerSize: CGSize,
+        readingDirection: MangaReadingDirection
+    ) -> CGPoint {
+        readingDirection == .rightToLeft
+            ? CGPoint(x: containerSize.width - point.x, y: point.y)
+            : point
     }
 
     // MARK: - Navigation
@@ -253,11 +328,12 @@ struct MangaSpreadView: View {
             readingDirection: viewModel.readingDirection
         )
 
-        // Apply inverse transform to get the untransformed tap point
-        let center = CGPoint(x: containerSize.width / 2, y: containerSize.height / 2)
-        let untransformed = CGPoint(
-            x: (tapPoint.x - center.x - hitTestOffset.width) / spreadScale + center.x,
-            y: (tapPoint.y - center.y - hitTestOffset.height) / spreadScale + center.y
+        let untransformed = MangaZoomState(
+            scale: spreadScale,
+            offset: hitTestOffset
+        ).untransformedPoint(
+            from: tapPoint,
+            containerSize: containerSize
         )
 
         // Determine which page was tapped and get its local coordinates

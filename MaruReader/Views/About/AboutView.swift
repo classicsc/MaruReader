@@ -27,7 +27,7 @@ struct AboutView: View {
                 LabeledContent("Build", value: appBuild)
             }
 
-            Section("Project") {
+            Section(header: Text("Project"), footer: Text("Portions of MaruReader's source code form is available under the Mozilla Public License Version 2.0. See the source code repository for details.")) {
                 Link("Source Code Repository", destination: repositoryURL)
 
                 NavigationLink("MaruReader License") {
