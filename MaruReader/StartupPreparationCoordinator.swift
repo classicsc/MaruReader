@@ -35,9 +35,11 @@ final class StartupPreparationCoordinator {
         let resumePendingDictionaryUpdates: () async -> Void
         let configureScreenshotStateIfNeeded: () async throws -> Void
 
-        static func `default`() -> Operations {
-            let sampleContentSeeder = SampleContentSeeder()
-            let screenshotModeSetupSeeder = ScreenshotModeSetupSeeder()
+        static func `default`(
+            processArguments: [String] = ProcessInfo.processInfo.arguments
+        ) -> Operations {
+            let usesScreenshotOnlyStartupOperations = StartupPreparationCoordinator
+                .usesScreenshotOnlyStartupOperations(processArguments: processArguments)
             return Operations(
                 seedDictionaryIfNeeded: {
                     let baseDirectory = FileManager.default.containerURL(
@@ -60,16 +62,19 @@ final class StartupPreparationCoordinator {
                     DefaultGrammarDictionaryInstaller.startIfNeeded()
                 },
                 importSampleContentIfAvailable: {
-                    try await sampleContentSeeder.seedIfAvailable()
+                    #if DEBUG
+                        guard usesScreenshotOnlyStartupOperations else { return }
+                        try await SampleContentSeeder().seedIfAvailable()
+                    #endif
                 },
                 resumePendingDictionaryUpdates: {
                     await DictionaryUpdateManager.shared.resumePendingUpdates()
                 },
                 configureScreenshotStateIfNeeded: {
-                    guard ProcessInfo.processInfo.arguments.contains("--screenshotMode") else {
-                        return
-                    }
-                    try await screenshotModeSetupSeeder.seedAnkiLapisConfiguration()
+                    #if DEBUG
+                        guard usesScreenshotOnlyStartupOperations else { return }
+                        try await ScreenshotModeSetupSeeder().seedAnkiLapisConfiguration()
+                    #endif
                 }
             )
         }
@@ -115,11 +120,13 @@ final class StartupPreparationCoordinator {
 
     private let operations: Operations
     private var task: Task<Void, Never>?
+    private nonisolated static let screenshotModeLaunchArgument = "--screenshotMode"
 
     init(
         needsDictionarySeeding: Bool? = nil,
         sampleContentAvailable: Bool? = nil,
-        operations: Operations = .default(),
+        processArguments: [String] = ProcessInfo.processInfo.arguments,
+        operations: Operations? = nil,
         autoStart: Bool = true
     ) {
         let baseDirectory = FileManager.default.containerURL(
@@ -127,17 +134,36 @@ final class StartupPreparationCoordinator {
         )
         let resolvedNeedsDictionarySeeding = needsDictionarySeeding
             ?? DictionaryPersistenceController.isBundledDatabaseSeedingNeeded(at: baseDirectory)
-        let resolvedSampleContentAvailable = sampleContentAvailable ?? SampleContentSeeder.hasBundledSampleContent()
+        let resolvedSampleContentAvailable = sampleContentAvailable
+            ?? Self.defaultSampleContentAvailability(processArguments: processArguments)
 
         self.needsDictionarySeeding = resolvedNeedsDictionarySeeding
         self.sampleContentAvailable = resolvedSampleContentAvailable
         phase = resolvedNeedsDictionarySeeding ? .preparingDictionary : .cleaningUp
         isPreparationComplete = false
-        self.operations = operations
+        self.operations = operations ?? .default(processArguments: processArguments)
 
         if autoStart {
             start()
         }
+    }
+
+    nonisolated static func usesScreenshotOnlyStartupOperations(processArguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        #if DEBUG
+            processArguments.contains(screenshotModeLaunchArgument)
+        #else
+            false
+        #endif
+    }
+
+    nonisolated static func defaultSampleContentAvailability(
+        processArguments: [String] = ProcessInfo.processInfo.arguments,
+        hasBundledSampleContent: () -> Bool = { SampleContentSeeder.hasBundledSampleContent() }
+    ) -> Bool {
+        guard usesScreenshotOnlyStartupOperations(processArguments: processArguments) else {
+            return false
+        }
+        return hasBundledSampleContent()
     }
 
     var dictionaryFeatureAvailability: DictionaryFeatureAvailability {
