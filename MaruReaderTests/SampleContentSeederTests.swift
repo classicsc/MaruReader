@@ -303,6 +303,36 @@ struct SampleContentSeederTests {
         #expect(events == ["anki", "cleanup", "grammar", "sample", "updates", "screenshot"])
     }
 
+    @Test func startupPreparationCoordinator_DefaultSampleContentAvailability_NoScreenshotMode_DoesNotCheckBundle() {
+        var didCheckBundle = false
+        let isAvailable = StartupPreparationCoordinator.defaultSampleContentAvailability(
+            processArguments: ["MaruReader"],
+            hasBundledSampleContent: {
+                didCheckBundle = true
+                return true
+            }
+        )
+
+        #expect(isAvailable == false)
+        #expect(didCheckBundle == false)
+    }
+
+    #if DEBUG
+        @Test func startupPreparationCoordinator_DefaultSampleContentAvailability_ScreenshotMode_ChecksBundle() {
+            var didCheckBundle = false
+            let isAvailable = StartupPreparationCoordinator.defaultSampleContentAvailability(
+                processArguments: ["MaruReader", "--screenshotMode"],
+                hasBundledSampleContent: {
+                    didCheckBundle = true
+                    return true
+                }
+            )
+
+            #expect(isAvailable == true)
+            #expect(didCheckBundle == true)
+        }
+    #endif
+
     @Test func requiresWelcomeScreen_OnlyDictionarySeeding_ReturnsFalse() async {
         let coordinator = await MainActor.run {
             StartupPreparationCoordinator(
