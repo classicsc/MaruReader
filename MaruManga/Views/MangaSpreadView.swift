@@ -344,14 +344,14 @@ struct MangaSpreadView: View {
         )
 
         guard let pageIndex = resolvedTap.pageIndex else {
-            viewModel.toggleToolbars()
+            performSpreadTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
             return
         }
 
         // Get page data and calculate image rect
         guard let renderedPage = viewModel.renderedPageCache[pageIndex]
         else {
-            viewModel.toggleToolbars()
+            performSpreadTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
             return
         }
 
@@ -363,7 +363,7 @@ struct MangaSpreadView: View {
 
         // Check if tap is within the image rect
         guard imageRect.contains(resolvedTap.pageLocalPoint) else {
-            viewModel.toggleToolbars()
+            performSpreadTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
             return
         }
 
@@ -391,6 +391,26 @@ struct MangaSpreadView: View {
         if let match = bestMatch {
             viewModel.handleClusterTap(match, pageIndex: pageIndex)
         } else {
+            performSpreadTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
+        }
+    }
+
+    /// Dispatches a single-tap miss across the entire spread container to either
+    /// spread navigation or toolbar toggling, based on which third was tapped.
+    private func performSpreadTapMissAction(tapX: CGFloat, containerWidth: CGFloat) {
+        let zone = MangaTapZoneResolver.resolve(
+            tapX: tapX,
+            containerWidth: containerWidth,
+            isAtBaseZoom: isAtBaseZoom,
+            tapToTurnEnabled: MangaTapNavigationSettings.tapToTurnEnabled,
+            readingDirection: viewModel.readingDirection
+        )
+        switch zone {
+        case .previousPage:
+            goToPreviousSpread()
+        case .nextPage:
+            goToNextSpread()
+        case .toggleToolbars:
             viewModel.toggleToolbars()
         }
     }

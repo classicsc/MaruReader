@@ -308,7 +308,7 @@ struct MangaPageView: View {
 
         // Check if tap is within the image rect
         guard imageRect.contains(untransformed) else {
-            viewModel.toggleToolbars()
+            performTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
             return
         }
 
@@ -337,7 +337,27 @@ struct MangaPageView: View {
         if let match = bestMatch {
             viewModel.handleClusterTap(match, pageIndex: pageIndex)
         } else {
-            // Tap outside clusters toggles toolbar
+            // Tap inside the image but outside any cluster.
+            performTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
+        }
+    }
+
+    /// Dispatches a single-tap miss to either page navigation or toolbar toggling
+    /// based on which third of the container was tapped.
+    private func performTapMissAction(tapX: CGFloat, containerWidth: CGFloat) {
+        let zone = MangaTapZoneResolver.resolve(
+            tapX: tapX,
+            containerWidth: containerWidth,
+            isAtBaseZoom: viewModel.isAtBaseZoom,
+            tapToTurnEnabled: MangaTapNavigationSettings.tapToTurnEnabled,
+            readingDirection: viewModel.readingDirection
+        )
+        switch zone {
+        case .previousPage:
+            viewModel.goToPreviousPage()
+        case .nextPage:
+            viewModel.goToNextPage()
+        case .toggleToolbars:
             viewModel.toggleToolbars()
         }
     }

@@ -22,19 +22,13 @@
 //
 import MaruAnki
 import MaruDictionaryUICommon
-import MaruManga
 import SwiftUI
 
 struct SettingsView: View {
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @State private var pendingCount = 0
     @State private var showingResetToursConfirmation = false
-    @AppStorage(MangaMetadataExtractionSettings.smartExtractionEnabledKey)
-    private var smartMetadataExtractionEnabled = MangaMetadataExtractionSettings.smartExtractionEnabledDefault
     private let noteService = AnkiNoteService()
-    private var isMetadataExtractorAvailable: Bool {
-        MangaImportManager.isMetadataExtractorAvailable
-    }
 
     private let supportForumURL = URL(string: "https://github.com/classicsc/MaruReader/discussions")!
     private let privacyPolicyURL = URL(string: "https://github.com/classicsc/MaruReader/blob/main/PRIVACY.md")!
@@ -56,12 +50,11 @@ struct SettingsView: View {
                         Label("Dictionary Display", systemImage: "textformat")
                     }
                 }
-                if isMetadataExtractorAvailable {
-                    Section(
-                        header: Text("Manga"),
-                        footer: Text("Uses the on-device language model to infer titles and authors from filenames.")
-                    ) {
-                        Toggle("Smart Metadata", isOn: $smartMetadataExtractionEnabled)
+                Section("Readers") {
+                    NavigationLink {
+                        MangaSettingsView()
+                    } label: {
+                        Label("Manga", systemImage: "book.pages")
                     }
                 }
                 Section("Web") {
