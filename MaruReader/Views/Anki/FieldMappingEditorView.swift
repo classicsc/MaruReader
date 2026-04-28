@@ -457,6 +457,7 @@ enum TemplateValueCategory: CaseIterable {
             [.singleGlossary, .multiDictionaryGlossary, .glossaryNoDictionary]
         case .context:
             [
+                .selectionText,
                 .sentence,
                 .sentenceFurigana,
                 .clozePrefix,
@@ -492,6 +493,7 @@ extension TemplateValue {
         case .furigana: return String(localized: "Furigana")
         case .glossaryNoDictionary: return String(localized: "Glossary (No Dictionary)")
         case .reading: return String(localized: "Reading")
+        case .selectionText: return String(localized: "Selection Text")
         case .sentence: return String(localized: "Sentence")
         case .clozePrefix: return String(localized: "Cloze Prefix")
         case .clozeBody: return String(localized: "Cloze Body")

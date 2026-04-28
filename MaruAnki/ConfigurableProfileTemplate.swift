@@ -120,6 +120,7 @@ public enum ConfigurableProfileTemplates {
             "ExpressionFurigana": [.furigana],
             "ExpressionReading": [.reading],
             "ExpressionAudio": [.pronunciationAudio],
+            "SelectionText": [.selectionText],
             // MainDefinition configured by user
             "Sentence": [
                 .clozePrefix,

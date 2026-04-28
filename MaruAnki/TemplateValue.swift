@@ -28,6 +28,7 @@ public enum TemplateValue: Sendable, Codable, Hashable {
     case furigana
     case glossaryNoDictionary
     case reading
+    case selectionText
     case sentence
     case clozePrefix
     case clozeBody

@@ -19,12 +19,31 @@
 window.MaruReader = window.MaruReader || {};
 window.MaruReader.ankiDisplay = {
     stateCache: Object.create(null),
+    pendingSelectionButton: null,
+    pendingSelectionText: '',
 
     /**
      * Initialize Anki button functionality
      */
     initialize: function() {
         var self = this;
+        var captureSelection = function(event) {
+            var button = event.target.closest('.anki-button');
+            if (!button) return;
+
+            var text = self.getSelectionText(button);
+            if (!text && self.pendingSelectionButton === button && self.pendingSelectionText) {
+                return;
+            }
+
+            self.pendingSelectionButton = button;
+            self.pendingSelectionText = text;
+        };
+
+        document.addEventListener('pointerdown', captureSelection, true);
+        document.addEventListener('touchstart', captureSelection, true);
+        document.addEventListener('mousedown', captureSelection, true);
+
         document.addEventListener('click', function(event) {
             var button = event.target.closest('.anki-button');
             if (!button) return;
@@ -48,7 +67,8 @@ window.MaruReader.ankiDisplay = {
             }
 
             var audioURL = self.getPrimaryAudioURL(button, termKey);
-            self.addNote(termKey, expression, reading, audioURL);
+            var selectionText = self.consumeSelectionText(button);
+            self.addNote(termKey, expression, reading, audioURL, selectionText);
         }, true);
 
         self.refresh();
@@ -138,7 +158,7 @@ window.MaruReader.ankiDisplay = {
         });
     },
 
-    addNote: function(termKey, expression, reading, audioURL) {
+    addNote: function(termKey, expression, reading, audioURL, selectionText) {
         var self = this;
 
         self.setButtonState(termKey, 'loading');
@@ -151,7 +171,8 @@ window.MaruReader.ankiDisplay = {
                 termKey: termKey,
                 expression: expression,
                 reading: reading || '',
-                audioURL: audioURL || ''
+                audioURL: audioURL || '',
+                selectionText: selectionText || ''
             })
         })
             .then(function(response) {
@@ -199,6 +220,38 @@ window.MaruReader.ankiDisplay = {
             }
         } catch (e) {
             return '';
+        }
+
+        return '';
+    },
+
+    consumeSelectionText: function(button) {
+        if (this.pendingSelectionButton === button) {
+            var text = this.pendingSelectionText;
+            this.pendingSelectionButton = null;
+            this.pendingSelectionText = '';
+            return text;
+        }
+
+        return this.getSelectionText(button);
+    },
+
+    getSelectionText: function(button) {
+        var selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+            return '';
+        }
+
+        var container = document.getElementById('dictionary-results-root');
+        if (!container || button.closest('.popup-term-group')) {
+            return '';
+        }
+
+        for (var index = 0; index < selection.rangeCount; index++) {
+            var range = selection.getRangeAt(index);
+            if (container.contains(range.commonAncestorContainer) || range.intersectsNode(container)) {
+                return selection.toString();
+            }
         }
 
         return '';

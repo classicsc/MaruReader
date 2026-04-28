@@ -203,10 +203,12 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
         }
 
         let audioURL = decoded.audioURL.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        let selectionText = decoded.selectionText?.isEmpty == true ? nil : decoded.selectionText
         let resolver = TextLookupResponseTemplateResolver(
             response: response,
             selectedGroup: termGroup,
-            primaryAudioURL: audioURL
+            primaryAudioURL: audioURL,
+            selectionText: selectionText
         )
 
         do {
@@ -348,6 +350,7 @@ private struct AnkiAddRequest: Decodable {
     let expression: String
     let reading: String?
     let audioURL: String?
+    let selectionText: String?
 }
 
 private struct AnkiAddResponse: Encodable {

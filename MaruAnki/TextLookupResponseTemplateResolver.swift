@@ -28,6 +28,7 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private let selectedGroup: GroupedSearchResults
     private let contextImageConfiguration: ContextImageConfiguration
     private let primaryAudioURL: URL?
+    private let selectionText: String?
 
     /// Creates a resolver for the given response and selected term.
     ///
@@ -41,12 +42,14 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         selectedGroup: GroupedSearchResults,
         selectedDictionaryID _: UUID? = nil,
         contextImageConfiguration: ContextImageConfiguration = .default,
-        primaryAudioURL: URL? = nil
+        primaryAudioURL: URL? = nil,
+        selectionText: String? = nil
     ) {
         self.response = response
         self.selectedGroup = selectedGroup
         self.contextImageConfiguration = contextImageConfiguration
         self.primaryAudioURL = primaryAudioURL
+        self.selectionText = selectionText
     }
 
     public func resolve(_ templateValue: TemplateValue) async -> TemplateResolvedValue {
@@ -58,6 +61,9 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
 
         case .reading:
             return .text(selectedGroup.reading)
+
+        case .selectionText:
+            return .text(selectionText)
 
         // MARK: - Context values from request
 

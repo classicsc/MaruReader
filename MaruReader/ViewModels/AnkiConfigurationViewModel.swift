@@ -440,6 +440,7 @@ final class AnkiConfigurationViewModel {
             (.expression, ["expression"]),
             (.furigana, ["furigana"]),
             (.reading, ["reading"]),
+            (.selectionText, ["selectionText"]),
             (.sentence, ["sentence"]),
             (.sentenceFurigana, ["sentenceFurigana"]),
             (.clozePrefix, ["clozePrefix"]),

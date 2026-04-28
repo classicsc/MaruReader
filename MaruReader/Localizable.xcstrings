@@ -4157,6 +4157,16 @@
         }
       }
     },
+    "Selection Text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択テキスト"
+          }
+        }
+      }
+    },
     "Sentence" : {
       "localizations" : {
         "ja" : {

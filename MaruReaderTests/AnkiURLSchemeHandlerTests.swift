@@ -85,6 +85,30 @@ struct AnkiURLSchemeHandlerTests {
         #expect(recorded.first?.expression == "neko")
     }
 
+    @Test func addNotePassesSelectionTextToResolver() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let noteService = MockAnkiNoteService(existingTermKeys: [])
+        let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
+        let provider = MockLookupProvider(response: response)
+        await handler.setLookupProvider(provider)
+
+        let request = makeAddRequest(
+            requestId: response.requestID.uuidString,
+            termKey: "neko|ねこ",
+            expression: "neko",
+            reading: "ねこ",
+            audioURL: "",
+            selectionText: "selected plain text"
+        )
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+
+        #expect(decoded.state == "success")
+        let resolvedSelectionText = await manager.resolvedSelectionText
+        #expect(resolvedSelectionText == "selected plain text")
+    }
+
     @Test func addNoteReturnsExistsOnDuplicateError() async throws {
         let response = makeResponse(termKey: "neko|ねこ")
         let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .failure(AnkiConnectionManagerError.duplicateNote))
@@ -152,6 +176,7 @@ private struct AnkiAddRequest: Encodable {
     let expression: String
     let reading: String
     let audioURL: String
+    let selectionText: String?
 }
 
 private struct AnkiAddResponse: Decodable {
@@ -182,6 +207,7 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
     private let ready: Bool
     private let profile: String?
     private let addResult: Result<NoteCreationResult, Error>
+    private(set) var resolvedSelectionText: String?
 
     init(isReady: Bool, profileName: String?, addResult: Result<NoteCreationResult, Error>) {
         ready = isReady
@@ -197,9 +223,10 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
         profile
     }
 
-    func addNote(resolver _: any TemplateValueResolver) async throws -> NoteCreationResult {
+    func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult {
         switch addResult {
         case let .success(result):
+            resolvedSelectionText = await resolver.resolve(.selectionText).text
             return result
         case let .failure(error):
             throw error
@@ -320,14 +347,16 @@ private func makeAddRequest(
     termKey: String,
     expression: String,
     reading: String,
-    audioURL: String
+    audioURL: String,
+    selectionText: String? = nil
 ) -> URLRequest {
     let body = AnkiAddRequest(
         requestId: requestId,
         termKey: termKey,
         expression: expression,
         reading: reading,
-        audioURL: audioURL
+        audioURL: audioURL,
+        selectionText: selectionText
     )
     let data = try? JSONEncoder().encode(body)
     var request = URLRequest(url: URL(string: "marureader-anki://add")!)

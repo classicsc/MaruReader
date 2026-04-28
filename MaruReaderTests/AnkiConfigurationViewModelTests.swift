@@ -24,6 +24,7 @@ struct AnkiConfigurationViewModelTests {
     @Test func matchedTemplateValueUsesNormalizedFieldName() {
         #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "Expression") == .expression)
         #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "expression") == .expression)
+        #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "SelectionText") == .selectionText)
         #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "Part of Speech") == .partOfSpeech)
         #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "pitch_accent") == .singlePitchAccent)
         #expect(AnkiConfigurationViewModel.matchedTemplateValue(forFieldName: "UnknownField") == nil)
