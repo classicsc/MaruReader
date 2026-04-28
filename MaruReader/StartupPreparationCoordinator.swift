@@ -21,12 +21,14 @@ import MaruDictionaryManagement
 import MaruDictionaryUICommon
 import MaruManga
 import MaruReaderCore
+import MaruWeb
 import Observation
 
 @MainActor
 @Observable
 final class StartupPreparationCoordinator {
     struct Operations {
+        let warmPersistenceStores: () async -> Void
         let seedDictionaryIfNeeded: () async -> Void
         let setAnkiPreferencesUpdater: () async -> Void
         let cleanupInterruptedImportsAndPendingDeletions: () async -> Void
@@ -41,6 +43,19 @@ final class StartupPreparationCoordinator {
             let usesScreenshotOnlyStartupOperations = StartupPreparationCoordinator
                 .usesScreenshotOnlyStartupOperations(processArguments: processArguments)
             return Operations(
+                warmPersistenceStores: {
+                    // Force every shared Core Data stack to load its persistent
+                    // store off the main thread. Each loadPersistentStores call
+                    // is synchronous in init, and a migration of a large store
+                    // (e.g. MaruDictionary.sqlite after a model change) can
+                    // otherwise block the main thread long enough to be killed
+                    // by the launch watchdog (FRONTBOARD 0x8BADF00D).
+                    await DictionaryPersistenceController.warmShared()
+                    await BookDataPersistenceController.warmShared()
+                    await MangaDataPersistenceController.warmShared()
+                    await AnkiPersistenceController.warmShared()
+                    await MaruWebPersistenceWarmup.warmShared()
+                },
                 seedDictionaryIfNeeded: {
                     let baseDirectory = FileManager.default.containerURL(
                         forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
@@ -81,6 +96,7 @@ final class StartupPreparationCoordinator {
     }
 
     enum Phase {
+        case preparingStorage
         case preparingDictionary
         case cleaningUp
         case importingSampleContent
@@ -89,6 +105,8 @@ final class StartupPreparationCoordinator {
 
         var description: String {
             switch self {
+            case .preparingStorage:
+                String(localized: "Preparing your library...")
             case .preparingDictionary:
                 String(localized: "Preparing dictionary...")
             case .cleaningUp:
@@ -139,7 +157,7 @@ final class StartupPreparationCoordinator {
 
         self.needsDictionarySeeding = resolvedNeedsDictionarySeeding
         self.sampleContentAvailable = resolvedSampleContentAvailable
-        phase = resolvedNeedsDictionarySeeding ? .preparingDictionary : .cleaningUp
+        phase = .preparingStorage
         isPreparationComplete = false
         self.operations = operations ?? .default(processArguments: processArguments)
 
@@ -167,7 +185,7 @@ final class StartupPreparationCoordinator {
     }
 
     var dictionaryFeatureAvailability: DictionaryFeatureAvailability {
-        if needsDictionarySeeding, phase == .preparingDictionary {
+        if needsDictionarySeeding, phase == .preparingStorage || phase == .preparingDictionary {
             return .preparing(description: phase.description)
         }
         return .ready
@@ -181,7 +199,7 @@ final class StartupPreparationCoordinator {
         guard task == nil else { return }
         errorMessage = nil
         isPreparationComplete = false
-        phase = needsDictionarySeeding ? .preparingDictionary : .cleaningUp
+        phase = .preparingStorage
         start()
     }
 
@@ -199,6 +217,9 @@ final class StartupPreparationCoordinator {
         defer {
             task = nil
         }
+
+        phase = .preparingStorage
+        await operations.warmPersistenceStores()
 
         if needsDictionarySeeding {
             phase = .preparingDictionary

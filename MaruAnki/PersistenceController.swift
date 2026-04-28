@@ -95,6 +95,18 @@ public final class AnkiPersistenceController: Sendable {
 
     // MARK: - Context Creation
 
+    /// Force the lazy `shared` initializer (and its synchronous Core Data store
+    /// loading, which may include a migration) to run off the main thread.
+    ///
+    /// Call this from an async startup pipeline before any UI or main-thread
+    /// caller touches `shared`, to avoid a launch watchdog kill on first
+    /// launch after a migration.
+    public static func warmShared() async {
+        await Task.detached(priority: .userInitiated) {
+            _ = AnkiPersistenceController.shared
+        }.value
+    }
+
     /// Create a new background context for batch operations
     /// - Returns: A configured background context
     public func newBackgroundContext() -> NSManagedObjectContext {
@@ -106,8 +118,10 @@ public final class AnkiPersistenceController: Sendable {
     }
 
     private static func configureViewContext(_ context: NSManagedObjectContext) {
-        context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
+        context.performAndWait {
+            context.automaticallyMergesChangesFromParent = true
+            context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
+        }
     }
 }
 
