@@ -253,14 +253,14 @@ final class BookReaderSessionModel {
     func goLeft() {
         guard let navigator else { return }
         Task {
-            await navigator.goLeft(options: .init())
+            await navigator.goLeft(options: .animated)
         }
     }
 
     func goRight() {
         guard let navigator else { return }
         Task {
-            await navigator.goRight(options: .init())
+            await navigator.goRight(options: .animated)
         }
     }
 
