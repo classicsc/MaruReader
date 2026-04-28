@@ -68,7 +68,7 @@ struct MaruReaderApp: App {
             if shouldShowContentView {
                 ContentView()
                     .environment(\.dictionaryFeatureAvailability, startupPreparationCoordinator.dictionaryFeatureAvailability)
-            } else {
+            } else if startupPreparationCoordinator.requiresWelcomeScreen {
                 WelcomeView(
                     phaseDescription: startupPreparationCoordinator.phaseDescription,
                     errorMessage: startupPreparationCoordinator.errorMessage,
@@ -82,15 +82,24 @@ struct MaruReaderApp: App {
                         didContinueFromWelcome = true
                     }
                 }
+            } else {
+                StartupPreparingView(
+                    phaseDescription: startupPreparationCoordinator.phaseDescription,
+                    errorMessage: startupPreparationCoordinator.errorMessage,
+                    onRetry: { startupPreparationCoordinator.retry() }
+                )
             }
         }
     }
 
     private var shouldShowContentView: Bool {
-        if !startupPreparationCoordinator.requiresWelcomeScreen {
-            return true
+        guard startupPreparationCoordinator.isPreparationComplete else {
+            return false
         }
-        return didContinueFromWelcome && startupPreparationCoordinator.isPreparationComplete
+        if startupPreparationCoordinator.requiresWelcomeScreen {
+            return didContinueFromWelcome
+        }
+        return true
     }
 
     nonisolated static func shouldStartWebFilterMaintenance(

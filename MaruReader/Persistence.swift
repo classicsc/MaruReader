@@ -79,6 +79,20 @@ final class BookDataPersistenceController: Sendable {
         Self.configureViewContext(container.viewContext)
     }
 
+    // MARK: - Async Warmup
+
+    /// Force the lazy `shared` initializer (and its synchronous Core Data store
+    /// loading, which may include a migration) to run off the main thread.
+    ///
+    /// Call this from an async startup pipeline before any UI or main-thread
+    /// caller touches `shared`, to avoid a launch watchdog kill on first
+    /// launch after a migration.
+    static func warmShared() async {
+        await Task.detached(priority: .userInitiated) {
+            _ = BookDataPersistenceController.shared
+        }.value
+    }
+
     // MARK: - Context Creation
 
     /// Create a new background context for batch operations
@@ -92,8 +106,10 @@ final class BookDataPersistenceController: Sendable {
     }
 
     private static func configureViewContext(_ context: NSManagedObjectContext) {
-        context.automaticallyMergesChangesFromParent = true
-        context.mergePolicy = NSMergePolicy.mergeByPropertyObjectTrump
+        context.performAndWait {
+            context.automaticallyMergesChangesFromParent = true
+            context.mergePolicy = NSMergePolicy.mergeByPropertyStoreTrump
+        }
     }
 
     private static func defaultStoreURL() -> URL {

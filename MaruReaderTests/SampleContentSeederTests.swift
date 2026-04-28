@@ -275,6 +275,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: false,
                 sampleContentAvailable: true,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {
                         await recorder.record("anki")
@@ -339,6 +340,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: true,
                 sampleContentAvailable: false,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -360,6 +362,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: false,
                 sampleContentAvailable: true,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -381,6 +384,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: true,
                 sampleContentAvailable: false,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -393,7 +397,7 @@ struct SampleContentSeederTests {
             )
         }
         let availability = await coordinator.dictionaryFeatureAvailability
-        #expect(availability == .preparing(description: "Preparing dictionary..."))
+        #expect(availability == .preparing(description: "Preparing your library..."))
     }
 
     @Test func dictionaryFeatureAvailability_NoSeedingNeeded_IsReady() async {
@@ -402,6 +406,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: false,
                 sampleContentAvailable: false,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -423,6 +428,7 @@ struct SampleContentSeederTests {
                 needsDictionarySeeding: true,
                 sampleContentAvailable: false,
                 operations: .init(
+                    warmPersistenceStores: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
