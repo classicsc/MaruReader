@@ -276,6 +276,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: true,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {
                         await recorder.record("anki")
@@ -302,6 +303,42 @@ struct SampleContentSeederTests {
         await coordinator.waitUntilComplete()
         let events = await recorder.snapshot()
         #expect(events == ["anki", "cleanup", "grammar", "sample", "updates", "screenshot"])
+    }
+
+    @Test func startupPreparationCoordinator_ContentAvailableDuringDictionarySeeding() async {
+        let seedGate = AsyncGate()
+        let coordinator = await MainActor.run {
+            StartupPreparationCoordinator(
+                needsDictionarySeeding: true,
+                sampleContentAvailable: false,
+                operations: .init(
+                    warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
+                    seedDictionaryIfNeeded: {
+                        await seedGate.wait()
+                    },
+                    setAnkiPreferencesUpdater: {},
+                    cleanupInterruptedImportsAndPendingDeletions: {},
+                    startDefaultGrammarDictionaryImportIfNeeded: {},
+                    importSampleContentIfAvailable: {},
+                    resumePendingDictionaryUpdates: {},
+                    configureScreenshotStateIfNeeded: {}
+                )
+            )
+        }
+
+        await seedGate.waitUntilEntered()
+
+        let contentAvailable = await coordinator.isContentAvailable
+        let preparationComplete = await coordinator.isPreparationComplete
+        let availability = await coordinator.dictionaryFeatureAvailability
+
+        #expect(contentAvailable == true)
+        #expect(preparationComplete == false)
+        #expect(availability == .preparing(description: "Preparing dictionary..."))
+
+        await seedGate.open()
+        await coordinator.waitUntilComplete()
     }
 
     @Test func startupPreparationCoordinator_DefaultSampleContentAvailability_NoScreenshotMode_DoesNotCheckBundle() {
@@ -341,6 +378,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: false,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -363,6 +401,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: true,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -385,6 +424,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: false,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -407,6 +447,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: false,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -429,6 +470,7 @@ struct SampleContentSeederTests {
                 sampleContentAvailable: false,
                 operations: .init(
                     warmPersistenceStores: {},
+                    warmDictionaryPersistenceStore: {},
                     seedDictionaryIfNeeded: {},
                     setAnkiPreferencesUpdater: {},
                     cleanupInterruptedImportsAndPendingDeletions: {},
@@ -749,5 +791,36 @@ private actor EventRecorder {
 
     func snapshot() -> [String] {
         events
+    }
+}
+
+private actor AsyncGate {
+    private var didEnter = false
+    private var isOpen = false
+    private var entryContinuations: [CheckedContinuation<Void, Never>] = []
+    private var waitContinuations: [CheckedContinuation<Void, Never>] = []
+
+    func waitUntilEntered() async {
+        if didEnter { return }
+        await withCheckedContinuation { continuation in
+            entryContinuations.append(continuation)
+        }
+    }
+
+    func wait() async {
+        didEnter = true
+        entryContinuations.forEach { $0.resume() }
+        entryContinuations.removeAll()
+
+        if isOpen { return }
+        await withCheckedContinuation { continuation in
+            waitContinuations.append(continuation)
+        }
+    }
+
+    func open() {
+        isOpen = true
+        waitContinuations.forEach { $0.resume() }
+        waitContinuations.removeAll()
     }
 }

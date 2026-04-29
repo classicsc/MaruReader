@@ -29,6 +29,7 @@ import Observation
 final class StartupPreparationCoordinator {
     struct Operations {
         let warmPersistenceStores: () async -> Void
+        let warmDictionaryPersistenceStore: () async -> Void
         let seedDictionaryIfNeeded: () async -> Void
         let setAnkiPreferencesUpdater: () async -> Void
         let cleanupInterruptedImportsAndPendingDeletions: () async -> Void
@@ -44,17 +45,18 @@ final class StartupPreparationCoordinator {
                 .usesScreenshotOnlyStartupOperations(processArguments: processArguments)
             return Operations(
                 warmPersistenceStores: {
-                    // Force every shared Core Data stack to load its persistent
-                    // store off the main thread. Each loadPersistentStores call
-                    // is synchronous in init, and a migration of a large store
-                    // (e.g. MaruDictionary.sqlite after a model change) can
-                    // otherwise block the main thread long enough to be killed
-                    // by the launch watchdog (FRONTBOARD 0x8BADF00D).
-                    await DictionaryPersistenceController.warmShared()
+                    // Force shared Core Data stacks used by the main shell to
+                    // load off the main thread. Each loadPersistentStores call
+                    // is synchronous in init, and a migration can otherwise
+                    // block the main thread long enough to be killed by the
+                    // launch watchdog (FRONTBOARD 0x8BADF00D).
                     await BookDataPersistenceController.warmShared()
                     await MangaDataPersistenceController.warmShared()
                     await AnkiPersistenceController.warmShared()
                     await MaruWebPersistenceWarmup.warmShared()
+                },
+                warmDictionaryPersistenceStore: {
+                    await DictionaryPersistenceController.warmShared()
                 },
                 seedDictionaryIfNeeded: {
                     let baseDirectory = FileManager.default.containerURL(
@@ -122,6 +124,7 @@ final class StartupPreparationCoordinator {
     }
 
     private(set) var phase: Phase
+    private(set) var isContentAvailable: Bool
     private(set) var isPreparationComplete: Bool
     private(set) var errorMessage: String?
 
@@ -158,6 +161,7 @@ final class StartupPreparationCoordinator {
         self.needsDictionarySeeding = resolvedNeedsDictionarySeeding
         self.sampleContentAvailable = resolvedSampleContentAvailable
         phase = .preparingStorage
+        isContentAvailable = false
         isPreparationComplete = false
         self.operations = operations ?? .default(processArguments: processArguments)
 
@@ -185,7 +189,7 @@ final class StartupPreparationCoordinator {
     }
 
     var dictionaryFeatureAvailability: DictionaryFeatureAvailability {
-        if needsDictionarySeeding, phase == .preparingStorage || phase == .preparingDictionary {
+        if phase == .preparingDictionary || (needsDictionarySeeding && phase == .preparingStorage) {
             return .preparing(description: phase.description)
         }
         return .ready
@@ -198,6 +202,7 @@ final class StartupPreparationCoordinator {
     func retry() {
         guard task == nil else { return }
         errorMessage = nil
+        isContentAvailable = false
         isPreparationComplete = false
         phase = .preparingStorage
         start()
@@ -220,11 +225,15 @@ final class StartupPreparationCoordinator {
 
         phase = .preparingStorage
         await operations.warmPersistenceStores()
+        isContentAvailable = true
 
         if needsDictionarySeeding {
             phase = .preparingDictionary
             await operations.seedDictionaryIfNeeded()
         }
+
+        phase = .preparingDictionary
+        await operations.warmDictionaryPersistenceStore()
 
         await operations.setAnkiPreferencesUpdater()
 

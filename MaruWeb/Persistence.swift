@@ -98,7 +98,7 @@ final class WebDataPersistenceController: Sendable {
     /// Call this from an async startup pipeline before any UI or main-thread
     /// caller touches `shared`, to avoid a launch watchdog kill on first
     /// launch after a migration.
-    public static func warmShared() async {
+    static func warmShared() async {
         await Task.detached(priority: .userInitiated) {
             _ = WebDataPersistenceController.shared
         }.value
