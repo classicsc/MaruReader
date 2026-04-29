@@ -20,6 +20,24 @@
       ]
     },
     {
+      "id": "manual-brave-core",
+      "name": "brave-core",
+      "category": "spm",
+      "homepageURL": "https://github.com/brave/brave-core",
+      "sourceURL": "https://github.com/brave/brave-core",
+      "attribution": "The Brave Authors",
+      "notes": "Adblock userscripts.",
+      "licenses": [
+        {
+          "title": "Mozilla Public License 2.0",
+          "outputPath": "manual/manual-brave-core-mpl-2.0.txt",
+          "snapshotPath": "scripts/third-party-license-snapshots/brave-core/mpl-2.0.txt",
+          "referenceURL": "https://raw.githubusercontent.com/brave/brave-core/refs/heads/master/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/brave/brave-core/refs/heads/master/LICENSE"
+        }
+      ]
+    },
+    {
       "id": "manual-yomitan",
       "name": "yomitan",
       "category": "dictionaryData",

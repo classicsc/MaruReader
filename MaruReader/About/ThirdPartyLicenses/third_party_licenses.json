@@ -1,6 +1,22 @@
 {
   "components" : [
     {
+      "attribution" : "The Brave Authors",
+      "category" : "spm",
+      "homepageURL" : "https:\/\/github.com\/brave\/brave-core",
+      "id" : "manual-brave-core",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-brave-core-mpl-2.0.txt",
+          "referenceURL" : "https:\/\/raw.githubusercontent.com\/brave\/brave-core\/refs\/heads\/master\/LICENSE",
+          "title" : "Mozilla Public License 2.0"
+        }
+      ],
+      "name" : "brave-core",
+      "notes" : "Adblock userscripts.",
+      "sourceURL" : "https:\/\/github.com\/brave\/brave-core"
+    },
+    {
       "attribution" : "Jiten contributors",
       "category" : "dictionaryData",
       "homepageURL" : "https:\/\/github.com\/Sirush\/Jiten",
@@ -1939,9 +1955,9 @@
         }
       ],
       "name" : "CryptoSwift",
-      "revision" : "e45a26384239e028ec87fbcc788f513b67e10d8f",
+      "revision" : "f2a627b84c1ff96f21ac2fcb623ab36142dd5512",
       "sourceURL" : "https:\/\/github.com\/krzyzanowskim\/CryptoSwift.git",
-      "version" : "1.9.0"
+      "version" : "1.10.0"
     },
     {
       "category" : "spm",
@@ -2066,9 +2082,9 @@
         }
       ],
       "name" : "swift-collections",
-      "revision" : "8d9834a6189db730f6264db7556a7ffb751e99ee",
+      "revision" : "6675bc0ff86e61436e615df6fc5174e043e57924",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
-      "version" : "1.4.0"
+      "version" : "1.4.1"
     },
     {
       "category" : "spm",
@@ -2098,9 +2114,9 @@
         }
       ],
       "name" : "SwiftSoup",
-      "revision" : "dba183c96b2da4e4b80bb31b1e2e59cb9542b8fc",
+      "revision" : "6c7915e16f729857aec3e99068c361e58a00ed68",
       "sourceURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
-      "version" : "2.13.1"
+      "version" : "2.13.4"
     },
     {
       "category" : "spm",
@@ -2150,6 +2166,6 @@
       "version" : "3.0.1"
     }
   ],
-  "generatedAt" : "2026-04-27T22:08:17.260Z",
+  "generatedAt" : "2026-04-29T06:05:51.447Z",
   "schemaVersion" : 1
 }
