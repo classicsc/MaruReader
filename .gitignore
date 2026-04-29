@@ -67,3 +67,7 @@ DerivedData/
 build/
 buildServer.json
 .derived-data-log-*
+
+__pycache__/
+*.py[cod]
+*$py.class

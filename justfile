@@ -10,11 +10,15 @@ format:
 
 # builds the project, optionally specify a build configuration and destination
 build configuration="Debug" destination="":
-  ./scripts/run-build.sh "{{configuration}}" "{{destination}}"
+  ./scripts/maru.py build "{{configuration}}" "{{destination}}"
+
+# builds tests without running them, optionally specify a build configuration and destination
+build-for-testing configuration="Debug" destination="":
+  ./scripts/maru.py build-for-testing "{{configuration}}" "{{destination}}"
 
 # runs all test plans, optionally specify a destination
 test destination="":
-  ./scripts/run-all-test-plans.sh "{{destination}}"
+  ./scripts/maru.py test "{{destination}}"
 
 # prepares local prerequisites for clean debug/test runs
 prepare:
@@ -22,11 +26,15 @@ prepare:
 
 # runs a specific test plan, optionally specify a destination
 test-plan plan destination="":
-  ./scripts/run-test-plan.sh "{{plan}}" "{{destination}}"
+  ./scripts/maru.py test-plan "{{plan}}" "{{destination}}"
 
 # runs the only_testing test/suite in the given plan, optionally specify destination
 test-one only_testing plan="" destination="":
-  ./scripts/run-test-only.sh "{{only_testing}}" "{{plan}}" "{{destination}}"
+  ./scripts/maru.py test-one "{{only_testing}}" "{{plan}}" "{{destination}}"
+
+# runs Rust crate tests; omit the crate to run all Rust crate tests
+test-crate crate="":
+  ./scripts/maru.py test-crate "{{crate}}"
 
 # builds the initial database with Jitendex and Kanji Alive
 starterdict:
