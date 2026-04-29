@@ -352,7 +352,7 @@ private func uniffiTraitInterfaceCallWithError<T, E>(
         callStatus.pointee.errorBuf = FfiConverterString.lower(String(describing: error))
     }
 }
-// Initial value and increment amount for handles. 
+// Initial value and increment amount for handles.
 // These ensure that SWIFT handles always have the lowest bit set
 fileprivate let UNIFFI_HANDLEMAP_INITIAL: UInt64 = 1
 fileprivate let UNIFFI_HANDLEMAP_DELTA: UInt64 = 2
@@ -419,6 +419,22 @@ fileprivate final class UniffiHandleMap<T>: @unchecked Sendable {
 #if swift(>=5.8)
 @_documentation(visibility: private)
 #endif
+fileprivate struct FfiConverterUInt8: FfiConverterPrimitive {
+    typealias FfiType = UInt8
+    typealias SwiftType = UInt8
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt8 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: UInt8, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
 fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
     typealias FfiType = UInt64
     typealias SwiftType = UInt64
@@ -428,6 +444,30 @@ fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
     }
 
     public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterBool : FfiConverter {
+    typealias FfiType = Int8
+    typealias SwiftType = Bool
+
+    public static func lift(_ value: Int8) throws -> Bool {
+        return value != 0
+    }
+
+    public static func lower(_ value: Bool) -> Int8 {
+        return value ? 1 : 0
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Bool {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: Bool, into buf: inout [UInt8]) {
         writeInt(&buf, lower(value))
     }
 }
@@ -474,6 +514,145 @@ fileprivate struct FfiConverterString: FfiConverter {
 }
 
 
+
+
+public protocol AdblockCosmeticFilterEngineProtocol: AnyObject, Sendable {
+
+    func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String])  -> [String]
+
+    func resourcesForUrl(url: String)  -> AdblockCosmeticResources
+
+}
+open class AdblockCosmeticFilterEngine: AdblockCosmeticFilterEngineProtocol, @unchecked Sendable {
+    fileprivate let handle: UInt64
+
+    /// Used to instantiate a [FFIObject] without an actual handle, for fakes in tests, mostly.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public struct NoHandle {
+        public init() {}
+    }
+
+    // TODO: We'd like this to be `private` but for Swifty reasons,
+    // we can't implement `FfiConverter` without making this `required` and we can't
+    // make it `required` without making it `public`.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    required public init(unsafeFromHandle handle: UInt64) {
+        self.handle = handle
+    }
+
+    // This constructor can be used to instantiate a fake object.
+    // - Parameter noHandle: Placeholder value so we can have a constructor separate from the default empty one that may be implemented for classes extending [FFIObject].
+    //
+    // - Warning:
+    //     Any object instantiated with this constructor cannot be passed to an actual Rust-backed object. Since there isn't a backing handle the FFI lower functions will crash.
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public init(noHandle: NoHandle) {
+        self.handle = 0
+    }
+
+#if swift(>=5.8)
+    @_documentation(visibility: private)
+#endif
+    public func uniffiCloneHandle() -> UInt64 {
+        return try! rustCall { uniffi_maru_adblock_ffi_fn_clone_adblockcosmeticfilterengine(self.handle, $0) }
+    }
+public convenience init(filterLists: [AdblockFilterListInput], resourcesJson: String)throws  {
+    let handle =
+        try rustCallWithError(FfiConverterTypeAdblockConversionError_lift) {
+    uniffi_maru_adblock_ffi_fn_constructor_adblockcosmeticfilterengine_new(
+        FfiConverterSequenceTypeAdblockFilterListInput.lower(filterLists),
+        FfiConverterString.lower(resourcesJson),$0
+    )
+}
+    self.init(unsafeFromHandle: handle)
+}
+
+    deinit {
+        if handle == 0 {
+            // Mock objects have handle=0 don't try to free them
+            return
+        }
+
+        try! rustCall { uniffi_maru_adblock_ffi_fn_free_adblockcosmeticfilterengine(handle, $0) }
+    }
+
+
+
+
+open func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String]) -> [String]  {
+    return try!  FfiConverterSequenceString.lift(try! rustCall() {
+    uniffi_maru_adblock_ffi_fn_method_adblockcosmeticfilterengine_hidden_class_id_selectors(
+            self.uniffiCloneHandle(),
+        FfiConverterSequenceString.lower(classes),
+        FfiConverterSequenceString.lower(ids),
+        FfiConverterSequenceString.lower(exceptions),$0
+    )
+})
+}
+
+open func resourcesForUrl(url: String) -> AdblockCosmeticResources  {
+    return try!  FfiConverterTypeAdblockCosmeticResources_lift(try! rustCall() {
+    uniffi_maru_adblock_ffi_fn_method_adblockcosmeticfilterengine_resources_for_url(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(url),$0
+    )
+})
+}
+
+
+
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeAdblockCosmeticFilterEngine: FfiConverter {
+    typealias FfiType = UInt64
+    typealias SwiftType = AdblockCosmeticFilterEngine
+
+    public static func lift(_ handle: UInt64) throws -> AdblockCosmeticFilterEngine {
+        return AdblockCosmeticFilterEngine(unsafeFromHandle: handle)
+    }
+
+    public static func lower(_ value: AdblockCosmeticFilterEngine) -> UInt64 {
+        return value.uniffiCloneHandle()
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockCosmeticFilterEngine {
+        let handle: UInt64 = try readInt(&buf)
+        return try lift(handle)
+    }
+
+    public static func write(_ value: AdblockCosmeticFilterEngine, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdblockCosmeticFilterEngine_lift(_ handle: UInt64) throws -> AdblockCosmeticFilterEngine {
+    return try FfiConverterTypeAdblockCosmeticFilterEngine.lift(handle)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdblockCosmeticFilterEngine_lower(_ value: AdblockCosmeticFilterEngine) -> UInt64 {
+    return FfiConverterTypeAdblockCosmeticFilterEngine.lower(value)
+}
+
+
+
+
 public struct AdblockConversionOptions: Equatable, Hashable {
     public var ruleTypes: AdblockFilterRuleTypes
 
@@ -483,9 +662,9 @@ public struct AdblockConversionOptions: Equatable, Hashable {
         self.ruleTypes = ruleTypes
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -537,9 +716,9 @@ public struct AdblockConversionResult: Equatable, Hashable {
         self.convertedFilterCount = convertedFilterCount
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -553,8 +732,8 @@ public struct FfiConverterTypeAdblockConversionResult: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockConversionResult {
         return
             try AdblockConversionResult(
-                contentRuleListJson: FfiConverterString.read(from: &buf), 
-                contentRuleCount: FfiConverterUInt64.read(from: &buf), 
+                contentRuleListJson: FfiConverterString.read(from: &buf),
+                contentRuleCount: FfiConverterUInt64.read(from: &buf),
                 convertedFilterCount: FfiConverterUInt64.read(from: &buf)
         )
     }
@@ -582,22 +761,90 @@ public func FfiConverterTypeAdblockConversionResult_lower(_ value: AdblockConver
 }
 
 
+public struct AdblockCosmeticResources: Equatable, Hashable {
+    public var hideSelectors: [String]
+    public var proceduralActions: [String]
+    public var exceptions: [String]
+    public var injectedScript: String
+    public var generichide: Bool
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(hideSelectors: [String], proceduralActions: [String], exceptions: [String], injectedScript: String, generichide: Bool) {
+        self.hideSelectors = hideSelectors
+        self.proceduralActions = proceduralActions
+        self.exceptions = exceptions
+        self.injectedScript = injectedScript
+        self.generichide = generichide
+    }
+
+
+
+
+}
+
+#if compiler(>=6)
+extension AdblockCosmeticResources: Sendable {}
+#endif
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public struct FfiConverterTypeAdblockCosmeticResources: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockCosmeticResources {
+        return
+            try AdblockCosmeticResources(
+                hideSelectors: FfiConverterSequenceString.read(from: &buf),
+                proceduralActions: FfiConverterSequenceString.read(from: &buf),
+                exceptions: FfiConverterSequenceString.read(from: &buf),
+                injectedScript: FfiConverterString.read(from: &buf),
+                generichide: FfiConverterBool.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: AdblockCosmeticResources, into buf: inout [UInt8]) {
+        FfiConverterSequenceString.write(value.hideSelectors, into: &buf)
+        FfiConverterSequenceString.write(value.proceduralActions, into: &buf)
+        FfiConverterSequenceString.write(value.exceptions, into: &buf)
+        FfiConverterString.write(value.injectedScript, into: &buf)
+        FfiConverterBool.write(value.generichide, into: &buf)
+    }
+}
+
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdblockCosmeticResources_lift(_ buf: RustBuffer) throws -> AdblockCosmeticResources {
+    return try FfiConverterTypeAdblockCosmeticResources.lift(buf)
+}
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+public func FfiConverterTypeAdblockCosmeticResources_lower(_ value: AdblockCosmeticResources) -> RustBuffer {
+    return FfiConverterTypeAdblockCosmeticResources.lower(value)
+}
+
+
 public struct AdblockFilterListInput: Equatable, Hashable {
     public var identifier: String
     public var contents: String
     public var format: AdblockFilterListFormat
+    public var permissionMask: UInt8
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(identifier: String, contents: String, format: AdblockFilterListFormat) {
+    public init(identifier: String, contents: String, format: AdblockFilterListFormat, permissionMask: UInt8) {
         self.identifier = identifier
         self.contents = contents
         self.format = format
+        self.permissionMask = permissionMask
     }
 
-    
 
-    
+
+
 }
 
 #if compiler(>=6)
@@ -611,9 +858,10 @@ public struct FfiConverterTypeAdblockFilterListInput: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterListInput {
         return
             try AdblockFilterListInput(
-                identifier: FfiConverterString.read(from: &buf), 
-                contents: FfiConverterString.read(from: &buf), 
-                format: FfiConverterTypeAdblockFilterListFormat.read(from: &buf)
+                identifier: FfiConverterString.read(from: &buf),
+                contents: FfiConverterString.read(from: &buf),
+                format: FfiConverterTypeAdblockFilterListFormat.read(from: &buf),
+                permissionMask: FfiConverterUInt8.read(from: &buf)
         )
     }
 
@@ -621,6 +869,7 @@ public struct FfiConverterTypeAdblockFilterListInput: FfiConverterRustBuffer {
         FfiConverterString.write(value.identifier, into: &buf)
         FfiConverterString.write(value.contents, into: &buf)
         FfiConverterTypeAdblockFilterListFormat.write(value.format, into: &buf)
+        FfiConverterUInt8.write(value.permissionMask, into: &buf)
     }
 }
 
@@ -642,21 +891,23 @@ public func FfiConverterTypeAdblockFilterListInput_lower(_ value: AdblockFilterL
 
 public enum AdblockConversionError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
-    
-    
+
+
     case ContentBlockingConversion
     case Serialization(String
     )
+    case ResourceDeserialization(String
+    )
 
-    
 
-    
 
-    
+
+
+
     public var errorDescription: String? {
         String(reflecting: self)
     }
-    
+
 }
 
 #if compiler(>=6)
@@ -673,11 +924,14 @@ public struct FfiConverterTypeAdblockConversionError: FfiConverterRustBuffer {
         let variant: Int32 = try readInt(&buf)
         switch variant {
 
-        
 
-        
+
+
         case 1: return .ContentBlockingConversion
         case 2: return .Serialization(
+            try FfiConverterString.read(from: &buf)
+            )
+        case 3: return .ResourceDeserialization(
             try FfiConverterString.read(from: &buf)
             )
 
@@ -688,18 +942,23 @@ public struct FfiConverterTypeAdblockConversionError: FfiConverterRustBuffer {
     public static func write(_ value: AdblockConversionError, into buf: inout [UInt8]) {
         switch value {
 
-        
 
-        
-        
+
+
+
         case .ContentBlockingConversion:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case let .Serialization(v1):
             writeInt(&buf, Int32(2))
             FfiConverterString.write(v1, into: &buf)
-            
+
+
+        case let .ResourceDeserialization(v1):
+            writeInt(&buf, Int32(3))
+            FfiConverterString.write(v1, into: &buf)
+
         }
     }
 }
@@ -723,7 +982,7 @@ public func FfiConverterTypeAdblockConversionError_lower(_ value: AdblockConvers
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum AdblockFilterListFormat: Equatable, Hashable {
-    
+
     case standard
     case hosts
 
@@ -746,26 +1005,26 @@ public struct FfiConverterTypeAdblockFilterListFormat: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterListFormat {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .standard
-        
+
         case 2: return .hosts
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: AdblockFilterListFormat, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .standard:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .hosts:
             writeInt(&buf, Int32(2))
-        
+
         }
     }
 }
@@ -790,7 +1049,7 @@ public func FfiConverterTypeAdblockFilterListFormat_lower(_ value: AdblockFilter
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 
 public enum AdblockFilterRuleTypes: Equatable, Hashable {
-    
+
     case all
     case networkOnly
     case cosmeticOnly
@@ -814,32 +1073,32 @@ public struct FfiConverterTypeAdblockFilterRuleTypes: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterRuleTypes {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .all
-        
+
         case 2: return .networkOnly
-        
+
         case 3: return .cosmeticOnly
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: AdblockFilterRuleTypes, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .all:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .networkOnly:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .cosmeticOnly:
             writeInt(&buf, Int32(3))
-        
+
         }
     }
 }
@@ -859,6 +1118,31 @@ public func FfiConverterTypeAdblockFilterRuleTypes_lower(_ value: AdblockFilterR
     return FfiConverterTypeAdblockFilterRuleTypes.lower(value)
 }
 
+
+#if swift(>=5.8)
+@_documentation(visibility: private)
+#endif
+fileprivate struct FfiConverterSequenceString: FfiConverterRustBuffer {
+    typealias SwiftType = [String]
+
+    public static func write(_ value: [String], into buf: inout [UInt8]) {
+        let len = Int32(value.count)
+        writeInt(&buf, len)
+        for item in value {
+            FfiConverterString.write(item, into: &buf)
+        }
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> [String] {
+        let len: Int32 = try readInt(&buf)
+        var seq = [String]()
+        seq.reserveCapacity(Int(len))
+        for _ in 0 ..< len {
+            seq.append(try FfiConverterString.read(from: &buf))
+        }
+        return seq
+    }
+}
 
 #if swift(>=5.8)
 @_documentation(visibility: private)
@@ -909,6 +1193,15 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.contractVersionMismatch
     }
     if (uniffi_maru_adblock_ffi_checksum_func_convert_filter_lists_to_content_rule_list_json() != 1335) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_hidden_class_id_selectors() != 17819) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_resources_for_url() != 41298) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_maru_adblock_ffi_checksum_constructor_adblockcosmeticfilterengine_new() != 5265) {
         return InitializationResult.apiChecksumMismatch
     }
 

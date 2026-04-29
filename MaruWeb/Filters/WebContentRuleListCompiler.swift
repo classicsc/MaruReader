@@ -26,6 +26,9 @@ public struct WebCompiledRuleSet: Sendable {
     public let digest32: String
     /// Compiled rule list chunks, in stable order.
     public let ruleLists: [WKContentRuleList]
+    /// Engine used by the page script to apply cosmetic filters that cannot be
+    /// represented as WebKit content rules.
+    public let cosmeticEngine: WebCosmeticFilterEngine
     /// Total rule count across all chunks (after splitting).
     public let totalRuleCount: Int
     /// Total filter count reported by the FFI prior to splitting.
@@ -78,12 +81,12 @@ public final class WebContentRuleListCompiler {
         guard !sources.isEmpty else { return nil }
 
         let definition = try WebFilterListConverter.convert(sources)
+        let cosmeticEngine = try WebCosmeticFilterEngine(sources: sources)
         let digest32 = String(definition.contentDigest.prefix(32))
         let chunks = try Self.partition(
             ruleListJSON: definition.encodedContentRuleList,
             maxRulesPerChunk: WebContentBlocker.maxRulesPerCompiledList
         )
-        guard !chunks.isEmpty else { return nil }
 
         let identifiers = chunks.indices.map { Self.identifier(digest32: digest32, index: $0) }
         var compiled: [WKContentRuleList] = []
@@ -95,6 +98,7 @@ public final class WebContentRuleListCompiler {
             return WebCompiledRuleSet(
                 digest32: digest32,
                 ruleLists: allCached,
+                cosmeticEngine: cosmeticEngine,
                 totalRuleCount: chunks.reduce(0) { $0 + $1.ruleCount },
                 convertedFilterCount: Int(definition.convertedFilterCount)
             )
@@ -123,6 +127,7 @@ public final class WebContentRuleListCompiler {
         return WebCompiledRuleSet(
             digest32: digest32,
             ruleLists: compiled,
+            cosmeticEngine: cosmeticEngine,
             totalRuleCount: chunks.reduce(0) { $0 + $1.ruleCount },
             convertedFilterCount: Int(definition.convertedFilterCount)
         )

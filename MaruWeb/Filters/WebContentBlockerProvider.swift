@@ -33,6 +33,7 @@ public final class WebContentBlockerProvider {
     /// Latest compiled rule list chunks. Empty when blocking is disabled or when no
     /// enabled list has contents on disk yet.
     public private(set) var installedRuleLists: [WKContentRuleList] = []
+    public private(set) var installedCosmeticEngine: WebCosmeticFilterEngine?
 
     /// Most recent compile error, if any. Cleared on the next successful compile.
     public private(set) var lastCompileError: String?
@@ -125,6 +126,7 @@ public final class WebContentBlockerProvider {
         let alreadyRegistered = registeredControllers.contains { $0.controller === controller }
         if !alreadyRegistered {
             registeredControllers.append(WeakControllerBox(controller: controller))
+            installCosmeticFiltering(into: controller)
         }
         applyRuleLists(installedRuleLists, to: controller, previous: [])
     }
@@ -146,14 +148,14 @@ public final class WebContentBlockerProvider {
             ?? WebContentBlocker.isEnabledDefault
 
         guard isEnabled else {
-            applyRuleListsEverywhere([])
+            applyCompiledRuleSetEverywhere(ruleLists: [], cosmeticEngine: nil)
             lastCompileError = nil
             lastEntriesFingerprint = ""
             return
         }
 
         let fingerprint = Self.fingerprint(of: storage.entries)
-        if fingerprint == lastEntriesFingerprint, !installedRuleLists.isEmpty {
+        if fingerprint == lastEntriesFingerprint, !installedRuleLists.isEmpty || installedCosmeticEngine != nil {
             return
         }
 
@@ -163,7 +165,10 @@ public final class WebContentBlockerProvider {
             guard generation == compileGeneration, !Task.isCancelled else { return }
             lastCompileError = nil
             lastEntriesFingerprint = fingerprint
-            applyRuleListsEverywhere(compiled?.ruleLists ?? [])
+            applyCompiledRuleSetEverywhere(
+                ruleLists: compiled?.ruleLists ?? [],
+                cosmeticEngine: compiled?.cosmeticEngine
+            )
         } catch {
             guard generation == compileGeneration, !Task.isCancelled else { return }
             log.error("Content rule list compilation failed: \(String(describing: error), privacy: .public)")
@@ -171,13 +176,78 @@ public final class WebContentBlockerProvider {
         }
     }
 
-    private func applyRuleListsEverywhere(_ ruleLists: [WKContentRuleList]) {
+    private func applyCompiledRuleSetEverywhere(
+        ruleLists: [WKContentRuleList],
+        cosmeticEngine: WebCosmeticFilterEngine?
+    ) {
         let previous = installedRuleLists
         installedRuleLists = ruleLists
+        installedCosmeticEngine = cosmeticEngine
         registeredControllers.removeAll { $0.controller == nil }
         for box in registeredControllers {
             guard let controller = box.controller else { continue }
             applyRuleLists(ruleLists, to: controller, previous: previous)
+        }
+    }
+
+    private func installCosmeticFiltering(into controller: WKUserContentController) {
+        controller.addScriptMessageHandler(
+            WebCosmeticFilterMessageHandler(provider: self),
+            contentWorld: .page,
+            name: WebCosmeticFilterUserScript.messageHandlerName
+        )
+        if let userScript = WebCosmeticFilterUserScript.makeUserScript() {
+            controller.addUserScript(userScript)
+        }
+    }
+
+    fileprivate func handleCosmeticFilterMessage(
+        _ message: WKScriptMessage,
+        replyHandler: @escaping @MainActor (Any?, String?) -> Void
+    ) {
+        guard let body = message.body as? [String: Any],
+              let kind = body["kind"] as? String
+        else {
+            replyHandler(nil, nil)
+            return
+        }
+
+        let isEnabled = defaults.object(forKey: WebContentBlocker.isEnabledKey) as? Bool
+            ?? WebContentBlocker.isEnabledDefault
+        guard isEnabled, let installedCosmeticEngine else {
+            replyHandler(["enabled": false], nil)
+            return
+        }
+
+        switch kind {
+        case "initial":
+            guard let urlString = body["url"] as? String,
+                  let url = URL(string: urlString),
+                  Self.isWebURL(url)
+            else {
+                replyHandler(["enabled": false], nil)
+                return
+            }
+            let resources = installedCosmeticEngine.resources(for: url)
+            replyHandler([
+                "enabled": true,
+                "hideSelectors": resources.hideSelectors,
+                "proceduralActions": resources.proceduralActions,
+                "exceptions": resources.exceptions,
+                "injectedScript": resources.injectedScript,
+                "genericHide": resources.genericHide,
+            ], nil)
+
+        case "selectors":
+            let selectors = installedCosmeticEngine.hiddenClassIDSelectors(
+                classes: body["classes"] as? [String] ?? [],
+                ids: body["ids"] as? [String] ?? [],
+                exceptions: body["exceptions"] as? [String] ?? []
+            )
+            replyHandler(["selectors": selectors], nil)
+
+        default:
+            replyHandler(nil, nil)
         }
     }
 
@@ -205,11 +275,38 @@ public final class WebContentBlockerProvider {
             .map { "\($0.id.uuidString):\($0.contentDigest ?? "-")" }
             .joined(separator: "|")
     }
+
+    private static func isWebURL(_ url: URL) -> Bool {
+        let scheme = url.scheme?.lowercased()
+        return scheme == "http" || scheme == "https"
+    }
 }
 
 private final class WeakControllerBox {
     weak var controller: WKUserContentController?
     init(controller: WKUserContentController) {
         self.controller = controller
+    }
+}
+
+private final class WebCosmeticFilterMessageHandler: NSObject, WKScriptMessageHandlerWithReply {
+    weak var provider: WebContentBlockerProvider?
+
+    init(provider: WebContentBlockerProvider) {
+        self.provider = provider
+    }
+
+    func userContentController(
+        _: WKUserContentController,
+        didReceive message: WKScriptMessage,
+        replyHandler: @escaping @MainActor (Any?, String?) -> Void
+    ) {
+        Task { @MainActor [weak self] in
+            guard let provider = self?.provider else {
+                replyHandler(nil, nil)
+                return
+            }
+            provider.handleCosmeticFilterMessage(message, replyHandler: replyHandler)
+        }
     }
 }

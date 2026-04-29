@@ -53,22 +53,26 @@ public struct WebFilterListSource: Sendable, Equatable {
     public let identifier: String
     public let contents: String
     public let format: WebFilterListFormat
+    public let permissionMask: UInt8
 
     public init(
         identifier: String,
         contents: String,
-        format: WebFilterListFormat = .standard
+        format: WebFilterListFormat = .standard,
+        permissionMask: UInt8 = 0
     ) {
         self.identifier = identifier
         self.contents = contents
         self.format = format
+        self.permissionMask = permissionMask
     }
 
-    fileprivate var ffiValue: AdblockFilterListInput {
+    var ffiValue: AdblockFilterListInput {
         AdblockFilterListInput(
             identifier: identifier,
             contents: contents,
-            format: format.ffiValue
+            format: format.ffiValue,
+            permissionMask: permissionMask
         )
     }
 }
