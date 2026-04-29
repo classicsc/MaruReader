@@ -58,15 +58,19 @@ licenses-refresh:
 
 # shows the synced marketing version and build number for MaruReader and its release extensions
 release-status:
-  ./scripts/run-release-workflow.sh show
+  ./scripts/maru.py release-status
+
+# sets the synced marketing version for MaruReader and its release extensions
+set-version version:
+  ./scripts/maru.py set-version "{{version}}"
 
 # creates a prerelease archive by incrementing the build number, then commits and tags it
 prerelease:
-  ./scripts/run-release-workflow.sh prerelease
+  ./scripts/maru.py prerelease
 
-# creates a release archive by setting the marketing version, incrementin build, then commits and tags it
-release version:
-  ./scripts/run-release-workflow.sh release "{{version}}"
+# creates a release archive by setting the marketing version, incrementing build, then commits and tags it
+release version="":
+  ./scripts/maru.py release {{version}}
 
 # runs the UI screenshot test plan and extracts images to build/screenshots/
 screenshots:
