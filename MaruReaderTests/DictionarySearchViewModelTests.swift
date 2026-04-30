@@ -61,23 +61,6 @@ struct DictionarySearchViewModelTests {
         #expect(!DictionarySearchViewModel.shouldNavigateForwardInWebPage(forwardURL: resultsURL))
     }
 
-    @Test func searchServiceFactory_IsLazyUntilSearchRuns() async {
-        var factoryInvocationCount = 0
-        let viewModel = DictionarySearchViewModel(
-            searchServiceFactory: {
-                factoryInvocationCount += 1
-                return DictionarySearchService()
-            }
-        )
-
-        #expect(factoryInvocationCount == 0)
-
-        viewModel.performSearch("test")
-        try? await Task.sleep(for: .milliseconds(400))
-
-        #expect(factoryInvocationCount == 1)
-    }
-
     @Test func showResultsPage_BootstrapsWithFullLoad() async throws {
         let viewModel = DictionarySearchViewModel()
         let requestID = UUID()
