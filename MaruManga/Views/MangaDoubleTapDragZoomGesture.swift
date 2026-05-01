@@ -49,9 +49,34 @@ final class MangaDoubleTapDragZoomGestureRecognizer: UIGestureRecognizer {
 
     private var phase: Phase = .idle
     private var trackedTouch: UITouch?
+    private var secondTapTimeoutTimer: Timer?
+
+    override init(target: Any?, action: Selector?) {
+        super.init(target: target, action: action)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleApplicationInterruption),
+            name: UIApplication.willResignActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleApplicationInterruption),
+            name: UIApplication.didEnterBackgroundNotification,
+            object: nil
+        )
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+        MainActor.assumeIsolated {
+            secondTapTimeoutTimer?.invalidate()
+        }
+    }
 
     override func reset() {
         super.reset()
+        cancelSecondTapTimeout()
         phase = .idle
         trackedTouch = nil
         startLocation = .zero
@@ -92,6 +117,7 @@ final class MangaDoubleTapDragZoomGestureRecognizer: UIGestureRecognizer {
                 failGesture()
                 return
             }
+            cancelSecondTapTimeout()
             phase = .secondTouchPending(start: location)
             trackedTouch = touch
             startLocation = location
@@ -146,6 +172,7 @@ final class MangaDoubleTapDragZoomGestureRecognizer: UIGestureRecognizer {
             )
             trackedTouch = nil
             _ = beganAt
+            scheduleSecondTapTimeout()
         case .secondTouchPending:
             // Second touch lifted before activation movement: this is just a regular
             // double-tap. Fail so the SwiftUI double-tap exclusively path fires.
@@ -173,15 +200,107 @@ final class MangaDoubleTapDragZoomGestureRecognizer: UIGestureRecognizer {
     }
 
     private func failGesture() {
+        cancelSecondTapTimeout()
         if state == .possible {
             state = .failed
         } else if state == .began || state == .changed {
             state = .cancelled
         }
+        clearGestureState()
+    }
+
+    private func scheduleSecondTapTimeout() {
+        cancelSecondTapTimeout()
+        secondTapTimeoutTimer = Timer.scheduledTimer(withTimeInterval: Self.maxInterTapDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                self?.handleSecondTapTimeout()
+            }
+        }
+    }
+
+    private func cancelSecondTapTimeout() {
+        secondTapTimeoutTimer?.invalidate()
+        secondTapTimeoutTimer = nil
+    }
+
+    private func handleSecondTapTimeout() {
+        secondTapTimeoutTimer = nil
+        guard case .awaitingSecondTouch = phase else { return }
+        failGesture()
+    }
+
+    @objc private func handleApplicationInterruption() {
+        guard !isIdle else { return }
+        failGesture()
+    }
+
+    private var isIdle: Bool {
+        if case .idle = phase {
+            return true
+        }
+        return false
+    }
+
+    private func clearGestureState() {
         phase = .idle
         trackedTouch = nil
+        startLocation = .zero
+        translation = .zero
     }
 }
+
+#if DEBUG
+    extension MangaDoubleTapDragZoomGestureRecognizer {
+        enum DebugPhase: Equatable {
+            case idle
+            case firstTouchDown
+            case awaitingSecondTouch
+            case secondTouchPending
+            case active
+        }
+
+        var debugPhase: DebugPhase {
+            switch phase {
+            case .idle:
+                .idle
+            case .firstTouchDown:
+                .firstTouchDown
+            case .awaitingSecondTouch:
+                .awaitingSecondTouch
+            case .secondTouchPending:
+                .secondTouchPending
+            case .active:
+                .active
+            }
+        }
+
+        var debugHasSecondTapTimeout: Bool {
+            secondTapTimeoutTimer != nil
+        }
+
+        func debugEnterAwaitingSecondTouch() {
+            phase = .awaitingSecondTouch(firstTapEndedAt: 0, firstTapLocation: .zero)
+            trackedTouch = nil
+            scheduleSecondTapTimeout()
+        }
+
+        func debugEnterActiveGesture() {
+            cancelSecondTapTimeout()
+            phase = .active
+            startLocation = CGPoint(x: 20, y: 20)
+            translation = CGSize(width: 0, height: 10)
+            state = .began
+        }
+
+        func debugFireSecondTapTimeout() {
+            handleSecondTapTimeout()
+        }
+
+        func debugHandleApplicationInterruption() {
+            handleApplicationInterruption()
+        }
+    }
+#endif
 
 /// SwiftUI bridge for `MangaDoubleTapDragZoomGestureRecognizer`.
 struct MangaDoubleTapDragZoomGesture: UIGestureRecognizerRepresentable {
