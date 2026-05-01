@@ -37,6 +37,7 @@ struct MangaSpreadView: View {
     @State private var spreadOffset: CGSize = .zero
     @State private var spreadLastOffset: CGSize = .zero
     @State private var dragZoomBaseline: MangaZoomState?
+    @State private var dragZoomTapSuppression = MangaDragZoomTapSuppression()
 
     private var isAtBaseZoom: Bool {
         spreadScale <= 1.01
@@ -134,6 +135,7 @@ struct MangaSpreadView: View {
                 )
                 if dragZoomBaseline == nil {
                     dragZoomBaseline = baseline
+                    dragZoomTapSuppression.activate()
                 }
                 let zoom = MangaZoomState.dragZoomed(
                     verticalTranslation: translation.height,
@@ -242,6 +244,9 @@ struct MangaSpreadView: View {
         SpatialTapGesture(count: 2)
             .exclusively(before: SpatialTapGesture(count: 1))
             .onEnded { value in
+                if dragZoomTapSuppression.consumeIfNeeded() {
+                    return
+                }
                 switch value {
                 case let .first(tap):
                     handleSpreadDoubleTap(at: tap.location, containerSize: containerSize)

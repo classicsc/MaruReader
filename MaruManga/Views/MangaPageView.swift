@@ -32,6 +32,7 @@ struct MangaPageView: View {
     private let swipeThreshold: CGFloat = 50.0
 
     @State private var dragZoomBaseline: MangaZoomState?
+    @State private var dragZoomTapSuppression = MangaDragZoomTapSuppression()
 
     var body: some View {
         GeometryReader { geometry in
@@ -185,6 +186,7 @@ struct MangaPageView: View {
                 )
                 if dragZoomBaseline == nil {
                     dragZoomBaseline = baseline
+                    dragZoomTapSuppression.activate()
                 }
                 let zoom = MangaZoomState.dragZoomed(
                     verticalTranslation: translation.height,
@@ -215,6 +217,9 @@ struct MangaPageView: View {
         SpatialTapGesture(count: 2)
             .exclusively(before: SpatialTapGesture(count: 1))
             .onEnded { value in
+                if dragZoomTapSuppression.consumeIfNeeded() {
+                    return
+                }
                 switch value {
                 case let .first(tap):
                     handleDoubleTap(at: tap.location, containerSize: containerSize)
