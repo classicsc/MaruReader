@@ -503,6 +503,50 @@ struct TermFetcherTests {
         }
     }
 
+    @Test func fetchMatches_prioritizesExactExpressionOverReadingOnlyMatch() async throws {
+        let persistenceController = makeDictionaryPersistenceController()
+        let dictionaryID = UUID()
+        let context = persistenceController.newBackgroundContext()
+
+        try await context.perform {
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "とにかく",
+                reading: "",
+                definition: "anyway",
+                sequence: 1
+            )
+            try insertTermEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "兎に角",
+                reading: "とにかく",
+                definition: "anyway",
+                sequence: 2
+            )
+            insertFrequencyEntry(
+                in: context,
+                dictionaryID: dictionaryID,
+                expression: "兎に角",
+                reading: "とにかく",
+                value: 1
+            )
+            try context.save()
+        }
+
+        let fetchContext = persistenceController.newBackgroundContext()
+        let matches = try await TermFetcher.fetchMatches(
+            candidates: [LookupCandidate(from: "とにかく")],
+            dictionaryMetadata: makeDictionaryMetadata(dictionaryID: dictionaryID),
+            context: fetchContext
+        )
+
+        let grouped = DictionarySearchService.groupMatches(matches)
+
+        #expect(grouped.first?.expression == "とにかく")
+    }
+
     private func makeDictionaryMetadata(dictionaryID: UUID) -> [UUID: DictionaryMetadata] {
         [
             dictionaryID: DictionaryMetadata(

@@ -17,7 +17,7 @@
 
 import Foundation
 
-/// Encapsulates the 10-tier ranking criteria for search results.
+/// Encapsulates the 11-tier ranking criteria for search results.
 public struct RankingCriteria: Comparable, Sendable {
     // MARK: - Ranking Criteria (in order of precedence)
 
@@ -36,21 +36,24 @@ public struct RankingCriteria: Comparable, Sendable {
     /// 5. Candidate term length - longer generated lookup terms win
     let candidateTermLength: Int
 
-    /// 6. Frequency order - depends on frequency mode
+    /// 6. Expression exact match - expression matches win over reading-only matches
+    let exactExpressionMatch: Bool
+
+    /// 7. Frequency order - depends on frequency mode
     let frequencyValue: Double?
     let frequencyMode: String?
 
-    /// 7. Dictionary order - higher termDisplayPriority wins
+    /// 8. Dictionary order - higher termDisplayPriority wins
     let dictionaryPriority: Int
 
-    /// 8. Term score - higher score wins (only comparable within same dictionary)
+    /// 9. Term score - higher score wins (only comparable within same dictionary)
     let termScore: Double
     let dictionaryTitle: String // For ensuring scores are only compared within same dictionary
 
-    /// 9. Definition count - more definitions wins
+    /// 10. Definition count - more definitions wins
     let definitionCount: Int
 
-    /// 10. Lexicographic order - fallback comparison
+    /// 11. Lexicographic order - fallback comparison
     let term: String
 
     // MARK: - Initialization
@@ -84,21 +87,24 @@ public struct RankingCriteria: Comparable, Sendable {
         // 5. Candidate term length
         self.candidateTermLength = candidate.text.count
 
-        // 6. Frequency
+        // 6. Expression exact match
+        self.exactExpressionMatch = term == candidate.text
+
+        // 7. Frequency
         self.frequencyValue = frequency.value
         self.frequencyMode = frequency.mode
 
-        // 7. Dictionary priority
+        // 8. Dictionary priority
         self.dictionaryPriority = dictionaryPriority
 
-        // 8. Term score and dictionary
+        // 9. Term score and dictionary
         self.termScore = termScore
         self.dictionaryTitle = dictionaryTitle
 
-        // 9. Definition count
+        // 10. Definition count
         self.definitionCount = definitionCount
 
-        // 10. Term for lexicographic comparison
+        // 11. Term for lexicographic comparison
         self.term = term
     }
 
@@ -160,13 +166,15 @@ public struct RankingCriteria: Comparable, Sendable {
         dictionaryTitle: String,
         definitionCount: Int,
         term: String,
-        candidateTermLength: Int? = nil
+        candidateTermLength: Int? = nil,
+        exactExpressionMatch: Bool = false
     ) {
         self.sourceTermLength = sourceTermLength
         self.textProcessingChainLength = textProcessingChainLength
         self.inflectionChainLength = inflectionChainLength
         self.deinflectionChainCount = deinflectionChainCount
         self.candidateTermLength = candidateTermLength ?? term.count
+        self.exactExpressionMatch = exactExpressionMatch
         self.frequencyValue = frequencyValue
         self.frequencyMode = frequencyMode
         self.dictionaryPriority = dictionaryPriority
@@ -212,7 +220,12 @@ public struct RankingCriteria: Comparable, Sendable {
             return lhs.candidateTermLength < rhs.candidateTermLength
         }
 
-        // 6. Frequency order - depends on mode
+        // 6. Expression exact match - exact expression matches win
+        if lhs.exactExpressionMatch != rhs.exactExpressionMatch {
+            return !lhs.exactExpressionMatch
+        }
+
+        // 7. Frequency order - depends on mode
         let lhsFreq = lhs.frequencyValue
         let rhsFreq = rhs.frequencyValue
 
@@ -247,34 +260,35 @@ public struct RankingCriteria: Comparable, Sendable {
             }
         }
 
-        // 7. Dictionary order - higher priority wins (reverse comparison)
+        // 8. Dictionary order - higher priority wins (reverse comparison)
         if lhs.dictionaryPriority != rhs.dictionaryPriority {
             return lhs.dictionaryPriority < rhs.dictionaryPriority
         }
 
-        // 8. Term score - only compare if from same dictionary
+        // 9. Term score - only compare if from same dictionary
         if lhs.dictionaryTitle == rhs.dictionaryTitle, lhs.termScore != rhs.termScore {
             return lhs.termScore < rhs.termScore // Higher score wins
         }
 
-        // 9. Definition count - more wins (reverse comparison)
+        // 10. Definition count - more wins (reverse comparison)
         if lhs.definitionCount != rhs.definitionCount {
             return lhs.definitionCount < rhs.definitionCount
         }
 
-        // 10. Lexicographic order - fallback (earlier terms display first)
+        // 11. Lexicographic order - fallback (earlier terms display first)
         return lhs.term > rhs.term
     }
 
     public static func == (lhs: RankingCriteria, rhs: RankingCriteria) -> Bool {
         // Check criteria in the same order as the < comparison
 
-        // 1-7: Check all criteria before term score
+        // 1-8: Check all criteria before term score
         if lhs.sourceTermLength != rhs.sourceTermLength ||
             lhs.textProcessingChainLength != rhs.textProcessingChainLength ||
             lhs.inflectionChainLength != rhs.inflectionChainLength ||
             lhs.deinflectionChainCount != rhs.deinflectionChainCount ||
             lhs.candidateTermLength != rhs.candidateTermLength ||
+            lhs.exactExpressionMatch != rhs.exactExpressionMatch ||
             lhs.frequencyValue != rhs.frequencyValue ||
             lhs.frequencyMode != rhs.frequencyMode ||
             lhs.dictionaryPriority != rhs.dictionaryPriority
@@ -282,12 +296,12 @@ public struct RankingCriteria: Comparable, Sendable {
             return false
         }
 
-        // 8: Term score - only compare if from same dictionary
+        // 9: Term score - only compare if from same dictionary
         if lhs.dictionaryTitle == rhs.dictionaryTitle, lhs.termScore != rhs.termScore {
             return false
         }
 
-        // 9-10: Check remaining criteria
+        // 10-11: Check remaining criteria
         return lhs.definitionCount == rhs.definitionCount &&
             lhs.term == rhs.term
     }

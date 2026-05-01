@@ -47,7 +47,8 @@ struct TermFetcherRankingTests {
         termScore: Double = 0.0,
         dictionaryTitle: String = "TestDict",
         definitionCount: Int = 1,
-        term: String = "食べる"
+        term: String = "食べる",
+        exactExpressionMatch: Bool = false
     ) -> RankingCriteria {
         RankingCriteria(
             sourceTermLength: sourceTermLength,
@@ -60,7 +61,8 @@ struct TermFetcherRankingTests {
             termScore: termScore,
             dictionaryTitle: dictionaryTitle,
             definitionCount: definitionCount,
-            term: term
+            term: term,
+            exactExpressionMatch: exactExpressionMatch
         )
     }
 }
@@ -176,7 +178,33 @@ extension TermFetcherRankingTests {
         #expect(multiCriteria > oneCriteria, "More chains should rank higher than fewer chains")
     }
 
-    // MARK: - Criterion 5: Frequency ranking
+    // MARK: - Criterion 6: Exact expression match
+
+    @Test func exactExpressionMatchRanksAboveReadingOnlyFrequencyMatch() {
+        let expressionCriteria = createRankingCriteria(
+            sourceTermLength: 4,
+            textProcessingChainLength: 0,
+            inflectionChainLength: 0,
+            deinflectionChainCount: 0,
+            frequency: (nil, nil),
+            term: "とにかく",
+            exactExpressionMatch: true
+        )
+
+        let readingOnlyCriteria = createRankingCriteria(
+            sourceTermLength: 4,
+            textProcessingChainLength: 0,
+            inflectionChainLength: 0,
+            deinflectionChainCount: 0,
+            frequency: (1.0, "rank-based"),
+            term: "兎に角",
+            exactExpressionMatch: false
+        )
+
+        #expect(expressionCriteria > readingOnlyCriteria, "Expression text match should outrank reading-only match")
+    }
+
+    // MARK: - Criterion 7: Frequency ranking
 
     @Test func frequencyRankingOccurrenceBased() {
         let noFreqCriteria = createRankingCriteria(
@@ -229,7 +257,7 @@ extension TermFetcherRankingTests {
         #expect(rank1Criteria > rank10Criteria, "Lower rank number should rank higher")
     }
 
-    // MARK: - Criterion 6: Dictionary priority
+    // MARK: - Criterion 8: Dictionary priority
 
     @Test func dictionaryPriorityRanking() {
         let lowPriorityCriteria = createRankingCriteria(
@@ -252,7 +280,7 @@ extension TermFetcherRankingTests {
         #expect(highPriorityCriteria > lowPriorityCriteria, "Higher dictionary priority should rank higher")
     }
 
-    // MARK: - Criterion 7: Term score (within same dictionary)
+    // MARK: - Criterion 9: Term score (within same dictionary)
 
     @Test func termScoreRankingWithinSameDictionary() {
         let lowScoreCriteria = createRankingCriteria(
@@ -302,7 +330,7 @@ extension TermFetcherRankingTests {
         #expect(dict1Criteria == dict2Criteria, "Term scores from different dictionaries should not be compared")
     }
 
-    // MARK: - Criterion 8: Definition count
+    // MARK: - Criterion 10: Definition count
 
     @Test func definitionCountRanking() {
         let fewDefsCriteria = createRankingCriteria(
@@ -325,7 +353,7 @@ extension TermFetcherRankingTests {
         #expect(manyDefsCriteria > fewDefsCriteria, "More definitions should rank higher")
     }
 
-    // MARK: - Criterion 9: Lexicographic order
+    // MARK: - Criterion 11: Lexicographic order
 
     @Test func lexicographicFallbackRanking() {
         let aaaCriteria = createRankingCriteria(
