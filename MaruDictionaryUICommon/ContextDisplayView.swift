@@ -74,6 +74,16 @@ struct ContextDisplayView: View {
         baseFontSize + furiganaFontSize + furiganaSpacing
     }
 
+    private var shouldUsePlainTextLayout: Bool {
+        guard let segment = furiganaSegments.first else { return true }
+
+        return furiganaSegments.count == 1
+            && segment.reading == nil
+            && segment.base == context
+            && segment.baseRange.lowerBound == context.startIndex
+            && segment.baseRange.upperBound == context.endIndex
+    }
+
     private var themedBackgroundColor: Color {
         presentationTheme?.backgroundColor ?? Color(.systemBackground)
     }
@@ -178,10 +188,10 @@ struct ContextDisplayView: View {
 
     @ViewBuilder
     private func contextTextContent(width: CGFloat) -> some View {
-        if !furiganaSegments.isEmpty {
-            segmentedTextView(width: width)
-        } else {
+        if shouldUsePlainTextLayout {
             plainTextView(width: width)
+        } else {
+            segmentedTextView(width: width)
         }
     }
 
