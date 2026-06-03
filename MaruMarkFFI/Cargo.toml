@@ -7,5 +7,5 @@ edition = "2021"
 crate-type = ["lib", "staticlib"]
 
 [dependencies]
-mdbook-markdown = "=0.5.2"
+mdbook-markdown = "=0.5.3"
 uniffi = "=0.31.1"
