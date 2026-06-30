@@ -87,8 +87,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/readium/swift-toolkit.git",
       "state" : {
-        "revision" : "f7d10d2bf5876408feae14d634416f69d1473fd8",
-        "version" : "3.8.0"
+        "revision" : "ec5f552b06a1117f3e2f50fca466058f494ae8b5",
+        "version" : "3.10.0"
       }
     },
     {
