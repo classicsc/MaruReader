@@ -295,6 +295,23 @@ public enum AnkiStyleProvider {
         display: list-item;
     }
 
+    /* Compact glossary lists */
+    .gloss-sc-ul[data-sc-content=glossary] {
+        display: inline;
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .gloss-sc-ul[data-sc-content=glossary] .gloss-sc-li {
+        display: inline;
+    }
+
+    .gloss-sc-ul[data-sc-content=glossary] .gloss-sc-li:not(:first-child)::before {
+        white-space: pre-wrap;
+        content: ", ";
+        display: inline;
+    }
+
     /* Link styles */
     .gloss-link {
         color: #0066cc;

@@ -175,6 +175,20 @@ struct DefinitionHTMLGenerationTests {
         #expect(html.contains("<ul class=\"gloss-glossary-list\""))
     }
 
+    @Test("Anki definitions use an unordered circle list", .bug("https://github.com/classicsc/MaruReader/issues/26"))
+    func arrayOfDefinitions_toAnkiHTML_usesCircleList() {
+        let definitions: [Definition] = [
+            .text("First definition"),
+            .text("Second definition"),
+        ]
+
+        let html = definitions.toAnkiHTML()
+
+        #expect(html.hasPrefix("<ul style=\"margin: 0; padding-left: 1.5em; list-style-type: circle;\">"))
+        #expect(html.contains("list-style-type: decimal") == false)
+        #expect(html.hasSuffix("</ul>"))
+    }
+
     @Test func imageDefinition_toHTML_rendersDescriptionWrapper() {
         let image = ImageDef(
             type: "image",

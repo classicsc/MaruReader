@@ -34,7 +34,8 @@ struct GlossaryHTMLFormatTests {
         term: String = "映像",
         reading: String? = "えいぞう",
         dictionaryTitle: String = "Dictionary A",
-        dictionaryUUID: UUID = UUID()
+        dictionaryUUID: UUID = UUID(),
+        definitions: [Definition] = [.text("Test definition")]
     ) -> SearchResult {
         let candidate = LookupCandidate(from: term)
         let rankingCriteria = RankingCriteria(
@@ -55,7 +56,7 @@ struct GlossaryHTMLFormatTests {
             candidate: candidate,
             term: term,
             reading: reading,
-            definitions: [.text("Test definition")],
+            definitions: definitions,
             frequency: nil,
             frequencies: [],
             pitchAccents: [],
@@ -194,6 +195,80 @@ struct GlossaryHTMLFormatTests {
 
         #expect(html.contains("<ol>"), "Missing ol element")
         #expect(html.contains("<li data-dictionary="), "Missing li with data-dictionary")
+    }
+
+    @Test("Single dictionary glossary preserves Jitendex sense lists", .bug("https://github.com/classicsc/MaruReader/issues/26"))
+    func singleDictionaryGlossary_preservesJitendexSenseList() async throws {
+        let dictionaryUUID = UUID()
+        let definitionJSON = #"""
+        {
+          "type": "structured-content",
+          "content": {
+            "tag": "ul",
+            "data": {"content": "sense-groups"},
+            "content": {
+              "tag": "li",
+              "data": {"content": "sense-group"},
+              "content": [
+                {
+                  "tag": "span",
+                  "data": {"class": "tag", "content": "part-of-speech-info"},
+                  "content": "noun"
+                },
+                {
+                  "tag": "ol",
+                  "content": {
+                    "tag": "li",
+                    "style": {"listStyleType": "\"①\""},
+                    "data": {"content": "sense"},
+                    "content": {
+                      "tag": "ul",
+                      "data": {"content": "glossary"},
+                      "content": [
+                        {"tag": "li", "content": "major recession"},
+                        {"tag": "li", "content": "serious depression"}
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+        """#
+        let definition = try JSONDecoder().decode(Definition.self, from: Data(definitionJSON.utf8))
+        let result = makeTestSearchResult(
+            term: "大不況",
+            reading: "だいふきょう",
+            dictionaryTitle: "Jitendex",
+            dictionaryUUID: dictionaryUUID,
+            definitions: [definition]
+        )
+        let dictionaryResults = makeDictionaryResults(
+            dictionaryTitle: "Jitendex",
+            dictionaryUUID: dictionaryUUID,
+            searchResults: [result]
+        )
+        let group = makeGroupedSearchResults(
+            expression: "大不況",
+            reading: "だいふきょう",
+            dictionariesResults: [dictionaryResults]
+        )
+        let response = makeTextLookupResponse(selectedGroup: group)
+        let resolver = TextLookupResponseTemplateResolver(
+            response: response,
+            selectedGroup: group,
+            selectedDictionaryID: dictionaryUUID
+        )
+
+        let resolved = await resolver.resolve(.singleDictionaryGlossary(dictionaryID: dictionaryUUID))
+        let html = try #require(resolved.text)
+
+        #expect(html.contains("<ol><li data-dictionary=\"Jitendex\">"))
+        #expect(html.contains("<ul style=\"margin: 0; padding-left: 1.5em; list-style-type: circle;\">"))
+        #expect(html.contains("<ol class=\"gloss-sc-ol\">"))
+        #expect(html.contains("list-style-type: &quot;①&quot;"))
+        #expect(html.contains("data-sc-content=\"glossary\""))
     }
 
     @Test func singleGlossary_usesFirstDisplayedDictionary() async {

@@ -211,7 +211,7 @@ extension [Definition] {
             let definitionHTML = definition.toAnkiHTML(mediaBaseURL: mediaBaseURL)
             return "<li style=\"margin: 0.25em 0;\" data-index=\"\(index)\">\(definitionHTML)</li>"
         }.joined()
-        return "<ol style=\"margin: 0; padding-left: 1.5em; list-style-type: decimal;\">\(itemsHTML)</ol>"
+        return "<ul style=\"margin: 0; padding-left: 1.5em; list-style-type: circle;\">\(itemsHTML)</ul>"
     }
 
     /// Extracts all image paths from the definitions.

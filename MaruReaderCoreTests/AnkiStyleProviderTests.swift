@@ -71,6 +71,17 @@ struct AnkiStyleProviderTests {
         #expect(css.contains("padding-left: 2em"))
     }
 
+    @Test("Base styles compact structured glossary lists", .bug("https://github.com/classicsc/MaruReader/issues/26"))
+    func baseStylesCSS_containsCompactGlossaryListStyles() {
+        let css = AnkiStyleProvider.baseStylesCSS()
+
+        #expect(css.contains(".gloss-sc-ul[data-sc-content=glossary]"))
+        #expect(css.contains(".gloss-sc-ul[data-sc-content=glossary] .gloss-sc-li"))
+        #expect(css.contains("display: inline"))
+        #expect(css.contains("list-style: none"))
+        #expect(css.contains("content: \", \""))
+    }
+
     @Test func baseStylesCSS_containsLinkStyles() {
         let css = AnkiStyleProvider.baseStylesCSS()
 
