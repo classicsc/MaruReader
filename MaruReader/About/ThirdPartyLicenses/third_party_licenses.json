@@ -89,10 +89,10 @@
       "attribution" : "Anton Lazarev <alazarev@brave.com>, Andrius Aucinas",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
-      "id" : "rust-adblock-0-12-2",
+      "id" : "rust-adblock-0-12-5",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-adblock-0-12-2-mpl-2-0-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-adblock-0-12-5-mpl-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
           "title" : "Mozilla Public License 2.0"
         }
@@ -100,7 +100,7 @@
       "name" : "adblock",
       "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
-      "version" : "0.12.2"
+      "version" : "0.12.5"
     },
     {
       "attribution" : "rushmorem <rushmore@webenchanter.com>",
@@ -832,10 +832,10 @@
     {
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/rust-lang\/mdBook",
-      "id" : "rust-mdbook-markdown-0-5-2",
+      "id" : "rust-mdbook-markdown-0-5-4",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-mdbook-markdown-0-5-2-mpl-2-0-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-mdbook-markdown-0-5-4-mpl-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/rust-lang\/mdBook",
           "title" : "Mozilla Public License 2.0"
         }
@@ -843,7 +843,7 @@
       "name" : "mdbook-markdown",
       "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/mdBook",
-      "version" : "0.5.2"
+      "version" : "0.5.4"
     },
     {
       "attribution" : "Andrew Gallant <jamslam@gmail.com>, bluss",
@@ -1052,10 +1052,10 @@
       "attribution" : "Raph Levien <raph.levien@gmail.com>, Marcus Klaas de Vries <mail@marcusklaas.nl>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
-      "id" : "rust-pulldown-cmark-0-13-3",
+      "id" : "rust-pulldown-cmark-0-13-4",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-pulldown-cmark-0-13-3-mit-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-pulldown-cmark-0-13-4-mit-1.txt",
           "referenceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
           "title" : "MIT License"
         }
@@ -1063,7 +1063,7 @@
       "name" : "pulldown-cmark",
       "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/raphlinus\/pulldown-cmark",
-      "version" : "0.13.3"
+      "version" : "0.13.4"
     },
     {
       "attribution" : "Raph Levien <raph.levien@gmail.com>, Marcus Klaas de Vries <mail@marcusklaas.nl>",
@@ -1112,9 +1112,26 @@
         }
       ],
       "name" : "regex",
-      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "1.12.3"
+    },
+    {
+      "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "id" : "rust-regex-1-12-4",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-regex-1-12-4-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/regex",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "regex",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "version" : "1.12.4"
     },
     {
       "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
@@ -1146,9 +1163,26 @@
         }
       ],
       "name" : "regex-syntax",
-      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
       "version" : "0.8.10"
+    },
+    {
+      "attribution" : "The Rust Project Developers, Andrew Gallant <jamslam@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/regex\/tree\/master\/regex-syntax",
+      "id" : "rust-regex-syntax-0-8-11",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-regex-syntax-0-8-11-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/regex",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "regex-syntax",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/regex",
+      "version" : "0.8.11"
     },
     {
       "attribution" : "The Rust Project Developers",
@@ -1282,9 +1316,26 @@
         }
       ],
       "name" : "serde_json",
-      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruMarkFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
       "version" : "1.0.149"
+    },
+    {
+      "attribution" : "Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/serde-rs\/json",
+      "id" : "rust-serde-json-1-0-150",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-json-1-0-150-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/serde-rs\/json",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "serde_json",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
+      "version" : "1.0.150"
     },
     {
       "category" : "rustCrate",
@@ -2066,9 +2117,9 @@
         }
       ],
       "name" : "swift-async-algorithms",
-      "revision" : "9d349bcc328ac3c31ce40e746b5882742a0d1272",
+      "revision" : "3da39bbc4e687d4192af7c9cf4eab805745a0b9c",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-async-algorithms.git",
-      "version" : "1.1.3"
+      "version" : "1.1.5"
     },
     {
       "category" : "spm",
@@ -2082,9 +2133,9 @@
         }
       ],
       "name" : "swift-collections",
-      "revision" : "6675bc0ff86e61436e615df6fc5174e043e57924",
+      "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
-      "version" : "1.4.1"
+      "version" : "1.6.0"
     },
     {
       "category" : "spm",
@@ -2166,6 +2217,6 @@
       "version" : "3.0.1"
     }
   ],
-  "generatedAt" : "2026-05-05T03:44:25.884Z",
+  "generatedAt" : "2026-07-10T23:21:52.042Z",
   "schemaVersion" : 1
 }
