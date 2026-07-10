@@ -130,8 +130,11 @@ struct MaruWebTests {
         let key = WebSearchEngineSettings.searchEngineKey
         let previous = defaults.data(forKey: key)
         defer {
-            if let previous { defaults.set(previous, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            if let previous {
+                defaults.set(previous, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
 
         defaults.removeObject(forKey: key)
@@ -143,8 +146,11 @@ struct MaruWebTests {
         let key = WebSearchEngineSettings.searchEngineKey
         let previous = defaults.data(forKey: key)
         defer {
-            if let previous { defaults.set(previous, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            if let previous {
+                defaults.set(previous, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
 
         WebSearchEngineSettings.searchEngine = .bing
@@ -168,8 +174,11 @@ struct MaruWebTests {
         let key = WebSearchEngineSettings.searchSuggestionsEnabledKey
         let previous = defaults.object(forKey: key)
         defer {
-            if let previous { defaults.set(previous, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            if let previous {
+                defaults.set(previous, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
 
         defaults.removeObject(forKey: key)
@@ -181,8 +190,11 @@ struct MaruWebTests {
         let key = WebSearchEngineSettings.searchSuggestionsEnabledKey
         let previous = defaults.object(forKey: key)
         defer {
-            if let previous { defaults.set(previous, forKey: key) }
-            else { defaults.removeObject(forKey: key) }
+            if let previous {
+                defaults.set(previous, forKey: key)
+            } else {
+                defaults.removeObject(forKey: key)
+            }
         }
 
         WebSearchEngineSettings.searchSuggestionsEnabled = false
@@ -605,7 +617,9 @@ struct MaruWebTests {
 
         // Wait for WKWebView KVO to propagate url/isLoading
         for _ in 0 ..< 60 {
-            if !viewModel.isShowingNewTabPage { break }
+            if !viewModel.isShowingNewTabPage {
+                break
+            }
             try? await Task.sleep(nanoseconds: 20_000_000)
         }
 

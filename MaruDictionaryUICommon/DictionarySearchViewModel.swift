@@ -478,7 +478,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         // Start new search with debounce
         searchTask = Task {
             try? await Task.sleep(nanoseconds: 300_000_000) // 0.3s debounce
-            if Task.isCancelled { return }
+            if Task.isCancelled {
+                return
+            }
 
             let resolvedContextValues = contextValues ?? currentRequest?.contextValues
             let lookupRequest = TextLookupRequest(context: searchQuery, contextValues: resolvedContextValues)

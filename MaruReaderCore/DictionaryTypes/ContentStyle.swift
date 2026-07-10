@@ -637,19 +637,35 @@ struct ContentStyle: Codable {
         if let margin {
             cssProperties.append("margin: \(margin)")
         } else {
-            if let marginTop { cssProperties.append("margin-top: \(marginTop.cssString)") }
-            if let marginLeft { cssProperties.append("margin-left: \(marginLeft.cssString)") }
-            if let marginRight { cssProperties.append("margin-right: \(marginRight.cssString)") }
-            if let marginBottom { cssProperties.append("margin-bottom: \(marginBottom.cssString)") }
+            if let marginTop {
+                cssProperties.append("margin-top: \(marginTop.cssString)")
+            }
+            if let marginLeft {
+                cssProperties.append("margin-left: \(marginLeft.cssString)")
+            }
+            if let marginRight {
+                cssProperties.append("margin-right: \(marginRight.cssString)")
+            }
+            if let marginBottom {
+                cssProperties.append("margin-bottom: \(marginBottom.cssString)")
+            }
         }
 
         if let padding {
             cssProperties.append("padding: \(padding)")
         } else {
-            if let paddingTop { cssProperties.append("padding-top: \(paddingTop)") }
-            if let paddingLeft { cssProperties.append("padding-left: \(paddingLeft)") }
-            if let paddingRight { cssProperties.append("padding-right: \(paddingRight)") }
-            if let paddingBottom { cssProperties.append("padding-bottom: \(paddingBottom)") }
+            if let paddingTop {
+                cssProperties.append("padding-top: \(paddingTop)")
+            }
+            if let paddingLeft {
+                cssProperties.append("padding-left: \(paddingLeft)")
+            }
+            if let paddingRight {
+                cssProperties.append("padding-right: \(paddingRight)")
+            }
+            if let paddingBottom {
+                cssProperties.append("padding-bottom: \(paddingBottom)")
+            }
         }
 
         // Clip path if applicable to container

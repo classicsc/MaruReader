@@ -87,7 +87,11 @@ struct PendingNotesView: View {
         }
         .alert("Error", isPresented: .init(
             get: { errorMessage != nil },
-            set: { if !$0 { errorMessage = nil } }
+            set: {
+                if !$0 {
+                    errorMessage = nil
+                }
+            }
         )) {
             Button("OK", role: .cancel) {}
         } message: {

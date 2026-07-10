@@ -247,7 +247,9 @@ public actor MangaArchiveReader {
                 guard i >= 0, i < count else { continue }
 
                 let isCached = await self.isCached(pageIndex: i)
-                if isCached { continue }
+                if isCached {
+                    continue
+                }
 
                 _ = try? await self.loadPage(at: i)
             }
@@ -273,7 +275,9 @@ public actor MangaArchiveReader {
                 guard index >= 0, index < count else { continue }
 
                 let isCached = await self.isCached(pageIndex: index)
-                if isCached { continue }
+                if isCached {
+                    continue
+                }
 
                 _ = try? await self.loadPage(at: index)
             }

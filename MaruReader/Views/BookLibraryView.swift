@@ -117,7 +117,11 @@ struct BookLibraryView: View {
     private var isShowingReader: Binding<Bool> {
         Binding(
             get: { selectedBookID != nil },
-            set: { if !$0 { selectedBookID = nil } }
+            set: {
+                if !$0 {
+                    selectedBookID = nil
+                }
+            }
         )
     }
 
@@ -261,7 +265,11 @@ struct BookLibraryView: View {
     private func deleteConfirmationBinding(for book: Book) -> Binding<Bool> {
         Binding(
             get: { showingDeleteConfirmation && bookToDelete?.objectID == book.objectID },
-            set: { if !$0 { showingDeleteConfirmation = false; bookToDelete = nil } }
+            set: {
+                if !$0 {
+                    showingDeleteConfirmation = false; bookToDelete = nil
+                }
+            }
         )
     }
 

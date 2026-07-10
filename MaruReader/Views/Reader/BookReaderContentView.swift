@@ -172,7 +172,9 @@ struct BookReaderContentView: View {
                 // Wait for the navigator's first locationDidChange, which fires
                 // after the spread loads and content is rendered (up to ~30s).
                 for _ in 0 ..< 60 {
-                    if session.hasReceivedLocationUpdate { break }
+                    if session.hasReceivedLocationUpdate {
+                        break
+                    }
                     try? await Task.sleep(for: .milliseconds(500))
                 }
                 guard session.hasReceivedLocationUpdate else { return }

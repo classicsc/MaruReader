@@ -215,7 +215,9 @@ public enum JapaneseDeconjugator {
         case "saspecial":
             guard form.text.hasSuffix(rule.conEnd) else { return false }
             let prefixLength = form.text.count - rule.conEnd.count
-            if prefixLength <= 0 { return true }
+            if prefixLength <= 0 {
+                return true
+            }
             let index = form.text.index(form.text.startIndex, offsetBy: prefixLength - 1)
             return form.text[index] != "さ"
         case "temirurule":

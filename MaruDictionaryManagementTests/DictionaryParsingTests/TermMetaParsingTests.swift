@@ -252,7 +252,11 @@ struct TermMetaParsingTests {
         switch entries[0].data {
         case let .pitch(pitch):
             #expect(pitch.pitches.count == 1)
-            if case let .mora(n) = pitch.pitches[0].position { #expect(n == 1) } else { #expect(Bool(false)) }
+            if case let .mora(n) = pitch.pitches[0].position {
+                #expect(n == 1)
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[0].nasal == [2])
             #expect(pitch.pitches[0].devoice == nil)
         default: #expect(Bool(false), "Expected pitch data")
@@ -326,8 +330,16 @@ struct TermMetaParsingTests {
         switch entries[0].data {
         case let .pitch(pitch):
             #expect(pitch.pitches.count == 2)
-            if case let .mora(n0) = pitch.pitches[0].position { #expect(n0 == 0) } else { #expect(Bool(false)) }
-            if case let .mora(n1) = pitch.pitches[1].position { #expect(n1 == 1) } else { #expect(Bool(false)) }
+            if case let .mora(n0) = pitch.pitches[0].position {
+                #expect(n0 == 0)
+            } else {
+                #expect(Bool(false))
+            }
+            if case let .mora(n1) = pitch.pitches[1].position {
+                #expect(n1 == 1)
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[0].tags == ["heiban"])
             #expect(pitch.pitches[1].tags == ["odaka"])
         default: #expect(Bool(false), "Expected pitch data")
@@ -355,7 +367,11 @@ struct TermMetaParsingTests {
         case let .pitch(pitch):
             #expect(pitch.reading == "あるく")
             #expect(pitch.pitches.count == 1)
-            if case let .pattern(p) = pitch.pitches[0].position { #expect(p == "HLL") } else { #expect(Bool(false)) }
+            if case let .pattern(p) = pitch.pitches[0].position {
+                #expect(p == "HLL")
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[0].nasal == [1])
             #expect(pitch.pitches[0].devoice == [2, 3])
             #expect(pitch.pitches[0].tags == ["v5k", "intransitive"])
@@ -388,7 +404,11 @@ struct TermMetaParsingTests {
         let entries = try decoder.decode([TermMetaBankV3Entry].self, from: data)
         switch entries[0].data {
         case let .pitch(pitch):
-            if case let .mora(n) = pitch.pitches[0].position { #expect(n == 0) } else { #expect(Bool(false)) }
+            if case let .mora(n) = pitch.pitches[0].position {
+                #expect(n == 0)
+            } else {
+                #expect(Bool(false))
+            }
         default: #expect(Bool(false), "Expected pitch data")
         }
     }

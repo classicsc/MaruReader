@@ -308,7 +308,11 @@ public struct MangaArchiveLibraryView: View {
     private func deleteConfirmationBinding(for book: MangaArchive) -> Binding<Bool> {
         Binding(
             get: { showingDeleteConfirmation && bookToDelete?.objectID == book.objectID },
-            set: { if !$0 { showingDeleteConfirmation = false; bookToDelete = nil } }
+            set: {
+                if !$0 {
+                    showingDeleteConfirmation = false; bookToDelete = nil
+                }
+            }
         )
     }
 

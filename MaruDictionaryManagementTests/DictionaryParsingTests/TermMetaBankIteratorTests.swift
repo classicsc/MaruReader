@@ -80,15 +80,27 @@ struct TermMetaBankIteratorTests {
             #expect(pitch.reading == "あるく")
             #expect(pitch.pitches.count == 3)
             // First accent pattern HLL with nasal [1], devoice [2,3]
-            if case let .pattern(p) = pitch.pitches[0].position { #expect(p == "HLL") } else { #expect(Bool(false)) }
+            if case let .pattern(p) = pitch.pitches[0].position {
+                #expect(p == "HLL")
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[0].nasal == [1])
             #expect(pitch.pitches[0].devoice == [2, 3])
             #expect(pitch.pitches[0].tags == ["v5k", "intransitive"])
             // Second accent mora 0
-            if case let .mora(m0) = pitch.pitches[1].position { #expect(m0 == 0) } else { #expect(Bool(false)) }
+            if case let .mora(m0) = pitch.pitches[1].position {
+                #expect(m0 == 0)
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[1].nasal == nil)
             // Third accent mora 3 with nasal single (converted to array), devoice [4]
-            if case let .mora(m3) = pitch.pitches[2].position { #expect(m3 == 3) } else { #expect(Bool(false)) }
+            if case let .mora(m3) = pitch.pitches[2].position {
+                #expect(m3 == 3)
+            } else {
+                #expect(Bool(false))
+            }
             #expect(pitch.pitches[2].nasal == [2])
             #expect(pitch.pitches[2].devoice == [4])
             #expect(pitch.pitches[2].tags == ["alt"])

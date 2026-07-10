@@ -801,7 +801,9 @@ private actor AsyncGate {
     private var waitContinuations: [CheckedContinuation<Void, Never>] = []
 
     func waitUntilEntered() async {
-        if didEnter { return }
+        if didEnter {
+            return
+        }
         await withCheckedContinuation { continuation in
             entryContinuations.append(continuation)
         }
@@ -812,7 +814,9 @@ private actor AsyncGate {
         entryContinuations.forEach { $0.resume() }
         entryContinuations.removeAll()
 
-        if isOpen { return }
+        if isOpen {
+            return
+        }
         await withCheckedContinuation { continuation in
             waitContinuations.append(continuation)
         }

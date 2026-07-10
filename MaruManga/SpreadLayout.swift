@@ -46,7 +46,9 @@ struct SpreadLayout: Equatable {
 
         /// Whether this is a single page (not a spread).
         var isSingle: Bool {
-            if case .single = self { return true }
+            if case .single = self {
+                return true
+            }
             return false
         }
     }

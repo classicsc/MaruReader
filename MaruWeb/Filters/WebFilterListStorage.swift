@@ -121,7 +121,9 @@ public final class WebFilterListStorage {
         guard !defaults.bool(forKey: WebContentBlocker.didSeedDefaultsKey) else { return }
         let context = persistenceController.container.viewContext
         for (offset, seed) in seeds.enumerated() {
-            if fetchManaged(sourceURL: seed.sourceURL, context: context) != nil { continue }
+            if fetchManaged(sourceURL: seed.sourceURL, context: context) != nil {
+                continue
+            }
             insert(seed: seed, sortOrder: offset, context: context)
         }
         guard saveContext(context) else { return }

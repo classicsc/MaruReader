@@ -425,15 +425,27 @@ private struct FaviconCandidate {
         }
 
         if let type {
-            if type.contains("png") { score += 50 }
-            if type.contains("x-icon") || type.contains("vnd.microsoft.icon") { score += 20 }
-            if type.contains("svg") { score -= 200 }
+            if type.contains("png") {
+                score += 50
+            }
+            if type.contains("x-icon") || type.contains("vnd.microsoft.icon") {
+                score += 20
+            }
+            if type.contains("svg") {
+                score -= 200
+            }
         }
 
         let ext = url.pathExtension.lowercased()
-        if ext == "png" { score += 40 }
-        if ext == "ico" { score += 20 }
-        if ext == "svg" { score -= 200 }
+        if ext == "png" {
+            score += 40
+        }
+        if ext == "ico" {
+            score += 20
+        }
+        if ext == "svg" {
+            score -= 200
+        }
 
         score += min(maxDeclaredSize, 256)
 

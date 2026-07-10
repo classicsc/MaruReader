@@ -70,7 +70,9 @@ public final class WebFilterListUpdateScheduler {
 
     /// Manually triggers a refresh. UI calls this from the "Update Now" button.
     public func refreshNow() {
-        if inFlight != nil { return }
+        if inFlight != nil {
+            return
+        }
         inFlight = Task { @MainActor [weak self] in
             guard let self else { return }
             await self.downloader.refreshAll(force: false)
