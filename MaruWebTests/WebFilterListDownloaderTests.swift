@@ -17,6 +17,7 @@
 
 import Foundation
 @testable import MaruWeb
+import Synchronization
 import Testing
 
 @MainActor
@@ -28,7 +29,7 @@ struct WebFilterListDownloaderTests {
             statusCode: 200,
             body: Data("||ads^".utf8),
             headers: ["Etag": "\"v1\""]
-        ))
+        ), for: entry.sourceURL)
 
         let outcome = await env.downloader.refresh(entry: entry)
         if case .updated = outcome {
@@ -51,7 +52,10 @@ struct WebFilterListDownloaderTests {
         )
         let refreshed = try #require(env.storage.entries.first { $0.id == entry.id })
         let earlier = try #require(refreshed.lastFetchSuccessAt)
-        StubURLProtocol.set(StubURLProtocol.Response(statusCode: 304, body: Data(), headers: [:]))
+        StubURLProtocol.set(
+            StubURLProtocol.Response(statusCode: 304, body: Data(), headers: [:]),
+            for: entry.sourceURL
+        )
 
         let outcome = await env.downloader.refresh(entry: refreshed)
         #expect(outcome == .notModified)
@@ -63,7 +67,7 @@ struct WebFilterListDownloaderTests {
     @Test func refresh_withNetworkError_recordsLastFetchError() async throws {
         let env = try makeEnv()
         let entry = try add(env: env, url: "https://example.com/c.txt")
-        StubURLProtocol.setError(URLError(.notConnectedToInternet))
+        StubURLProtocol.setError(URLError(.notConnectedToInternet), for: entry.sourceURL)
 
         let outcome = await env.downloader.refresh(entry: entry)
         if case .failed = outcome {
@@ -78,7 +82,10 @@ struct WebFilterListDownloaderTests {
     @Test func refresh_with500_recordsLastFetchError() async throws {
         let env = try makeEnv()
         let entry = try add(env: env, url: "https://example.com/d.txt")
-        StubURLProtocol.set(StubURLProtocol.Response(statusCode: 500, body: Data(), headers: [:]))
+        StubURLProtocol.set(
+            StubURLProtocol.Response(statusCode: 500, body: Data(), headers: [:]),
+            for: entry.sourceURL
+        )
 
         let outcome = await env.downloader.refresh(entry: entry)
         if case .failed = outcome {
@@ -88,6 +95,46 @@ struct WebFilterListDownloaderTests {
         }
         let updated = env.storage.entries.first { $0.id == entry.id }
         #expect(updated?.lastFetchError?.contains("500") == true)
+    }
+
+    @Test func refreshAll_cancellationStopsActiveRequestsWithoutRecordingFailures() async throws {
+        let env = try makeEnv()
+        let started = CountGate()
+        let stopped = CountGate()
+        var entries: [WebFilterListEntry] = []
+
+        for index in 0 ..< 5 {
+            let entry = try add(env: env, url: "https://example.com/cancel-\(index).txt")
+            try env.storage.applyDownloadSuccess(
+                id: entry.id,
+                contents: "||old-\(index)^",
+                etag: nil,
+                lastModified: nil,
+                attemptedAt: Date(),
+                succeededAt: Date()
+            )
+            entries.append(entry)
+            StubURLProtocol.setHanging(
+                for: entry.sourceURL,
+                onStart: { Task { await started.signal() } },
+                onStop: { Task { await stopped.signal() } }
+            )
+        }
+
+        let task = Task {
+            await env.downloader.refreshAll()
+        }
+        await started.wait(for: 3)
+        task.cancel()
+        _ = await task.value
+        await stopped.wait(for: 3)
+
+        #expect(StubURLProtocol.requestCount(for: entries.map(\.sourceURL)) == 3)
+        for (index, entry) in entries.enumerated() {
+            let updated = try #require(env.storage.entries.first { $0.id == entry.id })
+            #expect(updated.lastFetchError == nil)
+            #expect(env.storage.loadContents(for: entry.id) == "||old-\(index)^")
+        }
     }
 
     // MARK: - Helpers
@@ -128,26 +175,52 @@ struct WebFilterListDownloaderTests {
 }
 
 final class StubURLProtocol: URLProtocol, @unchecked Sendable {
-    struct Response {
+    struct Response: Sendable {
         let statusCode: Int
         let body: Data
         let headers: [String: String]
     }
 
-    private static let lock = NSLock()
-    private nonisolated(unsafe) static var pendingResponse: Response?
-    private nonisolated(unsafe) static var pendingError: Error?
-
-    static func set(_ response: Response) {
-        lock.lock(); defer { lock.unlock() }
-        pendingResponse = response
-        pendingError = nil
+    private enum Stub: Sendable {
+        case response(Response)
+        case error(any Error & Sendable)
+        case hanging(onStart: @Sendable () -> Void, onStop: @Sendable () -> Void)
     }
 
-    static func setError(_ error: Error) {
-        lock.lock(); defer { lock.unlock() }
-        pendingError = error
-        pendingResponse = nil
+    private struct State: Sendable {
+        var stubs: [URL: Stub] = [:]
+        var requestCounts: [URL: Int] = [:]
+    }
+
+    private static let state = Mutex(State())
+    private var stopHandler: (@Sendable () -> Void)?
+
+    static func set(_ response: Response, for url: URL) {
+        state.withLock { state in
+            state.stubs[url] = .response(response)
+        }
+    }
+
+    static func setError(_ error: some Error & Sendable, for url: URL) {
+        state.withLock { state in
+            state.stubs[url] = .error(error)
+        }
+    }
+
+    static func setHanging(
+        for url: URL,
+        onStart: @escaping @Sendable () -> Void,
+        onStop: @escaping @Sendable () -> Void
+    ) {
+        state.withLock { state in
+            state.stubs[url] = .hanging(onStart: onStart, onStop: onStop)
+        }
+    }
+
+    static func requestCount(for urls: [URL]) -> Int {
+        state.withLock { state in
+            urls.reduce(0) { $0 + state.requestCounts[$1, default: 0] }
+        }
     }
 
     override class func canInit(with _: URLRequest) -> Bool {
@@ -159,29 +232,61 @@ final class StubURLProtocol: URLProtocol, @unchecked Sendable {
     }
 
     override func startLoading() {
-        Self.lock.lock()
-        let response = Self.pendingResponse
-        let error = Self.pendingError
-        Self.lock.unlock()
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
 
-        if let error {
+        let stub = Self.state.withLock { state in
+            state.requestCounts[url, default: 0] += 1
+            return state.stubs[url]
+        }
+
+        switch stub {
+        case let .error(error):
             client?.urlProtocol(self, didFailWithError: error)
-            return
-        }
-        guard let response, let url = request.url else {
+        case let .response(response):
+            let httpResponse = HTTPURLResponse(
+                url: url,
+                statusCode: response.statusCode,
+                httpVersion: "HTTP/1.1",
+                headerFields: response.headers
+            )!
+            client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: response.body)
+            client?.urlProtocolDidFinishLoading(self)
+        case let .hanging(onStart, onStop):
+            stopHandler = onStop
+            onStart()
+        case nil:
             client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
-            return
         }
-        let httpResponse = HTTPURLResponse(
-            url: url,
-            statusCode: response.statusCode,
-            httpVersion: "HTTP/1.1",
-            headerFields: response.headers
-        )!
-        client?.urlProtocol(self, didReceive: httpResponse, cacheStoragePolicy: .notAllowed)
-        client?.urlProtocol(self, didLoad: response.body)
-        client?.urlProtocolDidFinishLoading(self)
     }
 
-    override func stopLoading() {}
+    override func stopLoading() {
+        let handler = stopHandler
+        stopHandler = nil
+        handler?()
+    }
+}
+
+actor CountGate {
+    private var count = 0
+    private var waiters: [(target: Int, continuation: CheckedContinuation<Void, Never>)] = []
+
+    func signal() {
+        count += 1
+        let ready = waiters.filter { count >= $0.target }
+        waiters.removeAll { count >= $0.target }
+        for waiter in ready {
+            waiter.continuation.resume()
+        }
+    }
+
+    func wait(for target: Int) async {
+        guard count < target else { return }
+        await withCheckedContinuation { continuation in
+            waiters.append((target, continuation))
+        }
+    }
 }

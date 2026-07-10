@@ -31,25 +31,38 @@ public final class WebFilterListUpdateScheduler {
     private let log = Logger(subsystem: "MaruWeb", category: "filter-list-scheduler")
     private let downloader: WebFilterListDownloader
     private let storage: WebFilterListStorage
+    private let submitRequest: (BGTaskRequest) throws -> Void
     private var didRegister = false
     private var inFlight: Task<Void, Never>?
 
-    public init(
+    public convenience init(
         downloader: WebFilterListDownloader = .shared,
         storage: WebFilterListStorage = .shared
     ) {
+        self.init(
+            downloader: downloader,
+            storage: storage,
+            submitRequest: { try BGTaskScheduler.shared.submit($0) }
+        )
+    }
+
+    init(
+        downloader: WebFilterListDownloader,
+        storage: WebFilterListStorage,
+        submitRequest: @escaping (BGTaskRequest) throws -> Void
+    ) {
         self.downloader = downloader
         self.storage = storage
+        self.submitRequest = submitRequest
     }
 
     /// Registers the BGAppRefreshTask handler. Must be called from the host app's `init`
     /// (or before scene activation), exactly once per process.
     public func registerBackgroundTask() {
         guard !didRegister else { return }
-        didRegister = true
-        BGTaskScheduler.shared.register(
+        didRegister = BGTaskScheduler.shared.register(
             forTaskWithIdentifier: WebContentBlocker.backgroundRefreshTaskIdentifier,
-            using: nil
+            using: DispatchQueue.main
         ) { [weak self] task in
             guard let task = task as? BGAppRefreshTask else {
                 task.setTaskCompleted(success: false)
@@ -58,6 +71,9 @@ public final class WebFilterListUpdateScheduler {
             Task { @MainActor in
                 await self?.handle(backgroundTask: task)
             }
+        }
+        if !didRegister {
+            log.error("Failed to register background refresh task")
         }
     }
 
@@ -70,15 +86,22 @@ public final class WebFilterListUpdateScheduler {
 
     /// Manually triggers a refresh. UI calls this from the "Update Now" button.
     public func refreshNow() {
-        if inFlight != nil {
-            return
+        _ = startRefresh()
+    }
+
+    @discardableResult
+    func startRefresh() -> Task<Void, Never> {
+        if let inFlight {
+            return inFlight
         }
-        inFlight = Task { @MainActor [weak self] in
+        let task = Task { @MainActor [weak self] in
             guard let self else { return }
+            defer { self.inFlight = nil }
             await self.downloader.refreshAll(force: false)
             self.scheduleNextRefresh()
-            self.inFlight = nil
         }
+        inFlight = task
+        return task
     }
 
     /// Submits the next BGAppRefreshTask request. Safe to call repeatedly.
@@ -88,7 +111,7 @@ public final class WebFilterListUpdateScheduler {
         )
         request.earliestBeginDate = nextEligibleDate(now: now)
         do {
-            try BGTaskScheduler.shared.submit(request)
+            try submitRequest(request)
         } catch {
             log.error("Failed to schedule background refresh: \(String(describing: error), privacy: .public)")
         }
@@ -99,10 +122,10 @@ public final class WebFilterListUpdateScheduler {
     private func handle(backgroundTask: BGAppRefreshTask) async {
         // Always reschedule first so we keep ticking even if this run is curtailed.
         scheduleNextRefresh()
+        storage.start()
+        storage.seedDefaultsIfNeeded()
 
-        let task = Task { @MainActor [weak self] in
-            _ = await self?.downloader.refreshAll(force: false)
-        }
+        let task = startRefresh()
         backgroundTask.expirationHandler = {
             task.cancel()
         }

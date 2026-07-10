@@ -78,11 +78,13 @@ public actor WebFilterListDownloader {
     /// flight at once. Returns a per-id outcome map.
     @discardableResult
     public func refreshAll(force: Bool = false) async -> [UUID: WebFilterListRefreshOutcome] {
+        guard !Task.isCancelled else { return [:] }
         let entries = await MainActor.run { storage.entries.filter(\.isEnabled) }
         var outcomes: [UUID: WebFilterListRefreshOutcome] = [:]
         var iterator = entries.makeIterator()
         await withTaskGroup(of: (UUID, WebFilterListRefreshOutcome).self) { group in
             for _ in 0 ..< min(maxConcurrentRefreshes, entries.count) {
+                guard !Task.isCancelled else { break }
                 guard let entry = iterator.next() else { break }
                 group.addTask { [self] in
                     await (entry.id, refresh(entry: entry, force: force))
@@ -90,6 +92,10 @@ public actor WebFilterListDownloader {
             }
             while let result = await group.next() {
                 outcomes[result.0] = result.1
+                guard !Task.isCancelled else {
+                    group.cancelAll()
+                    break
+                }
                 if let entry = iterator.next() {
                     group.addTask { [self] in
                         await (entry.id, refresh(entry: entry, force: force))
@@ -102,6 +108,7 @@ public actor WebFilterListDownloader {
 
     /// Refreshes a single filter list. `force` ignores etag/last-modified headers.
     public func refresh(entry: WebFilterListEntry, force: Bool = false) async -> WebFilterListRefreshOutcome {
+        guard !Task.isCancelled else { return .failed(message: "Cancelled") }
         let attemptedAt = Date()
         var request = URLRequest(url: entry.sourceURL)
         request.httpMethod = "GET"
@@ -116,6 +123,7 @@ public actor WebFilterListDownloader {
 
         do {
             let (data, response) = try await session.data(for: request)
+            guard !Task.isCancelled else { return .failed(message: "Cancelled") }
             guard let httpResponse = response as? HTTPURLResponse else {
                 let message = "Non-HTTP response"
                 await MainActor.run {
@@ -166,6 +174,8 @@ public actor WebFilterListDownloader {
                 }
                 return .failed(message: message)
             }
+        } catch where Task.isCancelled || error is CancellationError {
+            return .failed(message: "Cancelled")
         } catch {
             let message = (error as? URLError).map { "URLError(\($0.code.rawValue)): \($0.localizedDescription)" }
                 ?? error.localizedDescription
@@ -178,6 +188,7 @@ public actor WebFilterListDownloader {
     }
 
     private func updatePerListMetrics(entry: WebFilterListEntry, contents: String) async {
+        guard !Task.isCancelled else { return }
         let source = WebFilterListSource(
             identifier: entry.id.uuidString,
             contents: contents,
@@ -186,6 +197,7 @@ public actor WebFilterListDownloader {
         guard let result = try? WebFilterListConverter.convert([source]) else { return }
         let ruleCount = Int(result.ruleCount)
         let convertedCount = Int(result.convertedFilterCount)
+        guard !Task.isCancelled else { return }
         await MainActor.run {
             storage.applyCompileMetrics(
                 id: entry.id,
