@@ -1,0 +1,50 @@
+{
+  "fill-specializations": [
+    {
+      "value": {
+        "solid": "srgb:0.85882,0.87059,0.84314,1.00000"
+      }
+    },
+    {
+      "appearance": "dark",
+      "value": "automatic"
+    }
+  ],
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "04-Cover-mark.svg",
+          "name": "Cover-mark"
+        },
+        {
+          "image-name": "03-Cloth-cover.svg",
+          "name": "Cloth-cover"
+        },
+        {
+          "image-name": "02-Pages.svg",
+          "name": "Pages"
+        },
+        {
+          "image-name": "01-Binding.svg",
+          "name": "Binding"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.22
+      },
+      "translucency-specializations": [
+        {
+          "value": {
+            "enabled": true,
+            "value": 0.06
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}

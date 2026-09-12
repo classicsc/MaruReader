@@ -61,7 +61,7 @@ Make sure you are using the latest version of Anki, as older versions have issue
 
 ## Why is it called MaruReader?
 
-Maru is the name of the correct answer mark in Japanese, and you'll see more of those if you add immersion to your studies. It's also the name of the round owl in the icon.
+Maru is the name of the correct answer mark in Japanese, and you'll see more of those if you add immersion to your studies.
 
 ## I have a question or issue that isn't answered here, or a suggestion
 

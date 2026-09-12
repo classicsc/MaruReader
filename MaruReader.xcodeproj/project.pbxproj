@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		228BCC422F29D77D003C173D /* MaruReaderCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; };
 		228BCC432F29D77D003C173D /* MaruReaderCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DBCFB1602EAAAE8B00B4F27D /* MaruReaderCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DB008DBB305515F7003CEC54 /* marureader-v2.icon in Resources */ = {isa = PBXBuildFile; fileRef = DB008DBA305515F7003CEC54 /* marureader-v2.icon */; };
 		DB03767F2F7560850077F3BA /* MaruAssetDownloader.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DB13A6632F87481D0025C09F /* JsonStream in Frameworks */ = {isa = PBXBuildFile; productRef = DB13A6622F87481D0025C09F /* JsonStream */; };
 		DB13B2B02F8750590025C09F /* LRUCache in Frameworks */ = {isa = PBXBuildFile; productRef = DB13B2AF2F8750590025C09F /* LRUCache */; };
@@ -579,6 +580,7 @@
 
 /* Begin PBXFileReference section */
 		228BCC362F29D2A9003C173D /* DictionarySeeder */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DictionarySeeder; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB008DBA305515F7003CEC54 /* marureader-v2.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = "marureader-v2.icon"; sourceTree = "<group>"; };
 		DB0376772F7560850077F3BA /* MaruAssetDownloader.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = MaruAssetDownloader.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB1C34262EB8578200315E79 /* MaruVisionUICommon.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruVisionUICommon.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		DB1EC3952F9D2B3F00A86C23 /* MaruMark.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = MaruMark.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1064,6 +1066,7 @@
 				DBC9FEAF2E6C9B7800F1E920 /* Frameworks */,
 				DB2B698D2E660F8B00EDA656 /* Products */,
 				DB3379E52F3D8FBD0062E31B /* marureader-v1.icon */,
+				DB008DBA305515F7003CEC54 /* marureader-v2.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -2024,6 +2027,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				DB3379E62F3D8FBD0062E31B /* marureader-v1.icon in Resources */,
+				DB008DBB305515F7003CEC54 /* marureader-v2.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3366,7 +3370,7 @@
 		DB2B69B32E660F8D00EDA656 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "marureader-v1";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "marureader-v2";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MaruReader/MaruReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -3378,6 +3382,7 @@
 				INFOPLIST_FILE = MaruReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MaruReader;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"$(PRODUCT_BUNDLE_IDENTIFIER)\";\n    CFBundleURLSchemes =     (\n        marureader\n    );\n}";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "MaruReader uses the camera to capture images for Japanese text recognition.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MaruReader uses the local network to integrate with your configured Anki-Connect or pronunciation audio server.";
@@ -3403,7 +3408,7 @@
 		DB2B69B42E660F8D00EDA656 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "marureader-v1";
+				ASSETCATALOG_COMPILER_APPICON_NAME = "marureader-v2";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = MaruReader/MaruReader.entitlements;
 				CODE_SIGN_STYLE = Automatic;
@@ -3414,6 +3419,7 @@
 				INFOPLIST_FILE = MaruReader/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MaruReader;
 				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"$(PRODUCT_BUNDLE_IDENTIFIER)\";\n    CFBundleURLSchemes =     (\n        marureader\n    );\n}";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSCameraUsageDescription = "MaruReader uses the camera to capture images for Japanese text recognition.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "MaruReader uses the local network to integrate with your configured Anki-Connect or pronunciation audio server.";
