@@ -200,7 +200,7 @@ struct SampleContentSeederTests {
             Issue.record("Expected seeded book locator JSON")
             return
         }
-        let locator = try #require(try Locator(jsonString: locatorJSON))
+        let locator = try Locator(jsonString: locatorJSON)
         #expect(locator.href.string == "chapter1.xhtml")
         #expect(locator.locations.progression == 0.42)
     }
@@ -263,7 +263,7 @@ struct SampleContentSeederTests {
             return
         }
 
-        let locator = try #require(try Locator(jsonString: locatorJSON))
+        let locator = try Locator(jsonString: locatorJSON)
         #expect(locator.href.string == "chapter1.xhtml")
         #expect(locator.locations.progression == 0.0)
     }

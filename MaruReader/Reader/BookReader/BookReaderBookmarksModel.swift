@@ -43,8 +43,8 @@ final class BookReaderBookmarksModel {
     }
 
     var currentLocationBookmark: BookReaderBookmarkSnapshot? {
-        guard let currentJSON = session.currentLocator?.jsonString else { return nil }
-        return bookmarks.first { $0.locationJSON == currentJSON }
+        guard let locator = session.currentLocator else { return nil }
+        return bookmarks.first { $0.locator == locator }
     }
 
     var currentLocationBookmarkID: NSManagedObjectID? {
@@ -81,7 +81,7 @@ final class BookReaderBookmarksModel {
         do {
             try repository.createBookmark(
                 bookID: bookID,
-                locatorJSON: locator.jsonString ?? "",
+                locatorJSON: locator.storageJSON(),
                 title: generateDefaultBookmarkTitle(for: locator)
             )
             loadBookmarks()

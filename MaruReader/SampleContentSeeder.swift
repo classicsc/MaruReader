@@ -378,7 +378,7 @@ actor SampleContentSeeder {
                 throw SampleContentSeederError.sampleImportFailed("Imported sample book record could not be updated")
             }
 
-            book.lastOpenedPage = locator.jsonString
+            book.lastOpenedPage = try locator.storageJSON()
             if let totalProgression = locator.locations.totalProgression {
                 book.progressPercent = Self.formatProgress(totalProgression)
             } else {
