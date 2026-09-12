@@ -2,11 +2,15 @@
 
 Thanks for your interest in helping to improve MaruReader!
 
-For general feedback, feature requests, and bug reports, use the Discussions tab.
+For general feedback, feature requests, and bug reports, use the Discussions
+tab.
 
-If you have a definite bug and know how to fix it, feel free to submit a PR directly. For larger features or if you're unsure about the best approach, please open an issue.
+If you have a definite bug and know how to fix it, feel free to submit a PR
+directly. For larger features or if you're unsure about the best approach,
+please open an issue.
 
-Before sending a PR, make sure it passes the unit tests, run `swiftformat`, and if possible, include new test coverage.
+Before sending a PR, make sure it passes the unit tests, run `swiftformat`, and
+if possible, include new test coverage.
 
 ## Development
 
@@ -18,7 +22,9 @@ For development, these tools are required:
 - [just](https://github.com/casey/just)
 - [xcbeautify](https://github.com/cpisciotta/xcbeautify)
 
-For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and raw/parsed logs are written under `build/logs/` with timestamped files plus `latest-*.log` aliases.
+For xcodebuild-backed `just` recipes, parsed output is shown in-terminal and
+raw/parsed logs are written under `build/logs/` with timestamped files plus
+`latest-*.log` aliases.
 
 ### Building
 
@@ -32,15 +38,28 @@ Builds and tests can also be run in Xcode GUI if you prefer.
 
 `just format`
 
+When editing docs, please run mdformat:
+
+```bash
+pipx install mdformat
+pipx inject mdformat mdformat-gfm mdformat-frontmatter mdformat-footnote mdformat-gfm-alerts
+mdformat .
+```
+
 #### Tests
 
-Run a specific test plan with `just test-plan MaruReaderCoreTests`, or `just test` to run all tests. Specify a simulator target like `just test-plan MaruReaderCoreTests 'iPhone 17 Pro'` (default) or `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`. Or a single test with `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
+Run a specific test plan with `just test-plan MaruReaderCoreTests`, or
+`just test` to run all tests. Specify a simulator target like
+`just test-plan MaruReaderCoreTests 'iPhone 17 Pro'` (default) or
+`just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`. Or a single test with
+`just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
 
 Accepted device specifier formats:
 
 - Simulator name: `'iPhone 17 Pro'`
 - Simulator UDID: `76252478-5498-412D-9417-76009568896C`
-- Raw xcodebuild destination: `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
+- Raw xcodebuild destination:
+  `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
 
 #### Release build checklist
 
@@ -54,9 +73,16 @@ just screenshots # Generate new screenshots for App Store listing if needed (wri
 
 ### Agents
 
-To save some frustration: If you want to work on MaruReader with a coding agent, I recommend getting a tool for docs searches, either the xcode one or [sosumi](https://sosumi.ai). Also make sure that xcodebuild-based `just` commands can be run outside any strict agent sandboxing, since they have to touch caches and such in your home folder. If you send a pull request you still have to review it manually first.
+To save some frustration: If you want to work on MaruReader with a coding agent,
+I recommend getting a tool for docs searches, either the xcode one or
+[sosumi](https://sosumi.ai). Also make sure that xcodebuild-based `just`
+commands can be run outside any strict agent sandboxing, since they have to
+touch caches and such in your home folder. If you send a pull request you still
+have to review it manually first.
 
 ## Licensing Note
 
-If you distribute a derivative work, note that the `just starterdict` output is not under the same license due to the BCCWJ (CC-BY-NC) and Wadoku (incompatible custom license). This project distributes the package as a separate App Store-managed asset.
-
+If you distribute a derivative work, note that the `just starterdict` output is
+not under the same license due to the BCCWJ (CC-BY-NC) and Wadoku (incompatible
+custom license). This project distributes the package as a separate App
+Store-managed asset.
