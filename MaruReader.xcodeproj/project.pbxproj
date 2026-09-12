@@ -4845,7 +4845,7 @@
 			repositoryURL = "https://github.com/nicklockwood/LRUCache.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.1;
+				minimumVersion = 1.3.0;
 			};
 		};
 		DB97CED02E8B332D00E9723D /* XCRemoteSwiftPackageReference "swift-toolkit" */ = {
