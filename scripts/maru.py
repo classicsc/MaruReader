@@ -18,7 +18,7 @@ LOG_DIR = ROOT_DIR / "build" / "logs"
 PROJECT_PATH = ROOT_DIR / "MaruReader.xcodeproj"
 PROJECT_FILE = PROJECT_PATH / "project.pbxproj"
 SCHEME = "MaruReader"
-DEFAULT_DESTINATION = "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4.1"
+DEFAULT_DESTINATION = "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5"
 RELEASE_TARGETS = ["MaruReader", "MaruShareExtension", "MaruAssetDownloader"]
 TEST_PLANS = [
     "MaruReaderTests",

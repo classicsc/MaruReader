@@ -27,7 +27,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '26.4.1'
+          xcode-version: latest-stable
 
       - name: Install just
         uses: taiki-e/install-action@just
