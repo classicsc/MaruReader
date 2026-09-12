@@ -40,6 +40,10 @@ test-crate crate="":
 starterdict:
   ./scripts/run-starterdict.sh
 
+# regenerates committed UniFFI Swift bindings for MaruMarkFFI
+mark-bindings:
+  ./scripts/generate-mark-uniffi-bindings.sh
+
 # regenerates committed UniFFI Swift bindings for MaruSudachiFFI
 sudachi-bindings:
   ./scripts/generate-sudachi-uniffi-bindings.sh

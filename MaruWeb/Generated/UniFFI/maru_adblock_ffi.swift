@@ -39,6 +39,52 @@ fileprivate extension ForeignBytes {
     init(bufferPointer: UnsafeBufferPointer<UInt8>) {
         self.init(len: Int32(bufferPointer.count), data: bufferPointer.baseAddress)
     }
+
+    init(rawBufferPointer: UnsafeRawBufferPointer) {
+        self.init(
+            len: Int32(rawBufferPointer.count),
+            data: rawBufferPointer.baseAddress?.assumingMemoryBound(to: UInt8.self)
+        )
+    }
+}
+
+// Converter for `&[u8]` / `[ByRef] bytes` arguments.
+//
+// Conforms to `FfiConverter` so the compiler enforces the full converter
+// method set. Only the scope-bound `lower(_:_body:)` overload is sound —
+// zero-copy byte buffers only flow foreign -> Rust, and only in argument
+// position. The four protocol-witness methods (`lift`, `lower`, `read`,
+// `write`) `fatalError` at runtime if anyone reaches them.
+//
+// The scope-bound `lower` takes a closure because the `ForeignBytes`
+// pointer is only guaranteed valid for the duration of
+// `Data.withUnsafeBytes`. Callers must run the full FFI call inside
+// the closure body.
+fileprivate enum FfiConverterByRefBytes: FfiConverter {
+    typealias SwiftType = Data
+    typealias FfiType = ForeignBytes
+
+    static func lower<R>(_ value: Data, _ body: (ForeignBytes) throws -> R) rethrows -> R {
+        return try value.withUnsafeBytes { rawBuf in
+            try body(ForeignBytes(rawBufferPointer: rawBuf))
+        }
+    }
+
+    static func lower(_ value: Data) -> ForeignBytes {
+        fatalError("ByRef bytes cannot use the plain lower: returning ForeignBytes escapes the Data.withUnsafeBytes scope. Use the scope-bound lower(_:_body:) overload instead.")
+    }
+
+    static func lift(_ value: ForeignBytes) throws -> Data {
+        fatalError("ByRef bytes cannot be lifted: zero-copy &[u8] only flows foreign->Rust")
+    }
+
+    static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Data {
+        fatalError("ByRef bytes cannot be read from a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+    }
+
+    static func write(_ value: Data, into buf: inout [UInt8]) {
+        fatalError("ByRef bytes cannot be written to a buffer: zero-copy &[u8] is only supported in argument position, not nested in records/options/etc.")
+    }
 }
 
 // For every type used in the interface, we provide helper methods for conveniently
@@ -352,7 +398,7 @@ private func uniffiTraitInterfaceCallWithError<T, E>(
         callStatus.pointee.errorBuf = FfiConverterString.lower(String(describing: error))
     }
 }
-// Initial value and increment amount for handles.
+// Initial value and increment amount for handles. 
 // These ensure that SWIFT handles always have the lowest bit set
 fileprivate let UNIFFI_HANDLEMAP_INITIAL: UInt64 = 1
 fileprivate let UNIFFI_HANDLEMAP_DELTA: UInt64 = 2
@@ -487,7 +533,11 @@ fileprivate struct FfiConverterString: FfiConverter {
             return String()
         }
         let bytes = UnsafeBufferPointer<UInt8>(start: value.data!, count: Int(value.len))
-        return String(bytes: bytes, encoding: String.Encoding.utf8)!
+        // Use Swift's native UTF-8 decoder; `String(bytes:encoding:.utf8)` goes
+        // through Foundation's NSString and silently strips a leading U+FEFF BOM.
+        // Invalid UTF-8 substitutes U+FFFD instead of trapping (unreachable
+        // given Rust's `String` invariant).
+        return String(decoding: bytes, as: UTF8.self)
     }
 
     public static func lower(_ value: String) -> RustBuffer {
@@ -503,7 +553,8 @@ fileprivate struct FfiConverterString: FfiConverter {
 
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> String {
         let len: Int32 = try readInt(&buf)
-        return String(bytes: try readBytes(&buf, count: Int(len)), encoding: String.Encoding.utf8)!
+        // See `lift` above for why we avoid Foundation's NSString-backed decoder here.
+        return String(decoding: try readBytes(&buf, count: Int(len)), as: UTF8.self)
     }
 
     public static func write(_ value: String, into buf: inout [UInt8]) {
@@ -517,11 +568,11 @@ fileprivate struct FfiConverterString: FfiConverter {
 
 
 public protocol AdblockCosmeticFilterEngineProtocol: AnyObject, Sendable {
-
+    
     func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String])  -> [String]
-
+    
     func resourcesForUrl(url: String)  -> AdblockCosmeticResources
-
+    
 }
 open class AdblockCosmeticFilterEngine: AdblockCosmeticFilterEngineProtocol, @unchecked Sendable {
     fileprivate let handle: UInt64
@@ -565,9 +616,10 @@ open class AdblockCosmeticFilterEngine: AdblockCosmeticFilterEngineProtocol, @un
 public convenience init(filterLists: [AdblockFilterListInput], resourcesJson: String)throws  {
     let handle =
         try rustCallWithError(FfiConverterTypeAdblockConversionError_lift) {
+        uniffiCallStatus in
     uniffi_maru_adblock_ffi_fn_constructor_adblockcosmeticfilterengine_new(
         FfiConverterSequenceTypeAdblockFilterListInput.lower(filterLists),
-        FfiConverterString.lower(resourcesJson),$0
+        FfiConverterString.lower(resourcesJson),uniffiCallStatus
     )
 }
     self.init(unsafeFromHandle: handle)
@@ -582,31 +634,33 @@ public convenience init(filterLists: [AdblockFilterListInput], resourcesJson: St
         try! rustCall { uniffi_maru_adblock_ffi_fn_free_adblockcosmeticfilterengine(handle, $0) }
     }
 
+    
 
-
-
+    
 open func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String]) -> [String]  {
     return try!  FfiConverterSequenceString.lift(try! rustCall() {
+        uniffiCallStatus in
     uniffi_maru_adblock_ffi_fn_method_adblockcosmeticfilterengine_hidden_class_id_selectors(
             self.uniffiCloneHandle(),
         FfiConverterSequenceString.lower(classes),
         FfiConverterSequenceString.lower(ids),
-        FfiConverterSequenceString.lower(exceptions),$0
+        FfiConverterSequenceString.lower(exceptions),uniffiCallStatus
     )
 })
 }
-
+    
 open func resourcesForUrl(url: String) -> AdblockCosmeticResources  {
     return try!  FfiConverterTypeAdblockCosmeticResources_lift(try! rustCall() {
+        uniffiCallStatus in
     uniffi_maru_adblock_ffi_fn_method_adblockcosmeticfilterengine_resources_for_url(
             self.uniffiCloneHandle(),
-        FfiConverterString.lower(url),$0
+        FfiConverterString.lower(url),uniffiCallStatus
     )
 })
 }
+    
 
-
-
+    
 }
 
 
@@ -662,9 +716,9 @@ public struct AdblockConversionOptions: Equatable, Hashable {
         self.ruleTypes = ruleTypes
     }
 
+    
 
-
-
+    
 }
 
 #if compiler(>=6)
@@ -716,9 +770,9 @@ public struct AdblockConversionResult: Equatable, Hashable {
         self.convertedFilterCount = convertedFilterCount
     }
 
+    
 
-
-
+    
 }
 
 #if compiler(>=6)
@@ -732,8 +786,8 @@ public struct FfiConverterTypeAdblockConversionResult: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockConversionResult {
         return
             try AdblockConversionResult(
-                contentRuleListJson: FfiConverterString.read(from: &buf),
-                contentRuleCount: FfiConverterUInt64.read(from: &buf),
+                contentRuleListJson: FfiConverterString.read(from: &buf), 
+                contentRuleCount: FfiConverterUInt64.read(from: &buf), 
                 convertedFilterCount: FfiConverterUInt64.read(from: &buf)
         )
     }
@@ -778,9 +832,9 @@ public struct AdblockCosmeticResources: Equatable, Hashable {
         self.generichide = generichide
     }
 
+    
 
-
-
+    
 }
 
 #if compiler(>=6)
@@ -794,10 +848,10 @@ public struct FfiConverterTypeAdblockCosmeticResources: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockCosmeticResources {
         return
             try AdblockCosmeticResources(
-                hideSelectors: FfiConverterSequenceString.read(from: &buf),
-                proceduralActions: FfiConverterSequenceString.read(from: &buf),
-                exceptions: FfiConverterSequenceString.read(from: &buf),
-                injectedScript: FfiConverterString.read(from: &buf),
+                hideSelectors: FfiConverterSequenceString.read(from: &buf), 
+                proceduralActions: FfiConverterSequenceString.read(from: &buf), 
+                exceptions: FfiConverterSequenceString.read(from: &buf), 
+                injectedScript: FfiConverterString.read(from: &buf), 
                 generichide: FfiConverterBool.read(from: &buf)
         )
     }
@@ -842,9 +896,9 @@ public struct AdblockFilterListInput: Equatable, Hashable {
         self.permissionMask = permissionMask
     }
 
+    
 
-
-
+    
 }
 
 #if compiler(>=6)
@@ -858,9 +912,9 @@ public struct FfiConverterTypeAdblockFilterListInput: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterListInput {
         return
             try AdblockFilterListInput(
-                identifier: FfiConverterString.read(from: &buf),
-                contents: FfiConverterString.read(from: &buf),
-                format: FfiConverterTypeAdblockFilterListFormat.read(from: &buf),
+                identifier: FfiConverterString.read(from: &buf), 
+                contents: FfiConverterString.read(from: &buf), 
+                format: FfiConverterTypeAdblockFilterListFormat.read(from: &buf), 
                 permissionMask: FfiConverterUInt8.read(from: &buf)
         )
     }
@@ -889,25 +943,26 @@ public func FfiConverterTypeAdblockFilterListInput_lower(_ value: AdblockFilterL
 }
 
 
-public enum AdblockConversionError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
+public 
+enum AdblockConversionError: Swift.Error, Equatable, Hashable, Foundation.LocalizedError {
 
-
-
+    
+    
     case ContentBlockingConversion
     case Serialization(String
     )
     case ResourceDeserialization(String
     )
 
+    
 
+    
 
-
-
-
+    
     public var errorDescription: String? {
         String(reflecting: self)
     }
-
+    
 }
 
 #if compiler(>=6)
@@ -924,9 +979,9 @@ public struct FfiConverterTypeAdblockConversionError: FfiConverterRustBuffer {
         let variant: Int32 = try readInt(&buf)
         switch variant {
 
+        
 
-
-
+        
         case 1: return .ContentBlockingConversion
         case 2: return .Serialization(
             try FfiConverterString.read(from: &buf)
@@ -942,23 +997,23 @@ public struct FfiConverterTypeAdblockConversionError: FfiConverterRustBuffer {
     public static func write(_ value: AdblockConversionError, into buf: inout [UInt8]) {
         switch value {
 
+        
 
-
-
-
+        
+        
         case .ContentBlockingConversion:
             writeInt(&buf, Int32(1))
-
-
+        
+        
         case let .Serialization(v1):
             writeInt(&buf, Int32(2))
             FfiConverterString.write(v1, into: &buf)
-
-
+            
+        
         case let .ResourceDeserialization(v1):
             writeInt(&buf, Int32(3))
             FfiConverterString.write(v1, into: &buf)
-
+            
         }
     }
 }
@@ -978,11 +1033,10 @@ public func FfiConverterTypeAdblockConversionError_lower(_ value: AdblockConvers
     return FfiConverterTypeAdblockConversionError.lower(value)
 }
 
-// Note that we don't yet support `indirect` for enums.
-// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+
 
 public enum AdblockFilterListFormat: Equatable, Hashable {
-
+    
     case standard
     case hosts
 
@@ -1005,26 +1059,26 @@ public struct FfiConverterTypeAdblockFilterListFormat: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterListFormat {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-
+        
         case 1: return .standard
-
+        
         case 2: return .hosts
-
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: AdblockFilterListFormat, into buf: inout [UInt8]) {
         switch value {
-
-
+        
+        
         case .standard:
             writeInt(&buf, Int32(1))
-
-
+        
+        
         case .hosts:
             writeInt(&buf, Int32(2))
-
+        
         }
     }
 }
@@ -1045,11 +1099,10 @@ public func FfiConverterTypeAdblockFilterListFormat_lower(_ value: AdblockFilter
 }
 
 
-// Note that we don't yet support `indirect` for enums.
-// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+
 
 public enum AdblockFilterRuleTypes: Equatable, Hashable {
-
+    
     case all
     case networkOnly
     case cosmeticOnly
@@ -1073,32 +1126,32 @@ public struct FfiConverterTypeAdblockFilterRuleTypes: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AdblockFilterRuleTypes {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-
+        
         case 1: return .all
-
+        
         case 2: return .networkOnly
-
+        
         case 3: return .cosmeticOnly
-
+        
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: AdblockFilterRuleTypes, into buf: inout [UInt8]) {
         switch value {
-
-
+        
+        
         case .all:
             writeInt(&buf, Int32(1))
-
-
+        
+        
         case .networkOnly:
             writeInt(&buf, Int32(2))
-
-
+        
+        
         case .cosmeticOnly:
             writeInt(&buf, Int32(3))
-
+        
         }
     }
 }
@@ -1170,9 +1223,10 @@ fileprivate struct FfiConverterSequenceTypeAdblockFilterListInput: FfiConverterR
 }
 public func convertFilterListsToContentRuleListJson(filterLists: [AdblockFilterListInput], options: AdblockConversionOptions)throws  -> AdblockConversionResult  {
     return try  FfiConverterTypeAdblockConversionResult_lift(try rustCallWithError(FfiConverterTypeAdblockConversionError_lift) {
+        uniffiCallStatus in
     uniffi_maru_adblock_ffi_fn_func_convert_filter_lists_to_content_rule_list_json(
         FfiConverterSequenceTypeAdblockFilterListInput.lower(filterLists),
-        FfiConverterTypeAdblockConversionOptions_lower(options),$0
+        FfiConverterTypeAdblockConversionOptions_lower(options),uniffiCallStatus
     )
 })
 }
@@ -1192,16 +1246,16 @@ private let initializationResult: InitializationResult = {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
-    if (uniffi_maru_adblock_ffi_checksum_func_convert_filter_lists_to_content_rule_list_json() != 1335) {
+    if (uniffi_maru_adblock_ffi_checksum_func_convert_filter_lists_to_content_rule_list_json() != 20859) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_hidden_class_id_selectors() != 17819) {
+    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_hidden_class_id_selectors() != 5564) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_resources_for_url() != 41298) {
+    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_resources_for_url() != 58231) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_maru_adblock_ffi_checksum_constructor_adblockcosmeticfilterengine_new() != 5265) {
+    if (uniffi_maru_adblock_ffi_checksum_constructor_adblockcosmeticfilterengine_new() != 64945) {
         return InitializationResult.apiChecksumMismatch
     }
 
