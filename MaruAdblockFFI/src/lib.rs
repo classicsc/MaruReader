@@ -83,7 +83,7 @@ fn parse_filter_set(filter_lists: Vec<AdblockFilterListInput>, rule_types: RuleT
             permissions: PermissionMask::from_bits(filter_list.permission_mask),
             ..ParseOptions::default()
         };
-        filter_set.add_filter_list(&filter_list.contents, parse_options);
+        filter_set.add_filter_list(filter_list.contents, parse_options);
     }
 
     filter_set
@@ -124,7 +124,7 @@ impl AdblockCosmeticFilterEngine {
         resources_json: String,
     ) -> Result<Self, AdblockConversionError> {
         let filter_set = parse_filter_set(filter_lists, RuleTypes::All);
-        let mut engine = Engine::from_filter_set(filter_set, true);
+        let mut engine = Engine::new_with_filter_set(filter_set);
         let trimmed = resources_json.trim();
 
         if !trimmed.is_empty() {
