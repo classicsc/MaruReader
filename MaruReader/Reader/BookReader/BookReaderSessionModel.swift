@@ -99,7 +99,7 @@ final class BookReaderSessionModel {
         do {
             try repository.saveReadingProgress(
                 bookID: bookID,
-                locatorJSON: locator.jsonString,
+                locatorJSON: locator.storageJSON(),
                 progressPercent: formatProgress(locator.locations.totalProgression)
             )
         } catch {

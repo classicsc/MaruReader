@@ -94,8 +94,73 @@ struct BookReaderSessionModelTests {
         session.handleLocationDidChange(locator)
 
         let snapshot = try repository.loadBookSnapshot(bookID: book.objectID)
-        #expect(snapshot.lastOpenedPage == locator.jsonString)
+        #expect(try snapshot.lastOpenedPage == locator.jsonString())
         #expect(snapshot.progressPercent == "42%")
+    }
+
+    @Test func existingReadingPosition_RoundTripsThroughProgressSave() throws {
+        let (session, repository, book, context) = try makeSession {
+            $0.lastOpenedPage = ReadiumLocatorFixtures.savedJSON
+        }
+        let saved = try repository.loadBookSnapshot(bookID: book.objectID)
+        let restored = try Locator(jsonString: #require(saved.lastOpenedPage))
+        #expect(restored == ReadiumLocatorFixtures.locator)
+
+        session.handleLocationDidChange(restored)
+        context.refresh(book, mergeChanges: false)
+
+        let reloaded = try repository.loadBookSnapshot(bookID: book.objectID)
+        let roundTripped = try Locator(jsonString: #require(reloaded.lastOpenedPage))
+        #expect(roundTripped == ReadiumLocatorFixtures.locator)
+        #expect(reloaded.progressPercent == "42%")
+    }
+
+    @Test(arguments: [ReadiumLocatorFixtures.savedJSON, "{invalid json}"])
+    func loadPublication_RestoresSavedPositionOrIgnoresInvalidJSON(json: String) async throws {
+        let source = try #require(Bundle.main.url(
+            forResource: "aruyono_hoshitachino_hanashi",
+            withExtension: "epub",
+            subdirectory: "SampleContent/Books"
+        ))
+        let booksDirectory = try FileManager.default.url(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask,
+            appropriateFor: nil,
+            create: true
+        ).appendingPathComponent("Books")
+        try FileManager.default.createDirectory(at: booksDirectory, withIntermediateDirectories: true)
+        let fileName = "readium-migration-\(UUID().uuidString).epub"
+        let destination = booksDirectory.appendingPathComponent(fileName)
+        try FileManager.default.copyItem(at: source, to: destination)
+        defer { try? FileManager.default.removeItem(at: destination) }
+        let (session, _, _, _) = try makeSession {
+            $0.fileName = fileName
+            $0.lastOpenedPage = json
+        }
+
+        await session.loadPublication()
+
+        guard case .reading = session.phase else {
+            Issue.record("Expected the saved book to reopen")
+            return
+        }
+        #expect(session.initialLocation == (json == ReadiumLocatorFixtures.savedJSON ? ReadiumLocatorFixtures.locator : nil))
+    }
+
+    @Test(arguments: [Double.nan, .infinity, -.infinity])
+    func handleLocationDidChange_EncodingFailurePreservesSavedProgress(progress: Double) throws {
+        let (session, repository, book, context) = try makeSession {
+            $0.lastOpenedPage = ReadiumLocatorFixtures.savedJSON
+            $0.progressPercent = "42%"
+        }
+        let invalid = makeLocator(href: "chapter-2.xhtml", totalProgression: progress)
+
+        session.handleLocationDidChange(invalid)
+
+        let saved = try repository.loadBookSnapshot(bookID: book.objectID)
+        #expect(saved.lastOpenedPage == ReadiumLocatorFixtures.savedJSON)
+        #expect(saved.progressPercent == "42%")
+        #expect(context.hasChanges == false)
     }
 
     @Test func makeChapterTitleIndex_CollectsNestedTitles() {

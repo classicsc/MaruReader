@@ -63,6 +63,48 @@ struct BookReaderBookmarksModelTests {
         #expect(bookmarks.currentLocationBookmarkID == bookmarks.bookmarks[0].id)
     }
 
+    @Test func existingBookmark_RoundTripsAndMatchesCurrentLocator() throws {
+        let (bookmarks, session, repository, book) = try makeBookmarksModel()
+        let storedJSON = ReadiumLocatorFixtures.savedJSON
+        let existing = try repository.createBookmark(
+            bookID: book.objectID,
+            locatorJSON: storedJSON,
+            title: "Saved bookmark"
+        )
+        bookmarks.loadBookmarks()
+        let restored = try #require(bookmarks.bookmarks.first?.locator)
+        #expect(restored == ReadiumLocatorFixtures.locator)
+        session.currentLocator = restored
+        #expect(bookmarks.currentLocationBookmarkID == existing.id)
+
+        bookmarks.removeBookmarkAtCurrentLocation()
+        #expect(try repository.fetchBookmarks(bookID: book.objectID).isEmpty)
+        bookmarks.bookmarkCurrentLocation()
+        let reloaded = try #require(try repository.fetchBookmarks(bookID: book.objectID).first)
+        #expect(reloaded.locator == ReadiumLocatorFixtures.locator)
+    }
+
+    @Test(arguments: [Double.nan, .infinity, -.infinity])
+    func bookmarkCurrentLocation_EncodingFailureDoesNotCreateBookmark(progress: Double) throws {
+        let (bookmarks, session, repository, book) = try makeBookmarksModel()
+        session.currentLocator = makeLocator(href: "chapter-1.xhtml", totalProgression: progress)
+
+        bookmarks.bookmarkCurrentLocation()
+
+        #expect(try repository.fetchBookmarks(bookID: book.objectID).isEmpty)
+        #expect(repository.viewContext.hasChanges == false)
+    }
+
+    @Test(arguments: ["{invalid json}", "{}", "null"])
+    func invalidBookmark_DoesNotMatchMissingCurrentLocation(json: String) throws {
+        let (bookmarks, _, repository, book) = try makeBookmarksModel()
+        try repository.createBookmark(bookID: book.objectID, locatorJSON: json, title: "Invalid")
+        bookmarks.loadBookmarks()
+
+        #expect(bookmarks.bookmarks.first?.locator == nil)
+        #expect(bookmarks.currentLocationBookmarkID == nil)
+    }
+
     @Test func updateBookmarkTitle_RefreshesSnapshots() throws {
         let (bookmarks, session, _, _) = try makeBookmarksModel()
         session.currentLocator = makeLocator(href: "chapter-1.xhtml", position: 4, totalProgression: 0.2)
@@ -81,7 +123,7 @@ struct BookReaderBookmarksModelTests {
 
         let currentBookmark = try repository.createBookmark(
             bookID: book.objectID,
-            locatorJSON: currentLocator.jsonString ?? "",
+            locatorJSON: currentLocator.jsonString(),
             title: "Current Bookmark"
         )
         let invalidBookmark = try repository.createBookmark(
