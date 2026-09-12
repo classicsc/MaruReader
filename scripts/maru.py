@@ -467,9 +467,10 @@ def run_release_status(args: argparse.Namespace) -> int:
     prerelease_tag = f"v{normalize_tag_version(marketing_version)}-build.{build_number}"
 
     print(f"Marketing version: {marketing_version}")
-    print(f"Build number: {build_number}")
+    print(f"Local build number: {build_number} (Xcode Cloud assigns its own)")
     print(f"Targets: {' '.join(RELEASE_TARGETS)}")
-    print(f"Current prerelease tag shape: {prerelease_tag}")
+    print(f"Local prerelease tag shape: {prerelease_tag}")
+    print(f"Cloud tag shapes: v{normalize_tag_version(marketing_version)}-rc.N / v{normalize_tag_version(marketing_version)}")
     return 0
 
 
@@ -480,7 +481,7 @@ def run_set_version(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_prerelease(args: argparse.Namespace) -> int:
+def run_prerelease_local(args: argparse.Namespace) -> int:
     require_tool("git")
     require_tool("swift")
 
@@ -506,7 +507,7 @@ def run_prerelease(args: argparse.Namespace) -> int:
     return 0
 
 
-def run_release(args: argparse.Namespace) -> int:
+def run_release_local(args: argparse.Namespace) -> int:
     require_tool("git")
     require_tool("swift")
 
@@ -530,6 +531,36 @@ def run_release(args: argparse.Namespace) -> int:
 
     print(f"Created release {tag_name}")
     print(f"Archived at {archive_path}")
+    return 0
+
+
+def run_cloud_release(args: argparse.Namespace) -> int:
+    require_tool("git")
+    ensure_clean_worktree()
+    project = project_json()
+    version = args.version or current_marketing_version(project, target_config_ids(project))
+    validate_release_version(version)
+
+    git = ["git", "-C", str(ROOT_DIR)]
+    subprocess.run([*git, "fetch", "origin", "--tags"], check=True)
+    tag_name = f"v{version}"
+    if args.command == "prerelease":
+        tags = subprocess.run([*git, "tag", "--list", f"{tag_name}-rc.*"],
+                              check=True, text=True, stdout=subprocess.PIPE).stdout.splitlines()
+        numbers = [int(match[1]) for tag in tags
+                   if (match := re.fullmatch(rf"{re.escape(tag_name)}-rc\.([0-9]+)", tag))]
+        tag_name += f"-rc.{max(numbers, default=0) + 1}"
+    ensure_tag_absent(tag_name)
+
+    set_synced_settings(marketing_version=version)
+    subprocess.run([*git, "add", str(PROJECT_FILE)], check=True)
+    # Each requested build gets a commit, even when its marketing version is unchanged.
+    subprocess.run([*git, "commit", "--allow-empty", "-m", f"Release {tag_name}"], check=True)
+    subprocess.run([*git, "tag", "-a", tag_name, "-m", tag_name], check=True)
+    result = subprocess.run([*git, "push", "origin", f"refs/tags/{tag_name}"])
+    if result.returncode != 0:
+        die(f"Commit and tag retained locally. Retry with: git push origin refs/tags/{tag_name}")
+    print(f"Pushed {tag_name}; Xcode Cloud will archive and assign the build number.")
     return 0
 
 
@@ -580,11 +611,19 @@ def main() -> int:
     set_version_parser.set_defaults(func=run_set_version)
 
     prerelease_parser = subparsers.add_parser("prerelease")
-    prerelease_parser.set_defaults(func=run_prerelease)
+    prerelease_parser.add_argument("version", nargs="?")
+    prerelease_parser.set_defaults(func=run_cloud_release)
 
     release_parser = subparsers.add_parser("release")
     release_parser.add_argument("version", nargs="?")
-    release_parser.set_defaults(func=run_release)
+    release_parser.set_defaults(func=run_cloud_release)
+
+    prerelease_local_parser = subparsers.add_parser("prerelease-local")
+    prerelease_local_parser.set_defaults(func=run_prerelease_local)
+
+    release_local_parser = subparsers.add_parser("release-local")
+    release_local_parser.add_argument("version", nargs="?")
+    release_local_parser.set_defaults(func=run_release_local)
 
     args = parser.parse_args()
     return args.func(args)

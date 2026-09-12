@@ -1,0 +1,9 @@
+{
+  "id" : "8097ba1c-f29e-4005-aa33-d2c6a3f4a632",
+  "targets" : [
+    {
+      "id" : "42cceee5-17ec-441e-b823-3ae1a8fbf2d0",
+      "name" : "MaruReader"
+    }
+  ]
+}

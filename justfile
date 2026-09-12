@@ -69,12 +69,20 @@ set-version version:
   ./scripts/maru.py set-version "{{version}}"
 
 # creates a prerelease archive by incrementing the build number, then commits and tags it
-prerelease:
-  ./scripts/maru.py prerelease
+prerelease-local:
+  ./scripts/maru.py prerelease-local
 
 # creates a release archive by setting the marketing version, incrementing build, then commits and tags it
+release-local version="":
+  ./scripts/maru.py release-local "{{version}}"
+
+# sets the optional marketing version, commits, and pushes the next rc tag for Xcode Cloud
+prerelease version="":
+  ./scripts/maru.py prerelease "{{version}}"
+
+# sets the optional marketing version, commits, and pushes the release tag for Xcode Cloud
 release version="":
-  ./scripts/maru.py release {{version}}
+  ./scripts/maru.py release "{{version}}"
 
 # runs the UI screenshot test plan and extracts images to build/screenshots/
 screenshots:

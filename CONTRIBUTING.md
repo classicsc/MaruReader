@@ -61,24 +61,41 @@ Accepted device specifier formats:
 - Raw xcodebuild destination:
   `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
 
-#### Release build checklist
-
-```bash
-just starterdict # Prepare the default jitendex and kanji-alive dictionaries. Upload the resulting build/starterdict.aar via Transporter
-# one of:
-# just prerelease: creates a prerelease archive by incrementing the build number, then commits and tags it
-# just release <version>: creates a release archive by setting the marketing version, resetting build to 1, then commits and tags it
-just screenshots # Generate new screenshots for App Store listing if needed (writes to build/screenshots/)
-```
-
 ### Agents
 
-To save some frustration: If you want to work on MaruReader with a coding agent,
-I recommend getting a tool for docs searches, either the xcode one or
-[sosumi](https://sosumi.ai). Also make sure that xcodebuild-based `just`
-commands can be run outside any strict agent sandboxing, since they have to
-touch caches and such in your home folder. If you send a pull request you still
-have to review it manually first.
+If you have a Mac and are comfortable setting up the iOS development tools, a
+free or inexpensive coding agent subscription makes it extremely easy to create
+your own version of MaruReader customized however you like. Today's tools don't
+even require configuration advice I used to list in this section. If you send a
+pull request to merge your changes into my version, you still have to review the
+code manually first.
+
+### Release build checklist
+
+For building an archive to run on your own devices, Archive the MaruReader
+scheme in Xcode.
+
+I use Xcode Cloud to simplify the process for builds destined for TestFlight and
+the App Store. `just` commands to trigger this:
+
+```bash
+just prerelease 1.2.2  # Set marketing version; push v1.2.2-rc.1
+just prerelease        # Keep version; push v1.2.2-rc.2
+just release           # Keep version; push v1.2.2
+# Or: just release 1.2.3
+```
+
+Only run this from a clean checkout of `main` where GH Actions checks are
+passing. This will fetch tags from `origin`, synchronize the marketing version
+across MaruReader, MaruShareExtension, and MaruAssetDownloader, create a commit
+and an annotated tag, then push only that tag.
+
+When releasing a new version for the App Store, prepare the supporting assets.
+
+```bash
+just starterdict # Prepare the default dictionaries. Upload the resulting build/starterdict.aar via Transporter
+just screenshots # Generate new screenshots for App Store listing if needed (writes to build/screenshots/)
+```
 
 ## Licensing Note
 
