@@ -68,8 +68,8 @@
           "title": "Zstandard License",
           "outputPath": "manual/manual-zstd-license.txt",
           "snapshotPath": "scripts/third-party-license-snapshots/zstd/LICENSE.txt",
-          "referenceURL": "https://github.com/aperedera/SwiftZSTD/blob/master/Sources/zstdlib/LICENSE",
-          "refreshURL": "https://raw.githubusercontent.com/aperedera/SwiftZSTD/master/Sources/zstdlib/LICENSE"
+          "referenceURL": "https://github.com/facebook/zstd/blob/dev/LICENSE",
+          "refreshURL": "https://raw.githubusercontent.com/facebook/zstd/refs/heads/dev/LICENSE"
         }
       ]
     },

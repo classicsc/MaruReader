@@ -77,7 +77,7 @@
       "licenses" : [
         {
           "path" : "About\/ThirdPartyLicenses\/Documents\/manual\/manual-zstd-license.txt",
-          "referenceURL" : "https:\/\/github.com\/aperedera\/SwiftZSTD\/blob\/master\/Sources\/zstdlib\/LICENSE",
+          "referenceURL" : "https:\/\/github.com\/facebook\/zstd\/blob\/dev\/LICENSE",
           "title" : "Zstandard License"
         }
       ],
@@ -89,10 +89,10 @@
       "attribution" : "Anton Lazarev <alazarev@brave.com>, Andrius Aucinas",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
-      "id" : "rust-adblock-0-12-5",
+      "id" : "rust-adblock-0-13-3",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-adblock-0-12-5-mpl-2-0-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-adblock-0-13-3-mpl-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
           "title" : "Mozilla Public License 2.0"
         }
@@ -100,7 +100,7 @@
       "name" : "adblock",
       "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/brave\/adblock-rust\/",
-      "version" : "0.12.5"
+      "version" : "0.13.3"
     },
     {
       "attribution" : "rushmorem <rushmore@webenchanter.com>",
@@ -723,9 +723,26 @@
         }
       ],
       "name" : "itertools",
-      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
+      "notes" : "Generated from MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
       "version" : "0.13.0"
+    },
+    {
+      "attribution" : "bluss",
+      "category" : "rustCrate",
+      "homepageURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+      "id" : "rust-itertools-0-14-0",
+      "licenses" : [
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-itertools-0-14-0-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+          "title" : "Apache License 2.0"
+        }
+      ],
+      "name" : "itertools",
+      "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
+      "sourceURL" : "https:\/\/github.com\/rust-itertools\/itertools",
+      "version" : "0.14.0"
     },
     {
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
@@ -1187,19 +1204,19 @@
     {
       "attribution" : "The Rust Project Developers",
       "category" : "rustCrate",
-      "homepageURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
-      "id" : "rust-rustc-hash-1-1-0",
+      "homepageURL" : "https:\/\/github.com\/rust-lang\/rustc-hash",
+      "id" : "rust-rustc-hash-2-1-2",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustc-hash-1-1-0-apache-2-0-1.txt",
-          "referenceURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustc-hash-2-1-2-apache-2-0-1.txt",
+          "referenceURL" : "https:\/\/github.com\/rust-lang\/rustc-hash",
           "title" : "Apache License 2.0"
         }
       ],
       "name" : "rustc-hash",
       "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
-      "sourceURL" : "https:\/\/github.com\/rust-lang-nursery\/rustc-hash",
-      "version" : "1.1.0"
+      "sourceURL" : "https:\/\/github.com\/rust-lang\/rustc-hash",
+      "version" : "2.1.2"
     },
     {
       "attribution" : "Dan Gohman <dev@sunfishcode.online>, Jakub Konka <kubkon@jakubkonka.com>",
@@ -2183,9 +2200,9 @@
         }
       ],
       "name" : "swift-toolkit",
-      "revision" : "f7d10d2bf5876408feae14d634416f69d1473fd8",
+      "revision" : "d82f44f4f05d87add9e22a8b75abbd61dce745dd",
       "sourceURL" : "https:\/\/github.com\/readium\/swift-toolkit.git",
-      "version" : "3.8.0"
+      "version" : "3.11.0"
     },
     {
       "category" : "spm",
@@ -2251,6 +2268,6 @@
       "version" : "3.0.1"
     }
   ],
-  "generatedAt" : "2026-09-12T05:08:49.713Z",
+  "generatedAt" : "2026-09-12T14:11:14.557Z",
   "schemaVersion" : 1
 }
