@@ -96,8 +96,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/scinfu/SwiftSoup.git",
       "state" : {
-        "revision" : "6c7915e16f729857aec3e99068c361e58a00ed68",
-        "version" : "2.13.4"
+        "revision" : "18b80329749eca5ea29fc50211dca5c7eff5bfec",
+        "version" : "2.13.9"
       }
     },
     {
