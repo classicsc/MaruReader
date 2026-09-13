@@ -306,7 +306,7 @@ struct MangaImportTests {
 
     @Test func importManga_ValidArchive_ImportsSuccessfully() async throws {
         // Setup: Create a valid manga archive
-        let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "my_manga")
+        let archiveURL = try createValidMangaArchive(imageCount: 5, filename: "My Manga")
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let persistenceController = makeMangaPersistenceController()
@@ -324,7 +324,7 @@ struct MangaImportTests {
         verifyImportCompleted(mangaDTO)
 
         // Assert: Manga entity created with correct metadata
-        verifyMangaPersisted(mangaDTO, expectedTitle: "my_manga", expectedPageCount: 5)
+        verifyMangaPersisted(mangaDTO, expectedTitle: "My Manga", expectedPageCount: 5)
 
         // Assert: Archive file was copied
         try verifyArchiveCopied(mangaDTO: mangaDTO)
@@ -690,9 +690,9 @@ struct MangaImportTests {
 
     @Test func importManga_MultipleImports_ProcessesSequentially() async throws {
         // Setup: Create multiple manga archives
-        let archive1URL = try createValidMangaArchive(imageCount: 3, filename: "manga_1")
-        let archive2URL = try createValidMangaArchive(imageCount: 4, filename: "manga_2")
-        let archive3URL = try createValidMangaArchive(imageCount: 5, filename: "manga_3")
+        let archive1URL = try createValidMangaArchive(imageCount: 3, filename: "Blue Lantern")
+        let archive2URL = try createValidMangaArchive(imageCount: 4, filename: "Silver Cat")
+        let archive3URL = try createValidMangaArchive(imageCount: 5, filename: "Star Journey")
         defer {
             try? FileManager.default.removeItem(at: archive1URL.deletingLastPathComponent())
             try? FileManager.default.removeItem(at: archive2URL.deletingLastPathComponent())
@@ -722,9 +722,9 @@ struct MangaImportTests {
         let manga2DTO = await getMangaDTO(from: context, mangaID: manga2ID)
         let manga3DTO = await getMangaDTO(from: context, mangaID: manga3ID)
 
-        verifyMangaPersisted(manga1DTO, expectedTitle: "manga_1", expectedPageCount: 3)
-        verifyMangaPersisted(manga2DTO, expectedTitle: "manga_2", expectedPageCount: 4)
-        verifyMangaPersisted(manga3DTO, expectedTitle: "manga_3", expectedPageCount: 5)
+        verifyMangaPersisted(manga1DTO, expectedTitle: "Blue Lantern", expectedPageCount: 3)
+        verifyMangaPersisted(manga2DTO, expectedTitle: "Silver Cat", expectedPageCount: 4)
+        verifyMangaPersisted(manga3DTO, expectedTitle: "Star Journey", expectedPageCount: 5)
     }
 }
 

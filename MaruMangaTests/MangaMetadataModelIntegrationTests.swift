@@ -58,6 +58,31 @@ struct MangaMetadataModelIntegrationTests {
         #expect(metadata.author == "芥見下々")
     }
 
+    @Test("Filename extraction only uses supplied numbering", arguments: [false, true])
+    func filenameExtractionNumbering(prewarmed: Bool) async {
+        let extractor = MangaFilenameMetadataExtractor()
+        let cases: [(filename: String, title: String, author: String)] = [
+            ("Chainsaw Man - Tatsuki Fujimoto.cbz", "Chainsaw Man", "Tatsuki Fujimoto"),
+            ("【石黒正数】それでも町は廻っている.zip", "それでも町は廻っている", "石黒正数"),
+            ("赤い魚.cbz", "赤い魚", ""),
+            ("Golden_Fist_Man_chapter_1.cbz", "Golden Fist Man chapter 1", ""),
+            ("Golden Fist Man Vol. 02.cbz", "Golden Fist Man Vol. 02", ""),
+            ("Golden Fist Man Vol. 02 Chapter 12.cbz", "Golden Fist Man Vol. 02 Chapter 12", ""),
+            ("赤い魚 第３話.cbz", "赤い魚 第３話", ""),
+            ("赤い魚 第2章.cbz", "赤い魚 第2章", ""),
+        ]
+
+        for testCase in cases {
+            if prewarmed {
+                await extractor.prewarm()
+            }
+            let metadata = await extractor.extract(from: testCase.filename)
+            #expect(metadata.titleWasExtracted, "Filename: \(testCase.filename)")
+            #expect(metadata.title == testCase.title, "Filename: \(testCase.filename)")
+            #expect(metadata.author == testCase.author, "Filename: \(testCase.filename)")
+        }
+    }
+
     @Test("Filename extraction quality matrix remains observational")
     func filenameExtractionQualityMatrix() async {
         let extractor = MangaFilenameMetadataExtractor()
@@ -90,7 +115,7 @@ struct MangaMetadataModelIntegrationTests {
     private static let observationalCases = [
         ExpectedMetadataCase(
             filename: "golden_fist_man_chapter_1.cbz",
-            title: "Golden Fist Man Chapter 1",
+            title: "golden fist man chapter 1",
             author: ""
         ),
         ExpectedMetadataCase(
