@@ -161,6 +161,7 @@ final class MangaReaderViewModel {
     private let persistenceController: MangaDataPersistenceController
     private let archiveReaderFactory: @Sendable (URL) async throws -> any MangaPageProviding
     private let ocr = OCR()
+    private var mokuroData: MokuroData?
 
     private var saveTask: Task<Void, Never>?
     private var renderedPageRefreshTask: Task<Void, Never>?
@@ -203,6 +204,11 @@ final class MangaReaderViewModel {
             pageProvider = reader
             pageCount = await reader.pageCount
             logger.info("Loaded archive with \(self.pageCount) pages")
+
+            if let mokuroURL = manga.mokuroFile {
+                let archiveFileNames = await reader.pageFileNames
+                mokuroData = await loadMokuroData(from: mokuroURL, archiveFileNames: archiveFileNames)
+            }
 
             // Compute initial spread layout now that we know page count
             recomputeSpreadLayout()
@@ -259,7 +265,7 @@ final class MangaReaderViewModel {
                         textClusters: pageData.textClusters
                     )
                     self.pageLoadingStates[index] = .loaded
-                    self.startOCR(for: index, image: image)
+                    self.startOCR(for: index, image: image, imageFileName: pageData.imageFileName)
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -639,12 +645,24 @@ final class MangaReaderViewModel {
 
     /// Runs OCR on the downsampled display image and updates the rendered page
     /// with text clusters when complete. Does not block the display path.
-    private func startOCR(for index: Int, image: UIImage) {
+    private func startOCR(for index: Int, image: UIImage, imageFileName: String?) {
         ocrTasks[index]?.cancel()
         guard let cgImage = image.cgImage else { return }
         let ocr = self.ocr
+        let mokuroData = self.mokuroData
 
         ocrTasks[index] = Task { [weak self] in
+            if let mokuroData,
+               let mokuroClusters = await mokuroData.clusters(forFileName: imageFileName)
+            {
+                guard !Task.isCancelled, let self else { return }
+                if self.renderedPageCache[index] != nil {
+                    self.renderedPageCache[index]?.textClusters = mokuroClusters
+                }
+                self.ocrTasks.removeValue(forKey: index)
+                return
+            }
+
             do {
                 let clusters = try await ocr.performOCR(cgImage: cgImage)
                 guard !Task.isCancelled, let self else { return }
@@ -656,6 +674,43 @@ final class MangaReaderViewModel {
                 self?.logger.error("OCR failed for page \(index): \(error.localizedDescription)")
             }
             self?.ocrTasks.removeValue(forKey: index)
+        }
+    }
+
+    /// Outcome of a background mokuro file load, kept distinct so read failures
+    /// and decode failures can be logged with different messages.
+    private enum MokuroLoadOutcome: Sendable {
+        case success(MokuroData)
+        case readFailed(String)
+        case decodeFailed(String)
+    }
+
+    private func loadMokuroData(from url: URL, archiveFileNames: [String]) async -> MokuroData? {
+        let outcome = await Task.detached { () -> MokuroLoadOutcome in
+            let data: Data
+            do {
+                data = try Data(contentsOf: url)
+            } catch {
+                return .readFailed(error.localizedDescription)
+            }
+
+            do {
+                let volume = try JSONDecoder().decode(MokuroVolume.self, from: data)
+                return .success(MokuroData(volume: volume, archiveFileNames: archiveFileNames))
+            } catch {
+                return .decodeFailed(error.localizedDescription)
+            }
+        }.value
+
+        switch outcome {
+        case let .success(mokuroData):
+            return mokuroData
+        case let .readFailed(description):
+            logger.error("Failed to read mokuro file at \(url.path): \(description)")
+            return nil
+        case let .decodeFailed(description):
+            logger.error("Failed to decode mokuro file at \(url.path): \(description)")
+            return nil
         }
     }
 }

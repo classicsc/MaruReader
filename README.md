@@ -112,6 +112,10 @@ configuration for the popular Lapis note.
 - **Smart Metadata** On devices with Apple Intelligence supported and enabled,
   the title and author displayed in the manga library can be extracted from
   filenames with no specific naming scheme or special metadata file needed.
+- **Mokuro support** If you'd rather prepare OCR ahead of time, you can attach a
+  [mokuro](https://github.com/kha-white/mokuro) file to a manga and MaruReader
+  will use its text instead. Learn more in the
+  [Mokuro Guide](doc/Mokuro.md)
 
 ### Book Reader
 
