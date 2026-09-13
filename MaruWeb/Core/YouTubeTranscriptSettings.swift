@@ -1,4 +1,4 @@
-// YouTubeTranscriptSnapshot.swift
+// YouTubeTranscriptSettings.swift
 // MaruReader
 // Copyright (c) 2026  Samuel Smoker
 //
@@ -15,13 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
-import Foundation
-
-struct YouTubeTranscriptSnapshot: Decodable {
-    let videoID: String
-    let title: String
-    let currentTime: Double
-    let adPlaying: Bool
-    let isPlaying: Bool
-    let cues: [YouTubeTranscriptCue]?
+public enum YouTubeTranscriptSettings {
+    public static let autoOpenEnabledKey = "web.youtubeTranscriptAutoOpenEnabled"
+    public static let autoOpenEnabledDefault = true
 }

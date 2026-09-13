@@ -111,6 +111,7 @@ final class WebViewerViewModel {
     private let logger = Logger.maru(category: "WebViewerViewModel")
 
     var addressBarText: String = ""
+    var transcriptPresented = false
     var readingModeEnabled = false
     var showBoundingBoxes = false
     var highlightedCluster: TextCluster?
@@ -156,6 +157,27 @@ final class WebViewerViewModel {
             loadInitialURLIfNeeded()
         }
         refreshBookmarkState()
+    }
+
+    func openTranscript() {
+        guard let page, let videoID = YouTubeVideo.id(from: page.url) else { return }
+        page.transcriptAutoOpenedVideoID = videoID
+        transcriptPresented = true
+    }
+
+    func autoOpenTranscriptIfPlaying(on observedPage: WebBrowserPage, enabled: Bool, canPresent: () -> Bool) async {
+        guard enabled, page === observedPage, !transcriptPresented,
+              !readingModeEnabled, !isAddressBarEditing, editMenuSelection == nil, canPresent(),
+              let videoID = YouTubeVideo.id(from: observedPage.url),
+              observedPage.transcriptAutoOpenedVideoID != videoID else { return }
+        let value = try? await YouTubeTranscriptScript.call(on: observedPage, videoID: videoID, action: "time")
+        guard !Task.isCancelled, page === observedPage,
+              YouTubeVideo.id(from: observedPage.url) == videoID,
+              !readingModeEnabled, !isAddressBarEditing, editMenuSelection == nil, canPresent(),
+              let string = value as? String,
+              let snapshot = try? JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: Data(string.utf8)),
+              snapshot.videoID == videoID, snapshot.isPlaying else { return }
+        openTranscript()
     }
 
     func toggleOverlay() {

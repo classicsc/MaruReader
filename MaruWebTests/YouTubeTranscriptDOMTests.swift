@@ -108,6 +108,71 @@ struct YouTubeTranscriptDOMTests {
         #expect(model.followPlayback == false)
     }
 
+    @Test func closesYouTubePanelAfterExtractionAndAllowsReopening() async throws {
+        let view = WKWebView(frame: .zero)
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        try await fixture.load(view, html: """
+        <ytd-engagement-panel-section-list-renderer visibility="ENGAGEMENT_PANEL_VISIBILITY_EXPANDED">
+          <ytd-engagement-panel-title-header-renderer><div id="visibility-button">
+            <button onclick="this.closest('ytd-engagement-panel-section-list-renderer').setAttribute('visibility', 'ENGAGEMENT_PANEL_VISIBILITY_HIDDEN')">閉じる</button>
+          </div></ytd-engagement-panel-title-header-renderer>
+          <ytd-transcript-segment-renderer>
+            <div class="segment-timestamp">0:01</div><span class="segment-text">こんにちは。</span>
+          </ytd-transcript-segment-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+        """)
+        let json = try #require(try await run(view, action: "open") as? String)
+        let snapshot = try JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: Data(json.utf8))
+        #expect(snapshot.cues?.map(\.text) == ["こんにちは。"])
+        let visibility = "document.querySelector('ytd-engagement-panel-section-list-renderer').getAttribute('visibility')"
+        #expect(try await view.evaluateJavaScript(visibility) as? String == "ENGAGEMENT_PANEL_VISIBILITY_HIDDEN")
+        _ = try await view.evaluateJavaScript("document.querySelector('ytd-engagement-panel-section-list-renderer').setAttribute('visibility', 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED')")
+        _ = try await run(view, action: "time")
+        #expect(try await view.evaluateJavaScript(visibility) as? String == "ENGAGEMENT_PANEL_VISIBILITY_EXPANDED")
+    }
+
+    @Test func autoOpenRespectsPlaybackPreferenceAndDismissal() async throws {
+        let session = WebSession.make(dataStore: .nonPersistent())
+        let view = session.page.webView
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        try await fixture.load(view, html: "<div id='movie_player'><video></video></div>")
+        let model = WebViewerViewModel()
+        let tabID = UUID()
+        model.tabs = [WebTabState(id: tabID, session: session)]
+        model.selectedTabID = tabID
+        #expect(YouTubeTranscriptSettings.autoOpenEnabledDefault)
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { true }
+        #expect(!model.transcriptPresented)
+        // Model a decoded, playing HTMLVideoElement without a network media fixture.
+        _ = try await view.callAsyncJavaScript("""
+        const video = document.querySelector('video');
+        Object.defineProperties(video, {
+            paused: { value: false }, ended: { value: false }, readyState: { value: 4 }
+        });
+        """, arguments: [:], in: nil, contentWorld: .defaultClient)
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: false) { true }
+        #expect(!model.transcriptPresented)
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { false }
+        #expect(!model.transcriptPresented)
+        _ = try await view.evaluateJavaScript("document.querySelector('#movie_player').classList.add('ad-showing')")
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { true }
+        #expect(!model.transcriptPresented)
+        _ = try await view.evaluateJavaScript("document.querySelector('#movie_player').classList.remove('ad-showing')")
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { true }
+        #expect(model.transcriptPresented)
+        model.transcriptPresented = false
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { true }
+        #expect(!model.transcriptPresented)
+        model.openTranscript()
+        #expect(model.transcriptPresented)
+        model.transcriptPresented = false
+        _ = try await view.evaluateJavaScript("history.pushState({}, '', '/watch?v=next')")
+        await model.autoOpenTranscriptIfPlaying(on: session.page, enabled: true) { true }
+        #expect(model.transcriptPresented)
+    }
+
     private func run(_ view: WKWebView, action: String, videoID: String = "fixture") async throws -> Any? {
         try await view.callAsyncJavaScript(YouTubeTranscriptScript.source,
                                            arguments: ["expectedVideoID": videoID, "action": action, "seconds": 0],

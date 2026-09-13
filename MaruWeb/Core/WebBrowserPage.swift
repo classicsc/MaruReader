@@ -29,9 +29,16 @@ final class WebBrowserPage {
         case failedToEncode
     }
 
+    var transcriptAutoOpenedVideoID: String?
     let webView: WKWebView
 
-    var url: URL?
+    var url: URL? {
+        didSet {
+            if YouTubeVideo.id(from: oldValue) != YouTubeVideo.id(from: url) {
+                transcriptAutoOpenedVideoID = nil
+            }
+        }
+    }
     var title: String?
     var isLoading = false
     var estimatedProgress = 0.0

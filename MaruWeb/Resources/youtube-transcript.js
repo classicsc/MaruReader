@@ -50,7 +50,14 @@ if (action === 'read' || action === 'open') {
         return { id, start, text };
     }).filter(Boolean).sort((a, b) => a.start - b.start);
     state.rows = rows.map(node => ({ node, text: node.textContent }));
-    if (!cues.length) {
+    if (cues.length) {
+        // Close through YouTube's own UI once extraction succeeds. Time polling leaves
+        // the panel alone, so the user can reopen it while our transcript is visible.
+        const panel = freshRows[0]?.closest('ytd-engagement-panel-section-list-renderer');
+        if (panel?.getAttribute('visibility') === 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED') {
+            panel.querySelector('ytd-engagement-panel-title-header-renderer #visibility-button button')?.click();
+        }
+    } else {
         // Opening the description materializes the language-independent transcript button.
         const expand = document.querySelector('ytd-watch-metadata #description-inline-expander #expand');
         expand?.click();
@@ -66,5 +73,6 @@ return JSON.stringify({
     title: document.querySelector('ytd-watch-metadata h1')?.textContent?.trim() || document.title.replace(/ - YouTube$/, ''),
     currentTime: video && Number.isFinite(video.currentTime) ? video.currentTime : 0,
     adPlaying,
+    isPlaying: !!video && !video.paused && !video.ended && video.readyState >= 2 && !adPlaying,
     cues
 });

@@ -27,8 +27,6 @@ struct WebViewerContentView: View {
     let onNavigateFromNewTabPage: (URL) -> Void
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
-    @State private var transcriptPresented = false
-    @State private var transcriptSheetPresented = false
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -43,7 +41,7 @@ struct WebViewerContentView: View {
                         model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
                     .id(page.webView)
-                    if transcriptPresented, horizontalSizeClass == .regular,
+                    if viewModel.transcriptPresented, horizontalSizeClass == .regular,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
                         YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
@@ -51,18 +49,7 @@ struct WebViewerContentView: View {
                             .frame(width: 360)
                     }
                 }
-                .overlay(alignment: .topTrailing) {
-                    if !transcriptPresented, !isEditingAddress,
-                       YouTubeVideo.id(from: page.url) != nil
-                    {
-                        Button("Transcript", systemImage: "text.bubble", action: openTranscript)
-                            .padding(10)
-                            .glassEffect()
-                            .padding()
-                            .accessibilityIdentifier("web.openTranscript")
-                    }
-                }
-                .sheet(isPresented: $transcriptSheetPresented, onDismiss: closeTranscript) {
+                .sheet(isPresented: transcriptSheetBinding, onDismiss: closeTranscript) {
                     if horizontalSizeClass != .regular,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
@@ -127,14 +114,15 @@ struct WebViewerContentView: View {
         .onChange(of: horizontalSizeClass) { closeTranscript() }
     }
 
-    private func openTranscript() {
-        transcriptPresented = true
-        transcriptSheetPresented = horizontalSizeClass != .regular
+    private var transcriptSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.transcriptPresented && horizontalSizeClass != .regular },
+            set: { viewModel.transcriptPresented = $0 }
+        )
     }
 
     private func closeTranscript() {
-        transcriptPresented = false
-        transcriptSheetPresented = false
+        viewModel.transcriptPresented = false
     }
 
     private func handleReadingModeTap(_ location: CGPoint, _ size: CGSize) {
