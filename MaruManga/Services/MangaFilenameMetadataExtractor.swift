@@ -32,7 +32,7 @@ actor MangaFilenameMetadataExtractor {
     private let model: SystemLanguageModel
     private var prewarmedSession: LanguageModelSession?
     private let instructions = """
-    Extract manga title and author from filenames.
+    Extract manga title and author using only information present in the filename. Never invent missing volume numbers, chapter numbers, or authors.
     NEVER translate, transliterate, or romanize any extracted text.
     Move author names out of leading brackets or parentheses and out of the title.
     Output ONLY the requested Title and Author lines.
@@ -40,14 +40,27 @@ actor MangaFilenameMetadataExtractor {
     private let promptPrefix = """
     Extract manga metadata from the provided filename.
     NEVER translate, transliterate, or romanize title or author text.
-    Put volume or chapter markers in Title.
+    Include volume or chapter numbering in Title ONLY when it appears in the filename. If no number is supplied, do not add any volume or chapter.
+    Copy volume and chapter markers exactly as supplied, in their original language. Preserve digits, leading zeros, full-width characters, and 巻, 話, or 章. Do not add 第 or convert chapter to volume. Include both volume and chapter when both appear.
+    Preserve title and author capitalization. Replace underscore separators with spaces.
     If a leading bracketed or parenthesized name is the author, move it to Author and remove it from Title.
-    Ignore unrelated leading or trailing labels for metadata other than title, author, and chapter or volume numbers. NEVER inlude extras in Title or Author.
+    Ignore unrelated leading or trailing labels for metadata other than title, author, and chapter or volume numbers. NEVER include extras in Title or Author.
+    Remove edition labels such as [Library Edition], scan labels, and page counts.
     If the author is missing or unclear, leave Author blank.
 
     Output format:
     Title: [extracted title]
     Author: [extracted author or blank if not found]
+
+    Example filename: Blue Lantern - Aki Mori
+    Example output:
+    Title: Blue Lantern
+    Author: Aki Mori
+
+    Example filename: Silver_Cat_chapter_7
+    Example output:
+    Title: Silver Cat chapter 7
+    Author:
 
     Example filename: 【石黒正数】それでも町は廻っている 第01巻
     Example output:
@@ -58,6 +71,16 @@ actor MangaFilenameMetadataExtractor {
     Example output:
     Title: 赤い魚 第１巻
     Author: 
+
+    Example filename: [Library Edition] 星の旅 10巻 山田花子
+    Example output:
+    Title: 星の旅 10巻
+    Author: 山田花子
+
+    Example filename: 月の猫 第４話
+    Example output:
+    Title: 月の猫 第４話
+    Author:
 
     Now extract metadata from this:
 
