@@ -27,6 +27,9 @@ struct WebViewerContentView: View {
     let onNavigateFromNewTabPage: (URL) -> Void
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
+    @State private var transcriptPresented = false
+    @State private var transcriptSheetPresented = false
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,10 +38,40 @@ struct WebViewerContentView: View {
 
             ZStack {
                 let model = viewModel
-                WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
-                    model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                HStack(spacing: 0) {
+                    WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
+                        model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                    }
+                    .id(page.webView)
+                    if transcriptPresented, horizontalSizeClass == .regular,
+                       let videoID = YouTubeVideo.id(from: page.url)
+                    {
+                        YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
+                            .id(videoID)
+                            .frame(width: 360)
+                    }
                 }
-                .id(page.webView)
+                .overlay(alignment: .topTrailing) {
+                    if !transcriptPresented, !isEditingAddress,
+                       YouTubeVideo.id(from: page.url) != nil
+                    {
+                        Button("Transcript", systemImage: "text.bubble", action: openTranscript)
+                            .padding(10)
+                            .glassEffect()
+                            .padding()
+                            .accessibilityIdentifier("web.openTranscript")
+                    }
+                }
+                .sheet(isPresented: $transcriptSheetPresented, onDismiss: closeTranscript) {
+                    if horizontalSizeClass != .regular,
+                       let videoID = YouTubeVideo.id(from: page.url)
+                    {
+                        YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
+                            .id(videoID)
+                            .presentationDetents([.medium, .large])
+                            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                    }
+                }
 
                 if viewModel.isShowingNewTabPage, !isEditingAddress {
                     NewTabPageView(
@@ -85,6 +118,23 @@ struct WebViewerContentView: View {
             Color.clear
                 .frame(height: 1)
         }
+        .onChange(of: page.webView) { closeTranscript() }
+        .onChange(of: page.url) { oldURL, newURL in
+            if YouTubeVideo.id(from: oldURL) != YouTubeVideo.id(from: newURL) {
+                closeTranscript()
+            }
+        }
+        .onChange(of: horizontalSizeClass) { closeTranscript() }
+    }
+
+    private func openTranscript() {
+        transcriptPresented = true
+        transcriptSheetPresented = horizontalSizeClass != .regular
+    }
+
+    private func closeTranscript() {
+        transcriptPresented = false
+        transcriptSheetPresented = false
     }
 
     private func handleReadingModeTap(_ location: CGPoint, _ size: CGSize) {

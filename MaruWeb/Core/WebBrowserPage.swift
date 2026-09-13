@@ -514,6 +514,28 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
 
     func webView(
         _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        preferences: WKWebpagePreferences,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+    ) {
+        if navigationAction.targetFrame?.isMainFrame == true,
+           let url = navigationAction.request.url,
+           YouTubeVideo.isYouTube(url)
+        {
+            preferences.preferredContentMode = .desktop
+            if let desktopURL = YouTubeVideo.desktopURL(for: url), desktopURL != url {
+                var request = navigationAction.request
+                request.url = desktopURL
+                decisionHandler(.cancel, preferences)
+                webView.load(request)
+                return
+            }
+        }
+        decisionHandler(.allow, preferences)
+    }
+
+    func webView(
+        _ webView: WKWebView,
         createWebViewWith _: WKWebViewConfiguration,
         for navigationAction: WKNavigationAction,
         windowFeatures _: WKWindowFeatures
