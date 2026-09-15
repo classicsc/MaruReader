@@ -13,71 +13,9 @@ context.
 
 [![Download](https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg)](https://apps.apple.com/app/marureader-learn-japanese/id6760981845)
 
-## Key Features
+[Website](https://marureader.org)
 
-### 1. Fast, customizable dictionary
-
-The dictionary works across the book reader, manga reader, web browser, and
-photo scanner, or direct one-off searches.
-
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/bb6edb30-8fdf-41d8-a29c-5f52f77c7b95" width="80%" controls></video>
-</p>
-
-The MaruReader dictionary system automatically converts verbs to dictionary
-form, converts between hiragana, katakana, and romaji, and performs other
-normalizations to make searching faster.
-
-### 2. Read manga with text recognition
-
-Text in manga is OCR'd on your device as you read so you can look up words with
-no pre-processing or online services required.
-
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/937cf72d-e93a-4dfc-8527-2026996e6c24" width="80%" controls></video>
-</p>
-
-Text recognition is designed to be easy to use. Instead of trying to highlight
-text from imprecise character bounds on an image, just tap on the area of the
-image you're interested in and choose a word from the Context area.
-
-### 3. All the ways to use the dictionary on the web
-
-#### Select text in the MaruReader Browser
-
-The MaruReader browser is great for reading Japanese websites and web novels
-with a dictionary at your fingertips. Ad blocker included to reduce
-distractions. Just select some text and choose "Dictionary" to look it up.
-
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/82f4659a-e4eb-464f-b33a-0970ce9c1b10" width="80%" controls></video>
-</p>
-
-#### OCR in the MaruReader Browser
-
-To look up any text on screen, use the tap icon in the toolbar and tap the text
-you want to look up. Great for manga.
-
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/aba81026-b9fe-40d9-b53c-12c9393e7aa7" width="80%" controls></video>
-</p>
-
-#### Text and OCR from the Share Menu
-
-Share text or images from any other app for a quick lookup. Great for text in
-Japanese apps and games, just take a screenshot and share it to MaruReader.
-
-<p align="center" width="100%">
-<video src="https://github.com/user-attachments/assets/0572a207-dc9b-49fc-8ba6-13dcbd45534e" width="80%" controls></video>
-</p>
-
-### 4. Anki Integration
-
-Stop forgetting new words, add them to Anki's smart flashcard system. MaruReader
-has tons of options for populating notes for information-rich cards, including a
-configuration for the popular Lapis note.
-
-## All Features
+## Features
 
 ### Dictionary System
 
