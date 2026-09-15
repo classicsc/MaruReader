@@ -44,7 +44,7 @@ private extension CGFloat {
 /// Inferred text direction based on spatial analysis of the observation.
 /// Note: This is distinct from RecognizedTextObservation.Direction (iOS 26+)
 /// which we found unreliable for Japanese text.
-public enum InferredTextDirection: Sendable, CustomStringConvertible {
+public enum InferredTextDirection: Sendable, Equatable, CustomStringConvertible {
     /// Horizontal text, read left-to-right (or right-to-left for RTL languages)
     case horizontal
     /// Vertical text, read top-to-bottom, columns flow right-to-left (tategaki)
@@ -165,39 +165,70 @@ public struct ObservationFeatures: Sendable {
     }
 }
 
+// MARK: - Text Cluster Source
+
+/// Where a cluster's text came from, so the UI can distinguish on-device
+/// Vision OCR from externally-supplied mokuro data.
+public enum TextClusterSource: Sendable, Equatable {
+    case vision
+    case mokuro
+}
+
+// MARK: - Text Cluster Line
+
+/// A single OCR'd line within a `TextCluster`, independent of the source
+/// (Vision framework or an external OCR data source like mokuro).
+public struct TextClusterLine: Sendable {
+    public let transcript: String
+    public let boundingBox: NormalizedRect
+
+    public init(transcript: String, boundingBox: NormalizedRect) {
+        self.transcript = transcript
+        self.boundingBox = boundingBox
+    }
+}
+
 // MARK: - Text Cluster
 
-/// A group of related text observations that should be treated as a unit.
+/// A group of related text lines that should be treated as a unit.
 public struct TextCluster: Identifiable, Sendable {
     public let id = UUID()
 
-    /// The observations in this cluster, sorted by reading order
-    public let observations: [RecognizedTextObservation]
+    /// The lines in this cluster, sorted by reading order
+    public let lines: [TextClusterLine]
 
     /// The dominant text direction of this cluster
     public let direction: InferredTextDirection
 
-    /// Combined bounding box encompassing all observations (normalized coordinates)
+    /// Where this cluster's text came from
+    public let source: TextClusterSource
+
+    /// Combined bounding box encompassing all lines (normalized coordinates)
     public let boundingBox: CGRect
 
-    /// The concatenated transcript of all observations
+    /// The concatenated transcript of all lines
     public var transcript: String {
-        // For vertical text, observations are in column order (right-to-left),
-        // and each observation is a vertical line. No separator needed.
-        // For horizontal text, observations are lines. Join with newlines for
+        // For vertical text, lines are in column order (right-to-left),
+        // and each line is a vertical run of text. No separator needed.
+        // For horizontal text, lines are rows. Join with newlines for
         // paragraph structure, though the dictionary search will handle segmentation.
-        observations.map(\.transcript).joined(separator: direction == .vertical ? "" : "\n")
+        lines.map(\.transcript).joined(separator: direction == .vertical ? "" : "\n")
     }
 
-    public init(observations: [RecognizedTextObservation], direction: InferredTextDirection) {
-        self.observations = observations
+    public init(
+        lines: [TextClusterLine],
+        direction: InferredTextDirection,
+        source: TextClusterSource = .vision
+    ) {
+        self.lines = lines
         self.direction = direction
+        self.source = source
 
         // Calculate union of all bounding boxes
-        if let first = observations.first {
+        if let first = lines.first {
             var union = first.boundingBox.cgRect
-            for obs in observations.dropFirst() {
-                union = union.union(obs.boundingBox.cgRect)
+            for line in lines.dropFirst() {
+                union = union.union(line.boundingBox.cgRect)
             }
             boundingBox = union
         } else {
@@ -436,10 +467,10 @@ public struct TextClusterer: Sendable {
                     return a.readingOrderKey.secondary < b.readingOrderKey.secondary
                 }
 
-                clusters.append(TextCluster(
-                    observations: sorted.map(\.observation),
-                    direction: direction
-                ))
+                let lines = sorted.map {
+                    TextClusterLine(transcript: $0.observation.transcript, boundingBox: $0.observation.boundingBox)
+                }
+                clusters.append(TextCluster(lines: lines, direction: direction))
             }
         }
 
@@ -447,7 +478,7 @@ public struct TextClusterer: Sendable {
             logger.debug("=== RESULT: \(clusters.count) CLUSTERS ===")
             for (idx, cluster) in clusters.enumerated() {
                 let transcriptPreview = cluster.transcript.prefix(30).replacingOccurrences(of: "\n", with: "↵")
-                logger.debug("  Cluster \(idx) [\(cluster.direction)]: \(cluster.observations.count) obs, \"\(transcriptPreview)...\"")
+                logger.debug("  Cluster \(idx) [\(cluster.direction)]: \(cluster.lines.count) obs, \"\(transcriptPreview)...\"")
             }
         } else {
             logger.debug("Clustered \(observations.count) observations into \(clusters.count) clusters")

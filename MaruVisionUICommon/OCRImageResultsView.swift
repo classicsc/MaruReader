@@ -198,10 +198,10 @@ public struct OCRImageResultsView: View {
         return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
     }
 
-    /// Calculate the actual rect for an observation's bounding box within the image rect
-    private func calculateBoxRect(observation: RecognizedTextObservation, in imageRect: CGRect) -> CGRect {
+    /// Calculate the actual rect for a line's bounding box within the image rect
+    private func calculateBoxRect(line: TextClusterLine, in imageRect: CGRect) -> CGRect {
         // Convert normalized coordinates to image coordinates (with upper-left origin)
-        let boxInImage = observation.boundingBox.toImageCoordinates(imageRect.size, origin: .upperLeft)
+        let boxInImage = line.boundingBox.toImageCoordinates(imageRect.size, origin: .upperLeft)
 
         // Offset by the image rect's position within the container
         return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
@@ -229,7 +229,8 @@ public struct OCRImageResultsView: View {
                 let appearance = OCRBoundingBoxAppearance.make(
                     direction: cluster.direction,
                     isHighlighted: isHighlighted,
-                    differentiateWithoutColor: differentiateWithoutColor
+                    differentiateWithoutColor: differentiateWithoutColor,
+                    source: cluster.source
                 )
 
                 if let fillColor = appearance.fillColor {
@@ -246,8 +247,8 @@ public struct OCRImageResultsView: View {
             // Optionally draw individual observation boxes (debug mode)
             if showObservationBoxes {
                 for cluster in clusters {
-                    for observation in cluster.observations {
-                        let boxRect = calculateBoxRect(observation: observation, in: imageRect)
+                    for line in cluster.lines {
+                        let boxRect = calculateBoxRect(line: line, in: imageRect)
                         let path = Path(boxRect)
                         context.stroke(path, with: .color(.orange.opacity(0.5)), lineWidth: 1)
                     }
@@ -347,7 +348,7 @@ public struct OCRImageResultsView: View {
         }
 
         if let match = bestMatch {
-            logger.debug("Tapped cluster with \(match.observations.count) observations: \(match.transcript.prefix(50))...")
+            logger.debug("Tapped cluster with \(match.lines.count) observations: \(match.transcript.prefix(50))...")
             Task {
                 highlightedCluster = match
                 try? await Task.sleep(nanoseconds: 100_000_000)

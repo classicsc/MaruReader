@@ -21,6 +21,58 @@ import SwiftUI
 import Testing
 
 struct OCRBoundingBoxAppearanceTests {
+    /// Each OCR source has its own direction colour pair, so the boxes show both
+    /// which source produced them and which way the text runs.
+    @Test(arguments: [
+        (TextClusterSource.vision, InferredTextDirection.vertical, Color.blue),
+        (TextClusterSource.vision, InferredTextDirection.horizontal, Color.green),
+        (TextClusterSource.mokuro, InferredTextDirection.vertical, Color.red),
+        (TextClusterSource.mokuro, InferredTextDirection.horizontal, Color.purple),
+    ])
+    func strokeColorIdentifiesSourceAndDirection(
+        source: TextClusterSource,
+        direction: InferredTextDirection,
+        expected: Color
+    ) {
+        let appearance = OCRBoundingBoxAppearance.make(
+            direction: direction,
+            isHighlighted: false,
+            differentiateWithoutColor: false,
+            source: source
+        )
+
+        #expect(appearance.strokeColor == expected)
+    }
+
+    @Test func sourcesNeverShareAStrokeColor() {
+        let colors = [
+            (TextClusterSource.vision, InferredTextDirection.vertical),
+            (.vision, .horizontal),
+            (.mokuro, .vertical),
+            (.mokuro, .horizontal),
+        ].map { source, direction in
+            OCRBoundingBoxAppearance.make(
+                direction: direction,
+                isHighlighted: false,
+                differentiateWithoutColor: false,
+                source: source
+            ).strokeColor
+        }
+
+        #expect(Set(colors).count == 4, "Every source/direction combination must be visually distinct")
+    }
+
+    @Test func highlightIgnoresSource() {
+        let mokuro = OCRBoundingBoxAppearance.make(
+            direction: .vertical,
+            isHighlighted: true,
+            differentiateWithoutColor: false,
+            source: .mokuro
+        )
+
+        #expect(mokuro.strokeColor == .yellow, "A highlighted box stays yellow regardless of source")
+    }
+
     @Test func verticalTextUsesDashedStroke() {
         let appearance = OCRBoundingBoxAppearance.make(
             direction: .vertical,

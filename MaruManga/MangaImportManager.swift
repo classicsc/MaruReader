@@ -19,6 +19,7 @@ internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import MaruReaderCore
+import MaruVision
 import os
 import UIKit
 
@@ -197,6 +198,117 @@ public actor MangaImportManager {
                     try? taskContext.save()
                 }
             }
+        }
+    }
+
+    /// Attaches a mokuro OCR data file to an already-imported manga.
+    /// Validates the file decodes as mokuro JSON with at least one page before
+    /// copying it in and updating the manga's `mokuroFileName`. Overwrites any
+    /// previously attached mokuro file for this manga.
+    /// - Parameters:
+    ///   - url: The file URL of the `.mokuro` file to attach.
+    ///   - mangaID: The NSManagedObjectID of the MangaArchive to attach it to.
+    public func attachMokuroFile(from url: URL, to mangaID: NSManagedObjectID) async throws {
+        let didStartAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            throw MangaImportError.fileAccessDenied
+        }
+
+        guard let volume = try? JSONDecoder().decode(MokuroVolume.self, from: data),
+              !volume.pages.isEmpty
+        else {
+            throw MangaImportError.invalidMokuroFile
+        }
+
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let (mangaUUID, mangaTotalPages, mangaTitle): (UUID, Int64, String?) = try await context.perform {
+            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive,
+                  let mangaUUID = manga.id
+            else {
+                throw MangaImportError.databaseError
+            }
+            return (mangaUUID, manga.totalPages, manga.title)
+        }
+
+        if Int64(volume.pages.count) != mangaTotalPages {
+            logger.warning(
+                "Attached mokuro file page count (\(volume.pages.count, privacy: .public)) does not match manga totalPages (\(mangaTotalPages, privacy: .public)) for manga \(mangaTitle ?? mangaUUID.uuidString, privacy: .public)"
+            )
+        }
+
+        let mangaDir = try mangaDirectory()
+        let destinationFileName = "\(mangaUUID.uuidString).mokuro"
+        let destinationURL = mangaDir.appendingPathComponent(destinationFileName)
+
+        do {
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try data.write(to: destinationURL, options: .atomic)
+        } catch {
+            throw MangaImportError.mokuroFileCopyFailed(underlyingError: error)
+        }
+
+        do {
+            try await context.perform {
+                guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                    throw MangaImportError.databaseError
+                }
+                manga.mokuroFileName = destinationFileName
+                try context.save()
+            }
+        } catch {
+            // Avoid leaving an orphaned mokuro file with no corresponding
+            // mokuroFileName if the Core Data update fails.
+            try? FileManager.default.removeItem(at: destinationURL)
+            throw error
+        }
+    }
+
+    /// Removes an attached mokuro file from a manga, clearing the attribute
+    /// and deleting the copied file.
+    /// - Parameter mangaID: The NSManagedObjectID of the MangaArchive to remove it from.
+    public func removeMokuroFile(from mangaID: NSManagedObjectID) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let logger = self.logger
+        // Only delete the file once the attribute is actually cleared. Deleting on a
+        // failed save would leave mokuroFileName persisted with no file behind it:
+        // every later open would log a read failure and the UI would keep offering
+        // "Remove Mokuro File" for an attachment that no longer exists.
+        let fileToDelete: URL? = await context.perform {
+            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                return nil
+            }
+            let fileURL = manga.mokuroFile
+            manga.mokuroFileName = nil
+            do {
+                try context.save()
+            } catch {
+                logger.error("Failed to clear mokuroFileName; leaving the file in place: \(error.localizedDescription)")
+                return nil
+            }
+            return fileURL
+        }
+
+        if let fileToDelete, FileManager.default.fileExists(atPath: fileToDelete.path) {
+            try? FileManager.default.removeItem(at: fileToDelete)
         }
     }
 
@@ -550,17 +662,18 @@ public actor MangaImportManager {
 
             let localPath = manga.localPath
             let coverImage = manga.coverImage
+            let mokuroFile = manga.mokuroFile
 
             context.delete(manga)
             try context.save()
 
-            return (localPath, coverImage)
+            return (localPath, coverImage, mokuroFile)
         }
 
-        Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1)
+        Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1, mokuroFile: cleanupInfo.2)
     }
 
-    static func cleanupMangaFiles(localPath: URL?, coverImage: URL?) {
+    static func cleanupMangaFiles(localPath: URL?, coverImage: URL?, mokuroFile: URL? = nil) {
         let fileManager = FileManager.default
 
         if let localPath {
@@ -572,6 +685,12 @@ public actor MangaImportManager {
         if let coverImage {
             if fileManager.fileExists(atPath: coverImage.path) {
                 try? fileManager.removeItem(at: coverImage)
+            }
+        }
+
+        if let mokuroFile {
+            if fileManager.fileExists(atPath: mokuroFile.path) {
+                try? fileManager.removeItem(at: mokuroFile)
             }
         }
     }
