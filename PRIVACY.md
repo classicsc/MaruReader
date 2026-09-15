@@ -1,15 +1,29 @@
-# MaruReader Privacy Policy
+# Privacy Policy / プライバシーポリシー
 
-MaruReader does not collect or transmit any personal data. All processing for
-features like dictionary lookup, text recognition, and Anki integration happens
-locally on your device. MaruReader does not include any analytics or tracking
-services.
+## English
 
-If you configure Anki-Connect or a network audio source, Anki notes or
-dictionary search queries may be sent to those services. It is recommended to
-only connect to your own instances of those services and to use HTTPS with
-Anki-Connect, even on the local network, to protect your data.
+### Your Data
 
-MaruReaderは個人データを収集または送信しません。辞書検索、テキスト認識、Anki連携などの機能に関するすべての処理は、デバイス上でローカルに行われます。MaruReaderには、分析やトラッキングサービスは一切含まれていません。
+MaruReader does not collect personal data and does not include analytics or tracking services. Your data stays on your device by default. Dictionary lookup and text recognition are processed locally on your device.
 
-Anki-Connectやネットワークオーディオソースを設定した場合、Ankiのノートや辞書の検索クエリがそれらのサービスに送信される場合があります。データを保護するため、ご自身のサービスインスタンスにのみ接続し、ローカルネットワーク上であってもAnki-ConnectではHTTPSを使用することをお勧めします。
+### Dictionary Updates
+
+If you use the dictionary update function, a network request is sent to the update URL defined in the dictionary’s manifest, if one is provided. The update server’s operator can see your IP address and know that you are using MaruReader with that dictionary.
+
+### Custom audio and Anki-Connect
+
+If you configure a network audio source or Anki-Connect, dictionary search queries or Anki notes may be sent to the services you configure. To protect your privacy, use these features only with your own servers. Use HTTPS with Anki-Connect, even on a local network, to protect data in transit.
+
+## 日本語
+
+### データの取り扱い
+
+MaruReaderは個人データを収集せず、分析やトラッキングのサービスも組み込んでいません。既定では、データはお使いのデバイス内に保存されます。辞書検索と文字認識の処理は、デバイス上でローカルに行われます。
+
+### 辞書の更新
+
+辞書の更新機能を使うと、辞書のマニフェストに更新URLが定義されている場合、そのURLにネットワークリクエストが送信されます。更新サーバーの運営者は、利用者のIPアドレスを確認でき、MaruReaderでその辞書を使っていることを知ることができます。
+
+### カスタム音声とAnki-Connect
+
+ネットワーク音声ソースやAnki-Connectを設定した場合、辞書の検索クエリやAnkiのノートが、設定したサービスに送信されることがあります。プライバシーを守るため、これらの機能はご自身のサーバーにのみ接続して使用してください。通信中のデータを保護するため、ローカルネットワーク上でもAnki-ConnectにはHTTPSを使用してください。
