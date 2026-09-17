@@ -16,6 +16,11 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 public enum YouTubeTranscriptSettings {
+    static let fontScaleKey = "web.youtubeTranscriptFontScale"
+    static let fontScaleDefault = 1.0
+    static let showsTimestampsKey = "web.youtubeTranscriptShowsTimestamps"
+    static let showsTimestampsDefault = false
+
     public static let autoOpenEnabledKey = "web.youtubeTranscriptAutoOpenEnabled"
     public static let autoOpenEnabledDefault = true
 }

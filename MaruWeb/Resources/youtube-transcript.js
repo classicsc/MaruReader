@@ -15,11 +15,18 @@ if (state.videoID !== videoID) {
     state.videoID = videoID;
     state.didRequestTranscript = false;
 }
-if (action === 'seek') {
-    if (video && !adPlaying && Number.isFinite(seconds) && seconds >= 0) {
-        video.currentTime = Math.min(seconds, Number.isFinite(video.duration) ? video.duration : seconds);
+if ((action === 'seek' || action === 'skip') && video && !adPlaying && Number.isFinite(seconds)) {
+    const target = action === 'skip' ? video.currentTime + seconds : seconds;
+    if (Number.isFinite(target)) {
+        video.currentTime = Math.max(0, Math.min(target, Number.isFinite(video.duration) ? video.duration : Math.max(0, target)));
     }
-    return null;
+}
+if (action === 'togglePlayback' && video && !adPlaying) {
+    if (video.paused || video.ended) {
+        try { await video.play(); } catch (_) { /* Report the actual state if playback is denied. */ }
+    } else {
+        video.pause();
+    }
 }
 if (action === 'frame') {
     if (!video || adPlaying || video.readyState < 2 || !video.videoWidth) return null;
@@ -73,6 +80,7 @@ return JSON.stringify({
     title: document.querySelector('ytd-watch-metadata h1')?.textContent?.trim() || document.title.replace(/ - YouTube$/, ''),
     currentTime: video && Number.isFinite(video.currentTime) ? video.currentTime : 0,
     adPlaying,
+    playerAvailable: !!video && video.readyState >= 1,
     isPlaying: !!video && !video.paused && !video.ended && video.readyState >= 2 && !adPlaying,
     cues
 });

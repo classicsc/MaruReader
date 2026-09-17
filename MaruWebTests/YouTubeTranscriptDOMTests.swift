@@ -213,9 +213,162 @@ struct YouTubeTranscriptDOMTests {
         #expect(model.transcriptPresented)
     }
 
-    private func run(_ view: WKWebView, action: String, videoID: String = "fixture") async throws -> Any? {
+    @Test func titleSupportsEscapedTextAndCharacterLookup() async throws {
+        let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 360, height: 600))
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        let title = "🐈が猫 <script> & 日本語"
+        try await fixture.load(view, html: YouTubeTranscriptTextView.html(cues: [], title: title))
+        #expect(try await view.evaluateJavaScript("document.querySelector('h1').textContent") as? String == title)
+        let result = try await view.callAsyncJavaScript("""
+        const messages = [];
+        window.webkit = {messageHandlers: {transcript: {postMessage: body => messages.push(body)}}};
+        const span = document.querySelector('[data-title]');
+        const range = document.createRange();
+        range.setStart(span.firstChild, 4); range.setEnd(span.firstChild, 5);
+        const rect = range.getBoundingClientRect();
+        span.dispatchEvent(new MouseEvent('click', {bubbles: true, detail: 1,
+            clientX: rect.x + rect.width / 2, clientY: rect.y + rect.height / 2}));
+        return messages[0];
+        """, arguments: [:], in: nil, contentWorld: .page) as? [String: Any]
+        #expect(result?["target"] as? String == "title")
+        #expect(result?["offset"] as? Int == 4)
+
+        let model = YouTubeTranscriptViewModel(page: WebBrowserPage(webView: view), videoID: "fixture")
+        model.title = title
+        model.currentTime = 12
+        model.select(target: .title, offset: 4)
+        await model.prepareLookup()
+        let request = try #require(model.lookupRequest)
+        #expect(request.context == title)
+        #expect(request.offset == 2)
+        #expect(request.contextValues?.contextInfo?.contains("t=12s") == true)
+        #expect(!model.followPlayback)
+    }
+
+    @Test func displaySettingsUpdateWithoutReplacingTranscript() async throws {
+        let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 360, height: 600))
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        let cues = (0 ..< 40).map { YouTubeTranscriptCue(id: $0, start: Double($0 * 5), text: "日本語の文章を読んでいます。猫がいます。") }
+        try await fixture.load(view, html: YouTubeTranscriptTextView.html(cues: cues, title: "動画"))
+        let result = try await view.callAsyncJavaScript("""
+        const messages = [];
+        window.webkit = {messageHandlers: {transcript: {postMessage: body => messages.push(body)}}};
+        const row = document.getElementById('cue-15');
+        const time = row.querySelector('button');
+        const hiddenInitially = time.getClientRects().length === 0;
+        window.updatePlayback(15, true, 18, false, '動画');
+        const anchor = document.createRange();
+        const text = row.querySelector('span').firstChild;
+        anchor.setStart(text, 5); anchor.setEnd(text, 6);
+        window.scrollBy(0, anchor.getBoundingClientRect().top - 20);
+        const before = anchor.getBoundingClientRect().top;
+        window.updatePlayback(16, false, 27, true, '新しい動画');
+        const displacement = Math.abs(anchor.getBoundingClientRect().top - before);
+        const visible = time.getClientRects().length > 0;
+        time.click();
+        const beforeHiding = anchor.getBoundingClientRect().top;
+        window.updatePlayback(16, false, 27, false, '新しい動画');
+        const hidingDisplacement = Math.abs(anchor.getBoundingClientRect().top - beforeHiding);
+        const hiddenAgain = time.getClientRects().length === 0;
+        const unchanged = row === document.getElementById('cue-15');
+        window.updatePlayback(25, true, 27, true, '新しい動画');
+        const active = document.querySelector('.active');
+        const rect = active.getBoundingClientRect();
+        return {hiddenInitially, visible, displacement, hidingDisplacement, hiddenAgain, unchanged,
+            seekID: messages.find(message => message.kind === 'seek').id,
+            title: document.querySelector('h1').textContent,
+            activeID: active.id, centered: Math.abs((rect.top + rect.bottom) / 2 - innerHeight / 2) < 2};
+        """, arguments: [:], in: nil, contentWorld: .page) as? [String: Any]
+        let values = try #require(result)
+        #expect(values["hiddenInitially"] as? Bool == true)
+        #expect(values["visible"] as? Bool == true)
+        #expect(values["hiddenAgain"] as? Bool == true)
+        #expect(try #require(values["hidingDisplacement"] as? Double) < 2)
+        #expect(values["unchanged"] as? Bool == true)
+        #expect(try #require(values["displacement"] as? Double) < 2)
+        #expect(values["seekID"] as? Int == 15)
+        #expect(values["title"] as? String == "新しい動画")
+        #expect(values["activeID"] as? String == "cue-25")
+        #expect(values["centered"] as? Bool == true)
+    }
+
+    @Test func playbackCommandsUseLiveStateAndRespectGuards() async throws {
+        let view = WKWebView(frame: .zero)
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        try await fixture.load(view, html: "<div id='movie_player'><video></video></div>")
+        try await mockPlayer(view)
+        func snapshot(_ action: String, seconds: Double = 0) async throws -> YouTubeTranscriptSnapshot {
+            let json = try #require(try await run(view, action: action, seconds: seconds) as? String)
+            return try JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: Data(json.utf8))
+        }
+        #expect(try await snapshot("time").playerAvailable)
+        #expect(try await snapshot("skip", seconds: 5).currentTime == 15)
+        #expect(try await snapshot("skip", seconds: 5).currentTime == 20)
+        #expect(try await snapshot("skip", seconds: 5).currentTime == 20)
+        #expect(try await snapshot("skip", seconds: -30).currentTime == 0)
+        #expect(try await snapshot("time").isPlaying == false)
+        #expect(try await snapshot("togglePlayback").isPlaying)
+        #expect(try await snapshot("skip", seconds: 5).isPlaying)
+        #expect(try await snapshot("togglePlayback").isPlaying == false)
+        _ = try await view.callAsyncJavaScript("document.querySelector('video').play = () => Promise.reject(new Error('Denied'))", arguments: [:], in: nil, contentWorld: .defaultClient)
+        #expect(try await snapshot("togglePlayback").isPlaying == false)
+        _ = try await view.evaluateJavaScript("document.querySelector('#movie_player').classList.add('ad-showing')")
+        #expect(try await snapshot("skip", seconds: 5).currentTime == 5)
+        #expect(try await snapshot("togglePlayback").isPlaying == false)
+        #expect(try await run(view, action: "skip", videoID: "wrong", seconds: 5) is NSNull)
+        _ = try await view.evaluateJavaScript("document.querySelector('video').remove()")
+        #expect(try await snapshot("togglePlayback").playerAvailable == false)
+        #expect(try await snapshot("skip", seconds: 5).currentTime == 0)
+    }
+
+    @Test func queuedCommandsAccumulateAndCancelOnDismissal() async throws {
+        let view = WKWebView(frame: .zero)
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        try await fixture.load(view, html: "<div id='movie_player'><video></video></div>")
+        try await mockPlayer(view)
+        let model = YouTubeTranscriptViewModel(page: WebBrowserPage(webView: view), videoID: "fixture")
+        model.playerAvailable = true
+        model.followPlayback = false
+        model.skip(by: 5)
+        model.skip(by: 5)
+        await model.commandTask?.value
+        #expect(model.currentTime == 20)
+        #expect(!model.followPlayback)
+        model.togglePlayback()
+        model.togglePlayback()
+        await model.commandTask?.value
+        #expect(model.isPlaying)
+        #expect(!model.playbackCommandPending)
+        model.skip(by: -5)
+        let cancelled = model.commandTask
+        model.stopCommands()
+        await cancelled?.value
+        #expect(model.currentTime == 20)
+        _ = try await view.evaluateJavaScript("history.pushState({}, '', '/watch?v=next')")
+        model.skip(by: -5)
+        await model.commandTask?.value
+        #expect(model.currentTime == 20)
+    }
+
+    private func mockPlayer(_ view: WKWebView) async throws {
+        _ = try await view.callAsyncJavaScript("""
+        const video = document.querySelector('video');
+        Object.defineProperties(video, {
+            currentTime: {value: 10, writable: true}, duration: {value: 20},
+            paused: {value: true, writable: true}, ended: {value: false}, readyState: {value: 4}
+        });
+        video.play = async () => { video.paused = false; };
+        video.pause = () => { video.paused = true; };
+        """, arguments: [:], in: nil, contentWorld: .defaultClient)
+    }
+
+    private func run(_ view: WKWebView, action: String, videoID: String = "fixture", seconds: Double = 0) async throws -> Any? {
         try await view.callAsyncJavaScript(YouTubeTranscriptScript.source,
-                                           arguments: ["expectedVideoID": videoID, "action": action, "seconds": 0],
+                                           arguments: ["expectedVideoID": videoID, "action": action, "seconds": seconds],
                                            in: nil, contentWorld: .defaultClient)
     }
 }

@@ -38,6 +38,10 @@ struct YouTubeTranscriptCue: Codable, Identifiable, Equatable {
     }
 
     func characterOffset(forUTF16Offset offset: Int) -> Int? {
+        Self.characterOffset(in: text, forUTF16Offset: offset)
+    }
+
+    static func characterOffset(in text: String, forUTF16Offset offset: Int) -> Int? {
         guard offset >= 0 else { return nil }
         var utf16Offset = 0
         for (index, character) in text.enumerated() {

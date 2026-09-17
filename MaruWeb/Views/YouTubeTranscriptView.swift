@@ -23,6 +23,8 @@ import WebKit
 struct YouTubeTranscriptView: View {
     @State private var model: YouTubeTranscriptViewModel
     @Environment(\.dictionaryFeatureAvailability) private var availability
+    @AppStorage(YouTubeTranscriptSettings.fontScaleKey) private var fontScale = YouTubeTranscriptSettings.fontScaleDefault
+    @AppStorage(YouTubeTranscriptSettings.showsTimestampsKey) private var showsTimestamps = YouTubeTranscriptSettings.showsTimestampsDefault
     let onDismiss: () -> Void
 
     init(page: WebBrowserPage, videoID: String, onDismiss: @escaping () -> Void) {
@@ -33,13 +35,6 @@ struct YouTubeTranscriptView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                if !model.title.isEmpty {
-                    Text(model.title)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                }
                 if model.isLoading {
                     ProgressView("Loading transcript…")
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -52,16 +47,17 @@ struct YouTubeTranscriptView: View {
                         Button("Try Again", action: model.refresh)
                     }
                 } else {
-                    YouTubeTranscriptTextView(model: model, activeCueID: model.activeCueID, followPlayback: model.followPlayback)
+                    YouTubeTranscriptTextView(model: model, activeCueID: model.activeCueID, followPlayback: model.followPlayback, fontScale: fontScale, showsTimestamps: showsTimestamps)
                         .popover(isPresented: $model.showPopup, attachmentAnchor: .rect(.rect(model.popupAnchorPosition))) {
                             WebView(model.popupPage)
                                 .frame(width: 300, height: 200)
                                 .presentationCompactAdaptation(.popover)
                                 .accessibilityIdentifier("web.transcriptDictionaryPopover")
                         }
-                    Toggle("Follow Playback", isOn: $model.followPlayback)
-                        .padding()
                 }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                YouTubeTranscriptToolbar(model: model, fontScale: $fontScale, showsTimestamps: $showsTimestamps)
             }
             .background(.background)
             .navigationTitle("Transcript")
@@ -77,9 +73,6 @@ struct YouTubeTranscriptView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done", action: onDismiss)
                 }
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Refresh Transcript", systemImage: "arrow.clockwise", action: model.refresh)
-                }
             }
         }
         .task(id: model.reloadID) { await model.observePlayback() }
@@ -89,6 +82,7 @@ struct YouTubeTranscriptView: View {
                 await model.preparePopup()
             }
         }
+        .onDisappear { model.stopCommands() }
         .accessibilityIdentifier("web.youtubeTranscript")
     }
 }

@@ -17,9 +17,28 @@
 
 import Foundation
 @testable import MaruWeb
+import SwiftUI
 import Testing
 
 struct YouTubeTranscriptTests {
+    @Test func displayPreferencesPersistIndependently() throws {
+        let suite = "YouTubeTranscriptTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let scale = AppStorage(wrappedValue: YouTubeTranscriptSettings.fontScaleDefault,
+                               YouTubeTranscriptSettings.fontScaleKey, store: defaults)
+        let timestamps = AppStorage(wrappedValue: YouTubeTranscriptSettings.showsTimestampsDefault,
+                                    YouTubeTranscriptSettings.showsTimestampsKey, store: defaults)
+        #expect(scale.wrappedValue == 1)
+        #expect(!timestamps.wrappedValue)
+        scale.wrappedValue = 1.5
+        timestamps.wrappedValue = true
+        let reopened = try #require(UserDefaults(suiteName: suite))
+        #expect(reopened.double(forKey: YouTubeTranscriptSettings.fontScaleKey) == 1.5)
+        #expect(reopened.bool(forKey: YouTubeTranscriptSettings.showsTimestampsKey))
+        #expect(reopened.object(forKey: YouTubeTranscriptSettings.autoOpenEnabledKey) == nil)
+    }
+
     @Test(arguments: ["https://www.youtube.com/watch?v=abc_123-XYZ", "https://m.youtube.com/watch?v=abc_123-XYZ&t=4", "https://youtu.be/abc_123-XYZ"])
     func recognizesVideoURLs(_ value: String) {
         #expect(YouTubeVideo.id(from: URL(string: value)) == "abc_123-XYZ")

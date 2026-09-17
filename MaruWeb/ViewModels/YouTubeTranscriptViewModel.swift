@@ -31,11 +31,21 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
     var title = ""
     var currentTime = 0.0
     var adPlaying = false
+    var isPlaying = false
+    var playerAvailable = false
+    var playbackCommandPending = false
+    private(set) var commandTask: Task<Void, Never>?
+    private var commandGeneration = UUID()
+
+    var canControlPlayback: Bool {
+        playerAvailable && !adPlaying
+    }
+
     var isLoading = true
     var followPlayback = true
     var reloadID = UUID()
     var lookupRequest: TextLookupRequest?
-    var pendingLookup: (cueID: Int, offset: Int)?
+    var pendingLookup: (target: YouTubeTranscriptLookupTarget, offset: Int)?
     var lookupID = UUID()
     var popupPage = WebPage()
     var popupAnchorPosition: CGRect = .zero
@@ -92,11 +102,7 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
                    let snapshot = try? JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: data),
                    snapshot.videoID == videoID
                 {
-                    title = snapshot.title
-                    if !snapshot.adPlaying {
-                        currentTime = snapshot.currentTime
-                    }
-                    adPlaying = snapshot.adPlaying
+                    apply(snapshot)
                     if let extracted = snapshot.cues, !extracted.isEmpty {
                         cues = extracted
                         isLoading = false
@@ -116,25 +122,88 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
+    private func apply(_ snapshot: YouTubeTranscriptSnapshot) {
+        title = snapshot.title
+        if !snapshot.adPlaying {
+            currentTime = snapshot.currentTime
+        }
+        adPlaying = snapshot.adPlaying
+        isPlaying = snapshot.isPlaying
+        playerAvailable = snapshot.playerAvailable
+    }
+
+    func togglePlayback() {
+        guard canControlPlayback, !playbackCommandPending else { return }
+        playbackCommandPending = true
+        enqueueCommand(action: "togglePlayback")
+    }
+
+    func skip(by seconds: Double) {
+        guard canControlPlayback else { return }
+        enqueueCommand(action: "skip", seconds: seconds)
+    }
+
+    private func enqueueCommand(action: String, seconds: Double = 0) {
+        let previous = commandTask
+        let generation = commandGeneration
+        commandTask = Task { [weak self] in
+            await previous?.value
+            guard let self, !Task.isCancelled, generation == commandGeneration else { return }
+            await performCommand(action: action, seconds: seconds)
+            if generation == commandGeneration, action == "togglePlayback" {
+                playbackCommandPending = false
+            }
+        }
+    }
+
+    func stopCommands() {
+        commandGeneration = UUID()
+        commandTask?.cancel()
+        commandTask = nil
+        playbackCommandPending = false
+    }
+
+    private func performCommand(action: String, seconds: Double) async {
+        let generation = commandGeneration
+        guard !Task.isCancelled, YouTubeVideo.id(from: page.url) == videoID else { return }
+        let result = try? await YouTubeTranscriptScript.call(on: page, videoID: videoID, action: action, seconds: seconds)
+        guard !Task.isCancelled, generation == commandGeneration,
+              YouTubeVideo.id(from: page.url) == videoID,
+              let string = result as? String,
+              let snapshot = try? JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: Data(string.utf8)),
+              snapshot.videoID == videoID else { return }
+        apply(snapshot)
+    }
+
     func seek(to cueID: Int) async {
         guard let cue = cues.first(where: { $0.id == cueID }) else { return }
-        _ = try? await YouTubeTranscriptScript.call(on: page, videoID: videoID, action: "seek", seconds: cue.start)
+        await performCommand(action: "seek", seconds: cue.start)
     }
 
     func select(cueID: Int, offset: Int, anchor: CGRect = .zero) {
+        select(target: .cue(cueID), offset: offset, anchor: anchor)
+    }
+
+    func select(target: YouTubeTranscriptLookupTarget, offset: Int, anchor: CGRect = .zero) {
         showPopup = false
         lookupRequest = nil
         popupSession = nil
         popupAnchorPosition = anchor
         followPlayback = false
-        pendingLookup = (cueID, offset)
+        pendingLookup = (target, offset)
         lookupID = UUID()
     }
 
     func prepareLookup() async {
-        guard let selection = pendingLookup,
-              let cue = cues.first(where: { $0.id == selection.cueID }),
-              let characterOffset = cue.characterOffset(forUTF16Offset: selection.offset) else { return }
+        guard let selection = pendingLookup else { return }
+        let text: String
+        switch selection.target {
+        case .title: text = title
+        case let .cue(id):
+            guard let cue = cues.first(where: { $0.id == id }) else { return }
+            text = cue.text
+        }
+        guard let characterOffset = YouTubeTranscriptCue.characterOffset(in: text, forUTF16Offset: selection.offset) else { return }
         let capturedTitle = title
         let capturedTime = currentTime
         let frame = try? await YouTubeTranscriptScript.call(on: page, videoID: videoID, action: "frame")
@@ -142,7 +211,7 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         let screenshotURL = Self.writeFrame(frame as? String)
         let url = "https://www.youtube.com/watch?v=\(videoID)&t=\(Int(capturedTime))s"
         lookupRequest = TextLookupRequest(
-            context: cue.text,
+            context: text,
             offset: characterOffset,
             contextValues: LookupContextValues(
                 contextInfo: WebStrings.contextInfo(title: capturedTitle, urlString: url),
