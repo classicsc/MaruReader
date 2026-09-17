@@ -114,7 +114,8 @@ configuration for the popular Lapis note.
   filenames with no specific naming scheme or special metadata file needed.
 - **Mokuro support** If you'd rather prepare OCR ahead of time, you can attach a
   [mokuro](https://github.com/kha-white/mokuro) file to a manga and MaruReader
-  will use its text instead. Learn more in the
+  will use its text instead. A `.mokuro` file packaged inside the CBZ is
+  attached automatically on import. Learn more in the
   [Mokuro Guide](doc/Mokuro.md)
 
 ### Book Reader

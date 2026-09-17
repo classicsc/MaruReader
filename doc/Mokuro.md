@@ -68,6 +68,21 @@ Mokuro files shared by other people were generated from *their* copy of the volu
 
 ## Attaching a mokuro file
 
+### Packaged inside the CBZ
+
+If the `.mokuro` file is inside the archive itself, MaruReader attaches it automatically when you import the manga — there's nothing else to do. Add the `.mokuro` file to your CBZ alongside the page images before transferring it to your device:
+
+```bash
+mokuro "my_manga.cbz" --unzip
+zip -j "my_manga.cbz" "my_manga.mokuro"
+```
+
+It can sit at the top level or in a subfolder; the name doesn't matter. If the archive somehow contains more than one `.mokuro` file, the first by name is used. A file that can't be read as mokuro data is skipped and the manga imports normally with on-device recognition — importing never fails because of a mokuro file.
+
+Attaching a file by hand afterwards replaces the packaged one.
+
+### Attaching by hand
+
 1. Transfer the `.mokuro` file to your device (AirDrop, Files, iCloud Drive, etc.)
 2. In the **Manga** library, long-press the manga you want to use it with
 3. Tap **Attach Mokuro File...**
@@ -77,7 +92,7 @@ The file is copied into the app, so you can delete the original afterwards. Atta
 
 ### Removing a mokuro file
 
-Long-press the manga and tap **Remove Mokuro File**. This option only appears when a file is attached. The manga reverts to on-device text recognition.
+Long-press the manga and tap **Remove Mokuro File**. This option only appears when a file is attached, including one attached automatically from inside the archive. The manga reverts to on-device text recognition.
 
 Deleting a manga also deletes its attached mokuro file.
 
