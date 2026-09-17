@@ -16,12 +16,15 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import Foundation
+import MaruDictionaryUICommon
 import MaruReaderCore
 import Observation
+import os
+import WebKit
 
 @MainActor
 @Observable
-final class YouTubeTranscriptViewModel {
+final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
     let page: WebBrowserPage
     let videoID: String
     var cues: [YouTubeTranscriptCue] = []
@@ -34,10 +37,32 @@ final class YouTubeTranscriptViewModel {
     var lookupRequest: TextLookupRequest?
     var pendingLookup: (cueID: Int, offset: Int)?
     var lookupID = UUID()
+    var popupPage = WebPage()
+    var popupAnchorPosition: CGRect = .zero
+    var showPopup = false
+    var dictionaryPresented = false
+    var dictionaryViewModel: DictionarySearchViewModel?
+    private var popupSession: TextLookupSession?
+    private let resultsSchemeHandler = DictionaryResultsURLSchemeHandler()
+    private let ankiSchemeHandler = AnkiURLSchemeHandler()
+    private let logger = Logger.maru(category: "YouTubeTranscriptViewModel")
 
     init(page: WebBrowserPage, videoID: String) {
         self.page = page
         self.videoID = videoID
+        super.init()
+        var configuration = WebPage.Configuration()
+        configuration.urlSchemeHandlers[URLScheme("marureader-resource")!] = ResourceURLSchemeHandler()
+        configuration.urlSchemeHandlers[URLScheme("marureader-media")!] = MediaURLSchemeHandler()
+        configuration.urlSchemeHandlers[URLScheme("marureader-audio")!] = AudioURLSchemeHandler()
+        configuration.urlSchemeHandlers[URLScheme("marureader-lookup")!] = resultsSchemeHandler
+        configuration.urlSchemeHandlers[URLScheme("marureader-grammar")!] = GrammarDictionaryURLSchemeHandler()
+        configuration.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
+        let controller = WKUserContentController()
+        controller.add(self, name: "navigateToTerm")
+        controller.addUserScript(makeDictionaryLocalizedStringsScript())
+        configuration.userContentController = controller
+        popupPage = WebPage(configuration: configuration)
     }
 
     var activeCueID: Int? {
@@ -45,6 +70,10 @@ final class YouTubeTranscriptViewModel {
     }
 
     func refresh() {
+        showPopup = false
+        lookupRequest = nil
+        pendingLookup = nil
+        lookupID = UUID()
         cues = []
         isLoading = true
         reloadID = UUID()
@@ -92,7 +121,11 @@ final class YouTubeTranscriptViewModel {
         _ = try? await YouTubeTranscriptScript.call(on: page, videoID: videoID, action: "seek", seconds: cue.start)
     }
 
-    func select(cueID: Int, offset: Int) {
+    func select(cueID: Int, offset: Int, anchor: CGRect = .zero) {
+        showPopup = false
+        lookupRequest = nil
+        popupSession = nil
+        popupAnchorPosition = anchor
         followPlayback = false
         pendingLookup = (cueID, offset)
         lookupID = UUID()
@@ -117,6 +150,41 @@ final class YouTubeTranscriptViewModel {
                 sourceType: .web
             )
         )
+    }
+
+    func preparePopup() async {
+        guard let request = lookupRequest else { return }
+        do {
+            guard let session = try await DictionarySearchService().startTextLookup(request: request),
+                  try await session.prepareInitialResults() else { return }
+            try Task.checkCancellation()
+            await resultsSchemeHandler.setSession(session)
+            try Task.checkCancellation()
+            await ankiSchemeHandler.setSession(session)
+            try Task.checkCancellation()
+            let url = URL(string: "marureader-resource://dictionary.html?mode=popup&requestId=\(request.id.uuidString)")!
+            for try await event in popupPage.load(URLRequest(url: url)) {
+                try Task.checkCancellation()
+                guard lookupRequest?.id == request.id else { return }
+                if event == .finished {
+                    popupSession = session
+                    showPopup = true
+                    return
+                }
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            logger.error("Transcript popup lookup failed: \(error.localizedDescription)")
+        }
+    }
+
+    func userContentController(_: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "navigateToTerm", message.body is String,
+              let popupSession else { return }
+        dictionaryViewModel = DictionarySearchViewModel(session: popupSession)
+        showPopup = false
+        dictionaryPresented = true
     }
 
     private static func writeFrame(_ dataURL: String?) -> URL? {

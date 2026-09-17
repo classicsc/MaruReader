@@ -23,6 +23,37 @@ import WebKit
 
 @MainActor
 struct YouTubeTranscriptDOMTests {
+    @Test func transcriptTapsUseCharacterBounds() async throws {
+        let view = WKWebView(frame: CGRect(x: 0, y: 0, width: 220, height: 600))
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        let text = "猫犬鳥魚日本語の文字を折り返して最後まで"
+        try await fixture.load(view, html: YouTubeTranscriptTextView.html(cues: [
+            YouTubeTranscriptCue(id: 0, start: 0, text: text),
+        ]))
+        let offsets = try await view.callAsyncJavaScript("""
+        const messages = [];
+        window.webkit = {messageHandlers: {transcript: {postMessage: body => messages.push(body)}}};
+        const span = document.querySelector('span[data-cue]');
+        const node = span.firstChild;
+        for (let offset = 0; offset < node.length; offset++) {
+            const range = document.createRange();
+            range.setStart(node, offset);
+            range.setEnd(node, offset + 1);
+            const rect = Array.from(range.getClientRects()).find(rect => rect.width > 0 && rect.height > 0);
+            for (const fraction of [0.25, 0.75]) {
+                span.dispatchEvent(new MouseEvent('click', {
+                    bubbles: true, detail: 1,
+                    clientX: rect.left + rect.width * fraction,
+                    clientY: rect.top + rect.height / 2
+                }));
+            }
+        }
+        return messages.map(message => message.offset);
+        """, arguments: [:], in: nil, contentWorld: .page) as? [Int]
+        #expect(offsets == (0 ..< text.utf16.count).flatMap { [$0, $0] })
+    }
+
     @Test func extractsRenderedTextAndRejectsWrongVideo() async throws {
         let view = WKWebView(frame: .zero)
         let fixture = TranscriptFixtureNavigation()
@@ -96,7 +127,8 @@ struct YouTubeTranscriptDOMTests {
         model.title = "日本語の動画"
         model.currentTime = 42.8
         model.cues = [YouTubeTranscriptCue(id: 0, start: 40, text: "🐈猫がいます。")]
-        model.select(cueID: 0, offset: 2)
+        let anchor = CGRect(x: 30, y: 80, width: 20, height: 30)
+        model.select(cueID: 0, offset: 2, anchor: anchor)
         await model.prepareLookup()
         let request = try #require(model.lookupRequest)
         #expect(request.context == "🐈猫がいます。")
@@ -106,6 +138,14 @@ struct YouTubeTranscriptDOMTests {
         #expect(request.contextValues?.contextInfo?.contains("watch?v=fixture&t=42s") == true)
         #expect(request.contextValues?.screenshotURL == nil)
         #expect(model.followPlayback == false)
+        #expect(model.popupAnchorPosition == anchor)
+        #expect(!model.dictionaryPresented)
+        #expect(model.dictionaryViewModel == nil)
+
+        model.refresh()
+        #expect(model.lookupRequest == nil)
+        #expect(model.pendingLookup == nil)
+        #expect(!model.showPopup)
     }
 
     @Test func closesYouTubePanelAfterExtractionAndAllowsReopening() async throws {

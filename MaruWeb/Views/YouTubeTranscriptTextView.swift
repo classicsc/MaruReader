@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import MaruReaderCore
 import SwiftUI
 import WebKit
 
@@ -54,7 +55,9 @@ struct YouTubeTranscriptTextView: UIViewRepresentable {
         view.navigationDelegate = nil
     }
 
-    private static func html(cues: [YouTubeTranscriptCue]) -> String {
+    static func html(cues: [YouTubeTranscriptCue]) -> String {
+        let scanningScript = Bundle.framework.url(forResource: "textScanning", withExtension: "js")
+            .flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? ""
         let rows = cues.map { cue in
             "<article id='cue-\(cue.id)'><button data-seek='\(cue.id)'>\(cue.timestamp)</button><span data-cue='\(cue.id)' tabindex='0' role='button'>\(escape(cue.text))</span></article>"
         }.joined()
@@ -73,7 +76,10 @@ struct YouTubeTranscriptTextView: UIViewRepresentable {
         span:focus-visible, button:focus-visible { outline: 2px solid #5078ce; }
         </style></head><body>\(rows)
         <script>
+        \(scanningScript)
         const post = body => window.webkit.messageHandlers.transcript.postMessage(body);
+        const lookup = (span, offset, rect) => post({kind:'lookup', id:Number(span.dataset.cue),
+            offset, x:rect.x, y:rect.y, width:rect.width, height:rect.height});
         document.addEventListener('touchmove', () => post({kind:'scroll'}), {passive:true});
         document.addEventListener('wheel', () => post({kind:'scroll'}), {passive:true});
         document.addEventListener('click', event => {
@@ -82,19 +88,21 @@ struct YouTubeTranscriptTextView: UIViewRepresentable {
             const span = event.target.closest('span[data-cue]');
             if (!span || !window.getSelection().isCollapsed) return;
             if (event.detail === 0) {
-                post({kind:'lookup', id:Number(span.dataset.cue), offset:0}); return;
+                lookup(span, 0, span.getBoundingClientRect()); return;
             }
-            const range = document.caretRangeFromPoint(event.clientX,event.clientY);
-            if (!range || !span.contains(range.startContainer)) return;
+            const scanner = window.MaruReader.textScanning;
+            const hit = scanner.findCharacterAtPoint(event.clientX, event.clientY);
+            if (!hit || !span.contains(hit.node)) return;
             const prefix = document.createRange();
             prefix.selectNodeContents(span);
-            prefix.setEnd(range.startContainer,range.startOffset);
-            post({kind:'lookup', id:Number(span.dataset.cue), offset:prefix.toString().length});
+            prefix.setEnd(hit.node, hit.offset);
+            const geometry = scanner.getCharacterGeometry(hit.node, hit.offset, event.clientX, event.clientY);
+            if (geometry) lookup(span, prefix.toString().length, geometry.rect);
         });
         document.addEventListener('keydown', event => {
             const span = event.target.closest('span[data-cue]');
             if (span && (event.key === 'Enter' || event.key === ' ')) {
-                event.preventDefault(); post({kind:'lookup',id:Number(span.dataset.cue),offset:0});
+                event.preventDefault(); lookup(span, 0, span.getBoundingClientRect());
             }
         });
         window.updatePlayback = (id, follow, fontSize) => {
@@ -164,7 +172,9 @@ struct YouTubeTranscriptTextView: UIViewRepresentable {
             }
             guard let id = body["id"] as? Int else { return }
             if kind == "lookup", let offset = body["offset"] as? Int {
-                model.select(cueID: id, offset: offset)
+                let anchor = CGRect(x: body["x"] as? Double ?? 0, y: body["y"] as? Double ?? 0,
+                                    width: body["width"] as? Double ?? 0, height: body["height"] as? Double ?? 0)
+                model.select(cueID: id, offset: offset, anchor: anchor)
             } else if kind == "seek" {
                 seekTask?.cancel()
                 seekTask = Task { await model.seek(to: id) }
