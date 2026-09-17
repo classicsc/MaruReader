@@ -57,6 +57,9 @@
          <TestPlanReference
             reference = "container:MaruMarkTests.xctestplan">
          </TestPlanReference>
+         <TestPlanReference
+            reference = "container:MaruVisionTests.xctestplan">
+         </TestPlanReference>
       </TestPlans>
       <Testables>
          <TestableReference

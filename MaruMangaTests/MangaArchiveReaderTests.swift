@@ -273,6 +273,19 @@ struct MangaArchiveReaderTests {
         #expect(UIImage(data: pageData.imageData) != nil)
     }
 
+    @Test func pageData_returnsOriginalImageFileName() async throws {
+        let archiveURL = try createMangaArchive(imageNames: ["page1.jpg", "page2.png"])
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let reader = try await MangaArchiveReader(url: archiveURL)
+
+        let firstPage = try await reader.pageData(at: 0)
+        let secondPage = try await reader.pageData(at: 1)
+
+        #expect(firstPage.imageFileName == "page1.jpg")
+        #expect(secondPage.imageFileName == "page2.png")
+    }
+
     @Test func pageData_allPages_returnValidImages() async throws {
         let archiveURL = try createMangaArchive(imageNames: ["a.jpg", "b.jpg", "c.jpg"])
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }

@@ -26,6 +26,8 @@ enum MangaImportError: Error, Equatable, LocalizedError {
     case missingFile
     case fileCopyFailed(underlyingError: Error)
     case coverExtractionFailed(underlyingError: Error)
+    case invalidMokuroFile
+    case mokuroFileCopyFailed(underlyingError: Error)
 
     var errorDescription: String? {
         switch self {
@@ -45,6 +47,10 @@ enum MangaImportError: Error, Equatable, LocalizedError {
             MangaLocalization.string("Failed to copy the archive file: \(underlyingError.localizedDescription)")
         case let .coverExtractionFailed(underlyingError):
             MangaLocalization.string("Failed to extract cover image: \(underlyingError.localizedDescription)")
+        case .invalidMokuroFile:
+            MangaLocalization.string("The selected file is not a valid mokuro file.")
+        case let .mokuroFileCopyFailed(underlyingError):
+            MangaLocalization.string("Failed to copy the mokuro file: \(underlyingError.localizedDescription)")
         }
     }
 
@@ -55,10 +61,12 @@ enum MangaImportError: Error, Equatable, LocalizedError {
              (.archiveNotFound, .archiveNotFound),
              (.databaseError, .databaseError),
              (.fileAccessDenied, .fileAccessDenied),
-             (.missingFile, .missingFile):
+             (.missingFile, .missingFile),
+             (.invalidMokuroFile, .invalidMokuroFile):
             true
         case (.fileCopyFailed, .fileCopyFailed),
-             (.coverExtractionFailed, .coverExtractionFailed):
+             (.coverExtractionFailed, .coverExtractionFailed),
+             (.mokuroFileCopyFailed, .mokuroFileCopyFailed):
             // Ignore underlying error when comparing for equality in tests
             true
         default:
