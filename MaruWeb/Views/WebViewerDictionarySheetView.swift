@@ -24,6 +24,7 @@ struct WebViewerDictionarySheetView: View {
     let contextValues: LookupContextValues
     let accessibilityIdentifier: String
     let onDismiss: () -> Void
+    var lookupRequest: TextLookupRequest?
 
     @Environment(\.dictionaryFeatureAvailability) private var availability
     @State private var searchViewModel: DictionarySearchViewModel?
@@ -85,7 +86,11 @@ struct WebViewerDictionarySheetView: View {
         guard case .ready = availability, !didPerformSearch else { return }
         didPerformSearch = true
         let viewModel = DictionarySearchViewModel(resultState: .searching)
-        viewModel.performSearch(searchText, contextValues: contextValues)
+        if let lookupRequest {
+            viewModel.performSearchWithRequest(lookupRequest)
+        } else {
+            viewModel.performSearch(searchText, contextValues: contextValues)
+        }
         searchViewModel = viewModel
     }
 }

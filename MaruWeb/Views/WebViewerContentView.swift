@@ -27,6 +27,7 @@ struct WebViewerContentView: View {
     let onNavigateFromNewTabPage: (URL) -> Void
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,10 +36,29 @@ struct WebViewerContentView: View {
 
             ZStack {
                 let model = viewModel
-                WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
-                    model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                HStack(spacing: 0) {
+                    WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
+                        model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
+                    }
+                    .id(page.webView)
+                    if viewModel.transcriptPresented, horizontalSizeClass == .regular,
+                       let videoID = YouTubeVideo.id(from: page.url)
+                    {
+                        YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
+                            .id(videoID)
+                            .frame(width: 360)
+                    }
                 }
-                .id(page.webView)
+                .sheet(isPresented: transcriptSheetBinding, onDismiss: closeTranscript) {
+                    if horizontalSizeClass != .regular,
+                       let videoID = YouTubeVideo.id(from: page.url)
+                    {
+                        YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
+                            .id(videoID)
+                            .presentationDetents([.medium, .large])
+                            .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+                    }
+                }
 
                 if viewModel.isShowingNewTabPage, !isEditingAddress {
                     NewTabPageView(
@@ -85,6 +105,24 @@ struct WebViewerContentView: View {
             Color.clear
                 .frame(height: 1)
         }
+        .onChange(of: page.webView) { closeTranscript() }
+        .onChange(of: page.url) { oldURL, newURL in
+            if YouTubeVideo.id(from: oldURL) != YouTubeVideo.id(from: newURL) {
+                closeTranscript()
+            }
+        }
+        .onChange(of: horizontalSizeClass) { closeTranscript() }
+    }
+
+    private var transcriptSheetBinding: Binding<Bool> {
+        Binding(
+            get: { viewModel.transcriptPresented && horizontalSizeClass != .regular },
+            set: { viewModel.transcriptPresented = $0 }
+        )
+    }
+
+    private func closeTranscript() {
+        viewModel.transcriptPresented = false
     }
 
     private func handleReadingModeTap(_ location: CGPoint, _ size: CGSize) {

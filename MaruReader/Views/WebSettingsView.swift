@@ -21,6 +21,8 @@ import SwiftUI
 struct WebSettingsView: View {
     @AppStorage(WebSearchEngineSettings.searchSuggestionsEnabledKey)
     private var searchSuggestionsEnabled = WebSearchEngineSettings.searchSuggestionsEnabledDefault
+    @AppStorage(YouTubeTranscriptSettings.autoOpenEnabledKey)
+    private var transcriptAutoOpenEnabled = YouTubeTranscriptSettings.autoOpenEnabledDefault
     @State private var selectedEngineKind: SearchEngineKind = WebSearchEngineSettings.searchEngine.kind
     @State private var customSearchURL: String = ""
     @State private var customSuggestionsURL: String = ""
@@ -54,6 +56,9 @@ struct WebSettingsView: View {
                 }
 
                 Toggle("Search Suggestions", isOn: $searchSuggestionsEnabled)
+            }
+            Section("YouTube") {
+                Toggle("Automatically Open Transcripts", isOn: $transcriptAutoOpenEnabled)
             }
             Section("Data") {
                 NavigationLink {

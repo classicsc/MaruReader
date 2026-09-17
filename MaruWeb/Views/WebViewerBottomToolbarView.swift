@@ -74,6 +74,8 @@ struct WebViewerBottomToolbarView: View {
                             onCancelAddressEditing: onCancelAddressEditing,
                             onSubmitAddress: onSubmitAddress,
                             onEnableReadingMode: enableReadingMode,
+                            showsTranscriptButton: YouTubeVideo.id(from: viewModel.page?.url) != nil,
+                            onOpenTranscript: viewModel.openTranscript,
                             onStopLoading: viewModel.stopLoading,
                             onReload: viewModel.reload
                         )

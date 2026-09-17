@@ -36,6 +36,10 @@ public struct WebViewerView: View {
     @State private var toolbarTourManager = TourManager()
     @Namespace private var glassNamespace
 
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(YouTubeTranscriptSettings.autoOpenEnabledKey)
+    private var transcriptAutoOpenEnabled = YouTubeTranscriptSettings.autoOpenEnabledDefault
+
     @Environment(\.dismiss) private var dismiss
 
     public init(initialURL: URL? = nil) {
@@ -94,6 +98,19 @@ public struct WebViewerView: View {
         .animation(.easeInOut(duration: 0.25), value: viewModel.isShowingNewTabPage)
         .animation(.easeInOut(duration: 0.25), value: isEditingAddress)
         .task(handleInitialTask)
+        .task(id: page?.webView) {
+            guard let page else { return }
+            while !Task.isCancelled {
+                await viewModel.autoOpenTranscriptIfPlaying(on: page, enabled: transcriptAutoOpenEnabled) {
+                    transcriptAutoOpenEnabled && scenePhase == .active && !isTabSwitcherPresented && selectedLookup == nil && !isEditingAddress
+                }
+                do {
+                    try await Task.sleep(for: .milliseconds(500))
+                } catch {
+                    return
+                }
+            }
+        }
         .onChange(of: viewModel.page?.url, handlePageURLChange)
         .onChange(of: viewModel.page?.faviconData, handlePageFaviconChange)
         .onChange(of: viewModel.dismissViewerRequestID, handleDismissViewerRequestChange)

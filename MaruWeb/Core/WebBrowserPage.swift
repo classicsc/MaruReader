@@ -29,9 +29,16 @@ final class WebBrowserPage {
         case failedToEncode
     }
 
+    var transcriptAutoOpenedVideoID: String?
     let webView: WKWebView
 
-    var url: URL?
+    var url: URL? {
+        didSet {
+            if YouTubeVideo.id(from: oldValue) != YouTubeVideo.id(from: url) {
+                transcriptAutoOpenedVideoID = nil
+            }
+        }
+    }
     var title: String?
     var isLoading = false
     var estimatedProgress = 0.0
@@ -511,6 +518,28 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
     var onDidStartNavigation: (@MainActor () -> Void)?
     var onDidFinishNavigation: (@MainActor () -> Void)?
     var onDidFailNavigation: (@MainActor () -> Void)?
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        preferences: WKWebpagePreferences,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+    ) {
+        if navigationAction.targetFrame?.isMainFrame == true,
+           let url = navigationAction.request.url,
+           YouTubeVideo.isYouTube(url)
+        {
+            preferences.preferredContentMode = .desktop
+            if let desktopURL = YouTubeVideo.desktopURL(for: url), desktopURL != url {
+                var request = navigationAction.request
+                request.url = desktopURL
+                decisionHandler(.cancel, preferences)
+                webView.load(request)
+                return
+            }
+        }
+        decisionHandler(.allow, preferences)
+    }
 
     func webView(
         _ webView: WKWebView,

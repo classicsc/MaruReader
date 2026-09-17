@@ -37,6 +37,8 @@ final class WebSession {
     ) -> WebSession {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
+        configuration.allowsInlineMediaPlayback = true
+        configuration.userContentController.addUserScript(YouTubeTranscriptScript.inlinePlaybackScript)
         contentBlocker.install(into: configuration)
 
         let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
