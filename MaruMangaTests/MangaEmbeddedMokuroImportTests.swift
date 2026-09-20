@@ -21,72 +21,13 @@ import Foundation
 import MaruVision
 import Testing
 import UIKit
-import Zip
 
 /// Covers the import-time pickup of a `.mokuro` file packaged inside the CBZ,
 /// as opposed to the user attaching one by hand (`MangaMokuroAttachmentTests`).
+///
+/// Nothing here fails the import: the user asked for a manga, not for the mokuro
+/// file, so an unusable one is skipped and the manga still arrives.
 struct MangaEmbeddedMokuroImportTests {
-    enum FixtureError: Error {
-        case imageEncodingFailed
-        case archiveNotWritten
-    }
-
-    // MARK: - Fixtures
-
-    private func mokuroJSON(imgPath: String) -> String {
-        """
-        {"pages": [{"img_width": 10, "img_height": 10, "blocks": [], "img_path": "\(imgPath)"}]}
-        """
-    }
-
-    private func imageData(hue: CGFloat) throws -> Data {
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 10, height: 10))
-        let image = renderer.image { context in
-            UIColor(hue: hue, saturation: 1.0, brightness: 1.0, alpha: 1.0).setFill()
-            context.fill(CGRect(x: 0, y: 0, width: 10, height: 10))
-        }
-        guard let data = image.jpegData(compressionQuality: 0.8) else {
-            throw FixtureError.imageEncodingFailed
-        }
-        return data
-    }
-
-    /// Builds a CBZ containing three page images plus whichever extra files are
-    /// given as `path relative to the archive root` -> `contents`.
-    private func makeArchive(
-        named name: String = "Embedded Manga",
-        imageNames: [String] = ["001.jpg", "002.jpg", "003.jpg"],
-        extraFiles: [String: String] = [:]
-    ) throws -> URL {
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-
-        let contentsDir = tempDir.appendingPathComponent("contents")
-        try FileManager.default.createDirectory(at: contentsDir, withIntermediateDirectories: true)
-
-        for (index, imageName) in imageNames.enumerated() {
-            let data = try imageData(hue: CGFloat(index) / CGFloat(max(imageNames.count, 1)))
-            try data.write(to: contentsDir.appendingPathComponent(imageName))
-        }
-
-        for (relativePath, contents) in extraFiles {
-            let fileURL = contentsDir.appendingPathComponent(relativePath)
-            try FileManager.default.createDirectory(
-                at: fileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-            try contents.write(to: fileURL, atomically: true, encoding: .utf8)
-        }
-
-        let archiveURL = tempDir.appendingPathComponent("\(name).cbz")
-        try Zip.zipFiles(paths: [contentsDir], zipFilePath: archiveURL, password: nil, progress: nil)
-
-        guard FileManager.default.fileExists(atPath: archiveURL.path) else {
-            throw FixtureError.archiveNotWritten
-        }
-        return archiveURL
-    }
-
     // MARK: - Helpers
 
     private func runImport(of archiveURL: URL) async throws -> (MangaImportManager, NSManagedObjectContext, NSManagedObjectID) {
@@ -112,7 +53,9 @@ struct MangaEmbeddedMokuroImportTests {
     // MARK: - Tests
 
     @Test func import_archiveWithEmbeddedMokuro_attachesItAutomatically() async throws {
-        let archiveURL = try makeArchive(extraFiles: ["volume.mokuro": mokuroJSON(imgPath: "001.jpg")])
+        let archiveURL = try MokuroFixture.makeArchive(
+            extraFiles: ["volume.mokuro": MokuroFixture.matchingMokuroJSON()]
+        )
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (_, context, mangaID) = try await runImport(of: archiveURL)
@@ -125,11 +68,11 @@ struct MangaEmbeddedMokuroImportTests {
         #expect(FileManager.default.fileExists(atPath: mokuroFile.path))
 
         let volume = try JSONDecoder().decode(MokuroVolume.self, from: Data(contentsOf: mokuroFile))
-        #expect(volume.pages.map(\.imgPath) == ["001.jpg"])
+        #expect(volume.pages.map(\.imgPath) == MokuroFixture.defaultImageNames.map(MokuroFixture.archivePath))
     }
 
     @Test func import_archiveWithoutMokuro_leavesNothingAttached() async throws {
-        let archiveURL = try makeArchive()
+        let archiveURL = try MokuroFixture.makeArchive()
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (_, context, mangaID) = try await runImport(of: archiveURL)
@@ -140,7 +83,7 @@ struct MangaEmbeddedMokuroImportTests {
     }
 
     @Test func import_archiveWithUndecodableMokuro_stillImportsWithoutAttaching() async throws {
-        let archiveURL = try makeArchive(extraFiles: ["volume.mokuro": "not json at all"])
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: ["volume.mokuro": "not json at all"])
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (_, context, mangaID) = try await runImport(of: archiveURL)
@@ -151,7 +94,7 @@ struct MangaEmbeddedMokuroImportTests {
     }
 
     @Test func import_archiveWithEmptyPagesMokuro_stillImportsWithoutAttaching() async throws {
-        let archiveURL = try makeArchive(extraFiles: ["volume.mokuro": "{\"pages\": []}"])
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: ["volume.mokuro": "{\"pages\": []}"])
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (_, context, mangaID) = try await runImport(of: archiveURL)
@@ -161,10 +104,61 @@ struct MangaEmbeddedMokuroImportTests {
         #expect(state.mokuroFileName == nil)
     }
 
+    /// A mokuro file covering a different number of pages was generated from a
+    /// different volume, so the import skips it rather than attaching OCR from
+    /// another manga.
+    @Test func import_archiveWithWrongPageCountMokuro_stillImportsWithoutAttaching() async throws {
+        let shortMokuro = MokuroFixture.mokuroJSON(imgPaths: [MokuroFixture.archivePath("001.jpg")])
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: ["volume.mokuro": shortMokuro])
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let (_, context, mangaID) = try await runImport(of: archiveURL)
+        let state = await mangaState(mangaID, in: context)
+
+        #expect(state.importComplete)
+        #expect(state.mokuroFileName == nil)
+    }
+
+    /// Right page count, but every page names a file this archive does not have:
+    /// it would pair with nothing, so it is skipped.
+    @Test func import_archiveWithMokuroForDifferentVolume_stillImportsWithoutAttaching() async throws {
+        let foreignMokuro = MokuroFixture.mokuroJSON(imgPaths: [
+            "other_volume/001.jpg",
+            "other_volume/002.jpg",
+            "other_volume/003.jpg",
+        ])
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: ["volume.mokuro": foreignMokuro])
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let (_, context, mangaID) = try await runImport(of: archiveURL)
+        let state = await mangaState(mangaID, in: context)
+
+        #expect(state.importComplete)
+        #expect(state.mokuroFileName == nil)
+    }
+
+    /// Covering only some of the pages is still worth attaching — those pages get
+    /// real OCR — and the import says nothing, since the user did not pick the file.
+    @Test func import_archiveWithPartiallyMatchingMokuro_attachesIt() async throws {
+        let partialMokuro = MokuroFixture.mokuroJSON(imgPaths: [
+            MokuroFixture.archivePath("001.jpg"),
+            MokuroFixture.archivePath("002.jpg"),
+            "other_volume/003.jpg",
+        ])
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: ["volume.mokuro": partialMokuro])
+        defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
+
+        let (_, context, mangaID) = try await runImport(of: archiveURL)
+        let state = await mangaState(mangaID, in: context)
+
+        #expect(state.importComplete)
+        #expect(state.mokuroFileName != nil)
+    }
+
     @Test func import_archiveWithMultipleMokuroFiles_attachesFirstBySortedPath() async throws {
-        let archiveURL = try makeArchive(extraFiles: [
-            "b_second.mokuro": mokuroJSON(imgPath: "second.jpg"),
-            "a_first.mokuro": mokuroJSON(imgPath: "first.jpg"),
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: [
+            "b_second.mokuro": MokuroFixture.matchingMokuroJSON(imgWidth: 22),
+            "a_first.mokuro": MokuroFixture.matchingMokuroJSON(imgWidth: 11),
         ])
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
@@ -173,11 +167,11 @@ struct MangaEmbeddedMokuroImportTests {
 
         let mokuroFile = try #require(state.mokuroFile)
         let volume = try JSONDecoder().decode(MokuroVolume.self, from: Data(contentsOf: mokuroFile))
-        #expect(volume.pages.map(\.imgPath) == ["first.jpg"])
+        #expect(volume.pages.first?.imgWidth == 11)
     }
 
     @Test func import_archiveWithOnlyAppleDoubleMokuro_attachesNothing() async throws {
-        let archiveURL = try makeArchive(extraFiles: [
+        let archiveURL = try MokuroFixture.makeArchive(extraFiles: [
             "__MACOSX/._volume.mokuro": "AppleDouble metadata",
         ])
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
@@ -190,7 +184,9 @@ struct MangaEmbeddedMokuroImportTests {
     }
 
     @Test func import_archiveWithUppercaseMokuroExtension_attachesIt() async throws {
-        let archiveURL = try makeArchive(extraFiles: ["VOLUME.MOKURO": mokuroJSON(imgPath: "001.jpg")])
+        let archiveURL = try MokuroFixture.makeArchive(
+            extraFiles: ["VOLUME.MOKURO": MokuroFixture.matchingMokuroJSON()]
+        )
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (_, context, mangaID) = try await runImport(of: archiveURL)
@@ -200,7 +196,9 @@ struct MangaEmbeddedMokuroImportTests {
     }
 
     @Test func deleteManga_removesAutomaticallyAttachedMokuroFile() async throws {
-        let archiveURL = try makeArchive(extraFiles: ["volume.mokuro": mokuroJSON(imgPath: "001.jpg")])
+        let archiveURL = try MokuroFixture.makeArchive(
+            extraFiles: ["volume.mokuro": MokuroFixture.matchingMokuroJSON()]
+        )
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let (importManager, context, mangaID) = try await runImport(of: archiveURL)

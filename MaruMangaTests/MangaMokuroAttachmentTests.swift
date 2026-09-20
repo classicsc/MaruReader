@@ -20,25 +20,41 @@ import Foundation
 @testable import MaruManga
 import Testing
 
+/// Covers the user picking a `.mokuro` file for a manga already in the library,
+/// as opposed to one packaged inside the CBZ (`MangaEmbeddedMokuroImportTests`).
+///
+/// Unlike the embedded flow, the user asked for this file by name, so a file that
+/// does not belong to this manga is rejected with an error rather than skipped.
 struct MangaMokuroAttachmentTests {
-    private let validMokuroJSON = """
-    {"pages": [{"img_width": 10, "img_height": 10, "blocks": [], "img_path": "001.jpg"}]}
-    """
-
+    /// A manga backed by a real CBZ in the manga directory, as it would be after a
+    /// successful import — attaching validates against the archive's page images.
     private func makeImportedManga(
         persistenceController: MangaDataPersistenceController
-    ) async throws -> NSManagedObjectID {
+    ) async throws -> (mangaID: NSManagedObjectID, archiveURL: URL) {
+        let sourceURL = try MokuroFixture.makeArchive()
+        defer { try? FileManager.default.removeItem(at: sourceURL.deletingLastPathComponent()) }
+
+        let mangaUUID = UUID()
+        let localFileName = "\(mangaUUID.uuidString).cbz"
+        let mangaDir = try #require(MangaArchive.mangaDirectory())
+        try FileManager.default.createDirectory(at: mangaDir, withIntermediateDirectories: true)
+        let archiveURL = mangaDir.appendingPathComponent(localFileName)
+        try? FileManager.default.removeItem(at: archiveURL)
+        try FileManager.default.copyItem(at: sourceURL, to: archiveURL)
+
         let context = persistenceController.container.newBackgroundContext()
-        return try await context.perform {
+        let mangaID = try await context.perform {
             let manga = MangaArchive(context: context)
-            manga.id = UUID()
+            manga.id = mangaUUID
             manga.title = "Test Manga"
-            manga.localFileName = "test.cbz"
+            manga.localFileName = localFileName
+            manga.totalPages = Int64(MokuroFixture.defaultImageNames.count)
             manga.importComplete = true
             manga.dateAdded = Date()
             try context.save()
             return manga.objectID
         }
+        return (mangaID, archiveURL)
     }
 
     private func writeTempFile(contents: String, extension ext: String) throws -> URL {
@@ -67,12 +83,14 @@ struct MangaMokuroAttachmentTests {
     @Test func attachMokuroFile_validFile_copiesAndSetsAttribute() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
-        let sourceURL = try writeTempFile(contents: validMokuroJSON, extension: "mokuro")
+        let sourceURL = try writeTempFile(contents: MokuroFixture.matchingMokuroJSON(), extension: "mokuro")
         defer { try? FileManager.default.removeItem(at: sourceURL) }
 
-        try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        let result = try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        #expect(result == .complete)
 
         let context = persistenceController.container.viewContext
         let fileName = await mokuroFileName(for: mangaID, context: context)
@@ -86,12 +104,13 @@ struct MangaMokuroAttachmentTests {
     @Test func attachMokuroFile_invalidJSON_throwsAndWritesNothing() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
         let sourceURL = try writeTempFile(contents: "not json", extension: "mokuro")
         defer { try? FileManager.default.removeItem(at: sourceURL) }
 
-        await #expect(throws: MangaImportError.self) {
+        await #expect(throws: MangaImportError.invalidMokuroFile) {
             try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
         }
 
@@ -107,12 +126,13 @@ struct MangaMokuroAttachmentTests {
     @Test func attachMokuroFile_emptyPagesArray_throws() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
         let sourceURL = try writeTempFile(contents: "{\"pages\": []}", extension: "mokuro")
         defer { try? FileManager.default.removeItem(at: sourceURL) }
 
-        await #expect(throws: MangaImportError.self) {
+        await #expect(throws: MangaImportError.invalidMokuroFile) {
             try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
         }
 
@@ -122,22 +142,120 @@ struct MangaMokuroAttachmentTests {
         #expect(!FileManager.default.fileExists(atPath: destinationURL.path))
     }
 
+    /// Mokuro is run over a whole volume, so a different page count means this file
+    /// came from a different one.
+    @Test func attachMokuroFile_wrongPageCount_throwsAndWritesNothing() async throws {
+        let persistenceController = makeMangaPersistenceController()
+        let importManager = MangaImportManager(container: persistenceController.container)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
+
+        let shortMokuro = MokuroFixture.mokuroJSON(imgPaths: [MokuroFixture.archivePath("001.jpg")])
+        let sourceURL = try writeTempFile(contents: shortMokuro, extension: "mokuro")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        await #expect(throws: MangaImportError.invalidMokuroFile) {
+            try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        }
+
+        let context = persistenceController.container.viewContext
+        #expect(await mokuroFileName(for: mangaID, context: context) == nil)
+
+        let mangaUUID = try #require(await mangaUUID(for: mangaID, context: context))
+        let destinationURL = try expectedDestinationURL(forMangaUUID: mangaUUID)
+        #expect(!FileManager.default.fileExists(atPath: destinationURL.path))
+    }
+
+    /// The right number of pages, but none of them are this archive's: it would
+    /// pair with nothing, so it is for a different manga.
+    @Test func attachMokuroFile_noMatchingPages_throwsAndWritesNothing() async throws {
+        let persistenceController = makeMangaPersistenceController()
+        let importManager = MangaImportManager(container: persistenceController.container)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
+
+        let foreignMokuro = MokuroFixture.mokuroJSON(imgPaths: [
+            "other_volume/001.jpg",
+            "other_volume/002.jpg",
+            "other_volume/003.jpg",
+        ])
+        let sourceURL = try writeTempFile(contents: foreignMokuro, extension: "mokuro")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        await #expect(throws: MangaImportError.invalidMokuroFile) {
+            try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        }
+
+        let context = persistenceController.container.viewContext
+        #expect(await mokuroFileName(for: mangaID, context: context) == nil)
+
+        let mangaUUID = try #require(await mangaUUID(for: mangaID, context: context))
+        let destinationURL = try expectedDestinationURL(forMangaUUID: mangaUUID)
+        #expect(!FileManager.default.fileExists(atPath: destinationURL.path))
+    }
+
+    /// Covering only some of the pages is worth attaching — those pages get real
+    /// OCR — but the caller is told so it can warn.
+    @Test func attachMokuroFile_partialMatch_attachesAndReportsCounts() async throws {
+        let persistenceController = makeMangaPersistenceController()
+        let importManager = MangaImportManager(container: persistenceController.container)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
+
+        let partialMokuro = MokuroFixture.mokuroJSON(imgPaths: [
+            MokuroFixture.archivePath("001.jpg"),
+            MokuroFixture.archivePath("002.jpg"),
+            "other_volume/003.jpg",
+        ])
+        let sourceURL = try writeTempFile(contents: partialMokuro, extension: "mokuro")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        let result = try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        #expect(result == .partial(matchedPages: 2, totalPages: 3))
+
+        let context = persistenceController.container.viewContext
+        #expect(await mokuroFileName(for: mangaID, context: context) != nil)
+    }
+
+    /// The archive is validated at import, so this only happens if it goes missing
+    /// afterwards — but attaching a file we cannot check is worse than refusing.
+    @Test func attachMokuroFile_missingArchive_throwsMissingFile() async throws {
+        let persistenceController = makeMangaPersistenceController()
+        let importManager = MangaImportManager(container: persistenceController.container)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        try FileManager.default.removeItem(at: archiveURL)
+
+        let sourceURL = try writeTempFile(contents: MokuroFixture.matchingMokuroJSON(), extension: "mokuro")
+        defer { try? FileManager.default.removeItem(at: sourceURL) }
+
+        await #expect(throws: MangaImportError.missingFile) {
+            try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
+        }
+
+        let context = persistenceController.container.viewContext
+        #expect(await mokuroFileName(for: mangaID, context: context) == nil)
+    }
+
     @Test func attachMokuroFile_replacesExistingAttachment() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
-        let firstURL = try writeTempFile(contents: validMokuroJSON, extension: "mokuro")
+        let firstURL = try writeTempFile(
+            contents: MokuroFixture.matchingMokuroJSON(imgWidth: 11),
+            extension: "mokuro"
+        )
         defer { try? FileManager.default.removeItem(at: firstURL) }
         try await importManager.attachMokuroFile(from: firstURL, to: mangaID)
 
         let context = persistenceController.container.viewContext
         let firstFileName = try #require(await mokuroFileName(for: mangaID, context: context))
 
-        let secondJSON = """
-        {"pages": [{"img_width": 20, "img_height": 20, "blocks": [], "img_path": "002.jpg"}]}
-        """
-        let secondURL = try writeTempFile(contents: secondJSON, extension: "mokuro")
+        let secondURL = try writeTempFile(
+            contents: MokuroFixture.matchingMokuroJSON(imgWidth: 22),
+            extension: "mokuro"
+        )
         defer { try? FileManager.default.removeItem(at: secondURL) }
         try await importManager.attachMokuroFile(from: secondURL, to: mangaID)
 
@@ -147,13 +265,14 @@ struct MangaMokuroAttachmentTests {
         let mangaDir = try #require(MangaArchive.mangaDirectory())
         let destinationURL = mangaDir.appendingPathComponent(secondFileName)
         let contents = try String(contentsOf: destinationURL, encoding: .utf8)
-        #expect(contents.contains("002.jpg"))
+        #expect(contents.contains("\"img_width\": 22"))
     }
 
     @Test func attachMokuroFile_unreadableFile_throwsFileAccessDenied() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
         // A URL that does not exist on disk, so Data(contentsOf:) fails to read
         // rather than failing to decode.
@@ -172,9 +291,10 @@ struct MangaMokuroAttachmentTests {
     @Test func deleteManga_RemovesMokuroFile() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
-        let sourceURL = try writeTempFile(contents: validMokuroJSON, extension: "mokuro")
+        let sourceURL = try writeTempFile(contents: MokuroFixture.matchingMokuroJSON(), extension: "mokuro")
         defer { try? FileManager.default.removeItem(at: sourceURL) }
         try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
 
@@ -195,9 +315,10 @@ struct MangaMokuroAttachmentTests {
     @Test func removeMokuroFile_clearsAttributeAndDeletesFile() async throws {
         let persistenceController = makeMangaPersistenceController()
         let importManager = MangaImportManager(container: persistenceController.container)
-        let mangaID = try await makeImportedManga(persistenceController: persistenceController)
+        let (mangaID, archiveURL) = try await makeImportedManga(persistenceController: persistenceController)
+        defer { try? FileManager.default.removeItem(at: archiveURL) }
 
-        let sourceURL = try writeTempFile(contents: validMokuroJSON, extension: "mokuro")
+        let sourceURL = try writeTempFile(contents: MokuroFixture.matchingMokuroJSON(), extension: "mokuro")
         defer { try? FileManager.default.removeItem(at: sourceURL) }
         try await importManager.attachMokuroFile(from: sourceURL, to: mangaID)
 

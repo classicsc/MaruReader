@@ -130,6 +130,8 @@ public struct MangaArchiveLibraryView: View {
     @State private var metadataEditorBook: MangaArchive?
     @State private var selectedManga: MangaArchive?
     @State private var mokuroAttachTarget: MangaArchive?
+    @State private var mokuroWarning: String?
+    @State private var showingMokuroWarning = false
     @State private var filePickerMode: MangaFilePickerMode = .importArchive
 
     private var books: FetchRequest<MangaArchive>
@@ -218,6 +220,16 @@ public struct MangaArchiveLibraryView: View {
                         Text(error.localizedDescription)
                     }
                 }
+                .alert(MangaLocalization.string("Partial Mokuro Match"), isPresented: $showingMokuroWarning) {
+                    Button(MangaLocalization.string("OK")) {
+                        mokuroWarning = nil
+                        showingMokuroWarning = false
+                    }
+                } message: {
+                    if let mokuroWarning {
+                        Text(mokuroWarning)
+                    }
+                }
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
                     MangaMetadataEditorView(manga: book)
                 }
@@ -275,19 +287,27 @@ public struct MangaArchiveLibraryView: View {
                                 Label(MangaLocalization.string("Edit Metadata"), systemImage: "pencil")
                             }
 
-                            Button {
-                                mokuroAttachTarget = book
-                                filePickerMode = .attachMokuro
-                                showingFilePicker = true
-                            } label: {
-                                Label(MangaLocalization.string("Attach Mokuro File..."), systemImage: "doc.badge.plus")
-                            }
-
                             if book.mokuroFileName != nil {
+                                Button {
+                                    mokuroAttachTarget = book
+                                    filePickerMode = .attachMokuro
+                                    showingFilePicker = true
+                                } label: {
+                                    Label(MangaLocalization.string("Replace Mokuro File"), systemImage: "text.badge.plus")
+                                }
+
                                 Button {
                                     removeMokuroFile(book)
                                 } label: {
                                     Label(MangaLocalization.string("Remove Mokuro File"), systemImage: "text.badge.minus")
+                                }
+                            } else {
+                                Button {
+                                    mokuroAttachTarget = book
+                                    filePickerMode = .attachMokuro
+                                    showingFilePicker = true
+                                } label: {
+                                    Label(MangaLocalization.string("Attach Mokuro File"), systemImage: "text.badge.plus")
                                 }
                             }
 
@@ -380,14 +400,21 @@ public struct MangaArchiveLibraryView: View {
         case let .success(urls):
             guard let url = urls.first else { return }
 
-            Task {
+            Task { @MainActor in
                 do {
-                    try await MangaImportManager.shared.attachMokuroFile(from: url, to: book.objectID)
-                } catch {
-                    await MainActor.run {
-                        importError = error
-                        showingError = true
+                    let result = try await MangaImportManager.shared.attachMokuroFile(
+                        from: url,
+                        to: book.objectID
+                    )
+                    if case let .partial(matchedPages, totalPages) = result {
+                        mokuroWarning = MangaLocalization.string(
+                            "This mokuro file covers \(matchedPages) of \(totalPages) pages. The rest will use on-device text recognition."
+                        )
+                        showingMokuroWarning = true
                     }
+                } catch {
+                    importError = error
+                    showingError = true
                 }
             }
 

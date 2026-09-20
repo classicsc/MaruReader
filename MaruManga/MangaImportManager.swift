@@ -202,13 +202,16 @@ public actor MangaImportManager {
     }
 
     /// Attaches a mokuro OCR data file to an already-imported manga.
-    /// Validates the file decodes as mokuro JSON with at least one page before
-    /// copying it in and updating the manga's `mokuroFileName`. Overwrites any
-    /// previously attached mokuro file for this manga.
+    /// Overwrites any previously attached mokuro file for this manga.
     /// - Parameters:
     ///   - url: The file URL of the `.mokuro` file to attach.
     ///   - mangaID: The NSManagedObjectID of the MangaArchive to attach it to.
-    public func attachMokuroFile(from url: URL, to mangaID: NSManagedObjectID) async throws {
+    /// - Returns: Whether the attached file covers every page of the archive.
+    @discardableResult
+    public func attachMokuroFile(
+        from url: URL,
+        to mangaID: NSManagedObjectID
+    ) async throws -> MokuroAttachmentResult {
         let didStartAccess = url.startAccessingSecurityScopedResource()
         defer {
             if didStartAccess {
@@ -230,20 +233,49 @@ public actor MangaImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let (mangaUUID, mangaTotalPages, mangaTitle): (UUID, Int64, String?) = try await context.perform {
-            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive,
-                  let mangaUUID = manga.id
-            else {
-                throw MangaImportError.databaseError
+        let (mangaUUID, mangaTotalPages, mangaTitle, localFileName):
+            (UUID, Int64, String?, String?) = try await context.perform {
+                guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive,
+                      let mangaUUID = manga.id
+                else {
+                    throw MangaImportError.databaseError
+                }
+                return (mangaUUID, manga.totalPages, manga.title, manga.localFileName)
             }
-            return (mangaUUID, manga.totalPages, manga.title)
+
+        let mangaDescription = mangaTitle ?? mangaUUID.uuidString
+
+        // First, validate based on number of pages
+        guard volume.pages.count == mangaTotalPages else {
+            logger.warning(
+                """
+                Rejected mokuro file: \(volume.pages.count, privacy: .public) pages vs \
+                \(mangaTotalPages, privacy: .public) in \(mangaDescription, privacy: .public)
+                """
+            )
+            throw MangaImportError.invalidMokuroFile
         }
 
-        logMokuroPageCountMismatch(
-            volume: volume,
-            totalPages: mangaTotalPages,
-            mangaDescription: mangaTitle ?? mangaUUID.uuidString
-        )
+        // Validate based on image paths
+        let archivePaths = try await archivePageEntryPaths(localFileName: localFileName)
+        let matchedPages = mokuroMatchCount(volume: volume, archivePaths: archivePaths)
+
+        guard matchedPages > 0 else {
+            logger.warning(
+                "Rejected mokuro file: no page matches \(mangaDescription, privacy: .public)"
+            )
+            throw MangaImportError.invalidMokuroFile
+        }
+
+        if matchedPages < archivePaths.count {
+            logger.warning(
+                """
+                Attached mokuro file pairs \(matchedPages, privacy: .public) of \
+                \(archivePaths.count, privacy: .public) pages in \
+                \(mangaDescription, privacy: .public); the rest will use Vision OCR
+                """
+            )
+        }
 
         let destinationFileName = try writeMokuroData(data, forMangaUUID: mangaUUID)
         let destinationURL = try mangaDirectory().appendingPathComponent(destinationFileName)
@@ -262,6 +294,10 @@ public actor MangaImportManager {
             try? FileManager.default.removeItem(at: destinationURL)
             throw error
         }
+
+        return matchedPages == archivePaths.count
+            ? .complete
+            : .partial(matchedPages: matchedPages, totalPages: archivePaths.count)
     }
 
     /// Removes an attached mokuro file from a manga, clearing the attribute
@@ -462,7 +498,7 @@ public actor MangaImportManager {
                 from: archive,
                 entries: entries,
                 mangaUUID: mangaUUID,
-                totalPages: totalPages
+                imagePaths: imageEntries.map(\.path)
             )
             if let embeddedMokuroFileName {
                 writtenMokuroFile = try? mangaDirectory().appendingPathComponent(embeddedMokuroFileName)
@@ -610,7 +646,7 @@ public actor MangaImportManager {
         from archive: Archive,
         entries: [Entry],
         mangaUUID: UUID,
-        totalPages: Int
+        imagePaths: [String]
     ) async -> String? {
         let candidates = sortedMokuroEntries(entries)
         guard let entry = candidates.first else { return nil }
@@ -627,11 +663,38 @@ public actor MangaImportManager {
         do {
             let data = try await extractEntryData(from: archive, entry: entry)
             let volume = try decodeMokuroVolume(from: data)
-            logMokuroPageCountMismatch(
-                volume: volume,
-                totalPages: Int64(totalPages),
-                mangaDescription: mangaUUID.uuidString
-            )
+
+            // Same rules as attachMokuroFile(from:to:): a file covering a different
+            // number of pages, or naming none of them, belongs to another volume.
+            guard volume.pages.count == imagePaths.count else {
+                logger.warning(
+                    """
+                    Skipping embedded mokuro file \(entry.path, privacy: .public): \
+                    \(volume.pages.count, privacy: .public) pages vs \
+                    \(imagePaths.count, privacy: .public) in the archive
+                    """
+                )
+                return nil
+            }
+
+            let matchedPages = mokuroMatchCount(volume: volume, archivePaths: imagePaths)
+            guard matchedPages > 0 else {
+                logger.warning(
+                    "Skipping embedded mokuro file \(entry.path, privacy: .public): no page matches the archive"
+                )
+                return nil
+            }
+
+            if matchedPages < imagePaths.count {
+                logger.warning(
+                    """
+                    Embedded mokuro file \(entry.path, privacy: .public) pairs \
+                    \(matchedPages, privacy: .public) of \(imagePaths.count, privacy: .public) \
+                    pages; the rest will use Vision OCR
+                    """
+                )
+            }
+
             let fileName = try writeMokuroData(data, forMangaUUID: mangaUUID)
             logger.debug("Attached embedded mokuro file \(entry.path, privacy: .public) during import")
             return fileName
@@ -644,6 +707,35 @@ public actor MangaImportManager {
             )
             return nil
         }
+    }
+
+    /// The archive's page image entry paths, in reading order, for pairing against
+    /// a mokuro file's `img_path`.
+    private func archivePageEntryPaths(localFileName: String?) async throws -> [String] {
+        guard let localFileName else {
+            throw MangaImportError.missingFile
+        }
+
+        let archiveURL = try mangaDirectory().appendingPathComponent(localFileName)
+        guard FileManager.default.fileExists(atPath: archiveURL.path) else {
+            throw MangaImportError.missingFile
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: archiveURL, accessMode: .read)
+        } catch {
+            throw MangaImportError.invalidArchive
+        }
+
+        let entries = try await archive.entries()
+        return sortedImageEntries(entries).map(\.path)
+    }
+
+    /// How many of the archive's pages this mokuro volume has a page for.
+    private func mokuroMatchCount(volume: MokuroVolume, archivePaths: [String]) -> Int {
+        let mokuroPaths = Set(volume.pages.map(\.imgPath))
+        return archivePaths.count { mokuroPaths.contains($0) }
     }
 
     /// Decodes mokuro JSON, rejecting anything that is not a volume with at least one page.
@@ -672,23 +764,6 @@ public actor MangaImportManager {
             throw MangaImportError.mokuroFileCopyFailed(underlyingError: error)
         }
         return destinationFileName
-    }
-
-    /// A mokuro file covering a different number of pages than the archive still
-    /// pairs page-by-page on filename, so this is a diagnostic, not a rejection.
-    private func logMokuroPageCountMismatch(
-        volume: MokuroVolume,
-        totalPages: Int64,
-        mangaDescription: String
-    ) {
-        guard Int64(volume.pages.count) != totalPages else { return }
-        logger.warning(
-            """
-            Attached mokuro file page count (\(volume.pages.count, privacy: .public)) does not \
-            match manga totalPages (\(totalPages, privacy: .public)) for manga \
-            \(mangaDescription, privacy: .public)
-            """
-        )
     }
 
     private func isImageEntry(_ entry: Entry) -> Bool {

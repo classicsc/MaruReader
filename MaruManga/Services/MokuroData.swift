@@ -34,6 +34,10 @@ import os
 ///
 /// The reliable workflow is to generate the `.mokuro` from the archive itself, so
 /// its `img_path` values are the archive's own filenames.
+///
+/// Attachment pre-validates on whole `img_path` values against the archive's entry
+/// paths (see `MangaImportManager.attachMokuroFile(from:to:)`), which is stricter
+/// than the filename pairing here: a file that gets attached always pairs.
 actor MokuroData {
     private let pagesByFileName: [String: MokuroPage]
     private let logger = Logger.maru(category: "MokuroData")

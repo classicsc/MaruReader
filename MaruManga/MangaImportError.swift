@@ -48,7 +48,7 @@ enum MangaImportError: Error, Equatable, LocalizedError {
         case let .coverExtractionFailed(underlyingError):
             MangaLocalization.string("Failed to extract cover image: \(underlyingError.localizedDescription)")
         case .invalidMokuroFile:
-            MangaLocalization.string("The selected file is not a valid mokuro file.")
+            MangaLocalization.string("This mokuro file doesn't match the selected manga.")
         case let .mokuroFileCopyFailed(underlyingError):
             MangaLocalization.string("Failed to copy the mokuro file: \(underlyingError.localizedDescription)")
         }
