@@ -39,6 +39,7 @@ final class WebBrowserPage {
             }
         }
     }
+
     var title: String?
     var isLoading = false
     var estimatedProgress = 0.0
@@ -410,6 +411,33 @@ final class WebBrowserPage {
     }
 }
 
+extension WebBrowserPage {
+    enum SchemeAction: Equatable {
+        case allow
+        case cancel
+        case openExternally
+    }
+
+    /// Main-frame policy by URL scheme. App schemes (twitter://, youtube://, intent://) are dropped;
+    /// only user-tapped communication links leave the app.
+    nonisolated static func schemeAction(for url: URL, userTapped: Bool) -> SchemeAction {
+        let scheme = url.scheme?.lowercased() ?? ""
+        if ["http", "https", "about", "data", "blob", "javascript"].contains(scheme) {
+            return .allow
+        }
+        if userTapped, ["mailto", "tel", "sms", "facetime", "facetime-audio"].contains(scheme) {
+            return .openExternally
+        }
+        return .cancel
+    }
+}
+
+private extension WKNavigationActionPolicy {
+    /// WebKit's `_WKNavigationActionPolicyAllowWithoutTryingAppLink` (allow + 2); keeps universal links
+    /// in the browser. Same approach as Firefox and Brave for iOS.
+    static let allowWithoutTryingAppLink = WKNavigationActionPolicy(rawValue: WKNavigationActionPolicy.allow.rawValue + 2) ?? .allow
+}
+
 private struct FaviconCandidate {
     let url: URL
     let rel: String
@@ -525,10 +553,27 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         preferences: WKWebpagePreferences,
         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
-        if navigationAction.targetFrame?.isMainFrame == true,
-           let url = navigationAction.request.url,
-           YouTubeVideo.isYouTube(url)
-        {
+        guard navigationAction.targetFrame?.isMainFrame == true,
+              let url = navigationAction.request.url
+        else {
+            decisionHandler(.allow, preferences)
+            return
+        }
+
+        switch WebBrowserPage.schemeAction(for: url, userTapped: navigationAction.navigationType == .linkActivated) {
+        case .allow:
+            break
+        case .cancel:
+            decisionHandler(.cancel, preferences)
+            return
+        case .openExternally:
+            decisionHandler(.cancel, preferences)
+            UIApplication.shared.open(url)
+            return
+        }
+
+        let isYouTube = YouTubeVideo.isYouTube(url)
+        if isYouTube {
             preferences.preferredContentMode = .desktop
             if let desktopURL = YouTubeVideo.desktopURL(for: url), desktopURL != url {
                 var request = navigationAction.request
@@ -538,7 +583,13 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
                 return
             }
         }
-        decisionHandler(.allow, preferences)
+
+        // nil keeps WebKit's content-mode-driven UA, so YouTube's forced desktop mode and iPad are unchanged.
+        let userAgent = isYouTube || UIDevice.current.userInterfaceIdiom != .phone ? nil : WebUserAgent.mobileSafari
+        if webView.customUserAgent != userAgent {
+            webView.customUserAgent = userAgent
+        }
+        decisionHandler(.allowWithoutTryingAppLink, preferences)
     }
 
     func webView(
