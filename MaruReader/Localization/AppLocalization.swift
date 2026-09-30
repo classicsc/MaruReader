@@ -166,11 +166,14 @@ enum AppLocalization {
         )
     }
 
-    static func glossaryDictionary(_ title: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Glossary: %@"),
-            title
-        )
+    static func glossaryDictionary(_ title: String, includeTitle: Bool = true, plain: Bool = false) -> String {
+        let format = switch (includeTitle, plain) {
+        case (true, false): String(localized: "Glossary: %@")
+        case (false, false): String(localized: "Glossary (No Title): %@")
+        case (true, true): String(localized: "Glossary (Plain): %@")
+        case (false, true): String(localized: "Glossary (Plain, No Title): %@")
+        }
+        return String.localizedStringWithFormat(format, title)
     }
 
     static func frequencyDictionary(_ title: String) -> String {

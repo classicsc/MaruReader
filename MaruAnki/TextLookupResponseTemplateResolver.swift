@@ -120,16 +120,40 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         // MARK: - Dictionary glossary values
 
         case let .singleDictionaryGlossary(dictionaryID):
-            return resolveGlossary(forDictionary: dictionaryID)
+            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: false)
+
+        case let .singleDictionaryGlossaryNoDictionary(dictionaryID):
+            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: false)
+
+        case let .singleDictionaryGlossaryPlain(dictionaryID):
+            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: true)
+
+        case let .singleDictionaryGlossaryPlainNoDictionary(dictionaryID):
+            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: true)
 
         case .singleGlossary:
-            return resolveSingleGlossary()
-
-        case .multiDictionaryGlossary:
-            return resolveMultiDictionaryGlossary()
+            return resolveGlossary(firstDictionaryResults, includeTitle: true, plain: false)
 
         case .glossaryNoDictionary:
-            return resolveGlossaryNoDictionary()
+            return resolveGlossary(firstDictionaryResults, includeTitle: false, plain: false)
+
+        case .singleGlossaryPlain:
+            return resolveGlossary(firstDictionaryResults, includeTitle: true, plain: true)
+
+        case .singleGlossaryPlainNoDictionary:
+            return resolveGlossary(firstDictionaryResults, includeTitle: false, plain: true)
+
+        case .multiDictionaryGlossary:
+            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: false)
+
+        case .multiDictionaryGlossaryNoDictionary:
+            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: false)
+
+        case .multiDictionaryGlossaryPlain:
+            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: true)
+
+        case .multiDictionaryGlossaryPlainNoDictionary:
+            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: true)
 
         // MARK: - Audio
 
@@ -290,47 +314,38 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         return trimmed
     }
 
-    private func resolveSingleGlossary() -> TemplateResolvedValue {
-        guard let firstDictionaryID = selectedGroup.dictionariesResults.first?.dictionaryUUID else {
-            return .empty
-        }
-        return resolveGlossary(forDictionary: firstDictionaryID)
+    private var firstDictionaryResults: [DictionaryResults] {
+        Array(selectedGroup.dictionariesResults.prefix(1))
     }
 
-    private func resolveGlossary(forDictionary dictionaryID: UUID) -> TemplateResolvedValue {
-        // Try to find the specified dictionary, fallback to highest priority (first) if not found
+    /// The specified dictionary's results, falling back to the highest priority (first) dictionary.
+    private func dictionaryResults(for dictionaryID: UUID) -> [DictionaryResults] {
         let dictResult = selectedGroup.dictionariesResults.first(where: { $0.dictionaryUUID == dictionaryID })
             ?? selectedGroup.dictionariesResults.first
+        return dictResult.map { [$0] } ?? []
+    }
 
-        guard let dictResult else {
+    /// Builds a Yomitan-style glossary for the given dictionaries.
+    ///
+    /// HTML output wraps each dictionary in `<li data-dictionary="…">`, optionally prefixed with `<i>(title)</i> `.
+    /// Plain output strips all HTML except line breaks, optionally prefixing each dictionary with `(title) `.
+    private func resolveGlossary(_ dictionaries: [DictionaryResults], includeTitle: Bool, plain: Bool) -> TemplateResolvedValue {
+        guard !dictionaries.isEmpty else {
             return .empty
         }
 
-        // Use Anki-compatible HTML with CSS classes
-        let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
+        if plain {
+            let text = dictionaries.map { dictResult in
+                let body = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID).plainGlossaryText()
+                return includeTitle ? "(\(dictResult.dictionaryTitle.escapingHTML())) \(body)" : body
+            }.joined(separator: "<br>")
+            return .text(text)
+        }
 
-        // Extract and resolve image paths
-        let imagePaths = dictResult.results.extractImagePaths()
-        let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: dictResult.dictionaryUUID)
-
-        // Generate style tag with base styles and dictionary-specific styles
-        let styleTag = AnkiStyleProvider.generateStyleTag(
-            dictionaryResults: [(uuid: dictResult.dictionaryUUID, title: dictResult.dictionaryTitle)]
-        )
-
-        // Wrap in yomitan-glossary div with data-dictionary for Yomitan/Lapis compatibility
-        let wrappedHTML = """
-        <div style="text-align: left;" class="yomitan-glossary"><ol><li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())">\(ankiHTML)</li></ol>\(styleTag)</div>
-        """
-
-        return TemplateResolvedValue(text: wrappedHTML, mediaFiles: mediaFiles)
-    }
-
-    private func resolveMultiDictionaryGlossary() -> TemplateResolvedValue {
         var allMediaFiles: [String: URL] = [:]
 
         // Build list items with data-dictionary attributes for Yomitan/Lapis compatibility
-        let listItems = selectedGroup.dictionariesResults.map { dictResult in
+        let listItems = dictionaries.map { dictResult in
             // Use Anki-compatible HTML with CSS classes
             let ankiHTML = dictResult.results.generateCombinedAnkiHTML(dictionaryUUID: dictResult.dictionaryUUID)
 
@@ -340,13 +355,15 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
             allMediaFiles.merge(mediaFiles) { _, new in new }
 
             // Yomitan format: <li data-dictionary="..."><i>(dict name)</i> content</li>
+            let title = dictResult.dictionaryTitle.escapingHTML()
+            let titleTag = includeTitle ? "<i>(\(title))</i> " : ""
             return """
-            <li data-dictionary="\(dictResult.dictionaryTitle.escapingHTML())"><i>(\(dictResult.dictionaryTitle.escapingHTML()))</i> \(ankiHTML)</li>
+            <li data-dictionary="\(title)">\(titleTag)\(ankiHTML)</li>
             """
         }.joined()
 
         // Generate style tag with base styles and all dictionary-specific styles
-        let dictionaryInfo = selectedGroup.dictionariesResults.map { (uuid: $0.dictionaryUUID, title: $0.dictionaryTitle) }
+        let dictionaryInfo = dictionaries.map { (uuid: $0.dictionaryUUID, title: $0.dictionaryTitle) }
         let styleTag = AnkiStyleProvider.generateStyleTag(dictionaryResults: dictionaryInfo)
 
         // Wrap in yomitan-glossary div for Yomitan/Lapis compatibility
@@ -355,30 +372,6 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         """
 
         return TemplateResolvedValue(text: html, mediaFiles: allMediaFiles)
-    }
-
-    private func resolveGlossaryNoDictionary() -> TemplateResolvedValue {
-        guard let firstDict = selectedGroup.dictionariesResults.first else {
-            return .empty
-        }
-        // Use Anki-compatible HTML with CSS classes
-        let ankiHTML = firstDict.results.generateCombinedAnkiHTML(dictionaryUUID: firstDict.dictionaryUUID)
-
-        // Extract and resolve image paths
-        let imagePaths = firstDict.results.extractImagePaths()
-        let mediaFiles = resolveMediaFiles(imagePaths: imagePaths, dictionaryUUID: firstDict.dictionaryUUID)
-
-        // Generate style tag with base styles and dictionary-specific styles
-        let styleTag = AnkiStyleProvider.generateStyleTag(
-            dictionaryResults: [(uuid: firstDict.dictionaryUUID, title: firstDict.dictionaryTitle)]
-        )
-
-        // Wrap in yomitan-glossary div for styling (even without dictionary label)
-        let wrappedHTML = """
-        <div style="text-align: left;" class="yomitan-glossary">\(ankiHTML)\(styleTag)</div>
-        """
-
-        return TemplateResolvedValue(text: wrappedHTML, mediaFiles: mediaFiles)
     }
 
     /// Resolves image paths to actual file URLs in the Media directory.
@@ -621,5 +614,23 @@ private extension String {
         result = result.replacingOccurrences(of: "\"", with: "&quot;")
         result = result.replacingOccurrences(of: "'", with: "&#39;")
         return result
+    }
+
+    /// Reduces generated glossary HTML to text, keeping line breaks as `<br>`.
+    /// Ruby readings are kept in parentheses. Entities stay escaped since Anki fields are HTML.
+    func plainGlossaryText() -> String {
+        var text = replacingOccurrences(of: #"(?is)<(style|rp)\b[^>]*>.*?</\1>"#, with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: #"(?i)<rt\b[^>]*>"#, with: "(", options: .regularExpression)
+        text = text.replacingOccurrences(of: #"(?i)</rt>"#, with: ")", options: .regularExpression)
+        text = text.replacingOccurrences(
+            of: #"(?i)<(br|/?(li|div|p|ul|ol|tr|table|details|summary))\b[^>]*>"#,
+            with: "\n",
+            options: .regularExpression
+        )
+        text = text.replacingOccurrences(of: #"<[^>]*>"#, with: "", options: .regularExpression)
+        return text.split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+            .joined(separator: "<br>")
     }
 }

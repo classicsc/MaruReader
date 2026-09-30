@@ -101,6 +101,12 @@ actor DictionaryUpdateAnkiPreferencesUpdater: DictionaryUpdateAnkiPreferencesUpd
         switch value {
         case let .singleDictionaryGlossary(dictionaryID) where dictionaryID == oldID:
             .singleDictionaryGlossary(dictionaryID: newID)
+        case let .singleDictionaryGlossaryNoDictionary(dictionaryID) where dictionaryID == oldID:
+            .singleDictionaryGlossaryNoDictionary(dictionaryID: newID)
+        case let .singleDictionaryGlossaryPlain(dictionaryID) where dictionaryID == oldID:
+            .singleDictionaryGlossaryPlain(dictionaryID: newID)
+        case let .singleDictionaryGlossaryPlainNoDictionary(dictionaryID) where dictionaryID == oldID:
+            .singleDictionaryGlossaryPlainNoDictionary(dictionaryID: newID)
         case let .singlePitchAccentDictionary(dictionaryID) where dictionaryID == oldID:
             .singlePitchAccentDictionary(dictionaryID: newID)
         case let .singleFrequencyDictionary(dictionaryID) where dictionaryID == oldID:
