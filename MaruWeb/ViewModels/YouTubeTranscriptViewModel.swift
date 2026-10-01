@@ -89,11 +89,14 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         reloadID = UUID()
     }
 
+    /// Polls at 500 ms, so this waits about 20 seconds for YouTube to deliver a transcript.
+    private static let maxReadAttempts = 40
+
     func observePlayback() async {
         var attempts = 0
         while !Task.isCancelled, YouTubeVideo.id(from: page.url) == videoID {
             do {
-                let action = attempts == 0 ? "open" : (cues.isEmpty && attempts < 20 ? "read" : "time")
+                let action = attempts == 0 ? "open" : (cues.isEmpty && attempts < Self.maxReadAttempts ? "read" : "time")
                 let value = try await YouTubeTranscriptScript.call(on: page, videoID: videoID, action: action)
                 try Task.checkCancellation()
                 guard YouTubeVideo.id(from: page.url) == videoID else { return }
@@ -109,7 +112,7 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
                     }
                 }
                 attempts += 1
-                if attempts >= 20 {
+                if attempts >= Self.maxReadAttempts {
                     isLoading = false
                 }
                 try await Task.sleep(for: .milliseconds(500))

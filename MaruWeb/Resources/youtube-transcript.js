@@ -8,12 +8,12 @@ const watch = document.querySelector('ytd-watch-flexy');
 if (watch?.getAttribute('video-id') && watch.getAttribute('video-id') !== videoID) return null;
 const video = document.querySelector('#movie_player video') || document.querySelector('video');
 const adPlaying = !!document.querySelector('#movie_player.ad-showing, #movie_player.ad-interrupting');
-const state = globalThis.maruYouTubeTranscriptState ||= { videoID, rows: [], staleRows: [], didRequestTranscript: false };
+const state = globalThis.maruYouTubeTranscriptState ||= { videoID, rows: [], staleRows: [], requestedAt: null };
 if (state.videoID !== videoID) {
     state.staleRows = state.rows;
     state.rows = [];
     state.videoID = videoID;
-    state.didRequestTranscript = false;
+    state.requestedAt = null;
 }
 if ((action === 'seek' || action === 'skip') && video && !adPlaying && Number.isFinite(seconds)) {
     const target = action === 'skip' ? video.currentTime + seconds : seconds;
@@ -43,7 +43,7 @@ if (action === 'frame') {
     }
 }
 let cues = null;
-if (action === 'open') state.didRequestTranscript = false;
+if (action === 'open') state.requestedAt = null;
 if (action === 'read' || action === 'open') {
     const rows = Array.from(document.querySelectorAll('transcript-segment-view-model, ytd-transcript-segment-renderer'));
     const unchanged = rows.length > 0 && rows.every(row => state.staleRows.some(old => old.node === row && old.text === row.textContent));
@@ -69,8 +69,13 @@ if (action === 'read' || action === 'open') {
         const expand = document.querySelector('ytd-watch-metadata #description-inline-expander #expand');
         expand?.click();
         const button = document.querySelector('ytd-video-description-transcript-section-renderer button');
-        if (!state.didRequestTranscript && button && !button.disabled && button.getAttribute('aria-disabled') !== 'true') {
-            state.didRequestTranscript = true;
+        const transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[target-id*="transcript" i]');
+        const panelOpen = transcriptPanel?.getAttribute('visibility') === 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED';
+        // YouTube drops clicks made before the watch page finishes hydrating, so keep
+        // retrying until the panel opens. An open, empty panel is usually still loading.
+        const sinceRequest = state.requestedAt === null ? Infinity : performance.now() - state.requestedAt;
+        if (button && !button.disabled && button.getAttribute('aria-disabled') !== 'true' && sinceRequest >= (panelOpen ? 8000 : 2000)) {
+            state.requestedAt = performance.now();
             button.click();
         }
     }

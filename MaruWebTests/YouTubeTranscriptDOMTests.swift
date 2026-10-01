@@ -96,6 +96,35 @@ struct YouTubeTranscriptDOMTests {
         #expect(opened == "1")
     }
 
+    @Test func retriesTranscriptButtonUntilPanelOpens() async throws {
+        let view = WKWebView(frame: .zero)
+        let fixture = TranscriptFixtureNavigation()
+        view.navigationDelegate = fixture
+        try await fixture.load(view, html: """
+        <ytd-engagement-panel-section-list-renderer target-id="engagement-panel-searchable-transcript" visibility="ENGAGEMENT_PANEL_VISIBILITY_HIDDEN"></ytd-engagement-panel-section-list-renderer>
+        <ytd-video-description-transcript-section-renderer>
+          <button onclick="const count = Number(document.body.dataset.opened || 0) + 1; document.body.dataset.opened = count;
+            if (count > 1) document.querySelector('ytd-engagement-panel-section-list-renderer').setAttribute('visibility', 'ENGAGEMENT_PANEL_VISIBILITY_EXPANDED')">文字起こしを表示</button>
+        </ytd-video-description-transcript-section-renderer>
+        """)
+        func rewind(_ milliseconds: Int) async throws {
+            _ = try await view.callAsyncJavaScript("globalThis.maruYouTubeTranscriptState.requestedAt -= \(milliseconds)",
+                                                   arguments: [:], in: nil, contentWorld: .defaultClient)
+        }
+        func opened() async throws -> String? {
+            try await view.evaluateJavaScript("document.body.dataset.opened") as? String
+        }
+        // The first click is ignored, as YouTube does before the watch page hydrates.
+        _ = try await run(view, action: "open")
+        try await rewind(2500)
+        _ = try await run(view, action: "read")
+        #expect(try await opened() == "2")
+        // An open panel is left to finish loading.
+        try await rewind(2500)
+        _ = try await run(view, action: "read")
+        #expect(try await opened() == "2")
+    }
+
     @Test func rejectsStaleRowsAfterSinglePageNavigation() async throws {
         let view = WKWebView(frame: .zero)
         let fixture = TranscriptFixtureNavigation()
