@@ -17,120 +17,140 @@
 
 import MaruReaderCore
 import SwiftUI
+import Translation
 
 @MainActor
 struct DictionarySearchContentView: View {
-    let viewModel: DictionarySearchViewModel
-    let presentationState: DictionarySearchPresentationState
-    let openURL: OpenURLAction
-    let presentationTheme: DictionaryPresentationTheme?
+	let viewModel: DictionarySearchViewModel
+	let presentationState: DictionarySearchPresentationState
+	let openURL: OpenURLAction
+	let presentationTheme: DictionaryPresentationTheme?
 
-    var body: some View {
-        @Bindable var presentationState = presentationState
+	@State private var isShowingTranslation = false
 
-        VStack(alignment: .leading, spacing: 0) {
-            if let currentContext, viewModel.currentRequest != nil {
-                ContextDisplayView(
-                    context: currentContext,
-                    matchRange: viewModel.currentResponse?.effectivePrimaryResultSourceRange,
-                    furiganaSegments: presentationState.furiganaSegments(for: currentContext),
-                    fontSize: presentationState.contextFontSize,
-                    furiganaEnabled: presentationState.furiganaEnabled,
-                    isEditing: presentationState.isEditingContext,
-                    onCharacterTap: performSearchAtOffset,
-                    onCommitEdit: commitContextEdit,
-                    editText: $presentationState.editContextText
-                )
-                .transition(.move(edge: .top).combined(with: .opacity))
-            }
+	var body: some View {
+		@Bindable var presentationState = presentationState
 
-            DictionarySearchResultsView(
-                viewModel: viewModel,
-                openURL: openURL,
-                presentationTheme: presentationTheme
-            )
+		VStack(alignment: .leading, spacing: 0) {
+			if let currentContext, viewModel.currentRequest != nil {
+				ContextDisplayView(
+					context: currentContext,
+					matchRange: viewModel.currentResponse?.effectivePrimaryResultSourceRange,
+					furiganaSegments: presentationState.furiganaSegments(for: currentContext),
+					fontSize: presentationState.contextFontSize,
+					furiganaEnabled: presentationState.furiganaEnabled,
+					isEditing: presentationState.isEditingContext,
+					onCharacterTap: performSearchAtOffset,
+					onCommitEdit: commitContextEdit,
+					editText: $presentationState.editContextText
+				)
+				.transition(.move(edge: .top).combined(with: .opacity))
+				.translationPresentation(isPresented: $isShowingTranslation, text: translationSourceText)
+			}
 
-            if showToolbar {
-                DictionarySearchToolbarView(
-                    canGoBack: viewModel.canNavigateBack,
-                    canGoForward: viewModel.canNavigateForward,
-                    linksActiveEnabled: viewModel.linksActiveEnabled,
-                    showsContextActions: viewModel.currentRequest != nil,
-                    furiganaEnabled: presentationState.furiganaEnabled,
-                    isEditingContext: presentationState.isEditingContext,
-                    onBack: navigateBack,
-                    onForward: navigateForward,
-                    onToggleLinks: toggleLinksActive,
-                    onToggleFurigana: toggleFurigana,
-                    onStartEditing: startEditingContext,
-                    onCommitEdit: commitContextEdit,
-                    onCancelEdit: cancelContextEdit,
-                    onCopyContext: copyContextToClipboard,
-                    presentationTheme: presentationTheme
-                )
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .foregroundStyle(themedForegroundColor)
-        .background(themedBackgroundColor)
-        .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
-    }
+			DictionarySearchResultsView(
+				viewModel: viewModel,
+				openURL: openURL,
+				presentationTheme: presentationTheme
+			)
 
-    private var currentContext: String? {
-        guard let request = viewModel.currentRequest else { return nil }
-        return viewModel.currentResponse?.effectiveContext ?? request.context
-    }
+			if showToolbar {
+				DictionarySearchToolbarView(
+					canGoBack: viewModel.canNavigateBack,
+					canGoForward: viewModel.canNavigateForward,
+					linksActiveEnabled: viewModel.linksActiveEnabled,
+					showsContextActions: viewModel.currentRequest != nil,
+					furiganaEnabled: presentationState.furiganaEnabled,
+					isEditingContext: presentationState.isEditingContext,
+					onBack: navigateBack,
+					onForward: navigateForward,
+					onToggleLinks: toggleLinksActive,
+					onToggleFurigana: toggleFurigana,
+					onStartEditing: startEditingContext,
+					onCommitEdit: commitContextEdit,
+					onCancelEdit: cancelContextEdit,
+					onCopyContext: copyContextToClipboard,
+					onTranslateContext: translateContext,
+					presentationTheme: presentationTheme
+				)
+				.transition(.move(edge: .bottom).combined(with: .opacity))
+			}
+		}
+		.foregroundStyle(themedForegroundColor)
+		.background(themedBackgroundColor)
+		.applyLocalColorScheme(presentationTheme?.preferredColorScheme)
+	}
 
-    private var showToolbar: Bool {
-        viewModel.currentRequest != nil || viewModel.canNavigateBack || viewModel.canNavigateForward
-    }
+	private var currentContext: String? {
+		guard let request = viewModel.currentRequest else { return nil }
+		return viewModel.currentResponse?.effectiveContext ?? request.context
+	}
 
-    private var themedBackgroundColor: Color {
-        presentationTheme?.backgroundColor ?? Color(.systemBackground)
-    }
+	/// The text that should be sent to the system Translate sheet: the in-progress edit if the
+	/// user is currently editing the context, otherwise the currently displayed context.
+	private var translationSourceText: String {
+		if presentationState.isEditingContext {
+			presentationState.editContextText
+		} else {
+			currentContext ?? ""
+		}
+	}
 
-    private var themedForegroundColor: Color {
-        presentationTheme?.foregroundColor ?? .primary
-    }
+	private var showToolbar: Bool {
+		viewModel.currentRequest != nil || viewModel.canNavigateBack || viewModel.canNavigateForward
+	}
 
-    private func performSearchAtOffset(_ offset: Int) {
-        viewModel.performSearchAtOffset(offset)
-    }
+	private var themedBackgroundColor: Color {
+		presentationTheme?.backgroundColor ?? Color(.systemBackground)
+	}
 
-    private func navigateBack() {
-        viewModel.navigateBack()
-    }
+	private var themedForegroundColor: Color {
+		presentationTheme?.foregroundColor ?? .primary
+	}
 
-    private func navigateForward() {
-        viewModel.navigateForward()
-    }
+	private func performSearchAtOffset(_ offset: Int) {
+		viewModel.performSearchAtOffset(offset)
+	}
 
-    private func toggleLinksActive() {
-        viewModel.toggleLinksActive()
-    }
+	private func navigateBack() {
+		viewModel.navigateBack()
+	}
 
-    private func toggleFurigana() {
-        presentationState.toggleFurigana()
-    }
+	private func navigateForward() {
+		viewModel.navigateForward()
+	}
 
-    private func startEditingContext() {
-        guard let currentContext else { return }
-        presentationState.startEditing(context: currentContext)
-    }
+	private func toggleLinksActive() {
+		viewModel.toggleLinksActive()
+	}
 
-    private func commitContextEdit() {
-        let editedText = presentationState.editContextText
-        Task { @MainActor in
-            await viewModel.commitContextEdit(editedText)
-            presentationState.clearEditing()
-        }
-    }
+	private func toggleFurigana() {
+		presentationState.toggleFurigana()
+	}
 
-    private func cancelContextEdit() {
-        presentationState.clearEditing()
-    }
+	private func startEditingContext() {
+		guard let currentContext else { return }
+		presentationState.startEditing(context: currentContext)
+	}
 
-    private func copyContextToClipboard() {
-        viewModel.copyContextToClipboard()
-    }
+	private func commitContextEdit() {
+		let editedText = presentationState.editContextText
+		Task { @MainActor in
+			await viewModel.commitContextEdit(editedText)
+			presentationState.clearEditing()
+		}
+	}
+
+	private func cancelContextEdit() {
+		presentationState.clearEditing()
+	}
+
+	private func copyContextToClipboard() {
+		viewModel.copyContextToClipboard()
+	}
+
+	private func translateContext() {
+		guard !translationSourceText.isEmpty else { return }
+		isShowingTranslation = true
+	}
 }
