@@ -180,18 +180,23 @@ public struct TextCluster: Identifiable, Sendable {
     /// Combined bounding box encompassing all observations (normalized coordinates)
     public let boundingBox: CGRect
 
+    /// The text of each observation, in order. Differs from the observations'
+    /// own transcripts when lines were re-read from their crops.
+    public let transcripts: [String]
+
     /// The concatenated transcript of all observations
     public var transcript: String {
         // For vertical text, observations are in column order (right-to-left),
         // and each observation is a vertical line. No separator needed.
         // For horizontal text, observations are lines. Join with newlines for
         // paragraph structure, though the dictionary search will handle segmentation.
-        observations.map(\.transcript).joined(separator: direction == .vertical ? "" : "\n")
+        transcripts.joined(separator: direction == .vertical ? "" : "\n")
     }
 
-    public init(observations: [RecognizedTextObservation], direction: InferredTextDirection) {
+    public init(observations: [RecognizedTextObservation], direction: InferredTextDirection, transcripts: [String]? = nil) {
         self.observations = observations
         self.direction = direction
+        self.transcripts = transcripts ?? observations.map(\.transcript)
 
         // Calculate union of all bounding boxes
         if let first = observations.first {
@@ -615,6 +620,78 @@ public struct TextClusterer: Sendable {
             logger.debug("  X ranges: last=[\(lastBox.minX.f3())-\(lastBox.maxX.f3())] cand=[\(candidateBox.minX.f3())-\(candidateBox.maxX.f3())]")
         }
     }
+}
+
+// MARK: - Reading Order
+
+/// Groups `indices` by gaps in their boxes' projection on one axis, in
+/// ascending order of that axis. Each range is trimmed by 15% at both ends so
+/// boxes that touch or overlap slightly still separate.
+private func split(_ indices: [Int], _ range: (Int) -> (CGFloat, CGFloat)) -> [[Int]] {
+    func trimmed(_ i: Int) -> (CGFloat, CGFloat) {
+        let (lo, hi) = range(i)
+        return (lo + (hi - lo) * 0.15, hi - (hi - lo) * 0.15)
+    }
+    var groups: [[Int]] = []
+    var end = -CGFloat.infinity
+    for i in indices.sorted(by: { trimmed($0).0 < trimmed($1).0 }) {
+        let (lo, hi) = trimmed(i)
+        if lo >= end || groups.isEmpty {
+            groups.append([i])
+        } else {
+            groups[groups.count - 1].append(i)
+        }
+        end = max(end, hi)
+    }
+    return groups
+}
+
+/// Recursive XY-cut: the indices of `boxes` in reading order. Vertical text:
+/// stacked groups top to bottom, then columns right to left, then fragments of
+/// one column top to bottom. Horizontal text: side-by-side groups left to
+/// right, then lines top down. Boxes are normalized with a lower-left origin.
+/// Sorting by centroid alone puts fragments of one column bottom first.
+func xyOrder(_ boxes: [CGRect], vertical: Bool) -> [Int] {
+    func order(_ indices: [Int]) -> [Int] {
+        guard indices.count > 1 else { return indices }
+        let byY = split(indices) { (boxes[$0].minY, boxes[$0].maxY) }.reversed() as [[Int]] // top first
+        let byX = split(indices) { (boxes[$0].minX, boxes[$0].maxX) }
+        for groups in vertical ? [byY, byX.reversed()] : [byX, byY] where groups.count > 1 {
+            return groups.flatMap(order)
+        }
+        // No gap on either axis: fall back to centroid order.
+        return indices.sorted { i, j in
+            let a = boxes[i], b = boxes[j]
+            return vertical ? (a.midX, a.midY) > (b.midX, b.midY) : (-a.midY, a.midX) < (-b.midY, b.midX)
+        }
+    }
+    return order(Array(boxes.indices))
+}
+
+/// Merges each cluster whose box lies mostly inside a larger same-direction
+/// cluster's box into that cluster. Returns groups of cluster indices, host
+/// first. Catches a ruby-carrying column that the clusterer left out while
+/// joining its neighbours around it.
+func mergeContained(_ clusters: [(box: CGRect, vertical: Bool)]) -> [[Int]] {
+    let byArea = clusters.indices.sorted { clusters[$0].box.width * clusters[$0].box.height > clusters[$1].box.width * clusters[$1].box.height }
+    var groups = byArea.map { [$0] }
+    var boxes = byArea.map { clusters[$0].box }
+    var i = 1
+    while i < groups.count {
+        let inner = boxes[i]
+        let host = (0 ..< i).first { h in
+            let overlap = boxes[h].intersection(inner)
+            return clusters[groups[h][0]].vertical == clusters[groups[i][0]].vertical && !overlap.isNull
+                && overlap.width * overlap.height >= 0.5 * inner.width * inner.height
+        }
+        if let host {
+            groups[host] += groups.remove(at: i)
+            boxes[host] = boxes[host].union(boxes.remove(at: i))
+        } else {
+            i += 1
+        }
+    }
+    return groups
 }
 
 // MARK: - Convenience Extensions

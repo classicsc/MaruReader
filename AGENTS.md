@@ -50,6 +50,7 @@ MaruDictionaryManagementTests
 MaruMangaTests
 MaruReaderUITests
 MaruTextAnalysisTests
+MaruVisionTests
 MaruWebTests
 ```
 
