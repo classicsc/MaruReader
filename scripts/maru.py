@@ -29,6 +29,7 @@ TEST_PLANS = [
     "MaruWebTests",
     "MaruMarkTests",
     "MaruTextAnalysisTests",
+    "MaruVisionTests",
 ]
 RUST_CRATE_DIRS = [
     ROOT_DIR / "MaruMarkFFI",

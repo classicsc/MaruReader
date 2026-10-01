@@ -156,7 +156,8 @@ struct OCRScanView: View {
                             OCRImageResultsView(
                                 image: session.image,
                                 clusters: session.clusters,
-                                isProcessing: session.isProcessing
+                                isProcessing: session.isProcessing,
+                                ocr: ocr
                             )
                             .navigationTitle("Scan Results")
                             .navigationBarTitleDisplayMode(.inline)

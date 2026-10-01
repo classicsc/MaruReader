@@ -39,6 +39,12 @@ final class WebOCRViewModel {
         isProcessing = false
     }
 
+    /// The cluster's text re-read from line crops of the cached snapshot, or
+    /// its page-level text when no snapshot is cached.
+    func transcript(of cluster: TextCluster) -> Task<String, Never> {
+        image.map { ocr.transcript(of: cluster, in: $0) } ?? Task { cluster.transcript }
+    }
+
     func performOCR(imageData: Data) async -> [TextCluster] {
         isProcessing = true
         errorMessage = nil
