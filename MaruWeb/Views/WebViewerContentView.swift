@@ -28,6 +28,12 @@ struct WebViewerContentView: View {
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isLandscape = false
+
+    /// Side panel only when wide and landscape; otherwise the bottom sheet.
+    private var usesTranscriptSidePanel: Bool {
+        horizontalSizeClass == .regular && isLandscape
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -41,7 +47,7 @@ struct WebViewerContentView: View {
                         model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
                     .id(page.webView)
-                    if viewModel.transcriptPresented, horizontalSizeClass == .regular,
+                    if viewModel.transcriptPresented, usesTranscriptSidePanel,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
                         YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
@@ -49,8 +55,9 @@ struct WebViewerContentView: View {
                             .frame(width: 360)
                     }
                 }
+                .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape = $0 }
                 .sheet(isPresented: transcriptSheetBinding, onDismiss: closeTranscript) {
-                    if horizontalSizeClass != .regular,
+                    if !usesTranscriptSidePanel,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
                         YouTubeTranscriptView(page: page, videoID: videoID, onDismiss: closeTranscript)
@@ -111,12 +118,12 @@ struct WebViewerContentView: View {
                 closeTranscript()
             }
         }
-        .onChange(of: horizontalSizeClass) { closeTranscript() }
+        .onChange(of: usesTranscriptSidePanel) { closeTranscript() }
     }
 
     private var transcriptSheetBinding: Binding<Bool> {
         Binding(
-            get: { viewModel.transcriptPresented && horizontalSizeClass != .regular },
+            get: { viewModel.transcriptPresented && !usesTranscriptSidePanel },
             set: { viewModel.transcriptPresented = $0 }
         )
     }
