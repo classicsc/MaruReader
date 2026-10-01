@@ -42,11 +42,14 @@ enum WebOverlayState {
 struct WebLookupSelection: Identifiable {
     let id: UUID
     let cluster: TextCluster
+    /// The cluster's text, refined from line crops; may still be running.
+    let text: Task<String, Never>
     let contextValues: LookupContextValues
 
-    init(cluster: TextCluster, contextValues: LookupContextValues) {
+    init(cluster: TextCluster, text: Task<String, Never>, contextValues: LookupContextValues) {
         self.id = cluster.id
         self.cluster = cluster
+        self.text = text
         self.contextValues = contextValues
     }
 }
@@ -437,9 +440,11 @@ final class WebViewerViewModel {
             return nil
         }
 
+        // Start the line re-read now so it overlaps the screenshot write and sheet animation.
+        let text = ocrViewModel.transcript(of: cluster)
         let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
         let contextValues = webContextValues(screenshotURL: screenshotURL)
-        return WebLookupSelection(cluster: cluster, contextValues: contextValues)
+        return WebLookupSelection(cluster: cluster, text: text, contextValues: contextValues)
     }
 
     func exitReadingModeAfterLookupSelection() {

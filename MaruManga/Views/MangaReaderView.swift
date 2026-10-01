@@ -155,9 +155,10 @@ public struct MangaReaderView: View {
               let text = viewModel.pendingSearchText
         else { return }
         let vm = DictionarySearchViewModel(resultState: .searching)
-        vm.performSearch(text, contextValues: viewModel.pendingContextValues)
+        let contextValues = viewModel.pendingContextValues
         searchSheetViewModel = vm
         viewModel.clearPendingSearch()
+        Task { await vm.performSearch(text.value, contextValues: contextValues) }
     }
 
     // MARK: - Page Container

@@ -20,7 +20,10 @@ import SwiftUI
 
 @MainActor
 public struct DictionarySearchSheetView: View {
-    let searchText: String
+    /// The text to search. The sheet shows its searching state until the task
+    /// finishes, so a caller can open the sheet while the text is still being
+    /// refined.
+    let searchText: Task<String, Never>
     let contextValues: LookupContextValues
     let accessibilityIdentifier: String
     let onDismiss: () -> Void
@@ -30,7 +33,7 @@ public struct DictionarySearchSheetView: View {
     @State private var didPerformSearch = false
 
     public init(
-        searchText: String,
+        searchText: Task<String, Never>,
         contextValues: LookupContextValues,
         accessibilityIdentifier: String,
         onDismiss: @escaping () -> Void
@@ -89,7 +92,7 @@ public struct DictionarySearchSheetView: View {
         guard case .ready = availability, !didPerformSearch else { return }
         didPerformSearch = true
         let viewModel = DictionarySearchViewModel(resultState: .searching)
-        viewModel.performSearch(searchText, contextValues: contextValues)
         searchViewModel = viewModel
+        Task { await viewModel.performSearch(searchText.value, contextValues: contextValues) }
     }
 }

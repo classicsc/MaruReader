@@ -119,15 +119,16 @@ public struct WebViewerView: View {
         .onChange(of: viewModel.addressBarText, handleAddressBarTextChange)
         .sheet(item: $selectedLookup) { selection in
             WebViewerDictionarySheetView(
-                searchText: selection.cluster.transcript,
+                searchText: selection.text,
                 contextValues: selection.contextValues,
                 accessibilityIdentifier: "web.dictionarySheet",
                 onDismiss: clearSelectedLookup
             )
         }
         .sheet(item: editMenuSelectionBinding) { selection in
+            let text = selection.text
             WebViewerDictionarySheetView(
-                searchText: selection.text,
+                searchText: Task { text },
                 contextValues: selection.contextValues,
                 accessibilityIdentifier: "web.editMenuDictionarySheet",
                 onDismiss: clearEditMenuSelection

@@ -16,7 +16,6 @@
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
 import CoreImage
-import ImageIO
 import os
 import SwiftUI
 import Vision
@@ -27,11 +26,6 @@ public actor OCR {
 
     /// Configuration for text clustering.
     public var clusteringConfiguration: ClusteringConfiguration = .default
-
-    /// Re-read each line from its own upscaled crop after the page pass. Ruby
-    /// beside a line stays out of the crop, which fixes many misreads, at the
-    /// cost of one Vision request per line.
-    public var cropLines = true
 
     private let ciContext = CIContext()
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCR")
@@ -53,17 +47,26 @@ public actor OCR {
     }
 
     public func performOCR(imageData: Data) async throws -> [TextCluster] {
-        // Vision reads the encoded data slightly differently from a decoded
-        // CGImage, so the page passes use the data; crops need the CGImage.
-        let clusters = try await cluster(recognize(.data(imageData)))
-        guard cropLines, let source = CGImageSourceCreateWithData(imageData as CFData, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return clusters }
-        return try await recropLines(clusters, page: image)
+        try await cluster(recognize(.data(imageData)))
     }
 
     public func performOCR(cgImage: CGImage) async throws -> [TextCluster] {
-        let clusters = try await cluster(recognize(.image(cgImage)))
-        return cropLines ? try await recropLines(clusters, page: cgImage) : clusters
+        try await cluster(recognize(.image(cgImage)))
+    }
+
+    /// The cluster's text after re-reading each line from its own upscaled
+    /// crop of `image`, the image the cluster was recognized in. Ruby beside a
+    /// line stays out of its crop, which fixes many misreads, at the cost of
+    /// Vision requests per line, so this runs on demand for a tapped cluster
+    /// rather than for every cluster on a page. Falls back to the page-level
+    /// text when the image's pixels do not match its boxes (rotated by EXIF
+    /// orientation) or the re-read fails or is cancelled.
+    public nonisolated func transcript(of cluster: TextCluster, in image: UIImage) -> Task<String, Never> {
+        Task(priority: .userInitiated) {
+            guard image.imageOrientation == .up, let cgImage = image.cgImage,
+                  let refined = try? await recropLines(cluster, page: cgImage) else { return cluster.transcript }
+            return refined.transcript
+        }
     }
 
     // MARK: - Recognition
@@ -109,26 +112,22 @@ public actor OCR {
 
     /// Re-reads each line from its own crop and replaces its text. Keeps the
     /// page-level text when the crop reads nothing usable.
-    private func recropLines(_ clusters: [TextCluster], page: CGImage) async throws -> [TextCluster] {
+    private func recropLines(_ cluster: TextCluster, page: CGImage) async throws -> TextCluster {
         let aspect = CGFloat(page.width) / CGFloat(page.height)
-        var result: [TextCluster] = []
-        for cluster in clusters {
-            let vertical = cluster.direction == .vertical
-            var texts = cluster.transcripts
-            for (i, observation) in cluster.observations.enumerated() {
-                try Task.checkCancellation()
-                let box = observation.boundingBox.cgRect
-                let t = vertical ? box.width : box.height
-                // Half a line of padding along the line, 15% across it.
-                let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
-                let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
-                if let text = cropText(for: box, reads: reads, vertical: vertical) {
-                    texts[i] = text
-                }
+        let vertical = cluster.direction == .vertical
+        var texts = cluster.transcripts
+        for (i, observation) in cluster.observations.enumerated() {
+            try Task.checkCancellation()
+            let box = observation.boundingBox.cgRect
+            let t = vertical ? box.width : box.height
+            // Half a line of padding along the line, 15% across it.
+            let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
+            let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
+            if let text = cropText(for: box, reads: reads, vertical: vertical) {
+                texts[i] = text
             }
-            result.append(TextCluster(observations: cluster.observations, direction: cluster.direction, transcripts: texts))
         }
-        return result
+        return TextCluster(observations: cluster.observations, direction: cluster.direction, transcripts: texts)
     }
 
     /// Reads a page region (normalized, lower-left origin), scaled so lines

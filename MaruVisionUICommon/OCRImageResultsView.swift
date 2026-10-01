@@ -28,6 +28,8 @@ public struct OCRImageResultsView: View {
     let image: UIImage
     let clusters: [TextCluster]
     let isProcessing: Bool
+    /// Re-reads a tapped cluster's lines from their crops before lookup, when set.
+    let ocr: OCR?
 
     /// Whether to show individual observation boxes (for debugging)
     var showObservationBoxes: Bool = false
@@ -35,6 +37,7 @@ public struct OCRImageResultsView: View {
     @State private var showBoundingBoxes: Bool = false
     @State private var highlightedCluster: TextCluster?
     @State private var selectedCluster: TextCluster?
+    @State private var selectedText: Task<String, Never>?
     // Pan-zoom state
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
@@ -53,16 +56,19 @@ public struct OCRImageResultsView: View {
     ///   - image: The image to display
     ///   - clusters: Array of text clusters detected by OCR
     ///   - isProcessing: Whether OCR is currently processing
+    ///   - ocr: The recognizer that produced the clusters, used to refine a tapped cluster's text
     ///   - showObservationBoxes: Whether to show individual observation boxes (debug mode)
     public init(
         image: UIImage,
         clusters: [TextCluster],
         isProcessing: Bool = false,
+        ocr: OCR? = nil,
         showObservationBoxes: Bool = false
     ) {
         self.image = image
         self.clusters = clusters
         self.isProcessing = isProcessing
+        self.ocr = ocr
         self.showObservationBoxes = showObservationBoxes
     }
 
@@ -134,7 +140,7 @@ public struct OCRImageResultsView: View {
         }
         .sheet(item: $selectedCluster) { cluster in
             DictionarySearchSheetView(
-                searchText: cluster.transcript,
+                searchText: selectedText ?? Task { cluster.transcript },
                 contextValues: LookupContextValues(
                     contextInfo: "Scanned image",
                     sourceType: .dictionary
@@ -348,9 +354,12 @@ public struct OCRImageResultsView: View {
 
         if let match = bestMatch {
             logger.debug("Tapped cluster with \(match.observations.count) observations: \(match.transcript.prefix(50))...")
+            // Start the line re-read now so it overlaps the highlight and sheet animations.
+            let text = ocr?.transcript(of: match, in: image) ?? Task { match.transcript }
             Task {
                 highlightedCluster = match
                 try? await Task.sleep(nanoseconds: 100_000_000)
+                selectedText = text
                 selectedCluster = match
                 highlightedCluster = nil
             }

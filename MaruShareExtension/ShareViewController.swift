@@ -184,7 +184,8 @@ struct SearchView: View {
                     OCRImageResultsView(
                         image: image,
                         clusters: clusters,
-                        isProcessing: isProcessing
+                        isProcessing: isProcessing,
+                        ocr: ocr
                     )
                     .task {
                         await performOCR(imageData: imageData)
