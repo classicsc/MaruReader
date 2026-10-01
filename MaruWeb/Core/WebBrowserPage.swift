@@ -119,6 +119,15 @@ final class WebBrowserPage {
         webView.stopLoading()
     }
 
+    /// Stops media and unloads the document so a closed tab can't keep playing in the background,
+    /// even if something still holds the web view.
+    func close() {
+        webView.stopLoading()
+        webView.closeAllMediaPresentations(completionHandler: nil)
+        webView.pauseAllMediaPlayback(completionHandler: nil)
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
+    }
+
     func callJavaScript(_ script: String) async throws -> Any? {
         try await webView.evaluateJavaScript(script)
     }

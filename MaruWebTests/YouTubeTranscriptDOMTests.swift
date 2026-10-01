@@ -146,6 +146,19 @@ struct YouTubeTranscriptDOMTests {
         #expect(fresh.cues?.map(\.text) == ["新しい動画"])
     }
 
+    @Test func transcriptModelDoesNotRetainPage() {
+        weak var weakModel: YouTubeTranscriptViewModel?
+        weak var weakPage: WebBrowserPage?
+        do {
+            let page = WebBrowserPage(webView: WKWebView(frame: .zero))
+            let model = YouTubeTranscriptViewModel(page: page, videoID: "fixture")
+            weakModel = model
+            weakPage = page
+        }
+        #expect(weakModel == nil)
+        #expect(weakPage == nil)
+    }
+
     @Test func lookupCarriesVideoTitleTimeAndSentence() async throws {
         let view = WKWebView(frame: .zero)
         let fixture = TranscriptFixtureNavigation()

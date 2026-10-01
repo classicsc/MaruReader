@@ -69,7 +69,9 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         configuration.urlSchemeHandlers[URLScheme("marureader-grammar")!] = GrammarDictionaryURLSchemeHandler()
         configuration.urlSchemeHandlers[URLScheme("marureader-anki")!] = ankiSchemeHandler
         let controller = WKUserContentController()
-        controller.add(self, name: "navigateToTerm")
+        // WKUserContentController retains its handlers; a weak proxy keeps the popup page from
+        // pinning this model (and through it the browser page and its playing video) forever.
+        controller.add(WeakScriptMessageHandler(self), name: "navigateToTerm")
         controller.addUserScript(makeDictionaryLocalizedStringsScript())
         configuration.userContentController = controller
         popupPage = WebPage(configuration: configuration)
@@ -271,5 +273,17 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         } catch {
             return nil
         }
+    }
+}
+
+private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private weak var target: WKScriptMessageHandler?
+
+    init(_ target: WKScriptMessageHandler) {
+        self.target = target
+    }
+
+    func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
+        target?.userContentController(controller, didReceive: message)
     }
 }

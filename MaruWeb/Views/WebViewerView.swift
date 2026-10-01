@@ -149,6 +149,7 @@ public struct WebViewerView: View {
             )
         }
         .onAppear(perform: handleAppear)
+        .onDisappear(perform: viewModel.tearDown)
     }
 
     private var editMenuSelectionBinding: Binding<WebTextSelection?> {

@@ -279,6 +279,7 @@ final class WebViewerViewModel {
 
     func closeTab(id: UUID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        tabs[index].page.close()
         let wasSelected = selectedTabID == id
         if tabs.count == 1 {
             tabs.removeAll()
@@ -299,6 +300,13 @@ final class WebViewerViewModel {
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)
         refreshBookmarkState()
+    }
+
+    /// Stops every tab's media when the viewer is dismissed; tabs stay so the dismissal doesn't re-render.
+    func tearDown() {
+        for tab in tabs {
+            tab.page.close()
+        }
     }
 
     func moveTabs(from source: IndexSet, to destination: Int) {

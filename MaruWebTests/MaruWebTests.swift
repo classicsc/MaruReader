@@ -384,6 +384,34 @@ struct MaruWebTests {
         #expect(viewModel.tabs.isEmpty)
     }
 
+    @Test @MainActor func closingTabUnloadsItsPage() async throws {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+        let page = try #require(viewModel.page)
+        page.loadHTML("<video autoplay></video>")
+
+        try viewModel.closeTab(id: #require(viewModel.selectedTabID))
+
+        #expect(page.webView.url?.absoluteString == "about:blank")
+    }
+
+    @Test @MainActor func tearDownUnloadsEveryTab() async {
+        let viewModel = WebViewerViewModel()
+        await viewModel.prepareSessionIfNeeded()
+        viewModel.addTab()
+        await waitForTabCount(2, in: viewModel)
+        for tab in viewModel.tabs {
+            tab.page.loadHTML("<video autoplay></video>")
+        }
+
+        viewModel.tearDown()
+
+        #expect(viewModel.tabs.count == 2)
+        #expect(viewModel.tabs.allSatisfy { $0.page.webView.url?.absoluteString == "about:blank" })
+    }
+
     @Test @MainActor func addTabSelectsNewTab() async throws {
         let viewModel = WebViewerViewModel()
         await viewModel.prepareSessionIfNeeded()
