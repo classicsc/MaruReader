@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "9A3B4C1D-2E5F-4A6B-8C7D-1E2F3A4B5C6D",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:MaruReader.xcodeproj",
+        "identifier" : "DBEBB2C22EB58E88005C3BFC",
+        "name" : "MaruVisionTests"
+      }
+    }
+  ],
+  "version" : 1
+}

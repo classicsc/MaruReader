@@ -472,7 +472,7 @@ struct MaruWebTests {
 
         // Simulate cached OCR results (empty observations, but cluster exists)
         viewModel.ocrViewModel.clusters = [
-            TextCluster(observations: [], direction: .horizontal),
+            TextCluster(lines: [], direction: .horizontal),
         ]
         #expect(!viewModel.ocrViewModel.clusters.isEmpty)
 
@@ -505,7 +505,7 @@ struct MaruWebTests {
     @Test @MainActor func ocrCacheResetClearsAllState() {
         let ocrVM = WebOCRViewModel()
         ocrVM.clusters = [
-            TextCluster(observations: [], direction: .vertical),
+            TextCluster(lines: [], direction: .vertical),
         ]
         ocrVM.errorMessage = "test error"
 

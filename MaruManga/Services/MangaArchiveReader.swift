@@ -22,6 +22,9 @@ import MaruVision
 
 protocol MangaPageProviding: Sendable {
     var pageCount: Int { get async }
+    /// The page images' filenames, in reading order. Used to pair pages against
+    /// an attached mokuro file without having to decode every page first.
+    var pageFileNames: [String] { get async }
     func pageData(at index: Int) async throws -> MangaPageData
 }
 
@@ -33,13 +36,23 @@ public struct MangaPageData: Sendable {
     /// The file extension for the page image, if known.
     public let imageFileExtension: String?
 
+    /// The original filename of the page image within the archive, if known.
+    /// Used to match this page against an attached mokuro file's `img_path`.
+    public let imageFileName: String?
+
     /// Text clusters detected by OCR, sorted by reading order.
     /// Empty if OCR has not been performed on this page.
     public let textClusters: [TextCluster]
 
-    public init(imageData: Data, imageFileExtension: String? = nil, textClusters: [TextCluster] = []) {
+    public init(
+        imageData: Data,
+        imageFileExtension: String? = nil,
+        imageFileName: String? = nil,
+        textClusters: [TextCluster] = []
+    ) {
         self.imageData = imageData
         self.imageFileExtension = imageFileExtension
+        self.imageFileName = imageFileName
         self.textClusters = textClusters
     }
 }
@@ -163,10 +176,12 @@ public actor MangaArchiveReader {
         let entry = sortedPages[index]
         let imageData = try await extractPage(entry)
         let fileExtension = (entry.path as NSString).pathExtension.lowercased()
+        let fileName = (entry.path as NSString).lastPathComponent
 
         let pageData = MangaPageData(
             imageData: imageData,
-            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension
+            imageFileExtension: fileExtension.isEmpty ? nil : fileExtension,
+            imageFileName: fileName
         )
 
         cache.setValue(pageData, forKey: index, cost: imageData.count)
@@ -301,6 +316,11 @@ public actor MangaArchiveReader {
     /// Returns the sorted page paths in the archive (for verifying sort order).
     public var sortedPagePaths: [String] {
         sortedPages.map(\.path)
+    }
+
+    /// The page images' filenames, in reading order.
+    public var pageFileNames: [String] {
+        sortedPages.map { ($0.path as NSString).lastPathComponent }
     }
 
     /// Waits for any in-progress prefetch operation to complete.
