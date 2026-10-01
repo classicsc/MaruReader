@@ -98,3 +98,43 @@ struct SecondPassTests {
         #expect(!overlaps(a, CGRect(x: 2, y: 0, width: 1, height: 1)))
     }
 }
+
+struct FragmentTests {
+    @Test func pieceOfOneColumnWithinGap() {
+        #expect(fragments(column(0.5, 0.1, 0.4), column(0.5, 0.42, 0.9), vertical: true, gapMultiplier: 0.5))
+        #expect(!fragments(column(0.5, 0.1, 0.4), column(0.5, 0.5, 0.9), vertical: true, gapMultiplier: 0.5))
+    }
+
+    @Test func sideBySideColumnsAreNotFragments() {
+        #expect(!fragments(column(0.5, 0.1, 0.5), column(0.56, 0.1, 0.5), vertical: true, gapMultiplier: 0.5))
+        // Overlap along the text axis by more than one line height.
+        #expect(!fragments(column(0.5, 0.1, 0.5), column(0.52, 0.3, 0.7), vertical: true, gapMultiplier: 0.5))
+    }
+
+    @Test func wideBoxIsNotFragmentOfThinOne() {
+        let wide = CGRect(x: 0.48, y: 0.42, width: 0.12, height: 0.1)
+        #expect(!fragments(column(0.5, 0.1, 0.4), wide, vertical: true, gapMultiplier: 0.5))
+    }
+
+    @Test func lineGroupsJoinFragmentsTopFirst() {
+        let boxes = [column(0.5, 0.1, 0.4), column(0.6, 0.1, 0.9), column(0.5, 0.42, 0.9)]
+        let groups = lineGroups(boxes, vertical: true, gapMultiplier: 0.5)
+        #expect(Set(groups) == [[2, 0], [1]])
+    }
+}
+
+struct AbsorbHorizontalTests {
+    let host = CGRect(x: 0.4, y: 0.2, width: 0.2, height: 0.5)
+
+    @Test func shortReadAboveColumnsJoinsThem() {
+        let tops = CGRect(x: 0.42, y: 0.71, width: 0.15, height: 0.04)
+        #expect(absorbHorizontal([(host, true, 10), (tops, false, 2)]) == [[0, 1]])
+    }
+
+    @Test func distantOrLongerHorizontalStaysSeparate() {
+        let far = CGRect(x: 0.42, y: 0.8, width: 0.15, height: 0.04)
+        let long = CGRect(x: 0.42, y: 0.71, width: 0.15, height: 0.04)
+        #expect(absorbHorizontal([(host, true, 10), (far, false, 2)]) == [[0], [1]])
+        #expect(absorbHorizontal([(host, true, 10), (long, false, 12)]) == [[0], [1]])
+    }
+}

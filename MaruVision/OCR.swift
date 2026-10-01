@@ -98,10 +98,29 @@ public actor OCR {
     private func cluster(_ observations: [RecognizedTextObservation]) -> [TextCluster] {
         logger.debug("OCR found \(observations.count) text observations.")
         let clusters = TextClusterer(configuration: clusteringConfiguration).cluster(observations)
-        let merged = mergeContained(clusters.map { ($0.boundingBox, $0.direction == .vertical) }).map { group in
+        var groups = mergeContained(clusters.map { ($0.boundingBox, $0.direction == .vertical) })
+        if clusteringConfiguration.absorbHorizontal {
+            let summary = groups.map { g in
+                (box: g.dropFirst().reduce(clusters[g[0]].boundingBox) { $0.union(clusters[$1].boundingBox) },
+                 vertical: clusters[g[0]].direction == .vertical,
+                 characters: g.map { clusters[$0].transcript.count }.reduce(0, +))
+            }
+            groups = absorbHorizontal(summary).map { $0.flatMap { groups[$0] } }
+        }
+        let merged = groups.map { group in
             let observations = group.flatMap { clusters[$0].observations }
             let direction = clusters[group[0]].direction
-            let order = xyOrder(observations.map(\.boundingBox.cgRect), vertical: direction == .vertical)
+            let vertical = direction == .vertical
+            let boxes = observations.map(\.boundingBox.cgRect)
+            let order: [Int]
+            if clusteringConfiguration.maxFragmentGapMultiplier > 0 {
+                // Order whole lines, then fragments within each line.
+                let lines = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
+                let lineBoxes = lines.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
+                order = xyOrder(lineBoxes, vertical: vertical).flatMap { lines[$0] }
+            } else {
+                order = xyOrder(boxes, vertical: vertical)
+            }
             return TextCluster(observations: order.map { observations[$0] }, direction: direction)
         }
         logger.debug("Clustered into \(merged.count) clusters.")

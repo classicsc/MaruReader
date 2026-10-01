@@ -130,6 +130,21 @@ public struct ObservationFeatures: Sendable {
         lineHeight = direction == .vertical ? box.width : box.height
     }
 
+    /// The same observation read in `direction` instead of its inferred one.
+    init(_ other: ObservationFeatures, as direction: InferredTextDirection) {
+        observation = other.observation
+        boundingBox = other.boundingBox
+        centroid = other.centroid
+        aspectRatio = other.aspectRatio
+        self.direction = direction
+        lineHeight = direction == .vertical ? boundingBox.cgRect.width : boundingBox.cgRect.height
+    }
+
+    /// Number of characters Vision read.
+    var characterCount: Int {
+        observation.transcript.count
+    }
+
     /// Infers text direction by comparing actual aspect ratio to expected ratios
     /// for both vertical and horizontal orientations given the character count.
     private static func inferDirection(boundingBox box: CGRect, transcript: String) -> InferredTextDirection {
@@ -233,12 +248,38 @@ public struct ClusteringConfiguration: Sendable {
     /// Enable verbose debug logging
     public var verboseLogging: Bool
 
+    /// Joins fragments of one line: observations that overlap by at least half
+    /// across the text axis and are closer along it than this many line
+    /// heights. Fragments of one column never overlap vertically, so without
+    /// this they only join through a neighbouring column that spans both.
+    /// 0 disables.
+    public var maxFragmentGapMultiplier: CGFloat
+
+    /// Also compare line heights as length per character. Ruby beside a column
+    /// widens its box, so two columns of one balloon can fail the width check
+    /// while their characters are the same size.
+    public var compareCharacterSize: Bool
+
+    /// Lets an observation of one or two characters join text of the other
+    /// direction when it passes that direction's merge checks. Vision reads the
+    /// tops of two neighbouring columns as one short horizontal line, and a
+    /// square box of two characters has no clear direction.
+    public var joinShortAcrossDirections: Bool
+
+    /// After clustering, folds a horizontal cluster into a vertical cluster
+    /// with more text that it touches (see `absorbHorizontal`).
+    public var absorbHorizontal: Bool
+
     /// Default configuration tuned for Japanese book/manga content
     public static let `default` = ClusteringConfiguration(
         lineHeightTolerance: 0.6,
         maxGapMultiplier: 2.0,
         minAlignmentOverlap: 0.3,
-        verboseLogging: false
+        verboseLogging: false,
+        maxFragmentGapMultiplier: 0.5,
+        compareCharacterSize: true,
+        joinShortAcrossDirections: true,
+        absorbHorizontal: true
     )
 
     /// Configuration for dense text (books, articles)
@@ -262,19 +303,31 @@ public struct ClusteringConfiguration: Sendable {
         lineHeightTolerance: 0.6,
         maxGapMultiplier: 2.0,
         minAlignmentOverlap: 0.3,
-        verboseLogging: true
+        verboseLogging: true,
+        maxFragmentGapMultiplier: 0.5,
+        compareCharacterSize: true,
+        joinShortAcrossDirections: true,
+        absorbHorizontal: true
     )
 
     public init(
         lineHeightTolerance: CGFloat,
         maxGapMultiplier: CGFloat,
         minAlignmentOverlap: CGFloat,
-        verboseLogging: Bool = false
+        verboseLogging: Bool = false,
+        maxFragmentGapMultiplier: CGFloat = 0,
+        compareCharacterSize: Bool = false,
+        joinShortAcrossDirections: Bool = false,
+        absorbHorizontal: Bool = false
     ) {
         self.lineHeightTolerance = lineHeightTolerance
         self.maxGapMultiplier = maxGapMultiplier
         self.minAlignmentOverlap = minAlignmentOverlap
         self.verboseLogging = verboseLogging
+        self.maxFragmentGapMultiplier = maxFragmentGapMultiplier
+        self.compareCharacterSize = compareCharacterSize
+        self.joinShortAcrossDirections = joinShortAcrossDirections
+        self.absorbHorizontal = absorbHorizontal
     }
 }
 
@@ -374,7 +427,24 @@ public struct TextClusterer: Sendable {
         guard !observations.isEmpty else { return [] }
 
         // Extract features for all observations
-        let features = observations.map { ObservationFeatures(observation: $0) }
+        var features = observations.map { ObservationFeatures(observation: $0) }
+
+        // A short observation has no clear direction of its own. It takes the
+        // direction of longer text it can join, vertical first. Deciding this
+        // up front keeps one character from bridging vertical and horizontal
+        // text into one cluster.
+        if configuration.joinShortAcrossDirections {
+            let long = features.filter { $0.characterCount > 2 }
+            for i in features.indices where features[i].characterCount <= 2 {
+                for direction in [InferredTextDirection.vertical, .horizontal] {
+                    let turned = ObservationFeatures(features[i], as: direction)
+                    if long.contains(where: { $0.direction == direction && shouldMergePair(turned, $0).shouldMerge }) {
+                        features[i] = turned
+                        break
+                    }
+                }
+            }
+        }
 
         if configuration.verboseLogging {
             logger.debug("=== CLUSTERING \(observations.count) OBSERVATIONS ===")
@@ -385,67 +455,52 @@ public struct TextClusterer: Sendable {
             }
         }
 
-        // Group by direction first
-        let byDirection = Dictionary(grouping: features.enumerated().map(\.self)) { $0.element.direction }
+        // Build graph using union-find. Pairs of different direction are
+        // rejected by shouldMergePair unless one is short and
+        // joinShortAcrossDirections is on.
+        var uf = UnionFind(count: features.count)
+        for i in 0 ..< features.count {
+            for j in (i + 1) ..< features.count {
+                let result = shouldMergePair(features[i], features[j])
+                if result.shouldMerge {
+                    uf.union(i, j)
+                    if configuration.verboseLogging {
+                        logger.debug("EDGE: \(features[i].debugID) <-> \(features[j].debugID)")
+                    }
+                } else if configuration.verboseLogging {
+                    // Only log rejections between spatially close observations to reduce noise
+                    if areSpatiallyClose(features[i], features[j]) {
+                        logger.debug("NO EDGE: \(features[i].debugID) <-> \(features[j].debugID): \(result.reason?.description ?? "unknown")")
+                        logDetailedComparison(last: features[i], candidate: features[j])
+                    }
+                }
+            }
+        }
+
+        // Extract connected components
+        let groups = uf.groups()
 
         if configuration.verboseLogging {
-            let verticalCount = byDirection[.vertical]?.count ?? 0
-            let horizontalCount = byDirection[.horizontal]?.count ?? 0
-            logger.debug("Direction groups: V=\(verticalCount) H=\(horizontalCount)")
+            logger.debug("Found \(groups.count) connected components")
         }
 
         var clusters: [TextCluster] = []
-
-        for (direction, indexedFeatures) in byDirection {
-            if configuration.verboseLogging {
-                logger.debug("--- PROCESSING \(direction) GROUP (\(indexedFeatures.count) obs) ---")
+        for group in groups {
+            // The direction with more characters is the group's; sort by its reading order.
+            let groupFeatures = group.map { features[$0] }
+            let verticalChars = groupFeatures.filter { $0.direction == .vertical }.map(\.characterCount).reduce(0, +)
+            let horizontalChars = groupFeatures.filter { $0.direction == .horizontal }.map(\.characterCount).reduce(0, +)
+            let direction: InferredTextDirection = verticalChars >= horizontalChars ? .vertical : .horizontal
+            let sorted = groupFeatures.sorted { a, b in
+                let ka = ObservationFeatures(a, as: direction).readingOrderKey
+                let kb = ObservationFeatures(b, as: direction).readingOrderKey
+                return ka.primary != kb.primary ? ka.primary < kb.primary : ka.secondary < kb.secondary
             }
 
-            // Build graph using union-find
-            var uf = UnionFind(count: indexedFeatures.count)
-            let localFeatures = indexedFeatures.map(\.element)
-
-            // Check all pairs for merge eligibility
-            for i in 0 ..< localFeatures.count {
-                for j in (i + 1) ..< localFeatures.count {
-                    let result = shouldMergePair(localFeatures[i], localFeatures[j])
-                    if result.shouldMerge {
-                        uf.union(i, j)
-                        if configuration.verboseLogging {
-                            logger.debug("EDGE: \(localFeatures[i].debugID) <-> \(localFeatures[j].debugID)")
-                        }
-                    } else if configuration.verboseLogging {
-                        // Only log rejections between spatially close observations to reduce noise
-                        if areSpatiallyClose(localFeatures[i], localFeatures[j]) {
-                            logger.debug("NO EDGE: \(localFeatures[i].debugID) <-> \(localFeatures[j].debugID): \(result.reason?.description ?? "unknown")")
-                            logDetailedComparison(last: localFeatures[i], candidate: localFeatures[j])
-                        }
-                    }
-                }
-            }
-
-            // Extract connected components
-            let groups = uf.groups()
-
-            if configuration.verboseLogging {
-                logger.debug("Found \(groups.count) connected components")
-            }
-
-            for group in groups {
-                // Get features for this group and sort by reading order
-                let groupFeatures = group.map { localFeatures[$0] }
-                let sorted = groupFeatures.sorted { a, b in
-                    if a.readingOrderKey.primary != b.readingOrderKey.primary {
-                        return a.readingOrderKey.primary < b.readingOrderKey.primary
-                    }
-                    return a.readingOrderKey.secondary < b.readingOrderKey.secondary
-                }
-
-                clusters.append(TextCluster(
-                    observations: sorted.map(\.observation),
-                    direction: direction
-                ))
-            }
+            clusters.append(TextCluster(
+                observations: sorted.map(\.observation),
+                direction: direction
+            ))
         }
 
         if configuration.verboseLogging {
@@ -481,9 +536,13 @@ public struct TextClusterer: Sendable {
             return (false, .directionMismatch)
         }
 
-        // Check line height similarity (font size proxy)
+        // Check line height similarity (font size proxy). Ruby widens a column
+        // by up to about half, so the character size only counts within that.
         let heightRatio = min(a.lineHeight, b.lineHeight) / max(a.lineHeight, b.lineHeight)
-        guard heightRatio >= configuration.lineHeightTolerance else {
+        guard heightRatio >= configuration.lineHeightTolerance
+            || (configuration.compareCharacterSize && heightRatio >= 0.4
+                && characterSizeRatio(a, b) >= configuration.lineHeightTolerance)
+        else {
             return (false, .lineHeightMismatch(ratio: heightRatio, threshold: configuration.lineHeightTolerance))
         }
 
@@ -494,6 +553,24 @@ public struct TextClusterer: Sendable {
         case .vertical:
             return checkVerticalMergePair(a, b)
         }
+    }
+
+    /// Ratio of the observations' box lengths per character (smaller over larger).
+    private func characterSizeRatio(_ a: ObservationFeatures, _ b: ObservationFeatures) -> CGFloat {
+        func size(_ f: ObservationFeatures) -> CGFloat {
+            let box = f.boundingBox.cgRect
+            return (f.direction == .vertical ? box.height : box.width) / CGFloat(max(1, f.observation.transcript.count))
+        }
+        return min(size(a), size(b)) / max(size(a), size(b))
+    }
+
+    /// True when a and b look like fragments of one line: they share at least
+    /// half of the narrower box across the text axis and the gap along it is
+    /// within `maxFragmentGapMultiplier` line heights.
+    private func areFragments(_ a: ObservationFeatures, _ b: ObservationFeatures) -> Bool {
+        configuration.maxFragmentGapMultiplier > 0
+            && fragments(a.boundingBox.cgRect, b.boundingBox.cgRect, vertical: a.direction == .vertical,
+                         gapMultiplier: configuration.maxFragmentGapMultiplier)
     }
 
     /// Check merge criteria for two horizontal text observations (symmetric).
@@ -526,14 +603,14 @@ public struct TextClusterer: Sendable {
         let overlapWidth = overlapEnd - overlapStart
 
         if overlapWidth <= 0 {
-            return (false, .noOverlap)
+            return areFragments(a, b) ? (true, nil) : (false, .noOverlap)
         }
 
         let minWidth = min(aBox.width, bBox.width)
         let overlapRatio = overlapWidth / minWidth
 
         if overlapRatio < configuration.minAlignmentOverlap {
-            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
+            return areFragments(a, b) ? (true, nil) : (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
         }
 
         return (true, nil)
@@ -569,14 +646,14 @@ public struct TextClusterer: Sendable {
         let overlapHeight = overlapEnd - overlapStart
 
         if overlapHeight <= 0 {
-            return (false, .noOverlap)
+            return areFragments(a, b) ? (true, nil) : (false, .noOverlap)
         }
 
         let minHeight = min(aBox.height, bBox.height)
         let overlapRatio = overlapHeight / minHeight
 
         if overlapRatio < configuration.minAlignmentOverlap {
-            return (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
+            return areFragments(a, b) ? (true, nil) : (false, .insufficientOverlap(ratio: overlapRatio, threshold: configuration.minAlignmentOverlap))
         }
 
         return (true, nil)
@@ -668,6 +745,34 @@ func xyOrder(_ boxes: [CGRect], vertical: Bool) -> [Int] {
     return order(Array(boxes.indices))
 }
 
+/// True when the boxes look like fragments of one line: similar thickness,
+/// sharing at least half of the thinner box across the text axis, and along
+/// it a gap of at most `gapMultiplier` line heights, or an overlap of at most
+/// one (a character read into both). The thinner box gives the line height: a
+/// wide box is inflated by ruby or by a read across two columns' tops.
+func fragments(_ a: CGRect, _ b: CGRect, vertical: Bool, gapMultiplier: CGFloat) -> Bool {
+    let (ta, tb) = vertical ? (a.width, b.width) : (a.height, b.height)
+    let thin = min(ta, tb)
+    let across = vertical ? (min(a.maxX, b.maxX) - max(a.minX, b.minX)) / thin
+        : (min(a.maxY, b.maxY) - max(a.minY, b.minY)) / thin
+    let along = vertical ? max(a.minY, b.minY) - min(a.maxY, b.maxY) : max(a.minX, b.minX) - min(a.maxX, b.maxX)
+    return thin >= 0.5 * max(ta, tb) && across >= 0.5 && along >= -thin && along <= thin * gapMultiplier
+}
+
+/// Groups the indices of `boxes` into lines, joining fragments (see
+/// `fragments`) transitively. Each group is in order along the text axis.
+/// Ordering the lines instead of the fragments keeps XY-cut from cutting a
+/// fragment that sticks out below its neighbours into a row of its own.
+func lineGroups(_ boxes: [CGRect], vertical: Bool, gapMultiplier: CGFloat) -> [[Int]] {
+    var uf = UnionFind(count: boxes.count)
+    for i in boxes.indices {
+        for j in (i + 1) ..< boxes.count where fragments(boxes[i], boxes[j], vertical: vertical, gapMultiplier: gapMultiplier) {
+            uf.union(i, j)
+        }
+    }
+    return uf.groups().map { $0.sorted { vertical ? boxes[$0].midY > boxes[$1].midY : boxes[$0].midX < boxes[$1].midX } }
+}
+
 /// Merges each cluster whose box lies mostly inside a larger same-direction
 /// cluster's box into that cluster. Returns groups of cluster indices, host
 /// first. Catches a ruby-carrying column that the clusterer left out while
@@ -692,6 +797,38 @@ func mergeContained(_ clusters: [(box: CGRect, vertical: Bool)]) -> [[Int]] {
         }
     }
     return groups
+}
+
+/// Folds each horizontal group into the first vertical group with more text
+/// that spans at least half of its width and lies within its own line height
+/// above or below it, or overlaps it. Returns groups of indices, host first.
+/// Vision reads the tops of neighbouring columns as one horizontal line, which
+/// the clusterer cannot join to the columns, and horizontal text that close to
+/// a vertical balloon is rare in manga.
+func absorbHorizontal(_ groups: [(box: CGRect, vertical: Bool, characters: Int)]) -> [[Int]] {
+    var result = groups.indices.map { [$0] }
+    var boxes = groups.map(\.box)
+    var i = 0
+    while i < result.count {
+        let s = groups[result[i][0]]
+        let host = s.vertical ? nil : result.indices.first { h in
+            let c = groups[result[h][0]]
+            let box = boxes[h]
+            let acrossX = min(box.maxX, s.box.maxX) - max(box.minX, s.box.minX)
+            let gapY = max(box.minY, s.box.minY) - min(box.maxY, s.box.maxY)
+            return h != i && c.vertical && c.characters > s.characters
+                && acrossX >= 0.5 * s.box.width && gapY <= s.box.height * 0.5
+        }
+        if let host {
+            let removed = result.remove(at: i), box = boxes.remove(at: i)
+            let h = host > i ? host - 1 : host
+            result[h] += removed
+            boxes[h] = boxes[h].union(box)
+        } else {
+            i += 1
+        }
+    }
+    return result
 }
 
 // MARK: - Convenience Extensions
