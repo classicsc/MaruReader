@@ -17,7 +17,9 @@
 
 import CoreGraphics
 import Foundation
+import MaruReaderCore
 import Observation
+import os
 import UIKit
 import WebKit
 
@@ -47,6 +49,7 @@ final class WebBrowserPage {
     var canGoForward = false
     var faviconData: Data?
 
+    private let logger = Logger.maru(category: "WebBrowserPage")
     private var scrollOffsetChangeHandler: ((CGFloat, CGFloat) -> Void)?
     private var observations: [NSKeyValueObservation] = []
     private let delegateProxy = DelegateProxy()
@@ -71,6 +74,21 @@ final class WebBrowserPage {
 
     func setScrollOffsetChangeHandler(_ handler: ((CGFloat, CGFloat) -> Void)?) {
         scrollOffsetChangeHandler = handler
+    }
+
+    /// App chrome (status bar, bottom toolbar) overlapping the full-bleed web view. Sets both the
+    /// scroll insets and WebKit's obscured insets so fixed elements, `env(safe-area-inset-*)` and the
+    /// status bar fill behave like Safari.
+    func applyChromeInsets(top: CGFloat, bottom: CGFloat) {
+        let insets = UIEdgeInsets(top: top, left: 0, bottom: bottom, right: 0)
+        let scrollView = webView.scrollView
+        guard scrollView.contentInset != insets || webView.obscuredContentInsets != insets else { return }
+        // WebKit forces .always otherwise, which would add the safe area on top of our inset.
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentInset = insets
+        scrollView.verticalScrollIndicatorInsets = insets
+        webView.obscuredContentInsets = insets
+        logger.debug("chrome insets top=\(top) bottom=\(bottom) safeArea=\(self.webView.safeAreaInsets.top)/\(self.webView.safeAreaInsets.bottom)")
     }
 
     func setDictionaryLookupHandler(_ handler: (@MainActor (String) -> Void)?) {

@@ -21,13 +21,16 @@ import WebKit
 
 struct WebBrowserView: UIViewRepresentable {
     let page: WebBrowserPage
+    let chromeInsets: EdgeInsets
     let onScrollOffsetChange: (@MainActor (CGFloat, CGFloat) -> Void)?
 
     init(
         page: WebBrowserPage,
+        chromeInsets: EdgeInsets = EdgeInsets(),
         onScrollOffsetChange: (@MainActor (CGFloat, CGFloat) -> Void)? = nil
     ) {
         self.page = page
+        self.chromeInsets = chromeInsets
         self.onScrollOffsetChange = onScrollOffsetChange
     }
 
@@ -35,6 +38,7 @@ struct WebBrowserView: UIViewRepresentable {
         page.setScrollOffsetChangeHandler { oldOffset, newOffset in
             onScrollOffsetChange?(oldOffset, newOffset)
         }
+        page.applyChromeInsets(top: chromeInsets.top, bottom: chromeInsets.bottom)
         return page.webView
     }
 
@@ -42,6 +46,7 @@ struct WebBrowserView: UIViewRepresentable {
         page.setScrollOffsetChangeHandler { oldOffset, newOffset in
             onScrollOffsetChange?(oldOffset, newOffset)
         }
+        page.applyChromeInsets(top: chromeInsets.top, bottom: chromeInsets.bottom)
     }
 
     static func dismantleUIView(_: WKWebView, coordinator _: ()) {}
