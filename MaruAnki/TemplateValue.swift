@@ -20,8 +20,16 @@ import Foundation
 /// The values that can be used to populate note fields.
 public enum TemplateValue: Sendable, Codable, Hashable {
     case singleDictionaryGlossary(dictionaryID: UUID)
+    case singleDictionaryGlossaryNoDictionary(dictionaryID: UUID)
+    case singleDictionaryGlossaryPlain(dictionaryID: UUID)
+    case singleDictionaryGlossaryPlainNoDictionary(dictionaryID: UUID)
     case singleGlossary
+    case singleGlossaryPlain
+    case singleGlossaryPlainNoDictionary
     case multiDictionaryGlossary
+    case multiDictionaryGlossaryNoDictionary
+    case multiDictionaryGlossaryPlain
+    case multiDictionaryGlossaryPlainNoDictionary
     case pronunciationAudio
     case expression
     case customHTMLValue(value: String)

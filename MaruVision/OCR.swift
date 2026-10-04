@@ -15,19 +15,19 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreImage
 import os
 import SwiftUI
 import Vision
 
 public actor OCR {
-    /// The array of the request's results.
-    private var observations = [RecognizedTextObservation]()
     /// The Vision request.
     var request: RecognizeTextRequest
 
     /// Configuration for text clustering.
     public var clusteringConfiguration: ClusteringConfiguration = .default
 
+    private let ciContext = CIContext()
     private let logger = Logger(subsystem: "net.undefinedstar.MaruReader", category: "OCR")
 
     public init(clusteringConfiguration: ClusteringConfiguration = .default) {
@@ -47,37 +47,164 @@ public actor OCR {
     }
 
     public func performOCR(imageData: Data) async throws -> [TextCluster] {
-        let results = try await request.perform(on: imageData)
-        return clusterResults(results)
+        try await cluster(recognize(.data(imageData)))
     }
 
     public func performOCR(cgImage: CGImage) async throws -> [TextCluster] {
-        let results = try await request.perform(on: cgImage)
-        return clusterResults(results)
+        try await cluster(recognize(.image(cgImage)))
     }
 
-    private func clusterResults(_ results: [RecognizedTextObservation]) -> [TextCluster] {
-        logger.debug("OCR found \(results.count) text observations.")
-
-        let clusterer = TextClusterer(configuration: clusteringConfiguration)
-        let clusteredResults = clusterer.cluster(results)
-
-        logger.debug("Clustered into \(clusteredResults.count) clusters.")
-
-        observations = results
-        return clusteredResults
+    /// The cluster's text after re-reading each line from its own upscaled
+    /// crop of `image`, the image the cluster was recognized in. Ruby beside a
+    /// line stays out of its crop, which fixes many misreads, at the cost of
+    /// Vision requests per line, so this runs on demand for a tapped cluster
+    /// rather than for every cluster on a page. Falls back to the page-level
+    /// text when the image's pixels do not match its boxes (rotated by EXIF
+    /// orientation) or the re-read fails or is cancelled.
+    public nonisolated func transcript(of cluster: TextCluster, in image: UIImage) -> Task<String, Never> {
+        Task(priority: .userInitiated) {
+            guard image.imageOrientation == .up, let cgImage = image.cgImage,
+                  let refined = try? await recropLines(cluster, page: cgImage) else { return cluster.transcript }
+            return refined.transcript
+        }
     }
 
-    /// Re-cluster existing observations with a new configuration.
-    /// Useful for adjusting clustering parameters without re-running OCR.
-    public func recluster(with configuration: ClusteringConfiguration) async -> [TextCluster] {
-        let currentObservations = observations
-        guard !currentObservations.isEmpty else { return [] }
+    // MARK: - Recognition
 
-        let clusterer = TextClusterer(configuration: configuration)
-        let clusteredResults = clusterer.cluster(currentObservations)
-        clusteringConfiguration = configuration
-        logger.debug("Re-clustered \(currentObservations.count) observations into \(clusteredResults.count) clusters.")
-        return clusteredResults
+    private enum Input {
+        case data(Data)
+        case image(CGImage)
     }
+
+    private func perform(_ request: RecognizeTextRequest, on input: Input) async throws -> [RecognizedTextObservation] {
+        switch input {
+        case let .data(data): try await request.perform(on: data)
+        case let .image(image): try await request.perform(on: image)
+        }
+    }
+
+    /// The default pass plus a pass with no minimum text height. The default
+    /// height (1/32 of the image) drops small balloons and breaks up
+    /// low-resolution columns; the second pass adds lines that overlap nothing
+    /// from the first.
+    private func recognize(_ input: Input) async throws -> [RecognizedTextObservation] {
+        let first = try await perform(request, on: input)
+        var second = request
+        second.minimumTextHeightFraction = 0
+        let extra = try await perform(second, on: input)
+        return first + extra.filter { o in !first.contains { overlaps($0.boundingBox.cgRect, o.boundingBox.cgRect) } }
+    }
+
+    private func cluster(_ observations: [RecognizedTextObservation]) -> [TextCluster] {
+        logger.debug("OCR found \(observations.count) text observations.")
+        let clusters = TextClusterer(configuration: clusteringConfiguration).cluster(observations)
+        var groups = mergeContained(clusters.map { ($0.boundingBox, $0.direction == .vertical) })
+        if clusteringConfiguration.absorbHorizontal {
+            let summary = groups.map { g in
+                (box: g.dropFirst().reduce(clusters[g[0]].boundingBox) { $0.union(clusters[$1].boundingBox) },
+                 vertical: clusters[g[0]].direction == .vertical,
+                 characters: g.map { clusters[$0].transcript.count }.reduce(0, +))
+            }
+            groups = absorbHorizontal(summary).map { $0.flatMap { groups[$0] } }
+        }
+        let merged = groups.map { group in
+            let observations = group.flatMap { clusters[$0].observations }
+            let direction = clusters[group[0]].direction
+            let vertical = direction == .vertical
+            let boxes = observations.map(\.boundingBox.cgRect)
+            let order: [Int]
+            if clusteringConfiguration.maxFragmentGapMultiplier > 0 {
+                // Order whole lines, then fragments within each line.
+                let lines = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
+                let lineBoxes = lines.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
+                order = xyOrder(lineBoxes, vertical: vertical).flatMap { lines[$0] }
+            } else {
+                order = xyOrder(boxes, vertical: vertical)
+            }
+            return TextCluster(observations: order.map { observations[$0] }, direction: direction)
+        }
+        logger.debug("Clustered into \(merged.count) clusters.")
+        return merged
+    }
+
+    // MARK: - Line crops
+
+    /// Re-reads each line from its own crop and replaces its text. Keeps the
+    /// page-level text when the crop reads nothing usable.
+    private func recropLines(_ cluster: TextCluster, page: CGImage) async throws -> TextCluster {
+        let aspect = CGFloat(page.width) / CGFloat(page.height)
+        let vertical = cluster.direction == .vertical
+        var texts = cluster.transcripts
+        for (i, observation) in cluster.observations.enumerated() {
+            try Task.checkCancellation()
+            let box = observation.boundingBox.cgRect
+            let t = vertical ? box.width : box.height
+            // Half a line of padding along the line, 15% across it.
+            let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
+            let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
+            if let text = cropText(for: box, reads: reads, vertical: vertical) {
+                texts[i] = text
+            }
+        }
+        return TextCluster(observations: cluster.observations, direction: cluster.direction, transcripts: texts)
+    }
+
+    /// Reads a page region (normalized, lower-left origin), scaled so lines
+    /// `thickness` (normalized) thick come out about 64 px thick. Boxes are
+    /// returned in page coordinates.
+    private func read(_ region: CGRect, thickness: CGFloat, vertical: Bool, page: CGImage) async throws -> [CropRead] {
+        let w = CGFloat(page.width), h = CGFloat(page.height)
+        let norm = region.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
+        let px = CGRect(x: norm.minX * w, y: (1 - norm.maxY) * h, width: norm.width * w, height: norm.height * h)
+            .integral.intersection(CGRect(x: 0, y: 0, width: w, height: h))
+        guard !px.isEmpty, let crop = page.cropping(to: px) else { return [] }
+        let scale = min(max(64 / (thickness * (vertical ? w : h)), 1), 8)
+        var image = crop
+        if scale > 1 {
+            let ci = CIImage(cgImage: crop).applyingFilter("CILanczosScaleTransform", parameters: [kCIInputScaleKey: scale])
+            image = ciContext.createCGImage(ci, from: ci.extent.integral) ?? crop
+        }
+        // Crop-normalized to page-normalized (the crop's lower-left is at the pixel rect's bottom).
+        let o = CGRect(x: px.minX / w, y: 1 - px.maxY / h, width: px.width / w, height: px.height / h)
+        return try await recognize(.image(image)).map { r in
+            let b = r.boundingBox.cgRect
+            let box = CGRect(x: o.minX + b.minX * o.width, y: o.minY + b.minY * o.height,
+                             width: b.width * o.width, height: b.height * o.height)
+            return CropRead(box: box, text: r.transcript)
+        }
+    }
+}
+
+/// One line read from a crop, in page coordinates.
+struct CropRead {
+    var box: CGRect
+    var text: String
+}
+
+/// True when the boxes share more than 30% of the smaller one's area.
+func overlaps(_ a: CGRect, _ b: CGRect) -> Bool {
+    let i = a.intersection(b)
+    return !i.isNull && i.width * i.height > 0.3 * min(a.width * a.height, b.width * b.height)
+}
+
+/// Text for a line from the reads of its padded crop, or nil to keep the
+/// page-level text. Drops reads mostly outside the line (neighbours caught by
+/// the padding) and reads much thinner than the thickest (ruby). Gives up when
+/// reads overlap along the line: slanted text gets a wide box holding two
+/// columns, and the page-level read is right then.
+func cropText(for line: CGRect, reads: [CropRead], vertical: Bool) -> String? {
+    let inside = reads.filter { r in
+        let i = r.box.intersection(line)
+        return !i.isNull && i.width * i.height >= 0.5 * r.box.width * r.box.height
+    }
+    let thickness = { (r: CropRead) in vertical ? r.box.width : r.box.height }
+    let thickest = inside.map(thickness).max() ?? 0
+    let kept = inside.filter { thickness($0) >= thickest * 0.6 }
+    let along = { (r: CropRead) in vertical ? (r.box.minY, r.box.maxY) : (r.box.minX, r.box.maxX) }
+    let stacked = kept.indices.contains { i in kept.indices.contains { j in
+        let (a0, a1) = along(kept[i]), (b0, b1) = along(kept[j])
+        return i < j && min(a1, b1) - max(a0, b0) > 0.5 * min(a1 - a0, b1 - b0)
+    } }
+    guard !kept.isEmpty, !stacked else { return nil }
+    return kept.sorted { vertical ? $0.box.midY > $1.box.midY : $0.box.midX < $1.box.midX }.map(\.text).joined()
 }

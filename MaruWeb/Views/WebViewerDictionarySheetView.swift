@@ -20,10 +20,13 @@ import MaruReaderCore
 import SwiftUI
 
 struct WebViewerDictionarySheetView: View {
-    let searchText: String
+    /// The text to search. The sheet shows its searching state until the task
+    /// finishes, so a tapped cluster's text can still be refining.
+    let searchText: Task<String, Never>
     let contextValues: LookupContextValues
     let accessibilityIdentifier: String
     let onDismiss: () -> Void
+    var lookupRequest: TextLookupRequest?
 
     @Environment(\.dictionaryFeatureAvailability) private var availability
     @State private var searchViewModel: DictionarySearchViewModel?
@@ -85,7 +88,11 @@ struct WebViewerDictionarySheetView: View {
         guard case .ready = availability, !didPerformSearch else { return }
         didPerformSearch = true
         let viewModel = DictionarySearchViewModel(resultState: .searching)
-        viewModel.performSearch(searchText, contextValues: contextValues)
         searchViewModel = viewModel
+        if let lookupRequest {
+            viewModel.performSearchWithRequest(lookupRequest)
+        } else {
+            Task { await viewModel.performSearch(searchText.value, contextValues: contextValues) }
+        }
     }
 }

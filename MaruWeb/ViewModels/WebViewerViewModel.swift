@@ -42,11 +42,14 @@ enum WebOverlayState {
 struct WebLookupSelection: Identifiable {
     let id: UUID
     let cluster: TextCluster
+    /// The cluster's text, refined from line crops; may still be running.
+    let text: Task<String, Never>
     let contextValues: LookupContextValues
 
-    init(cluster: TextCluster, contextValues: LookupContextValues) {
+    init(cluster: TextCluster, text: Task<String, Never>, contextValues: LookupContextValues) {
         self.id = cluster.id
         self.cluster = cluster
+        self.text = text
         self.contextValues = contextValues
     }
 }
@@ -111,6 +114,7 @@ final class WebViewerViewModel {
     private let logger = Logger.maru(category: "WebViewerViewModel")
 
     var addressBarText: String = ""
+    var transcriptPresented = false
     var readingModeEnabled = false
     var showBoundingBoxes = false
     var highlightedCluster: TextCluster?
@@ -156,6 +160,27 @@ final class WebViewerViewModel {
             loadInitialURLIfNeeded()
         }
         refreshBookmarkState()
+    }
+
+    func openTranscript() {
+        guard let page, let videoID = YouTubeVideo.id(from: page.url) else { return }
+        page.transcriptAutoOpenedVideoID = videoID
+        transcriptPresented = true
+    }
+
+    func autoOpenTranscriptIfPlaying(on observedPage: WebBrowserPage, enabled: Bool, canPresent: () -> Bool) async {
+        guard enabled, page === observedPage, !transcriptPresented,
+              !readingModeEnabled, !isAddressBarEditing, editMenuSelection == nil, canPresent(),
+              let videoID = YouTubeVideo.id(from: observedPage.url),
+              observedPage.transcriptAutoOpenedVideoID != videoID else { return }
+        let value = try? await YouTubeTranscriptScript.call(on: observedPage, videoID: videoID, action: "time")
+        guard !Task.isCancelled, page === observedPage,
+              YouTubeVideo.id(from: observedPage.url) == videoID,
+              !readingModeEnabled, !isAddressBarEditing, editMenuSelection == nil, canPresent(),
+              let string = value as? String,
+              let snapshot = try? JSONDecoder().decode(YouTubeTranscriptSnapshot.self, from: Data(string.utf8)),
+              snapshot.videoID == videoID, snapshot.isPlaying else { return }
+        openTranscript()
     }
 
     func toggleOverlay() {
@@ -254,6 +279,7 @@ final class WebViewerViewModel {
 
     func closeTab(id: UUID) {
         guard let index = tabs.firstIndex(where: { $0.id == id }) else { return }
+        tabs[index].page.close()
         let wasSelected = selectedTabID == id
         if tabs.count == 1 {
             tabs.removeAll()
@@ -274,6 +300,13 @@ final class WebViewerViewModel {
         overlayState = .showingToolbars
         updateAddressBar(from: page?.url)
         refreshBookmarkState()
+    }
+
+    /// Stops every tab's media when the viewer is dismissed; tabs stay so the dismissal doesn't re-render.
+    func tearDown() {
+        for tab in tabs {
+            tab.page.close()
+        }
     }
 
     func moveTabs(from source: IndexSet, to destination: Int) {
@@ -415,9 +448,11 @@ final class WebViewerViewModel {
             return nil
         }
 
+        // Start the line re-read now so it overlaps the screenshot write and sheet animation.
+        let text = ocrViewModel.transcript(of: cluster)
         let screenshotURL = await writeJPEGContextImage(from: ocrViewModel.image, prefix: "web_snapshot")
         let contextValues = webContextValues(screenshotURL: screenshotURL)
-        return WebLookupSelection(cluster: cluster, contextValues: contextValues)
+        return WebLookupSelection(cluster: cluster, text: text, contextValues: contextValues)
     }
 
     func exitReadingModeAfterLookupSelection() {

@@ -32,6 +32,8 @@ struct WebViewerTopRowView: View {
     let onCancelAddressEditing: () -> Void
     let onSubmitAddress: () -> Void
     let onEnableReadingMode: () -> Void
+    let showsTranscriptButton: Bool
+    let onOpenTranscript: () -> Void
     let onStopLoading: () -> Void
     let onReload: () -> Void
 
@@ -50,6 +52,19 @@ struct WebViewerTopRowView: View {
                 .glassEffectTransition(GlassEffectTransition.matchedGeometry)
                 .accessibilityLabel("Enable OCR Mode")
                 .tourAnchor(WebViewerToolbarTourAnchor.readingModeButton)
+
+                if showsTranscriptButton {
+                    Button(action: onOpenTranscript) {
+                        Image(systemName: "text.bubble")
+                            .font(.system(size: floatingButtonIconSize, weight: .semibold))
+                    }
+                    .frame(width: floatingButtonFrameSize, height: floatingButtonFrameSize)
+                    .contentShape(.circle)
+                    .buttonStyle(.plain)
+                    .glassEffect(in: Circle())
+                    .accessibilityLabel("Transcript")
+                    .accessibilityIdentifier("web.openTranscript")
+                }
             }
 
             WebViewerAddressBarCapsuleView(

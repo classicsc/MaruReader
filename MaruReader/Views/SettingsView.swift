@@ -31,7 +31,11 @@ struct SettingsView: View {
     private let noteService = AnkiNoteService()
 
     private let supportForumURL = URL(string: "https://github.com/classicsc/MaruReader/discussions")!
-    private let privacyPolicyURL = URL(string: "https://github.com/classicsc/MaruReader/blob/main/PRIVACY.md")!
+    private let websiteURL = URL(string: "https://marureader.org")!
+    private var privacyPolicyURL: URL {
+        let language = Bundle.main.preferredLocalizations.first == "ja" ? "ja" : "en"
+        return URL(string: "https://marureader.org/\(language)/privacy/")!
+    }
 
     var body: some View {
         NavigationStack {
@@ -79,6 +83,10 @@ struct SettingsView: View {
                         AboutView()
                     } label: {
                         Label("About MaruReader", systemImage: "info.circle")
+                    }
+
+                    Link(destination: websiteURL) {
+                        Label("Website", systemImage: "globe")
                     }
 
                     Link(destination: supportForumURL) {

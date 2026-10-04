@@ -29,9 +29,17 @@ final class WebBrowserPage {
         case failedToEncode
     }
 
+    var transcriptAutoOpenedVideoID: String?
     let webView: WKWebView
 
-    var url: URL?
+    var url: URL? {
+        didSet {
+            if YouTubeVideo.id(from: oldValue) != YouTubeVideo.id(from: url) {
+                transcriptAutoOpenedVideoID = nil
+            }
+        }
+    }
+
     var title: String?
     var isLoading = false
     var estimatedProgress = 0.0
@@ -109,6 +117,15 @@ final class WebBrowserPage {
 
     func stopLoading() {
         webView.stopLoading()
+    }
+
+    /// Stops media and unloads the document so a closed tab can't keep playing in the background,
+    /// even if something still holds the web view.
+    func close() {
+        webView.stopLoading()
+        webView.closeAllMediaPresentations(completionHandler: nil)
+        webView.pauseAllMediaPlayback(completionHandler: nil)
+        webView.load(URLRequest(url: URL(string: "about:blank")!))
     }
 
     func callJavaScript(_ script: String) async throws -> Any? {
@@ -403,6 +420,33 @@ final class WebBrowserPage {
     }
 }
 
+extension WebBrowserPage {
+    enum SchemeAction: Equatable {
+        case allow
+        case cancel
+        case openExternally
+    }
+
+    /// Main-frame policy by URL scheme. App schemes (twitter://, youtube://, intent://) are dropped;
+    /// only user-tapped communication links leave the app.
+    nonisolated static func schemeAction(for url: URL, userTapped: Bool) -> SchemeAction {
+        let scheme = url.scheme?.lowercased() ?? ""
+        if ["http", "https", "about", "data", "blob", "javascript"].contains(scheme) {
+            return .allow
+        }
+        if userTapped, ["mailto", "tel", "sms", "facetime", "facetime-audio"].contains(scheme) {
+            return .openExternally
+        }
+        return .cancel
+    }
+}
+
+private extension WKNavigationActionPolicy {
+    /// WebKit's `_WKNavigationActionPolicyAllowWithoutTryingAppLink` (allow + 2); keeps universal links
+    /// in the browser. Same approach as Firefox and Brave for iOS.
+    static let allowWithoutTryingAppLink = WKNavigationActionPolicy(rawValue: WKNavigationActionPolicy.allow.rawValue + 2) ?? .allow
+}
+
 private struct FaviconCandidate {
     let url: URL
     let rel: String
@@ -511,6 +555,51 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
     var onDidStartNavigation: (@MainActor () -> Void)?
     var onDidFinishNavigation: (@MainActor () -> Void)?
     var onDidFailNavigation: (@MainActor () -> Void)?
+
+    func webView(
+        _ webView: WKWebView,
+        decidePolicyFor navigationAction: WKNavigationAction,
+        preferences: WKWebpagePreferences,
+        decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
+    ) {
+        guard navigationAction.targetFrame?.isMainFrame == true,
+              let url = navigationAction.request.url
+        else {
+            decisionHandler(.allow, preferences)
+            return
+        }
+
+        switch WebBrowserPage.schemeAction(for: url, userTapped: navigationAction.navigationType == .linkActivated) {
+        case .allow:
+            break
+        case .cancel:
+            decisionHandler(.cancel, preferences)
+            return
+        case .openExternally:
+            decisionHandler(.cancel, preferences)
+            UIApplication.shared.open(url)
+            return
+        }
+
+        let isYouTube = YouTubeVideo.isYouTube(url)
+        if isYouTube {
+            preferences.preferredContentMode = .desktop
+            if let desktopURL = YouTubeVideo.desktopURL(for: url), desktopURL != url {
+                var request = navigationAction.request
+                request.url = desktopURL
+                decisionHandler(.cancel, preferences)
+                webView.load(request)
+                return
+            }
+        }
+
+        // nil keeps WebKit's content-mode-driven UA, so YouTube's forced desktop mode and iPad are unchanged.
+        let userAgent = isYouTube || UIDevice.current.userInterfaceIdiom != .phone ? nil : WebUserAgent.mobileSafari
+        if webView.customUserAgent != userAgent {
+            webView.customUserAgent = userAgent
+        }
+        decisionHandler(.allowWithoutTryingAppLink, preferences)
+    }
 
     func webView(
         _ webView: WKWebView,

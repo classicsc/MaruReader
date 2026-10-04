@@ -416,4 +416,87 @@ struct GlossaryHTMLFormatTests {
         #expect(html.contains("&lt;"), "Less-than should be escaped")
         #expect(html.contains("&gt;"), "Greater-than should be escaped")
     }
+
+    // MARK: - Dictionary Title and Plain Variants
+
+    private func resolveText(_ value: TemplateValue, dictionaries: [DictionaryResults]) async throws -> (text: String, mediaFiles: [String: URL]) {
+        let group = makeGroupedSearchResults(dictionariesResults: dictionaries)
+        let resolver = TextLookupResponseTemplateResolver(response: makeTextLookupResponse(selectedGroup: group), selectedGroup: group)
+        let result = await resolver.resolve(value)
+        return try (#require(result.text), result.mediaFiles)
+    }
+
+    @Test func singleGlossaryValues_includeDictionaryTitle() async throws {
+        let dict = makeDictionaryResults(dictionaryTitle: "Dictionary A")
+        for value: TemplateValue in [.singleGlossary, .singleDictionaryGlossary(dictionaryID: dict.dictionaryUUID)] {
+            let html = try await resolveText(value, dictionaries: [dict]).text
+            #expect(html.contains("<li data-dictionary=\"Dictionary A\"><i>(Dictionary A)</i> "), "\(value)")
+        }
+    }
+
+    @Test func noDictionaryValues_matchStructureWithoutTitle() async throws {
+        let dictA = makeDictionaryResults(dictionaryTitle: "Dictionary A")
+        let dictB = makeDictionaryResults(dictionaryTitle: "Dictionary B")
+        let values: [TemplateValue] = [
+            .glossaryNoDictionary,
+            .singleDictionaryGlossaryNoDictionary(dictionaryID: dictA.dictionaryUUID),
+            .multiDictionaryGlossaryNoDictionary,
+        ]
+        for value in values {
+            let html = try await resolveText(value, dictionaries: [dictA, dictB]).text
+            #expect(html.hasPrefix("<div style=\"text-align: left;\" class=\"yomitan-glossary\"><ol><li data-dictionary=\"Dictionary A\"><ul"), "\(value)")
+            #expect(!html.contains("<i>("), "\(value)")
+        }
+
+        let single = try await resolveText(.singleGlossary, dictionaries: [dictA]).text
+        let noDictionary = try await resolveText(.glossaryNoDictionary, dictionaries: [dictA]).text
+        #expect(single.replacingOccurrences(of: "<i>(Dictionary A)</i> ", with: "") == noDictionary)
+    }
+
+    @Test func plainValues_stripHTMLExceptLineBreaks() async throws {
+        let dictA = makeDictionaryResults(
+            dictionaryTitle: "Dictionary A",
+            searchResults: [makeTestSearchResult(definitions: [.text("first & one"), .text("second")])]
+        )
+        let dictB = makeDictionaryResults(dictionaryTitle: "Dictionary B")
+
+        let cases: [(TemplateValue, String)] = [
+            (.singleGlossaryPlain, "(Dictionary A) first &amp; one<br>second"),
+            (.singleGlossaryPlainNoDictionary, "first &amp; one<br>second"),
+            (.singleDictionaryGlossaryPlain(dictionaryID: dictB.dictionaryUUID), "(Dictionary B) Test definition"),
+            (.singleDictionaryGlossaryPlainNoDictionary(dictionaryID: dictB.dictionaryUUID), "Test definition"),
+            (.multiDictionaryGlossaryPlain, "(Dictionary A) first &amp; one<br>second<br>(Dictionary B) Test definition"),
+            (.multiDictionaryGlossaryPlainNoDictionary, "first &amp; one<br>second<br>Test definition"),
+        ]
+        for (value, expected) in cases {
+            let resolved = try await resolveText(value, dictionaries: [dictA, dictB])
+            #expect(resolved.text == expected, "\(value)")
+            #expect(resolved.mediaFiles.isEmpty, "\(value)")
+        }
+    }
+
+    @Test func plainValues_flattenStructuredContent() async throws {
+        let definitionJSON = #"""
+        {
+          "type": "structured-content",
+          "content": [
+            {"tag": "ruby", "content": ["漢字", {"tag": "rp", "content": "("}, {"tag": "rt", "content": "かんじ"}, {"tag": "rp", "content": ")"}]},
+            {"tag": "span", "content": "noun"},
+            {"tag": "ol", "content": [
+              {"tag": "li", "content": "major recession"},
+              {"tag": "li", "content": "serious depression"}
+            ]}
+          ]
+        }
+        """#
+        let definition = try JSONDecoder().decode(Definition.self, from: Data(definitionJSON.utf8))
+        let dict = makeDictionaryResults(
+            dictionaryTitle: "Jitendex",
+            searchResults: [makeTestSearchResult(definitions: [definition])]
+        )
+
+        let text = try await resolveText(.singleGlossaryPlainNoDictionary, dictionaries: [dict]).text
+
+        #expect(text == "漢字(かんじ)noun<br>major recession<br>serious depression")
+    }
 }

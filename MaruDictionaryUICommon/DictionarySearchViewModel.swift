@@ -405,7 +405,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     }
 
     /// Perform a search with a specific TextLookupRequest
-    private func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
+    public func performSearchWithRequest(_ lookupRequest: TextLookupRequest) {
         searchTask?.cancel()
         searchTask = Task {
             do {

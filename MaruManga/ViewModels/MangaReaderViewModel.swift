@@ -150,8 +150,9 @@ final class MangaReaderViewModel {
     /// Whether dictionary sheet is showing
     var showingDictionarySheet: Bool = false
 
-    /// Pending search data for lazy dictionary view model initialization
-    private(set) var pendingSearchText: String?
+    /// Pending search data for lazy dictionary view model initialization.
+    /// The text may still be refining from line crops when the sheet opens.
+    private(set) var pendingSearchText: Task<String, Never>?
     private(set) var pendingContextValues: LookupContextValues?
 
     // MARK: - Private State
@@ -372,6 +373,9 @@ final class MangaReaderViewModel {
 
     /// Handles a tap on a text cluster, showing highlight and opening dictionary
     func handleClusterTap(_ cluster: TextCluster, pageIndex: Int) {
+        // Start re-reading the cluster's lines now so it overlaps the highlight
+        // and sheet animations; the sheet waits in its searching state if needed.
+        let text = renderedPageCache[pageIndex].map { ocr.transcript(of: cluster, in: $0.image) } ?? Task { cluster.transcript }
         Task {
             // Set highlighted cluster for visual feedback
             highlightedCluster = cluster
@@ -380,14 +384,14 @@ final class MangaReaderViewModel {
             try? await Task.sleep(for: .milliseconds(100))
 
             // Perform dictionary lookup
-            await performDictionaryLookup(text: cluster.transcript, pageIndex: pageIndex)
+            await performDictionaryLookup(text: text, pageIndex: pageIndex)
 
             // Clear highlight after sheet opens
             highlightedCluster = nil
         }
     }
 
-    private func performDictionaryLookup(text: String, pageIndex: Int) async {
+    private func performDictionaryLookup(text: Task<String, Never>, pageIndex: Int) async {
         pendingSearchText = text
         pendingContextValues = await lookupContextValues(for: pageIndex)
         showingDictionarySheet = true

@@ -29,7 +29,7 @@ struct DictionaryUpdateAnkiPreferencesUpdaterTests {
         let newID = UUID()
 
         let fieldMap = AnkiFieldMap(map: [
-            "Front": [.singleDictionaryGlossary(dictionaryID: oldID)],
+            "Front": [.singleDictionaryGlossary(dictionaryID: oldID), .singleDictionaryGlossaryPlainNoDictionary(dictionaryID: oldID)],
             "Back": [
                 .singleFrequencyDictionary(dictionaryID: oldID),
                 .frequencyRankSortField(dictionaryID: oldID),
@@ -72,6 +72,7 @@ struct DictionaryUpdateAnkiPreferencesUpdaterTests {
             let frontValues = updatedFieldMap.map["Front"] ?? []
             let backValues = updatedFieldMap.map["Back"] ?? []
             #expect(frontValues.contains(.singleDictionaryGlossary(dictionaryID: newID)))
+            #expect(frontValues.contains(.singleDictionaryGlossaryPlainNoDictionary(dictionaryID: newID)))
             #expect(backValues.contains(.singleFrequencyDictionary(dictionaryID: newID)))
             #expect(backValues.contains(.frequencyRankSortField(dictionaryID: newID)))
         } else {

@@ -68,7 +68,7 @@ struct FieldMappingEditorView: View {
     }
 
     private enum DictionaryPickerPurpose {
-        case glossary
+        case glossary(includeTitle: Bool, plain: Bool)
         case frequency
         case frequencyRankSort
         case frequencyOccurrenceSort
@@ -160,8 +160,8 @@ struct FieldMappingEditorView: View {
                 dictionaries: dictionariesForPurpose(context.purpose),
                 onSelect: { dictionary in
                     let templateValue: TemplateValue = switch context.purpose {
-                    case .glossary:
-                        .singleDictionaryGlossary(dictionaryID: dictionary.id)
+                    case let .glossary(includeTitle, plain):
+                        TemplateValue.singleDictionaryGlossary(dictionaryID: dictionary.id, includeTitle: includeTitle, plain: plain)
                     case .frequency:
                         .singleFrequencyDictionary(dictionaryID: dictionary.id)
                     case .frequencyRankSort:
@@ -329,11 +329,14 @@ struct FieldMappingEditorView: View {
     }
 
     private func displayNameForValue(_ value: TemplateValue) -> String {
-        switch value {
-        case let .singleDictionaryGlossary(dictionaryID):
-            if let dictionary = availableTermDictionaries.first(where: { $0.id == dictionaryID }) {
-                return AppLocalization.glossaryDictionary(dictionary.title)
+        if let glossary = value.dictionaryGlossaryOptions {
+            if let dictionary = availableTermDictionaries.first(where: { $0.id == glossary.dictionaryID }) {
+                return AppLocalization.glossaryDictionary(dictionary.title, includeTitle: glossary.includeTitle, plain: glossary.plain)
             }
+            return value.displayName
+        }
+
+        switch value {
         case let .singleFrequencyDictionary(dictionaryID):
             if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
                 return AppLocalization.frequencyDictionary(dictionary.title)
@@ -364,8 +367,19 @@ struct FieldMappingEditorView: View {
 
                 if category == .glossary {
                     Divider()
-                    Button("Single Dictionary Glossary...") {
-                        dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary)
+                    Menu("Single Dictionary Glossary") {
+                        Button("With Title...") {
+                            dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary(includeTitle: true, plain: false))
+                        }
+                        Button("No Title...") {
+                            dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary(includeTitle: false, plain: false))
+                        }
+                        Button("Plain...") {
+                            dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary(includeTitle: true, plain: true))
+                        }
+                        Button("Plain, No Title...") {
+                            dictionaryPickerContext = DictionaryPickerContext(targetIndex: index, purpose: .glossary(includeTitle: false, plain: true))
+                        }
                     }
                     .disabled(availableTermDictionaries.isEmpty)
                 }
@@ -454,7 +468,16 @@ enum TemplateValueCategory: CaseIterable {
         case .reading:
             [.reading]
         case .glossary:
-            [.singleGlossary, .multiDictionaryGlossary, .glossaryNoDictionary]
+            [
+                .singleGlossary,
+                .glossaryNoDictionary,
+                .singleGlossaryPlain,
+                .singleGlossaryPlainNoDictionary,
+                .multiDictionaryGlossary,
+                .multiDictionaryGlossaryNoDictionary,
+                .multiDictionaryGlossaryPlain,
+                .multiDictionaryGlossaryPlainNoDictionary,
+            ]
         case .context:
             [
                 .selectionText,
@@ -478,20 +501,50 @@ enum TemplateValueCategory: CaseIterable {
 }
 
 extension TemplateValue {
+    static func singleDictionaryGlossary(dictionaryID: UUID, includeTitle: Bool, plain: Bool) -> TemplateValue {
+        switch (includeTitle, plain) {
+        case (true, false): .singleDictionaryGlossary(dictionaryID: dictionaryID)
+        case (false, false): .singleDictionaryGlossaryNoDictionary(dictionaryID: dictionaryID)
+        case (true, true): .singleDictionaryGlossaryPlain(dictionaryID: dictionaryID)
+        case (false, true): .singleDictionaryGlossaryPlainNoDictionary(dictionaryID: dictionaryID)
+        }
+    }
+
+    var dictionaryGlossaryOptions: (dictionaryID: UUID, includeTitle: Bool, plain: Bool)? {
+        switch self {
+        case let .singleDictionaryGlossary(id): (id, true, false)
+        case let .singleDictionaryGlossaryNoDictionary(id): (id, false, false)
+        case let .singleDictionaryGlossaryPlain(id): (id, true, true)
+        case let .singleDictionaryGlossaryPlainNoDictionary(id): (id, false, true)
+        default: nil
+        }
+    }
+
     var displayName: String {
         switch self {
         case let .singleDictionaryGlossary(dictionaryID):
             let shortID = String(dictionaryID.uuidString.prefix(8))
             return AppLocalization.glossaryIdentifier(shortID)
+        case let .singleDictionaryGlossaryNoDictionary(dictionaryID):
+            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", includeTitle: false)
+        case let .singleDictionaryGlossaryPlain(dictionaryID):
+            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", plain: true)
+        case let .singleDictionaryGlossaryPlainNoDictionary(dictionaryID):
+            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", includeTitle: false, plain: true)
         case .singleGlossary: return String(localized: "Single Glossary (First Dictionary)")
+        case .singleGlossaryPlain: return String(localized: "Single Glossary (First Dictionary, Plain)")
+        case .singleGlossaryPlainNoDictionary: return String(localized: "Single Glossary (First Dictionary, Plain, No Title)")
         case .multiDictionaryGlossary: return String(localized: "Multi-Dictionary Glossary")
+        case .multiDictionaryGlossaryNoDictionary: return String(localized: "Multi-Dictionary Glossary (No Titles)")
+        case .multiDictionaryGlossaryPlain: return String(localized: "Multi-Dictionary Glossary (Plain)")
+        case .multiDictionaryGlossaryPlainNoDictionary: return String(localized: "Multi-Dictionary Glossary (Plain, No Titles)")
         case .pronunciationAudio: return String(localized: "Pronunciation Audio")
         case .expression: return String(localized: "Expression")
         case let .customHTMLValue(value):
             let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
             return AppLocalization.htmlPreview(truncated)
         case .furigana: return String(localized: "Furigana")
-        case .glossaryNoDictionary: return String(localized: "Glossary (No Dictionary)")
+        case .glossaryNoDictionary: return String(localized: "Single Glossary (First Dictionary, No Title)")
         case .reading: return String(localized: "Reading")
         case .selectionText: return String(localized: "Selection Text")
         case .sentence: return String(localized: "Sentence")
