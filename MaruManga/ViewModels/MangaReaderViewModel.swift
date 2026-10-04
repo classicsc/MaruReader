@@ -207,8 +207,8 @@ final class MangaReaderViewModel {
             logger.info("Loaded archive with \(self.pageCount) pages")
 
             if let mokuroURL = manga.mokuroFile {
-                let archiveFileNames = await reader.pageFileNames
-                mokuroData = await loadMokuroData(from: mokuroURL, archiveFileNames: archiveFileNames)
+                let archivePaths = await reader.pagePaths
+                mokuroData = await loadMokuroData(from: mokuroURL, archivePaths: archivePaths)
             }
 
             // Compute initial spread layout now that we know page count
@@ -266,7 +266,7 @@ final class MangaReaderViewModel {
                         textClusters: pageData.textClusters
                     )
                     self.pageLoadingStates[index] = .loaded
-                    self.startOCR(for: index, image: image, imageFileName: pageData.imageFileName)
+                    self.startOCR(for: index, image: image, imagePath: pageData.imagePath)
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -649,7 +649,7 @@ final class MangaReaderViewModel {
 
     /// Runs OCR on the downsampled display image and updates the rendered page
     /// with text clusters when complete. Does not block the display path.
-    private func startOCR(for index: Int, image: UIImage, imageFileName: String?) {
+    private func startOCR(for index: Int, image: UIImage, imagePath: String?) {
         ocrTasks[index]?.cancel()
         guard let cgImage = image.cgImage else { return }
         let ocr = self.ocr
@@ -657,7 +657,7 @@ final class MangaReaderViewModel {
 
         ocrTasks[index] = Task { [weak self] in
             if let mokuroData,
-               let mokuroClusters = await mokuroData.clusters(forFileName: imageFileName)
+               let mokuroClusters = mokuroData.clusters(forPath: imagePath)
             {
                 guard !Task.isCancelled, let self else { return }
                 if self.renderedPageCache[index] != nil {
@@ -689,7 +689,7 @@ final class MangaReaderViewModel {
         case decodeFailed(String)
     }
 
-    private func loadMokuroData(from url: URL, archiveFileNames: [String]) async -> MokuroData? {
+    private func loadMokuroData(from url: URL, archivePaths: [String]) async -> MokuroData? {
         let outcome = await Task.detached { () -> MokuroLoadOutcome in
             let data: Data
             do {
@@ -700,7 +700,7 @@ final class MangaReaderViewModel {
 
             do {
                 let volume = try JSONDecoder().decode(MokuroVolume.self, from: data)
-                return .success(MokuroData(volume: volume, archiveFileNames: archiveFileNames))
+                return .success(MokuroData(volume: volume))
             } catch {
                 return .decodeFailed(error.localizedDescription)
             }
@@ -708,6 +708,7 @@ final class MangaReaderViewModel {
 
         switch outcome {
         case let .success(mokuroData):
+            logMokuroCoverage(mokuroData, archivePaths: archivePaths)
             return mokuroData
         case let .readFailed(description):
             logger.error("Failed to read mokuro file at \(url.path): \(description)")
@@ -715,6 +716,29 @@ final class MangaReaderViewModel {
         case let .decodeFailed(description):
             logger.error("Failed to decode mokuro file at \(url.path): \(description)")
             return nil
+        }
+    }
+
+    /// Reports how much of the archive the mokuro file covers. A file that pairs
+    /// with nothing otherwise fails silently, with every page falling back to Vision.
+    private func logMokuroCoverage(_ mokuroData: MokuroData, archivePaths: [String]) {
+        let matchCount = mokuroData.matchCount(archivePaths: archivePaths)
+        if matchCount == 0 {
+            logger.warning(
+                """
+                No mokuro page path matches this archive's \(archivePaths.count, privacy: .public) \
+                pages; every page will use Vision OCR. Generate the mokuro file from this \
+                archive so its img_path values match.
+                """
+            )
+        } else if matchCount < archivePaths.count {
+            logger.warning(
+                """
+                Mokuro pairs \(matchCount, privacy: .public) of \
+                \(archivePaths.count, privacy: .public) pages by path; \
+                the rest will use Vision OCR.
+                """
+            )
         }
     }
 }

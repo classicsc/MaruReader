@@ -258,7 +258,7 @@ public actor MangaImportManager {
 
         // Validate based on image paths
         let archivePaths = try await archivePageEntryPaths(localFileName: localFileName)
-        let matchedPages = mokuroMatchCount(volume: volume, archivePaths: archivePaths)
+        let matchedPages = MokuroData(volume: volume).matchCount(archivePaths: archivePaths)
 
         guard matchedPages > 0 else {
             logger.warning(
@@ -392,7 +392,8 @@ public actor MangaImportManager {
 
         // Tracked outside the `do` so a cancellation or failure between writing an
         // embedded mokuro file and saving `mokuroFileName` can still delete it.
-        // The cleanup paths read the URL back off the entity, where it is still nil.
+        // The entity's `mokuroFile` is still nil at that point, so the cleanup
+        // handlers are given the URL directly.
         var writtenMokuroFile: URL?
 
         do {
@@ -537,20 +538,13 @@ public actor MangaImportManager {
             logger.debug("Manga import completed for \(jobID)")
 
         } catch is CancellationError {
-            removeOrphanedMokuroFile(writtenMokuroFile)
-            await handleCancellation(for: jobID)
+            await handleCancellation(for: jobID, writtenMokuroFile: writtenMokuroFile)
         } catch {
-            removeOrphanedMokuroFile(writtenMokuroFile)
-            await handleError(error, for: jobID)
+            await handleError(error, for: jobID, writtenMokuroFile: writtenMokuroFile)
         }
     }
 
-    private func removeOrphanedMokuroFile(_ fileURL: URL?) {
-        guard let fileURL, FileManager.default.fileExists(atPath: fileURL.path) else { return }
-        try? FileManager.default.removeItem(at: fileURL)
-    }
-
-    private func handleCancellation(for jobID: NSManagedObjectID) async {
+    private func handleCancellation(for jobID: NSManagedObjectID, writtenMokuroFile: URL?) async {
         let cleanupContext = container.newBackgroundContext()
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
@@ -571,12 +565,12 @@ public actor MangaImportManager {
             return (localPath, coverImage)
         }
 
-        if let (localPath, coverImage) = cleanupInfo {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
-        }
+        // The mokuro file is removed even if the entity is gone.
+        let (localPath, coverImage) = cleanupInfo ?? (nil, nil)
+        Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage, mokuroFile: writtenMokuroFile)
     }
 
-    private func handleError(_ error: Error, for jobID: NSManagedObjectID) async {
+    private func handleError(_ error: Error, for jobID: NSManagedObjectID, writtenMokuroFile: URL?) async {
         let cleanupContext = container.newBackgroundContext()
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
@@ -598,9 +592,9 @@ public actor MangaImportManager {
             return (localPath, coverImage)
         }
 
-        if let (localPath, coverImage) = cleanupInfo {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
-        }
+        // The mokuro file is removed even if the entity is gone.
+        let (localPath, coverImage) = cleanupInfo ?? (nil, nil)
+        Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage, mokuroFile: writtenMokuroFile)
 
         logger.error("Manga import failed for \(jobID): \(errorMessage)")
     }
@@ -677,7 +671,7 @@ public actor MangaImportManager {
                 return nil
             }
 
-            let matchedPages = mokuroMatchCount(volume: volume, archivePaths: imagePaths)
+            let matchedPages = MokuroData(volume: volume).matchCount(archivePaths: imagePaths)
             guard matchedPages > 0 else {
                 logger.warning(
                     "Skipping embedded mokuro file \(entry.path, privacy: .public): no page matches the archive"
@@ -730,12 +724,6 @@ public actor MangaImportManager {
 
         let entries = try await archive.entries()
         return sortedImageEntries(entries).map(\.path)
-    }
-
-    /// How many of the archive's pages this mokuro volume has a page for.
-    private func mokuroMatchCount(volume: MokuroVolume, archivePaths: [String]) -> Int {
-        let mokuroPaths = Set(volume.pages.map(\.imgPath))
-        return archivePaths.count { mokuroPaths.contains($0) }
     }
 
     /// Decodes mokuro JSON, rejecting anything that is not a volume with at least one page.

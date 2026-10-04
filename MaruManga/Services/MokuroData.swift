@@ -23,69 +23,49 @@ import os
 /// Holds a parsed mokuro volume's pages so `MangaReaderViewModel` can look up
 /// pre-computed OCR clusters per page without re-parsing the mokuro file.
 ///
-/// Pages are paired with archive pages **by image filename only**. Pairing by
-/// position was tried and removed: mokuro orders its `pages` array alphabetically
-/// by `img_path`, which is not necessarily the archive's reading order, so equal
-/// page counts do not imply equal ordering. A real 166-page volume paired that
-/// way was misaligned by one — a blank page sorted last in mokuro but sat second
-/// in the archive — which renders confident, wrong Japanese text with nothing to
-/// signal it. There is no way to recover the true ordering from the `.mokuro`
-/// file alone, so an unmatched page falls back to Vision OCR instead of guessing.
+/// Pages are paired with archive pages **by full archive entry path**, matching
+/// `img_path` exactly. This is the same rule `MangaImportManager` validates with
+/// before attaching a file, so a file that gets attached always pairs. Matching on
+/// the whole path, not the filename, keeps archives holding several volumes apart
+/// when their page filenames repeat (`Vol1/001.jpg`, `Vol2/001.jpg`).
+///
+/// Pairing by position was tried and removed: mokuro orders its `pages` array
+/// alphabetically by `img_path`, which is not necessarily the archive's reading
+/// order, so equal page counts do not imply equal ordering. A real 166-page volume
+/// paired that way was misaligned by one — a blank page sorted last in mokuro but
+/// sat second in the archive — which renders confident, wrong Japanese text with
+/// nothing to signal it. There is no way to recover the true ordering from the
+/// `.mokuro` file alone, so an unmatched page falls back to Vision OCR instead of
+/// guessing.
 ///
 /// The reliable workflow is to generate the `.mokuro` from the archive itself, so
-/// its `img_path` values are the archive's own filenames.
-///
-/// Attachment pre-validates on whole `img_path` values against the archive's entry
-/// paths (see `MangaImportManager.attachMokuroFile(from:to:)`), which is stricter
-/// than the filename pairing here: a file that gets attached always pairs.
-actor MokuroData {
-    private let pagesByFileName: [String: MokuroPage]
+/// its `img_path` values are the archive's own entry paths.
+struct MokuroData: Sendable {
+    private let pagesByPath: [String: MokuroPage]
     private let logger = Logger.maru(category: "MokuroData")
 
-    /// - Parameter archiveFileNames: every page image filename in the archive, in
-    ///   reading order. Used only to report how much of the archive this file
-    ///   actually covers — a mokuro file that pairs with nothing otherwise fails
-    ///   silently, with every page quietly falling back to Vision.
-    init(volume: MokuroVolume, archiveFileNames: [String]) {
+    init(volume: MokuroVolume) {
         var mapping: [String: MokuroPage] = [:]
-        for page in volume.pages {
-            let fileName = (page.imgPath as NSString).lastPathComponent
-            // Keep the first page for a given filename if duplicates exist.
-            if mapping[fileName] == nil {
-                mapping[fileName] = page
-            }
+        for page in volume.pages where mapping[page.imgPath] == nil {
+            // Keep the first page for a given path if duplicates exist.
+            mapping[page.imgPath] = page
         }
-        pagesByFileName = mapping
-
-        let matchCount = archiveFileNames.count { mapping[$0] != nil }
-        if matchCount == 0 {
-            logger.warning(
-                """
-                No mokuro page filename matches this archive (mokuro \
-                \(volume.pages.count, privacy: .public) pages vs archive \
-                \(archiveFileNames.count, privacy: .public)); every page will use \
-                Vision OCR. Generate the mokuro file from this archive so its \
-                img_path values match.
-                """
-            )
-        } else if matchCount < archiveFileNames.count {
-            logger.warning(
-                """
-                Mokuro pairs \(matchCount, privacy: .public) of \
-                \(archiveFileNames.count, privacy: .public) pages by filename; \
-                the rest will use Vision OCR.
-                """
-            )
-        }
+        pagesByPath = mapping
     }
 
-    /// Returns mokuro-derived clusters for the given archive page, or `nil` if
-    /// this volume has nothing usable for it (the caller falls back to Vision OCR).
+    /// How many of the given archive page entry paths this volume has a page for.
+    func matchCount(archivePaths: [String]) -> Int {
+        archivePaths.count { pagesByPath[$0] != nil }
+    }
+
+    /// Returns mokuro-derived clusters for the archive page at the given entry
+    /// path, or `nil` if this volume has nothing usable for it (the caller falls
+    /// back to Vision OCR).
     ///
     /// A non-nil empty array means "this page paired and legitimately has no text"
     /// and must NOT be treated as a miss.
-    func clusters(forFileName fileName: String?) -> [TextCluster]? {
-        guard let fileName, let page = pagesByFileName[fileName] else { return nil }
+    func clusters(forPath path: String?) -> [TextCluster]? {
+        guard let path, let page = pagesByPath[path] else { return nil }
         return usableClusters(for: page)
     }
 

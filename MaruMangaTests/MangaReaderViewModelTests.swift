@@ -187,7 +187,7 @@ struct MangaReaderViewModelTests {
         """
         let (viewModel, _) = try await makeViewModel(
             pageCount: 1,
-            pageFileNames: [0: "page-0.jpg"],
+            pagePaths: [0: "page-0.jpg"],
             mokuroJSON: mokuroJSON
         )
 
@@ -205,9 +205,9 @@ struct MangaReaderViewModelTests {
     /// archive's reading order, so a same-length volume can still be misaligned —
     /// a real 166-page pairing was off by one. Positional pairing was removed;
     /// this pins that it stays removed.
-    @Test func loadPage_filenamesUnmatchedButPageCountsEqual_stillFallsBackToVision() async throws {
+    @Test func loadPage_pathsUnmatchedButPageCountsEqual_stillFallsBackToVision() async throws {
         // The mokuro run came from a differently-named extraction of the same
-        // volume, so no filename matches at all.
+        // volume, so no path matches at all.
         let mokuroJSON = """
         {"pages": [{"img_width": 40, "img_height": 60, "blocks": [
             {"box": [0, 0, 40, 20], "vertical": false, "font_size": 20, "lines_coords": [[[0, 0], [40, 0], [40, 20], [0, 20]]], "lines": ["テスト"]}
@@ -215,7 +215,7 @@ struct MangaReaderViewModelTests {
         """
         let (viewModel, _) = try await makeViewModel(
             pageCount: 1,
-            pageFileNames: [0: "001.jpg"],
+            pagePaths: [0: "001.jpg"],
             mokuroJSON: mokuroJSON
         )
 
@@ -231,8 +231,8 @@ struct MangaReaderViewModelTests {
         )
     }
 
-    @Test func loadPage_filenamesUnmatchedAndPageCountsDiffer_fallsBackToVision() async throws {
-        // One mokuro page against a two-page archive: nothing pairs by name, so
+    @Test func loadPage_pathsUnmatchedAndPageCountsDiffer_fallsBackToVision() async throws {
+        // One mokuro page against a two-page archive: nothing pairs by path, so
         // every page uses Vision rather than showing confident, wrong text.
         let mokuroJSON = """
         {"pages": [{"img_width": 40, "img_height": 60, "blocks": [
@@ -241,7 +241,7 @@ struct MangaReaderViewModelTests {
         """
         let (viewModel, _) = try await makeViewModel(
             pageCount: 2,
-            pageFileNames: [0: "001.jpg", 1: "002.jpg"],
+            pagePaths: [0: "001.jpg", 1: "002.jpg"],
             mokuroJSON: mokuroJSON
         )
 
@@ -251,11 +251,44 @@ struct MangaReaderViewModelTests {
         let clusters = await MainActor.run { viewModel.renderedPageCache[0]?.textClusters }
         let transcripts = clusters?.map(\.transcript) ?? []
 
-        #expect(!transcripts.contains("テスト"), "Nothing pairs by filename, so this page must use Vision")
+        #expect(!transcripts.contains("テスト"), "Nothing pairs by path, so this page must use Vision")
+    }
+
+    /// An archive holding several volumes can repeat page filenames across
+    /// directories; each page must get its own volume's text, not whichever
+    /// mokuro page shares its filename.
+    @Test func loadPage_sameFilenameInDifferentDirectories_pairsByFullPath() async throws {
+        let mokuroJSON = """
+        {"pages": [
+            {"img_width": 40, "img_height": 60, "blocks": [
+                {"box": [0, 0, 40, 20], "vertical": false, "font_size": 20, "lines_coords": [[[0, 0], [40, 0], [40, 20], [0, 20]]], "lines": ["一巻"]}
+            ], "img_path": "Vol1/001.jpg"},
+            {"img_width": 40, "img_height": 60, "blocks": [
+                {"box": [0, 0, 40, 20], "vertical": false, "font_size": 20, "lines_coords": [[[0, 0], [40, 0], [40, 20], [0, 20]]], "lines": ["二巻"]}
+            ], "img_path": "Vol2/001.jpg"}
+        ]}
+        """
+        let (viewModel, _) = try await makeViewModel(
+            pageCount: 2,
+            pagePaths: [0: "Vol1/001.jpg", 1: "Vol2/001.jpg"],
+            mokuroJSON: mokuroJSON
+        )
+
+        await viewModel.loadArchive()
+        await MainActor.run {
+            viewModel.currentPageIndex = 1
+        }
+        await viewModel.waitForPendingPageLoads()
+
+        let transcripts = await MainActor.run {
+            viewModel.renderedPageCache[1]?.textClusters.map(\.transcript) ?? []
+        }
+
+        #expect(transcripts == ["二巻"])
     }
 
     @Test func loadPage_noMokuroAttached_behavesAsBefore() async throws {
-        let (viewModel, _) = try await makeViewModel(pageCount: 1, pageFileNames: [0: "page-0.jpg"])
+        let (viewModel, _) = try await makeViewModel(pageCount: 1, pagePaths: [0: "page-0.jpg"])
 
         await viewModel.loadArchive()
         await viewModel.waitForPendingPageLoads()
@@ -270,7 +303,7 @@ private extension MangaReaderViewModelTests {
     func makeViewModel(
         pageCount: Int,
         requestDelayNanoseconds: UInt64 = 0,
-        pageFileNames: [Int: String] = [:],
+        pagePaths: [Int: String] = [:],
         mokuroJSON: String? = nil
     ) throws -> (MangaReaderViewModel, FakeMangaPageProvider) {
         let persistenceController = makeMangaPersistenceController()
@@ -301,7 +334,7 @@ private extension MangaReaderViewModelTests {
             pages: Dictionary(uniqueKeysWithValues: (0 ..< pageCount).map { index in
                 (index, MangaPageData(
                     imageData: makeJPEGData(pageNumber: index),
-                    imageFileName: pageFileNames[index]
+                    imagePath: pagePaths[index]
                 ))
             }),
             requestDelayNanoseconds: requestDelayNanoseconds
@@ -345,8 +378,8 @@ private actor FakeMangaPageProvider: MangaPageProviding {
         pages.count
     }
 
-    var pageFileNames: [String] {
-        pages.keys.sorted().compactMap { pages[$0]?.imageFileName }
+    var pagePaths: [String] {
+        pages.keys.sorted().compactMap { pages[$0]?.imagePath }
     }
 
     func pageData(at index: Int) async throws -> MangaPageData {

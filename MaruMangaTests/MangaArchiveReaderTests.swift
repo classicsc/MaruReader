@@ -186,7 +186,7 @@ struct MangaArchiveReaderTests {
         let reader = try await MangaArchiveReader(url: archiveURL)
 
         #expect(await reader.pageCount == 2)
-        let paths = await reader.sortedPagePaths
+        let paths = await reader.pagePaths
         let filenames = paths.map { ($0 as NSString).lastPathComponent }
         #expect(filenames == ["001.jpg", "003.jpg"])
     }
@@ -221,7 +221,7 @@ struct MangaArchiveReaderTests {
         #expect(await reader.pageCount == 5)
 
         // Verify pages are in correct natural order: 1, 2, 3, 10, 20
-        let paths = await reader.sortedPagePaths
+        let paths = await reader.pagePaths
         let filenames = paths.map { ($0 as NSString).lastPathComponent }
         #expect(filenames == ["1.jpg", "2.jpg", "3.jpg", "10.jpg", "20.jpg"])
     }
@@ -237,7 +237,7 @@ struct MangaArchiveReaderTests {
         #expect(await reader.pageCount == 4)
 
         // Verify natural sort order: 001, 002, 010, 100
-        let paths = await reader.sortedPagePaths
+        let paths = await reader.pagePaths
         let filenames = paths.map { ($0 as NSString).lastPathComponent }
         #expect(filenames == ["page_001.jpg", "page_002.jpg", "page_010.jpg", "page_100.png"])
     }
@@ -253,7 +253,7 @@ struct MangaArchiveReaderTests {
         #expect(await reader.pageCount == 3)
 
         // Verify all extensions are recognized and sorted
-        let paths = await reader.sortedPagePaths
+        let paths = await reader.pagePaths
         let filenames = paths.map { ($0 as NSString).lastPathComponent }
         #expect(filenames == ["page1.jpg", "page2.png", "page3.jpeg"])
     }
@@ -273,8 +273,10 @@ struct MangaArchiveReaderTests {
         #expect(UIImage(data: pageData.imageData) != nil)
     }
 
-    @Test func pageData_returnsOriginalImageFileName() async throws {
-        let archiveURL = try createMangaArchive(imageNames: ["page1.jpg", "page2.png"])
+    @Test func pageData_returnsFullArchiveEntryPath() async throws {
+        // This archive nests its pages under "contents/"; the directory must be
+        // kept so pages pair with a mokuro file's full `img_path`.
+        let archiveURL = try createMangaArchiveWithMacOSArtifacts()
         defer { try? FileManager.default.removeItem(at: archiveURL.deletingLastPathComponent()) }
 
         let reader = try await MangaArchiveReader(url: archiveURL)
@@ -282,8 +284,9 @@ struct MangaArchiveReaderTests {
         let firstPage = try await reader.pageData(at: 0)
         let secondPage = try await reader.pageData(at: 1)
 
-        #expect(firstPage.imageFileName == "page1.jpg")
-        #expect(secondPage.imageFileName == "page2.png")
+        #expect(firstPage.imagePath == "contents/001.jpg")
+        #expect(secondPage.imagePath == "contents/003.jpg")
+        #expect(await reader.pagePaths == ["contents/001.jpg", "contents/003.jpg"])
     }
 
     @Test func pageData_allPages_returnValidImages() async throws {

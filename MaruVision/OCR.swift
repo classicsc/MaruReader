@@ -60,10 +60,11 @@ public actor OCR {
     /// Vision requests per line, so this runs on demand for a tapped cluster
     /// rather than for every cluster on a page. Falls back to the page-level
     /// text when the image's pixels do not match its boxes (rotated by EXIF
-    /// orientation) or the re-read fails or is cancelled.
+    /// orientation) or the re-read fails or is cancelled. Clusters from other
+    /// sources (mokuro) keep their own text.
     public nonisolated func transcript(of cluster: TextCluster, in image: UIImage) -> Task<String, Never> {
         Task(priority: .userInitiated) {
-            guard image.imageOrientation == .up, let cgImage = image.cgImage,
+            guard cluster.source == .vision, image.imageOrientation == .up, let cgImage = image.cgImage,
                   let refined = try? await recropLines(cluster, page: cgImage) else { return cluster.transcript }
             return refined.transcript
         }
@@ -108,20 +109,20 @@ public actor OCR {
             groups = absorbHorizontal(summary).map { $0.flatMap { groups[$0] } }
         }
         let merged = groups.map { group in
-            let observations = group.flatMap { clusters[$0].observations }
+            let clusterLines = group.flatMap { clusters[$0].lines }
             let direction = clusters[group[0]].direction
             let vertical = direction == .vertical
-            let boxes = observations.map(\.boundingBox.cgRect)
+            let boxes = clusterLines.map(\.boundingBox.cgRect)
             let order: [Int]
             if clusteringConfiguration.maxFragmentGapMultiplier > 0 {
                 // Order whole lines, then fragments within each line.
-                let lines = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
-                let lineBoxes = lines.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
-                order = xyOrder(lineBoxes, vertical: vertical).flatMap { lines[$0] }
+                let fragments = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
+                let lineBoxes = fragments.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
+                order = xyOrder(lineBoxes, vertical: vertical).flatMap { fragments[$0] }
             } else {
                 order = xyOrder(boxes, vertical: vertical)
             }
-            return TextCluster(observations: order.map { observations[$0] }, direction: direction)
+            return TextCluster(lines: order.map { clusterLines[$0] }, direction: direction)
         }
         logger.debug("Clustered into \(merged.count) clusters.")
         return merged
@@ -134,19 +135,19 @@ public actor OCR {
     private func recropLines(_ cluster: TextCluster, page: CGImage) async throws -> TextCluster {
         let aspect = CGFloat(page.width) / CGFloat(page.height)
         let vertical = cluster.direction == .vertical
-        var texts = cluster.transcripts
-        for (i, observation) in cluster.observations.enumerated() {
+        var lines = cluster.lines
+        for (i, line) in cluster.lines.enumerated() {
             try Task.checkCancellation()
-            let box = observation.boundingBox.cgRect
+            let box = line.boundingBox.cgRect
             let t = vertical ? box.width : box.height
             // Half a line of padding along the line, 15% across it.
             let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
             let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
             if let text = cropText(for: box, reads: reads, vertical: vertical) {
-                texts[i] = text
+                lines[i] = TextClusterLine(transcript: text, boundingBox: line.boundingBox)
             }
         }
-        return TextCluster(observations: cluster.observations, direction: cluster.direction, transcripts: texts)
+        return TextCluster(lines: lines, direction: cluster.direction, source: cluster.source)
     }
 
     /// Reads a page region (normalized, lower-left origin), scaled so lines

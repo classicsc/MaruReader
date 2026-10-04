@@ -36,8 +36,8 @@ public struct MokuroPage: Decodable, Sendable {
     public let imgWidth: Double
     public let imgHeight: Double
     public let blocks: [MokuroBlock]
-    /// The original page image's filename (e.g. "001.jpg"), used to match
-    /// against the manga archive's page images.
+    /// The page image's path relative to the volume (e.g. "Vol1/001.jpg"), used
+    /// to match against the manga archive's page image entry paths.
     public let imgPath: String
 
     private enum CodingKeys: String, CodingKey {
