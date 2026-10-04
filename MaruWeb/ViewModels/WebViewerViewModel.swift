@@ -520,10 +520,10 @@ final class WebViewerViewModel {
     }
 
     private func captureViewportSnapshot(page: WebBrowserPage, viewportSize: CGSize) async throws -> Data {
-        // WKWebView snapshots with no rect capture the currently visible viewport, which keeps
-        // OCR bounding boxes aligned with tap coordinates after scrolling.
+        // Snapshot the visible viewport minus status bar and toolbar so OCR bounding boxes line up
+        // with the overlay, which is laid out inside the safe area.
         try await page.takeSnapshot(
-            region: nil,
+            region: page.unobscuredBounds,
             snapshotWidth: viewportSize.width > 0 ? viewportSize.width : nil
         )
     }
@@ -662,7 +662,7 @@ final class WebViewerViewModel {
     private func captureScreenshotForContext() async -> URL? {
         guard let page else { return nil }
         do {
-            let imageData = try await page.takeSnapshot(region: nil, snapshotWidth: nil)
+            let imageData = try await page.takeSnapshot(region: page.unobscuredBounds, snapshotWidth: nil)
             guard let image = UIImage(data: imageData) else { return nil }
             return await writeJPEGContextImage(from: image, prefix: "web_snapshot")
         } catch {

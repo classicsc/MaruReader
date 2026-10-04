@@ -17,9 +17,7 @@
 
 import CoreGraphics
 import Foundation
-import MaruReaderCore
 import Observation
-import os
 import UIKit
 import WebKit
 
@@ -49,7 +47,9 @@ final class WebBrowserPage {
     var canGoForward = false
     var faviconData: Data?
 
-    private let logger = Logger.maru(category: "WebBrowserPage")
+    private var chromeInsets: UIEdgeInsets?
+    private var bottomBarHeight: CGFloat = 0
+    private var viewportInsetRange = WebChromeInsetRange()
     private var scrollOffsetChangeHandler: ((CGFloat, CGFloat) -> Void)?
     private var observations: [NSKeyValueObservation] = []
     private let delegateProxy = DelegateProxy()
@@ -70,25 +70,44 @@ final class WebBrowserPage {
         }
         syncStateFromWebView()
         installObservers()
+        (webView as? DictionaryLookupWebView)?.onLayoutChange = { [weak self] in
+            self?.updateChromeInsets()
+        }
     }
 
     func setScrollOffsetChangeHandler(_ handler: ((CGFloat, CGFloat) -> Void)?) {
         scrollOffsetChangeHandler = handler
     }
 
-    /// App chrome (status bar, bottom toolbar) overlapping the full-bleed web view. Sets both the
-    /// scroll insets and WebKit's obscured insets so fixed elements, `env(safe-area-inset-*)` and the
-    /// status bar fill behave like Safari.
-    func applyChromeInsets(top: CGFloat, bottom: CGFloat) {
-        let insets = UIEdgeInsets(top: top, left: 0, bottom: bottom, right: 0)
+    /// Bottom bar floating over the full-bleed web view. Combined with the window's safe area (status
+    /// bar, home indicator) this sets both the scroll insets and WebKit's obscured insets so fixed
+    /// elements, `env(safe-area-inset-*)` and the status bar fill behave like Safari. The window is
+    /// used because SwiftUI does not propagate safe area insets to hosted UIKit views, and unlike the
+    /// SwiftUI safe area it never includes the keyboard, which WebKit insets for itself.
+    func applyChromeInsets(bottomBarHeight: CGFloat) {
+        self.bottomBarHeight = bottomBarHeight
+        updateChromeInsets()
+    }
+
+    private func updateChromeInsets() {
+        let safeArea = webView.window?.safeAreaInsets ?? .zero
+        let insets = UIEdgeInsets(top: safeArea.top, left: 0, bottom: bottomBarHeight + safeArea.bottom, right: 0)
+        guard insets != chromeInsets else { return }
+        chromeInsets = insets
         let scrollView = webView.scrollView
-        guard scrollView.contentInset != insets || webView.obscuredContentInsets != insets else { return }
         // WebKit forces .always otherwise, which would add the safe area on top of our inset.
         scrollView.contentInsetAdjustmentBehavior = .never
         scrollView.contentInset = insets
         scrollView.verticalScrollIndicatorInsets = insets
         webView.obscuredContentInsets = insets
-        logger.debug("chrome insets top=\(top) bottom=\(bottom) safeArea=\(self.webView.safeAreaInsets.top)/\(self.webView.safeAreaInsets.bottom)")
+        viewportInsetRange.record(top: insets.top, bottom: insets.bottom)
+        webView.setMinimumViewportInset(viewportInsetRange.minimum, maximumViewportInset: viewportInsetRange.maximum)
+    }
+
+    /// Web view bounds not covered by app chrome. Snapshots of this rect line up with overlays
+    /// laid out inside the safe area.
+    var unobscuredBounds: CGRect {
+        webView.bounds.inset(by: chromeInsets ?? .zero)
     }
 
     func setDictionaryLookupHandler(_ handler: (@MainActor (String) -> Void)?) {
@@ -438,6 +457,33 @@ final class WebBrowserPage {
     }
 }
 
+/// Smallest and largest bottom chrome insets seen in one orientation, so WebKit keeps `svh`/`lvh`
+/// (and so `100vh`) stable while the toolbar expands and collapses instead of reflowing the page.
+struct WebChromeInsetRange: Equatable {
+    private(set) var top: CGFloat = 0
+    private(set) var bottom: ClosedRange<CGFloat>?
+
+    mutating func record(top: CGFloat, bottom: CGFloat) {
+        if top != self.top {
+            self.bottom = nil
+        }
+        self.top = top
+        if let range = self.bottom {
+            self.bottom = min(range.lowerBound, bottom) ... max(range.upperBound, bottom)
+        } else {
+            self.bottom = bottom ... bottom
+        }
+    }
+
+    var minimum: UIEdgeInsets {
+        UIEdgeInsets(top: top, left: 0, bottom: bottom?.lowerBound ?? 0, right: 0)
+    }
+
+    var maximum: UIEdgeInsets {
+        UIEdgeInsets(top: top, left: 0, bottom: bottom?.upperBound ?? 0, right: 0)
+    }
+}
+
 extension WebBrowserPage {
     enum SchemeAction: Equatable {
         case allow
@@ -538,6 +584,18 @@ private struct FaviconCandidate {
 
 final class DictionaryLookupWebView: WKWebView {
     var onDictionaryLookup: (@MainActor (String) -> Void)?
+    /// Fires on window attach and layout so chrome insets follow rotation and scene changes.
+    var onLayoutChange: (@MainActor () -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onLayoutChange?()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayoutChange?()
+    }
 
     override func buildMenu(with builder: UIMenuBuilder) {
         super.buildMenu(with: builder)

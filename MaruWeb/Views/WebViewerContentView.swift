@@ -27,10 +27,10 @@ struct WebViewerContentView: View {
     let onNavigateFromNewTabPage: (URL) -> Void
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
+    /// Height of the bottom bar, which floats over the full-bleed web view.
+    let bottomBarHeight: CGFloat
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isLandscape = false
-    /// Status bar and bottom bar insets overlapping the full-bleed web view.
-    @State private var chromeInsets = EdgeInsets()
 
     /// Side panel only when wide and landscape; otherwise the bottom sheet.
     private var usesTranscriptSidePanel: Bool {
@@ -42,12 +42,11 @@ struct WebViewerContentView: View {
             ZStack {
                 let model = viewModel
                 HStack(spacing: 0) {
-                    WebBrowserView(page: page, chromeInsets: chromeInsets) { [weak model] oldOffset, newOffset in
+                    WebBrowserView(page: page, bottomBarHeight: bottomBarHeight) { [weak model] oldOffset, newOffset in
                         model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
                     .id(page.webView)
                     .ignoresSafeArea(edges: .vertical)
-                    .onGeometryChange(for: EdgeInsets.self) { $0.safeAreaInsets } action: { chromeInsets = $0 }
                     if viewModel.transcriptPresented, usesTranscriptSidePanel,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
