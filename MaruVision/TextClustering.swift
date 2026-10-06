@@ -58,12 +58,32 @@ public enum InferredTextDirection: Sendable, CustomStringConvertible {
     }
 }
 
+// MARK: - Text Line
+
+/// One recognized line of text: its box in normalized page coordinates
+/// (lower-left origin) and the text read in it. Vision's observations hold
+/// the coordinates of the image or region they were requested on, so lines
+/// found in a region are re-based into this type before clustering.
+public struct TextLine: Sendable, Hashable {
+    public var boundingBox: CGRect
+    public var text: String
+
+    public init(boundingBox: CGRect, text: String) {
+        self.boundingBox = boundingBox
+        self.text = text
+    }
+
+    public init(_ observation: RecognizedTextObservation) {
+        self.init(boundingBox: observation.boundingBox.cgRect, text: observation.transcript)
+    }
+}
+
 // MARK: - Observation Features
 
-/// Extracted features from a RecognizedTextObservation used for clustering decisions.
+/// Extracted features from a text line used for clustering decisions.
 public struct ObservationFeatures: Sendable {
-    /// The original observation
-    public let observation: RecognizedTextObservation
+    /// The original line
+    public let line: TextLine
 
     /// Inferred text direction based on bounding box shape
     public let direction: InferredTextDirection
@@ -77,7 +97,9 @@ public struct ObservationFeatures: Sendable {
     public let centroid: CGPoint
 
     /// Bounding box in normalized coordinates (lower-left origin)
-    public let boundingBox: NormalizedRect
+    public var boundingBox: CGRect {
+        line.boundingBox
+    }
 
     /// Aspect ratio of the bounding box (width / height)
     public let aspectRatio: CGFloat
@@ -100,15 +122,15 @@ public struct ObservationFeatures: Sendable {
 
     /// Short identifier for logging
     public var debugID: String {
-        let preview = observation.transcript.prefix(8)
+        let preview = line.text.prefix(8)
         return "[\(direction)|\(preview)]"
     }
 
     /// Detailed debug description
     public var debugDescription: String {
-        let box = boundingBox.cgRect
+        let box = boundingBox
         return """
-        \(debugID) chars=\(observation.transcript.count) \
+        \(debugID) chars=\(characterCount) \
         ar=\(aspectRatio.f2()) \
         lh=\(lineHeight.f4()) \
         box=(x:\(box.minX.f3())-\(box.maxX.f3()), \
@@ -117,32 +139,30 @@ public struct ObservationFeatures: Sendable {
         """
     }
 
-    public init(observation: RecognizedTextObservation) {
-        self.observation = observation
-        boundingBox = observation.boundingBox
+    public init(line: TextLine) {
+        self.line = line
 
-        let box = boundingBox.cgRect
+        let box = line.boundingBox
         centroid = CGPoint(x: box.midX, y: box.midY)
         aspectRatio = box.width / box.height
 
         // Infer direction using character-count-aware heuristic
-        direction = Self.inferDirection(boundingBox: box, transcript: observation.transcript)
+        direction = Self.inferDirection(boundingBox: box, transcript: line.text)
         lineHeight = direction == .vertical ? box.width : box.height
     }
 
-    /// The same observation read in `direction` instead of its inferred one.
+    /// The same line read in `direction` instead of its inferred one.
     init(_ other: ObservationFeatures, as direction: InferredTextDirection) {
-        observation = other.observation
-        boundingBox = other.boundingBox
+        line = other.line
         centroid = other.centroid
         aspectRatio = other.aspectRatio
         self.direction = direction
-        lineHeight = direction == .vertical ? boundingBox.cgRect.width : boundingBox.cgRect.height
+        lineHeight = direction == .vertical ? line.boundingBox.width : line.boundingBox.height
     }
 
     /// Number of characters Vision read.
     var characterCount: Int {
-        observation.transcript.count
+        line.text.count
     }
 
     /// Infers text direction by comparing actual aspect ratio to expected ratios
@@ -182,47 +202,32 @@ public struct ObservationFeatures: Sendable {
 
 // MARK: - Text Cluster
 
-/// A group of related text observations that should be treated as a unit.
+/// A group of related text lines that should be treated as a unit.
 public struct TextCluster: Identifiable, Sendable {
     public let id = UUID()
 
-    /// The observations in this cluster, sorted by reading order
-    public let observations: [RecognizedTextObservation]
+    /// The lines in this cluster, sorted by reading order
+    public let lines: [TextLine]
 
     /// The dominant text direction of this cluster
     public let direction: InferredTextDirection
 
-    /// Combined bounding box encompassing all observations (normalized coordinates)
+    /// Combined bounding box encompassing all lines (normalized coordinates)
     public let boundingBox: CGRect
 
-    /// The text of each observation, in order. Differs from the observations'
-    /// own transcripts when lines were re-read from their crops.
-    public let transcripts: [String]
-
-    /// The concatenated transcript of all observations
+    /// The concatenated text of all lines
     public var transcript: String {
-        // For vertical text, observations are in column order (right-to-left),
-        // and each observation is a vertical line. No separator needed.
-        // For horizontal text, observations are lines. Join with newlines for
-        // paragraph structure, though the dictionary search will handle segmentation.
-        transcripts.joined(separator: direction == .vertical ? "" : "\n")
+        // For vertical text, lines are in column order (right-to-left),
+        // and each line is a vertical column. No separator needed.
+        // For horizontal text, join with newlines for paragraph structure,
+        // though the dictionary search will handle segmentation.
+        lines.map(\.text).joined(separator: direction == .vertical ? "" : "\n")
     }
 
-    public init(observations: [RecognizedTextObservation], direction: InferredTextDirection, transcripts: [String]? = nil) {
-        self.observations = observations
+    public init(lines: [TextLine], direction: InferredTextDirection) {
+        self.lines = lines
         self.direction = direction
-        self.transcripts = transcripts ?? observations.map(\.transcript)
-
-        // Calculate union of all bounding boxes
-        if let first = observations.first {
-            var union = first.boundingBox.cgRect
-            for obs in observations.dropFirst() {
-                union = union.union(obs.boundingBox.cgRect)
-            }
-            boundingBox = union
-        } else {
-            boundingBox = .zero
-        }
+        boundingBox = lines.dropFirst().reduce(lines.first?.boundingBox ?? .zero) { $0.union($1.boundingBox) }
     }
 }
 
@@ -418,16 +423,16 @@ public struct TextClusterer: Sendable {
         self.configuration = configuration
     }
 
-    /// Clusters the given observations into related groups.
-    /// Uses graph-based clustering: observations that pass merge criteria are connected,
+    /// Clusters the given lines into related groups.
+    /// Uses graph-based clustering: lines that pass merge criteria are connected,
     /// and connected components form clusters.
-    /// - Parameter observations: Array of recognized text observations
-    /// - Returns: Array of text clusters, each containing related observations
-    public func cluster(_ observations: [RecognizedTextObservation]) -> [TextCluster] {
-        guard !observations.isEmpty else { return [] }
+    /// - Parameter lines: Array of recognized text lines
+    /// - Returns: Array of text clusters, each containing related lines
+    public func cluster(_ lines: [TextLine]) -> [TextCluster] {
+        guard !lines.isEmpty else { return [] }
 
-        // Extract features for all observations
-        var features = observations.map { ObservationFeatures(observation: $0) }
+        // Extract features for all lines
+        var features = lines.map { ObservationFeatures(line: $0) }
 
         // A short observation has no clear direction of its own. It takes the
         // direction of longer text it can join, vertical first. Deciding this
@@ -447,7 +452,7 @@ public struct TextClusterer: Sendable {
         }
 
         if configuration.verboseLogging {
-            logger.debug("=== CLUSTERING \(observations.count) OBSERVATIONS ===")
+            logger.debug("=== CLUSTERING \(lines.count) LINES ===")
             logger.debug("Config: heightTol=\(configuration.lineHeightTolerance) gapMult=\(configuration.maxGapMultiplier) minOverlap=\(configuration.minAlignmentOverlap)")
             logger.debug("--- ALL OBSERVATIONS ---")
             for (idx, feature) in features.enumerated() {
@@ -497,20 +502,17 @@ public struct TextClusterer: Sendable {
                 return ka.primary != kb.primary ? ka.primary < kb.primary : ka.secondary < kb.secondary
             }
 
-            clusters.append(TextCluster(
-                observations: sorted.map(\.observation),
-                direction: direction
-            ))
+            clusters.append(TextCluster(lines: sorted.map(\.line), direction: direction))
         }
 
         if configuration.verboseLogging {
             logger.debug("=== RESULT: \(clusters.count) CLUSTERS ===")
             for (idx, cluster) in clusters.enumerated() {
                 let transcriptPreview = cluster.transcript.prefix(30).replacingOccurrences(of: "\n", with: "↵")
-                logger.debug("  Cluster \(idx) [\(cluster.direction)]: \(cluster.observations.count) obs, \"\(transcriptPreview)...\"")
+                logger.debug("  Cluster \(idx) [\(cluster.direction)]: \(cluster.lines.count) lines, \"\(transcriptPreview)...\"")
             }
         } else {
-            logger.debug("Clustered \(observations.count) observations into \(clusters.count) clusters")
+            logger.debug("Clustered \(lines.count) lines into \(clusters.count) clusters")
         }
 
         return clusters
@@ -558,8 +560,8 @@ public struct TextClusterer: Sendable {
     /// Ratio of the observations' box lengths per character (smaller over larger).
     private func characterSizeRatio(_ a: ObservationFeatures, _ b: ObservationFeatures) -> CGFloat {
         func size(_ f: ObservationFeatures) -> CGFloat {
-            let box = f.boundingBox.cgRect
-            return (f.direction == .vertical ? box.height : box.width) / CGFloat(max(1, f.observation.transcript.count))
+            let box = f.boundingBox
+            return (f.direction == .vertical ? box.height : box.width) / CGFloat(max(1, f.characterCount))
         }
         return min(size(a), size(b)) / max(size(a), size(b))
     }
@@ -569,7 +571,7 @@ public struct TextClusterer: Sendable {
     /// within `maxFragmentGapMultiplier` line heights.
     private func areFragments(_ a: ObservationFeatures, _ b: ObservationFeatures) -> Bool {
         configuration.maxFragmentGapMultiplier > 0
-            && fragments(a.boundingBox.cgRect, b.boundingBox.cgRect, vertical: a.direction == .vertical,
+            && fragments(a.boundingBox, b.boundingBox, vertical: a.direction == .vertical,
                          gapMultiplier: configuration.maxFragmentGapMultiplier)
     }
 
@@ -578,8 +580,8 @@ public struct TextClusterer: Sendable {
         _ a: ObservationFeatures,
         _ b: ObservationFeatures
     ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
-        let aBox = a.boundingBox.cgRect
-        let bBox = b.boundingBox.cgRect
+        let aBox = a.boundingBox
+        let bBox = b.boundingBox
 
         // Calculate vertical gap (absolute distance between boxes)
         let verticalGap: CGFloat = if aBox.minY > bBox.maxY {
@@ -621,8 +623,8 @@ public struct TextClusterer: Sendable {
         _ a: ObservationFeatures,
         _ b: ObservationFeatures
     ) -> (shouldMerge: Bool, reason: MergeRejectionReason?) {
-        let aBox = a.boundingBox.cgRect
-        let bBox = b.boundingBox.cgRect
+        let aBox = a.boundingBox
+        let bBox = b.boundingBox
 
         // Calculate horizontal gap (absolute distance between boxes)
         let horizontalGap: CGFloat = if aBox.minX > bBox.maxX {
@@ -661,8 +663,8 @@ public struct TextClusterer: Sendable {
 
     /// Logs detailed comparison data for debugging merge failures
     private func logDetailedComparison(last: ObservationFeatures, candidate: ObservationFeatures) {
-        let lastBox = last.boundingBox.cgRect
-        let candidateBox = candidate.boundingBox.cgRect
+        let lastBox = last.boundingBox
+        let candidateBox = candidate.boundingBox
 
         let heightRatio = min(last.lineHeight, candidate.lineHeight) / max(last.lineHeight, candidate.lineHeight)
         logger.debug("  LineHeight: last=\(last.lineHeight.f4()) cand=\(candidate.lineHeight.f4()) ratio=\(heightRatio.f2()) (need ≥\(configuration.lineHeightTolerance.f2()))")
@@ -833,8 +835,16 @@ func absorbHorizontal(_ groups: [(box: CGRect, vertical: Bool, characters: Int)]
 
 // MARK: - Convenience Extensions
 
-public extension [RecognizedTextObservation] {
-    /// Clusters these observations using the default configuration.
+public extension [TextCluster] {
+    /// The smallest cluster whose box contains `point` (normalized, lower-left origin).
+    func smallest(containing point: CGPoint) -> TextCluster? {
+        filter { $0.boundingBox.contains(point) }
+            .min { $0.boundingBox.width * $0.boundingBox.height < $1.boundingBox.width * $1.boundingBox.height }
+    }
+}
+
+public extension [TextLine] {
+    /// Clusters these lines using the default configuration.
     func clustered(using configuration: ClusteringConfiguration = .default) -> [TextCluster] {
         TextClusterer(configuration: configuration).cluster(self)
     }

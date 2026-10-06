@@ -28,6 +28,8 @@ public struct MangaReaderView: View {
     @State private var isShowingPageJumpDialog: Bool = false
     @State private var pageJumpInput: Int = 1
     @State private var tourManager = TourManager()
+    @AppStorage(MangaTapNavigationSettings.tapToTurnEnabledKey)
+    private var tapToTurnEnabled = MangaTapNavigationSettings.tapToTurnEnabledDefault
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @Environment(\.dismiss) private var dismiss
@@ -143,7 +145,7 @@ public struct MangaReaderView: View {
         .animation(.easeInOut, value: viewModel.overlayState.shouldShowToolbars)
         .tourOverlay(manager: tourManager)
         .onAppear {
-            if tourManager.startIfNeeded(MangaReaderTour.self) {
+            if tourManager.startIfNeeded(MangaReaderTour.self) || tourManager.startIfNeeded(MangaRetryDetectionTour.self) {
                 viewModel.overlayState = .showingToolbars
             }
         }
@@ -265,6 +267,31 @@ public struct MangaReaderView: View {
             }
             .labelStyle(.iconOnly)
             .tourAnchor(MangaReaderTourAnchor.textRegions)
+
+            // Retry detection. With tap-to-turn on, a tap on missed text turns
+            // the page instead of looking again, so this button looks again.
+            if tapToTurnEnabled {
+                Button {
+                    if viewModel.canUndoDetection {
+                        viewModel.undoDetection()
+                    } else {
+                        viewModel.retryDetection()
+                    }
+                } label: {
+                    if viewModel.isDetectingMoreText {
+                        ProgressView()
+                            .frame(width: 44, height: 44)
+                    } else {
+                        Label(retryDetectionButtonTitle, systemImage: viewModel.canUndoDetection ? "arrow.uturn.backward" : "arrow.trianglehead.2.clockwise")
+                            .frame(width: 44, height: 44)
+                            .contentShape(.rect)
+                    }
+                }
+                .labelStyle(.iconOnly)
+                .disabled(viewModel.isDetectingMoreText)
+                .accessibilityLabel(retryDetectionButtonTitle)
+                .tourAnchor(MangaReaderTourAnchor.retryDetection)
+            }
 
             // Spread mode toggle (only in landscape + horizontal mode)
             if viewModel.isLandscape, viewModel.readingDirection != .vertical {
@@ -391,6 +418,12 @@ public struct MangaReaderView: View {
 
     private func toolbarForegroundColor(isPrimary: Bool) -> Color {
         isPrimary ? interfaceForegroundColor : interfaceForegroundColor.opacity(0.6)
+    }
+
+    private var retryDetectionButtonTitle: String {
+        viewModel.canUndoDetection
+            ? MangaLocalization.string("Undo text detection retry")
+            : MangaLocalization.string("Retry text detection")
     }
 
     private var boundingBoxButtonTitle: String {

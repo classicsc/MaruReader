@@ -26,6 +26,8 @@ import SwiftUI
 struct MangaRenderedPage {
     let image: UIImage
     var textClusters: [TextCluster]
+    /// The page-level clusters before the retry button's secondary detection replaced them.
+    var originalTextClusters: [TextCluster]?
 }
 
 private struct MangaPageRenderError: LocalizedError {
@@ -167,6 +169,7 @@ final class MangaReaderViewModel {
     private var renderedPageRefreshTask: Task<Void, Never>?
     private var pageLoadTasks: [Int: Task<Void, Never>] = [:]
     private var ocrTasks: [Int: Task<Void, Never>] = [:]
+    private var secondaryDetectionTask: Task<Void, Never>?
     /// Tracks the page index that was last successfully saved
     private var lastSavedPageIndex: Int?
     private let logger = Logger.maru(category: "MangaReaderViewModel")
@@ -364,6 +367,70 @@ final class MangaReaderViewModel {
     }
 
     // MARK: - OCR / Dictionary Integration
+
+    /// Whether a secondary detection is running.
+    var isDetectingMoreText: Bool {
+        secondaryDetectionTask != nil
+    }
+
+    /// The pages on screen: both pages of the spread, or the current page.
+    private var visiblePageIndices: [Int] {
+        isSpreadModeActive ? spreadLayout.pages(atSpreadIndex: currentSpreadIndex) : [currentPageIndex]
+    }
+
+    /// Looks again for text around a tap that hit no cluster, at a larger
+    /// scale. Opens the dictionary on a hit; otherwise toggles the toolbars,
+    /// as a miss does. Used when tap-to-turn is off; with it on, a miss turns
+    /// the page and `retryDetection` runs the detection instead.
+    func lookForText(at point: CGPoint, pageIndex: Int) {
+        guard secondaryDetectionTask == nil, let page = renderedPageCache[pageIndex] else {
+            toggleToolbars()
+            return
+        }
+        secondaryDetectionTask = Task { [ocr] in
+            defer { secondaryDetectionTask = nil }
+            let found = try? await ocr.secondaryDetection(in: page.image, around: point, clusters: page.textClusters)
+            guard !Task.isCancelled else { return }
+            if let found, renderedPageCache[pageIndex] != nil {
+                renderedPageCache[pageIndex]?.textClusters = found
+            }
+            if let match = found?.smallest(containing: point) {
+                handleClusterTap(match, pageIndex: pageIndex)
+            } else {
+                toggleToolbars()
+            }
+        }
+    }
+
+    /// Retry button: looks for missed text on the visible pages at a larger
+    /// scale, keeping the page-level clusters for `undoDetection`.
+    func retryDetection() {
+        guard secondaryDetectionTask == nil else { return }
+        secondaryDetectionTask = Task { [ocr] in
+            defer { secondaryDetectionTask = nil }
+            for index in visiblePageIndices {
+                guard let page = renderedPageCache[index], page.originalTextClusters == nil else { continue }
+                let found = try? await ocr.secondaryDetection(in: page.image, around: nil, clusters: page.textClusters)
+                guard !Task.isCancelled, renderedPageCache[index] != nil else { return }
+                renderedPageCache[index]?.originalTextClusters = page.textClusters
+                renderedPageCache[index]?.textClusters = found ?? page.textClusters
+            }
+        }
+    }
+
+    /// Whether a visible page shows the retry button's detections.
+    var canUndoDetection: Bool {
+        visiblePageIndices.contains { renderedPageCache[$0]?.originalTextClusters != nil }
+    }
+
+    /// Puts the page-level clusters back on the visible pages.
+    func undoDetection() {
+        for index in visiblePageIndices {
+            guard let original = renderedPageCache[index]?.originalTextClusters else { continue }
+            renderedPageCache[index]?.textClusters = original
+            renderedPageCache[index]?.originalTextClusters = nil
+        }
+    }
 
     /// Handles a tap on a text cluster, showing highlight and opening dictionary
     func handleClusterTap(_ cluster: TextCluster, pageIndex: Int) {
@@ -654,6 +721,7 @@ final class MangaReaderViewModel {
                 guard !Task.isCancelled, let self else { return }
                 if self.renderedPageCache[index] != nil {
                     self.renderedPageCache[index]?.textClusters = clusters
+                    self.renderedPageCache[index]?.originalTextClusters = nil
                 }
             } catch {
                 guard !Task.isCancelled else { return }

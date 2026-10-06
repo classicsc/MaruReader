@@ -440,9 +440,14 @@ final class WebViewerViewModel {
         )
 
         // Hit-test: require exact bounding box match (no nearest-cluster fallback)
-        guard let cluster = ocrViewModel.clusters.first(where: { $0.boundingBox.contains(normalized) }) else {
-            // Tap missed all clusters — re-OCR in case viewport changed
+        var cluster = ocrViewModel.clusters.smallest(containing: normalized)
+        if cluster == nil {
+            // Tap missed all clusters: look again around the tap at a larger scale.
             logger.debug("OCR hit-test miss. Cached clusters: \(self.ocrViewModel.clusters.count, privacy: .public)")
+            cluster = await ocrViewModel.secondaryDetection(around: normalized)?.smallest(containing: normalized)
+        }
+        guard let cluster else {
+            // Still nothing — re-OCR in case viewport changed
             ocrViewModel.reset()
             await captureAndRunOCR(viewSize: viewSize)
             return nil

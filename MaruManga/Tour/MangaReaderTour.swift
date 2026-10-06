@@ -22,6 +22,7 @@ import SwiftUI
 public enum MangaReaderTourAnchor {
     public static let backButton = "mangaReader.backButton"
     public static let textRegions = "mangaReader.textRegions"
+    public static let retryDetection = "mangaReader.retryDetection"
     public static let spreadToggle = "mangaReader.spreadToggle"
     public static let readingDirection = "mangaReader.readingDirection"
     public static let pageIndicator = "mangaReader.pageIndicator"
@@ -31,7 +32,24 @@ public enum MangaReaderTourAnchor {
 public enum MangaReaderTour: TourDefinition {
     public static let tourID = "mangaReader"
 
-    public static let steps: [TourStep] = [
+    public static var steps: [TourStep] {
+        var steps = baseSteps
+        if MangaTapNavigationSettings.tapToTurnEnabled {
+            steps.insert(retryDetectionStep, at: 2)
+        }
+        return steps
+    }
+
+    /// Explains the retry button, which is only shown when tapping the page
+    /// edges turns pages (otherwise a tap on missed text looks again by itself).
+    static let retryDetectionStep = TourStep(
+        id: MangaReaderTourAnchor.retryDetection,
+        title: MangaLocalization.string("Text Not Detected?"),
+        description: MangaLocalization.string("If tapping text doesn't work, use this button to try again."),
+        popoverEdge: .top
+    )
+
+    private static let baseSteps: [TourStep] = [
         TourStep(
             id: MangaReaderTourAnchor.backButton,
             title: MangaLocalization.string("Return to Library"),
@@ -57,4 +75,14 @@ public enum MangaReaderTour: TourDefinition {
             popoverEdge: .top
         ),
     ]
+}
+
+/// The retry button's step on its own, for readers who finished the tour
+/// before the button existed. Empty, so never shown, while tap-to-turn is off.
+public enum MangaRetryDetectionTour: TourDefinition {
+    public static let tourID = "mangaReader.retryDetection"
+
+    public static var steps: [TourStep] {
+        MangaTapNavigationSettings.tapToTurnEnabled ? [MangaReaderTour.retryDetectionStep] : []
+    }
 }

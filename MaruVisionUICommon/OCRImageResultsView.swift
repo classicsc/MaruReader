@@ -20,7 +20,6 @@ import MaruReaderCore
 import MaruVision
 import os
 import SwiftUI
-import Vision
 
 /// A reusable view that displays an image with OCR results as tappable bounding boxes.
 /// When a text region is tapped, presents a dictionary search sheet.
@@ -38,6 +37,13 @@ public struct OCRImageResultsView: View {
     @State private var highlightedCluster: TextCluster?
     @State private var selectedCluster: TextCluster?
     @State private var selectedText: Task<String, Never>?
+    /// Clusters after a secondary detection added to the ones passed in.
+    @State private var detectedClusters: [TextCluster]?
+    @State private var secondaryTask: Task<Void, Never>?
+    private var allClusters: [TextCluster] {
+        detectedClusters ?? clusters
+    }
+
     // Pan-zoom state
     @State private var scale: CGFloat = 1.0
     @State private var lastScale: CGFloat = 1.0
@@ -88,7 +94,7 @@ public struct OCRImageResultsView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height)
 
                     // Bounding box overlay
-                    if !isProcessing, !clusters.isEmpty,
+                    if !isProcessing, !allClusters.isEmpty,
                        showBoundingBoxes || highlightedCluster != nil
                     {
                         boundingBoxOverlay(
@@ -102,7 +108,7 @@ public struct OCRImageResultsView: View {
                 .offset(offset)
 
                 // Processing overlay (doesn't transform)
-                if isProcessing {
+                if isProcessing || secondaryTask != nil {
                     ProgressView()
                         .scaleEffect(1.5)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -110,7 +116,7 @@ public struct OCRImageResultsView: View {
                 }
 
                 // Empty state overlay (doesn't transform)
-                if !isProcessing, clusters.isEmpty {
+                if !isProcessing, allClusters.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "doc.text.magnifyingglass")
                             .font(.system(size: 50))
@@ -137,6 +143,11 @@ public struct OCRImageResultsView: View {
                     lastOffset = .zero
                 }
             }
+        }
+        .onChange(of: clusters.map(\.id)) {
+            secondaryTask?.cancel()
+            secondaryTask = nil
+            detectedClusters = nil
         }
         .sheet(item: $selectedCluster) { cluster in
             DictionarySearchSheetView(
@@ -188,26 +199,15 @@ public struct OCRImageResultsView: View {
         return imageRect
     }
 
-    /// Calculate the actual rect for a cluster's bounding box within the image rect
-    private func calculateClusterRect(cluster: TextCluster, in imageRect: CGRect) -> CGRect {
+    /// Calculate the actual rect for a normalized box (lower-left origin) within the image rect
+    private func calculateBoxRect(_ normalizedBox: CGRect, in imageRect: CGRect) -> CGRect {
         // Convert normalized coordinates to image coordinates (with upper-left origin)
-        // cluster.boundingBox is in normalized coords with lower-left origin
-        let normalizedBox = cluster.boundingBox
         let boxInImage = CGRect(
             x: normalizedBox.minX * imageRect.width,
             y: (1 - normalizedBox.maxY) * imageRect.height, // Flip Y for upper-left origin
             width: normalizedBox.width * imageRect.width,
             height: normalizedBox.height * imageRect.height
         )
-
-        // Offset by the image rect's position within the container
-        return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
-    }
-
-    /// Calculate the actual rect for an observation's bounding box within the image rect
-    private func calculateBoxRect(observation: RecognizedTextObservation, in imageRect: CGRect) -> CGRect {
-        // Convert normalized coordinates to image coordinates (with upper-left origin)
-        let boxInImage = observation.boundingBox.toImageCoordinates(imageRect.size, origin: .upperLeft)
 
         // Offset by the image rect's position within the container
         return boxInImage.offsetBy(dx: imageRect.minX, dy: imageRect.minY)
@@ -222,14 +222,14 @@ public struct OCRImageResultsView: View {
         showAllBoxes: Bool
     ) -> some View {
         Canvas { context, _ in
-            for cluster in clusters {
+            for cluster in allClusters {
                 let isHighlighted = cluster.id == highlightedClusterID
 
                 if !showAllBoxes, !isHighlighted {
                     continue
                 }
 
-                let clusterRect = calculateClusterRect(cluster: cluster, in: imageRect)
+                let clusterRect = calculateBoxRect(cluster.boundingBox, in: imageRect)
                 let path = Path(clusterRect)
 
                 let appearance = OCRBoundingBoxAppearance.make(
@@ -251,9 +251,9 @@ public struct OCRImageResultsView: View {
 
             // Optionally draw individual observation boxes (debug mode)
             if showObservationBoxes {
-                for cluster in clusters {
-                    for observation in cluster.observations {
-                        let boxRect = calculateBoxRect(observation: observation, in: imageRect)
+                for cluster in allClusters {
+                    for line in cluster.lines {
+                        let boxRect = calculateBoxRect(line.boundingBox, in: imageRect)
                         let path = Path(boxRect)
                         context.stroke(path, with: .color(.orange.opacity(0.5)), lineWidth: 1)
                     }
@@ -334,35 +334,33 @@ public struct OCRImageResultsView: View {
         let normalizedX = (untransformed.x - imageRect.minX) / imageRect.width
         let normalizedY = 1.0 - (untransformed.y - imageRect.minY) / imageRect.height
 
-        // Find the cluster whose bounding box contains this point
-        // If multiple match, prefer the smallest (most specific)
-        var bestMatch: TextCluster?
-        var bestArea: CGFloat = .infinity
-
-        for cluster in clusters {
-            let bbox = cluster.boundingBox
-            if normalizedX >= bbox.minX, normalizedX <= bbox.maxX,
-               normalizedY >= bbox.minY, normalizedY <= bbox.maxY
-            {
-                let area = bbox.width * bbox.height
-                if area < bestArea {
-                    bestArea = area
-                    bestMatch = cluster
+        let point = CGPoint(x: normalizedX, y: normalizedY)
+        if let match = allClusters.smallest(containing: point) {
+            open(match)
+        } else if let ocr, !isProcessing, secondaryTask == nil {
+            // Nothing here at page level: look again around the tap at a larger scale.
+            secondaryTask = Task {
+                defer { secondaryTask = nil }
+                guard let found = try? await ocr.secondaryDetection(in: image, around: point, clusters: allClusters),
+                      !Task.isCancelled else { return }
+                detectedClusters = found
+                if let match = found.smallest(containing: point) {
+                    open(match)
                 }
             }
         }
+    }
 
-        if let match = bestMatch {
-            logger.debug("Tapped cluster with \(match.observations.count) observations: \(match.transcript.prefix(50))...")
-            // Start the line re-read now so it overlaps the highlight and sheet animations.
-            let text = ocr?.transcript(of: match, in: image) ?? Task { match.transcript }
-            Task {
-                highlightedCluster = match
-                try? await Task.sleep(nanoseconds: 100_000_000)
-                selectedText = text
-                selectedCluster = match
-                highlightedCluster = nil
-            }
+    private func open(_ match: TextCluster) {
+        logger.debug("Tapped cluster with \(match.lines.count) lines: \(match.transcript.prefix(50))...")
+        // Start the line re-read now so it overlaps the highlight and sheet animations.
+        let text = ocr?.transcript(of: match, in: image) ?? Task { match.transcript }
+        Task {
+            highlightedCluster = match
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            selectedText = text
+            selectedCluster = match
+            highlightedCluster = nil
         }
     }
 }

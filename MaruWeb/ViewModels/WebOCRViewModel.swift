@@ -45,6 +45,18 @@ final class WebOCRViewModel {
         image.map { ocr.transcript(of: cluster, in: $0) } ?? Task { cluster.transcript }
     }
 
+    /// Looks again for text around `point` (normalized, lower-left origin)
+    /// at a larger scale and adds what it finds to the cached clusters.
+    /// Returns the new clusters, or nil when nothing new was found.
+    func secondaryDetection(around point: CGPoint) async -> [TextCluster]? {
+        guard let image else { return nil }
+        isProcessing = true
+        defer { isProcessing = false }
+        guard let found = try? await ocr.secondaryDetection(in: image, around: point, clusters: clusters) else { return nil }
+        clusters = found
+        return found
+    }
+
     func performOCR(imageData: Data) async -> [TextCluster] {
         isProcessing = true
         errorMessage = nil

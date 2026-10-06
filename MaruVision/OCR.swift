@@ -54,6 +54,43 @@ public actor OCR {
         try await cluster(recognize(.image(cgImage)))
     }
 
+    /// Looks again for text that page-level detection missed. Vision scales
+    /// the page down before detecting, which loses small balloons and
+    /// captions; a request on a region of the page sees them at a larger
+    /// scale. Runs on a half-page window around `point`, or on four
+    /// overlapping quarters of the page when `point` is nil, with no minimum
+    /// text height. Lines overlapping nothing in `clusters` are clustered
+    /// together with the existing lines, so a found line joins its balloon.
+    /// Returns the new cluster list, or nil when nothing new was found or the
+    /// image's pixels do not match its boxes (rotated by EXIF orientation).
+    public func secondaryDetection(in image: UIImage, around point: CGPoint?, clusters: [TextCluster]) async throws -> [TextCluster]? {
+        guard image.imageOrientation == .up, let page = image.cgImage else { return nil }
+        var request = request
+        request.minimumTextHeightFraction = 0
+        var lines = clusters.flatMap(\.lines)
+        let known = lines.count
+        for region in point.map({ [Self.window(around: $0)] }) ?? Self.quarters {
+            try Task.checkCancellation()
+            request.regionOfInterest = NormalizedRect(x: region.minX, y: region.minY, width: region.width, height: region.height)
+            for r in try await request.perform(on: page) {
+                let line = TextLine(boundingBox: rebase(r.boundingBox.cgRect, into: region), text: r.transcript)
+                if !lines.contains(where: { overlaps($0.boundingBox, line.boundingBox) }) {
+                    lines.append(line)
+                }
+            }
+        }
+        logger.debug("Secondary detection found \(lines.count - known) new lines.")
+        return lines.count > known ? cluster(lines) : nil
+    }
+
+    /// A half-page window centred on `point`, kept inside the page.
+    static func window(around point: CGPoint) -> CGRect {
+        CGRect(x: min(max(point.x - 0.25, 0), 0.5), y: min(max(point.y - 0.25, 0), 0.5), width: 0.5, height: 0.5)
+    }
+
+    /// Four quarters of the page, overlapping by 10% so a line on a seam is whole in one of them.
+    static let quarters: [CGRect] = [0, 0.45].flatMap { x in [0, 0.45].map { CGRect(x: x, y: $0, width: 0.55, height: 0.55) } }
+
     /// The cluster's text after re-reading each line from its own upscaled
     /// crop of `image`, the image the cluster was recognized in. Ruby beside a
     /// line stays out of its crop, which fixes many misreads, at the cost of
@@ -87,17 +124,17 @@ public actor OCR {
     /// height (1/32 of the image) drops small balloons and breaks up
     /// low-resolution columns; the second pass adds lines that overlap nothing
     /// from the first.
-    private func recognize(_ input: Input) async throws -> [RecognizedTextObservation] {
-        let first = try await perform(request, on: input)
+    private func recognize(_ input: Input) async throws -> [TextLine] {
+        let first = try await perform(request, on: input).map(TextLine.init)
         var second = request
         second.minimumTextHeightFraction = 0
-        let extra = try await perform(second, on: input)
-        return first + extra.filter { o in !first.contains { overlaps($0.boundingBox.cgRect, o.boundingBox.cgRect) } }
+        let extra = try await perform(second, on: input).map(TextLine.init)
+        return first + extra.filter { o in !first.contains { overlaps($0.boundingBox, o.boundingBox) } }
     }
 
-    private func cluster(_ observations: [RecognizedTextObservation]) -> [TextCluster] {
-        logger.debug("OCR found \(observations.count) text observations.")
-        let clusters = TextClusterer(configuration: clusteringConfiguration).cluster(observations)
+    private func cluster(_ lines: [TextLine]) -> [TextCluster] {
+        logger.debug("OCR found \(lines.count) text lines.")
+        let clusters = TextClusterer(configuration: clusteringConfiguration).cluster(lines)
         var groups = mergeContained(clusters.map { ($0.boundingBox, $0.direction == .vertical) })
         if clusteringConfiguration.absorbHorizontal {
             let summary = groups.map { g in
@@ -108,20 +145,20 @@ public actor OCR {
             groups = absorbHorizontal(summary).map { $0.flatMap { groups[$0] } }
         }
         let merged = groups.map { group in
-            let observations = group.flatMap { clusters[$0].observations }
+            let lines = group.flatMap { clusters[$0].lines }
             let direction = clusters[group[0]].direction
             let vertical = direction == .vertical
-            let boxes = observations.map(\.boundingBox.cgRect)
+            let boxes = lines.map(\.boundingBox)
             let order: [Int]
             if clusteringConfiguration.maxFragmentGapMultiplier > 0 {
                 // Order whole lines, then fragments within each line.
-                let lines = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
-                let lineBoxes = lines.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
-                order = xyOrder(lineBoxes, vertical: vertical).flatMap { lines[$0] }
+                let wholeLines = lineGroups(boxes, vertical: vertical, gapMultiplier: clusteringConfiguration.maxFragmentGapMultiplier)
+                let lineBoxes = wholeLines.map { $0.dropFirst().reduce(boxes[$0[0]]) { $0.union(boxes[$1]) } }
+                order = xyOrder(lineBoxes, vertical: vertical).flatMap { wholeLines[$0] }
             } else {
                 order = xyOrder(boxes, vertical: vertical)
             }
-            return TextCluster(observations: order.map { observations[$0] }, direction: direction)
+            return TextCluster(lines: order.map { lines[$0] }, direction: direction)
         }
         logger.debug("Clustered into \(merged.count) clusters.")
         return merged
@@ -134,25 +171,25 @@ public actor OCR {
     private func recropLines(_ cluster: TextCluster, page: CGImage) async throws -> TextCluster {
         let aspect = CGFloat(page.width) / CGFloat(page.height)
         let vertical = cluster.direction == .vertical
-        var texts = cluster.transcripts
-        for (i, observation) in cluster.observations.enumerated() {
+        var lines = cluster.lines
+        for (i, line) in cluster.lines.enumerated() {
             try Task.checkCancellation()
-            let box = observation.boundingBox.cgRect
+            let box = line.boundingBox
             let t = vertical ? box.width : box.height
             // Half a line of padding along the line, 15% across it.
             let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
             let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
             if let text = cropText(for: box, reads: reads, vertical: vertical) {
-                texts[i] = text
+                lines[i].text = text
             }
         }
-        return TextCluster(observations: cluster.observations, direction: cluster.direction, transcripts: texts)
+        return TextCluster(lines: lines, direction: cluster.direction)
     }
 
     /// Reads a page region (normalized, lower-left origin), scaled so lines
     /// `thickness` (normalized) thick come out about 64 px thick. Boxes are
     /// returned in page coordinates.
-    private func read(_ region: CGRect, thickness: CGFloat, vertical: Bool, page: CGImage) async throws -> [CropRead] {
+    private func read(_ region: CGRect, thickness: CGFloat, vertical: Bool, page: CGImage) async throws -> [TextLine] {
         let w = CGFloat(page.width), h = CGFloat(page.height)
         let norm = region.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
         let px = CGRect(x: norm.minX * w, y: (1 - norm.maxY) * h, width: norm.width * w, height: norm.height * h)
@@ -167,18 +204,15 @@ public actor OCR {
         // Crop-normalized to page-normalized (the crop's lower-left is at the pixel rect's bottom).
         let o = CGRect(x: px.minX / w, y: 1 - px.maxY / h, width: px.width / w, height: px.height / h)
         return try await perform(request, on: .image(image)).map { r in
-            let b = r.boundingBox.cgRect
-            let box = CGRect(x: o.minX + b.minX * o.width, y: o.minY + b.minY * o.height,
-                             width: b.width * o.width, height: b.height * o.height)
-            return CropRead(box: box, text: r.transcript)
+            TextLine(boundingBox: rebase(r.boundingBox.cgRect, into: o), text: r.transcript)
         }
     }
 }
 
-/// One line read from a crop, in page coordinates.
-struct CropRead {
-    var box: CGRect
-    var text: String
+/// A box normalized to `region` (itself normalized to the page), in page coordinates.
+func rebase(_ box: CGRect, into region: CGRect) -> CGRect {
+    CGRect(x: region.minX + box.minX * region.width, y: region.minY + box.minY * region.height,
+           width: box.width * region.width, height: box.height * region.height)
 }
 
 /// True when the boxes share more than 30% of the smaller one's area.
@@ -192,19 +226,19 @@ func overlaps(_ a: CGRect, _ b: CGRect) -> Bool {
 /// the padding) and reads much thinner than the thickest (ruby). Gives up when
 /// reads overlap along the line: slanted text gets a wide box holding two
 /// columns, and the page-level read is right then.
-func cropText(for line: CGRect, reads: [CropRead], vertical: Bool) -> String? {
+func cropText(for line: CGRect, reads: [TextLine], vertical: Bool) -> String? {
     let inside = reads.filter { r in
-        let i = r.box.intersection(line)
-        return !i.isNull && i.width * i.height >= 0.5 * r.box.width * r.box.height
+        let i = r.boundingBox.intersection(line)
+        return !i.isNull && i.width * i.height >= 0.5 * r.boundingBox.width * r.boundingBox.height
     }
-    let thickness = { (r: CropRead) in vertical ? r.box.width : r.box.height }
+    let thickness = { (r: TextLine) in vertical ? r.boundingBox.width : r.boundingBox.height }
     let thickest = inside.map(thickness).max() ?? 0
     let kept = inside.filter { thickness($0) >= thickest * 0.6 }
-    let along = { (r: CropRead) in vertical ? (r.box.minY, r.box.maxY) : (r.box.minX, r.box.maxX) }
+    let along = { (r: TextLine) in vertical ? (r.boundingBox.minY, r.boundingBox.maxY) : (r.boundingBox.minX, r.boundingBox.maxX) }
     let stacked = kept.indices.contains { i in kept.indices.contains { j in
         let (a0, a1) = along(kept[i]), (b0, b1) = along(kept[j])
         return i < j && min(a1, b1) - max(a0, b0) > 0.5 * min(a1 - a0, b1 - b0)
     } }
     guard !kept.isEmpty, !stacked else { return nil }
-    return kept.sorted { vertical ? $0.box.midY > $1.box.midY : $0.box.midX < $1.box.midX }.map(\.text).joined()
+    return kept.sorted { vertical ? $0.boundingBox.midY > $1.boundingBox.midY : $0.boundingBox.midX < $1.boundingBox.midX }.map(\.text).joined()
 }
