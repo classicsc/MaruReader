@@ -166,7 +166,7 @@ public actor OCR {
         }
         // Crop-normalized to page-normalized (the crop's lower-left is at the pixel rect's bottom).
         let o = CGRect(x: px.minX / w, y: 1 - px.maxY / h, width: px.width / w, height: px.height / h)
-        return try await recognize(.image(image)).map { r in
+        return try await perform(request, on: .image(image)).map { r in
             let b = r.boundingBox.cgRect
             let box = CGRect(x: o.minX + b.minX * o.width, y: o.minY + b.minY * o.height,
                              width: b.width * o.width, height: b.height * o.height)
