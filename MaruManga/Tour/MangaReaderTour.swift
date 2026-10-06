@@ -21,7 +21,6 @@ import SwiftUI
 /// Tour anchor identifiers for MangaReaderView elements.
 public enum MangaReaderTourAnchor {
     public static let backButton = "mangaReader.backButton"
-    public static let textRegions = "mangaReader.textRegions"
     public static let retryDetection = "mangaReader.retryDetection"
     public static let spreadToggle = "mangaReader.spreadToggle"
     public static let readingDirection = "mangaReader.readingDirection"
@@ -35,7 +34,7 @@ public enum MangaReaderTour: TourDefinition {
     public static var steps: [TourStep] {
         var steps = baseSteps
         if MangaTapNavigationSettings.tapToTurnEnabled {
-            steps.insert(retryDetectionStep, at: 2)
+            steps.insert(retryDetectionStep, at: 1)
         }
         return steps
     }
@@ -55,12 +54,6 @@ public enum MangaReaderTour: TourDefinition {
             title: MangaLocalization.string("Return to Library"),
             description: MangaLocalization.string("Tap here to close the manga and return to your library."),
             popoverEdge: .bottom
-        ),
-        TourStep(
-            id: MangaReaderTourAnchor.textRegions,
-            title: MangaLocalization.string("Text Recognition"),
-            description: MangaLocalization.string("Tap on any text to start a dictionary lookup. Use this button if you want to see the exact detected text regions."),
-            popoverEdge: .top
         ),
         TourStep(
             id: MangaReaderTourAnchor.readingDirection,

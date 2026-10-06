@@ -255,18 +255,19 @@ public struct MangaReaderView: View {
 
     private var bottomToolbarOverlay: some View {
         HStack(spacing: 20) {
-            // Bounding box toggle
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.showBoundingBoxes.toggle()
+            #if DEBUG
+                // Bounding box toggle, a developer aid for inspecting detection.
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.showBoundingBoxes.toggle()
+                    }
+                } label: {
+                    Label(boundingBoxButtonTitle, systemImage: boundingBoxButtonSystemImage)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
-            } label: {
-                Label(boundingBoxButtonTitle, systemImage: boundingBoxButtonSystemImage)
-                    .frame(width: 44, height: 44)
-                    .contentShape(.rect)
-            }
-            .labelStyle(.iconOnly)
-            .tourAnchor(MangaReaderTourAnchor.textRegions)
+                .labelStyle(.iconOnly)
+            #endif
 
             // Retry detection. With tap-to-turn on, a tap on missed text turns
             // the page instead of looking again, so this button looks again.
@@ -426,15 +427,17 @@ public struct MangaReaderView: View {
             : MangaLocalization.string("Retry text detection")
     }
 
-    private var boundingBoxButtonTitle: String {
-        viewModel.showBoundingBoxes
-            ? MangaLocalization.string("Hide text regions")
-            : MangaLocalization.string("Show text regions")
-    }
+    #if DEBUG
+        private var boundingBoxButtonTitle: String {
+            viewModel.showBoundingBoxes
+                ? MangaLocalization.string("Hide text regions")
+                : MangaLocalization.string("Show text regions")
+        }
 
-    private var boundingBoxButtonSystemImage: String {
-        viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder"
-    }
+        private var boundingBoxButtonSystemImage: String {
+            viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder"
+        }
+    #endif
 
     private var spreadModeButtonTitle: String {
         viewModel.forceSinglePage

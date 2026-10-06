@@ -11,7 +11,6 @@ RESULTS_DIR="$SCREENSHOT_ROOT/xcresult"
 SCREENSHOT_EXPORT_STEMS=(
   "01-BookDictionary"
   "02-MangaDictionary"
-  "03-MangaDictionary-Regions"
   "04-WebDictionary"
   "05-AnkiSettings"
   "06-DictionarySettings"

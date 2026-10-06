@@ -162,6 +162,8 @@ public struct OCRImageResultsView: View {
                 }
             )
         }
+        #if DEBUG
+        // Bounding box toggle, a developer aid for inspecting detection.
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -174,6 +176,7 @@ public struct OCRImageResultsView: View {
                 .accessibilityLabel(showBoundingBoxes ? "Hide text regions" : "Show text regions")
             }
         }
+        #endif
     }
 
     /// Calculate the actual rect where the image is displayed within the container
