@@ -248,7 +248,6 @@ public struct MangaReaderView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.top, 20)
     }
 
     // MARK: - Bottom Toolbar
@@ -343,7 +342,6 @@ public struct MangaReaderView: View {
         .padding(.vertical, 12)
         .glassEffect(in: .capsule)
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.bottom, 20)
     }
 
     private var pageIndicator: some View {
