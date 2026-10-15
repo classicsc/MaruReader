@@ -137,7 +137,6 @@ struct WebViewerBottomToolbarView: View {
             }
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 16)
         .padding(.top, 5)
     }
 

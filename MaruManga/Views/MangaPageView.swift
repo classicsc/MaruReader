@@ -321,29 +321,15 @@ struct MangaPageView: View {
         let normalizedX = (untransformed.x - imageRect.minX) / imageRect.width
         let normalizedY = 1.0 - (untransformed.y - imageRect.minY) / imageRect.height
 
-        // Find the cluster whose bounding box contains this point
-        // If multiple match, prefer the smallest (most specific)
-        var bestMatch: TextCluster?
-        var bestArea: CGFloat = .infinity
-
-        for cluster in clusters {
-            let bbox = cluster.boundingBox
-            if normalizedX >= bbox.minX, normalizedX <= bbox.maxX,
-               normalizedY >= bbox.minY, normalizedY <= bbox.maxY
-            {
-                let area = bbox.width * bbox.height
-                if area < bestArea {
-                    bestArea = area
-                    bestMatch = cluster
-                }
-            }
-        }
-
-        if let match = bestMatch {
+        let point = CGPoint(x: normalizedX, y: normalizedY)
+        if let match = clusters.smallest(containing: point) {
             viewModel.handleClusterTap(match, pageIndex: pageIndex)
-        } else {
+        } else if MangaTapNavigationSettings.tapToTurnEnabled {
             // Tap inside the image but outside any cluster.
             performTapMissAction(tapX: tapPoint.x, containerWidth: containerSize.width)
+        } else {
+            // Nothing here at page level: look again around the tap at a larger scale.
+            viewModel.lookForText(at: point, pageIndex: pageIndex)
         }
     }
 

@@ -38,10 +38,38 @@ enum AnotherMockTour: TourDefinition {
     ]
 }
 
+/// A later feature's tour sharing a step with MockTour
+enum FeatureTour: TourDefinition {
+    static let tourID = "feature.tour"
+    static let steps: [TourStep] = [MockTour.steps[1]]
+}
+
 @MainActor
 struct TourManagerTests {
     init() {
         TourManager.resetAllTours()
+    }
+
+    @Test func startIfNeededShowsOnlyUnseenSteps() {
+        let manager = TourManager()
+        manager.start(MockTour.self)
+        manager.next() // step1 and step2 seen, tour not completed
+
+        let resumed = TourManager()
+        #expect(resumed.startIfNeeded(MockTour.self))
+        #expect(resumed.currentTourSteps.map(\.id) == ["step3"])
+    }
+
+    @Test func stepSeenInOneTourIsNotShownByAnother() {
+        let manager = TourManager()
+        #expect(manager.startIfNeeded(FeatureTour.self))
+        manager.skip()
+
+        let main = TourManager()
+        #expect(main.startIfNeeded(MockTour.self))
+        #expect(main.currentTourSteps.map(\.id) == ["step1", "step3"])
+        main.skip()
+        #expect(!TourManager().startIfNeeded(FeatureTour.self))
     }
 
     @Test func startTourSetsActiveState() {

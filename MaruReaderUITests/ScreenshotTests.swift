@@ -82,20 +82,6 @@ final class ScreenshotTests: XCTestCase {
         }
         waitForDictionaryResultsToLoad(dictionarySheet, timeout: 30)
         takeScreenshot(named: "02-MangaDictionary")
-        // Now dismiss the sheet, turn on bounding box display (button labeled "Show text regions"), and take another screenshot.
-        if dictionarySheet.exists {
-            let dismissButton = button(english: "Done", japanese: "完了")
-            if dismissButton.waitForExistence(timeout: 5) {
-                dismissButton.tap()
-                sleep(1)
-            }
-        }
-        let showRegionsButton = button(english: "Show text regions", japanese: "テキスト領域を表示")
-        if showRegionsButton.waitForExistence(timeout: 5) {
-            showRegionsButton.tap()
-            sleep(1)
-            takeScreenshot(named: "03-MangaDictionary-Regions")
-        }
     }
 
     // MARK: - Web Browser Screenshots

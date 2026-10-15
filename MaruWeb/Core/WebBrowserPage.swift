@@ -47,13 +47,17 @@ final class WebBrowserPage {
     var canGoForward = false
     var faviconData: Data?
 
+    private var chromeInsets: UIEdgeInsets?
+    private var bottomBarHeight: CGFloat = 0
+    private var viewportInsetRange = WebChromeInsetRange()
     private var scrollOffsetChangeHandler: ((CGFloat, CGFloat) -> Void)?
     private var observations: [NSKeyValueObservation] = []
     private let delegateProxy = DelegateProxy()
     private var faviconFetchTask: Task<Void, Never>?
 
-    init(webView: WKWebView) {
+    init(webView: WKWebView, contentBlocker: WebContentBlockerProvider = .shared) {
         self.webView = webView
+        delegateProxy.contentBlocker = contentBlocker
         webView.navigationDelegate = delegateProxy
         webView.uiDelegate = delegateProxy
         delegateProxy.onDidStartNavigation = { [weak self] in
@@ -67,10 +71,44 @@ final class WebBrowserPage {
         }
         syncStateFromWebView()
         installObservers()
+        (webView as? DictionaryLookupWebView)?.onLayoutChange = { [weak self] in
+            self?.updateChromeInsets()
+        }
     }
 
     func setScrollOffsetChangeHandler(_ handler: ((CGFloat, CGFloat) -> Void)?) {
         scrollOffsetChangeHandler = handler
+    }
+
+    /// Bottom bar floating over the full-bleed web view. Combined with the window's safe area (status
+    /// bar, home indicator) this sets both the scroll insets and WebKit's obscured insets so fixed
+    /// elements, `env(safe-area-inset-*)` and the status bar fill behave like Safari. The window is
+    /// used because SwiftUI does not propagate safe area insets to hosted UIKit views, and unlike the
+    /// SwiftUI safe area it never includes the keyboard, which WebKit insets for itself.
+    func applyChromeInsets(bottomBarHeight: CGFloat) {
+        self.bottomBarHeight = bottomBarHeight
+        updateChromeInsets()
+    }
+
+    private func updateChromeInsets() {
+        let safeArea = webView.window?.safeAreaInsets ?? .zero
+        let insets = UIEdgeInsets(top: safeArea.top, left: 0, bottom: bottomBarHeight + safeArea.bottom, right: 0)
+        guard insets != chromeInsets else { return }
+        chromeInsets = insets
+        let scrollView = webView.scrollView
+        // WebKit forces .always otherwise, which would add the safe area on top of our inset.
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.contentInset = insets
+        scrollView.verticalScrollIndicatorInsets = insets
+        webView.obscuredContentInsets = insets
+        viewportInsetRange.record(top: insets.top, bottom: insets.bottom)
+        webView.setMinimumViewportInset(viewportInsetRange.minimum, maximumViewportInset: viewportInsetRange.maximum)
+    }
+
+    /// Web view bounds not covered by app chrome. Snapshots of this rect line up with overlays
+    /// laid out inside the safe area.
+    var unobscuredBounds: CGRect {
+        webView.bounds.inset(by: chromeInsets ?? .zero)
     }
 
     func setDictionaryLookupHandler(_ handler: (@MainActor (String) -> Void)?) {
@@ -420,7 +458,42 @@ final class WebBrowserPage {
     }
 }
 
+/// Smallest and largest bottom chrome insets seen in one orientation, so WebKit keeps `svh`/`lvh`
+/// (and so `100vh`) stable while the toolbar expands and collapses instead of reflowing the page.
+struct WebChromeInsetRange: Equatable {
+    private(set) var top: CGFloat = 0
+    private(set) var bottom: ClosedRange<CGFloat>?
+
+    mutating func record(top: CGFloat, bottom: CGFloat) {
+        if top != self.top {
+            self.bottom = nil
+        }
+        self.top = top
+        if let range = self.bottom {
+            self.bottom = min(range.lowerBound, bottom) ... max(range.upperBound, bottom)
+        } else {
+            self.bottom = bottom ... bottom
+        }
+    }
+
+    var minimum: UIEdgeInsets {
+        UIEdgeInsets(top: top, left: 0, bottom: bottom?.lowerBound ?? 0, right: 0)
+    }
+
+    var maximum: UIEdgeInsets {
+        UIEdgeInsets(top: top, left: 0, bottom: bottom?.upperBound ?? 0, right: 0)
+    }
+}
+
 extension WebBrowserPage {
+    /// Whether a `window.open`/`target=_blank` request deserves a tab. WebKit only asks for
+    /// user-gesture-initiated opens (`javaScriptCanOpenWindowsAutomatically` is off). Non-web
+    /// schemes would only ever produce an empty tab, since the page never gets a scriptable window.
+    /// Context-menu and browser chrome actions open tabs directly and bypass this policy.
+    nonisolated static func allowsNewTab(url: URL) -> Bool {
+        ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+    }
+
     enum SchemeAction: Equatable {
         case allow
         case cancel
@@ -438,6 +511,21 @@ extension WebBrowserPage {
             return .openExternally
         }
         return .cancel
+    }
+}
+
+/// Firefox iOS's popup throttle: a click-hijack handler that spends one gesture on a burst of
+/// `window.open` calls gets at most `limit` tabs per `window` seconds.
+struct WebPopupThrottle {
+    var limit = 2
+    var window: TimeInterval = 2
+    private var recent: [Date] = []
+
+    mutating func allows(at now: Date = .now) -> Bool {
+        recent.removeAll { now.timeIntervalSince($0) >= window }
+        guard recent.count < limit else { return false }
+        recent.append(now)
+        return true
     }
 }
 
@@ -520,6 +608,18 @@ private struct FaviconCandidate {
 
 final class DictionaryLookupWebView: WKWebView {
     var onDictionaryLookup: (@MainActor (String) -> Void)?
+    /// Fires on window attach and layout so chrome insets follow rotation and scene changes.
+    var onLayoutChange: (@MainActor () -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        onLayoutChange?()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayoutChange?()
+    }
 
     override func buildMenu(with builder: UIMenuBuilder) {
         super.buildMenu(with: builder)
@@ -548,6 +648,8 @@ final class DictionaryLookupWebView: WKWebView {
 }
 
 private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate {
+    var contentBlocker: WebContentBlockerProvider = .shared
+    private var popupThrottle = WebPopupThrottle()
     var onOpenRequestInNewTab: (@MainActor (URLRequest) -> Void)?
     var onOpenLinkInCurrentTab: (@MainActor (URL) -> Void)?
     var onOpenLinkInNewTab: (@MainActor (URL) -> Void)?
@@ -562,6 +664,17 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         preferences: WKWebpagePreferences,
         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
+        if let url = navigationAction.request.url,
+           contentBlocker.blocksNavigation(
+               to: url,
+               from: navigationAction.sourceFrame.request.url ?? webView.url,
+               mainFrame: navigationAction.targetFrame?.isMainFrame ?? true,
+               method: navigationAction.request.httpMethod ?? "GET"
+           )
+        {
+            decisionHandler(.cancel, preferences)
+            return
+        }
         guard navigationAction.targetFrame?.isMainFrame == true,
               let url = navigationAction.request.url
         else {
@@ -608,6 +721,16 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         windowFeatures _: WKWindowFeatures
     ) -> WKWebView? {
         guard navigationAction.targetFrame == nil else { return nil }
+        guard let url = navigationAction.request.url,
+              WebBrowserPage.allowsNewTab(url: url),
+              popupThrottle.allows(),
+              !contentBlocker.blocksNavigation(
+                  to: url,
+                  from: navigationAction.sourceFrame.request.url ?? webView.url,
+                  mainFrame: true,
+                  method: navigationAction.request.httpMethod ?? "GET"
+              )
+        else { return nil }
         if let onOpenRequestInNewTab {
             Task { @MainActor in
                 onOpenRequestInNewTab(navigationAction.request)

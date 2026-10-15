@@ -18,7 +18,6 @@
 @testable import MaruVision
 import Testing
 import UIKit
-import Vision
 
 /// `OCR.transcript(of:in:)` re-reads a tapped cluster's lines with Vision. Only
 /// clusters Vision produced may be re-read: mokuro text comes from a dedicated
@@ -27,7 +26,7 @@ import Vision
 struct TranscriptRereadTests {
     /// The rendered text and the box it was drawn in (normalized, lower-left origin).
     private static let renderedText = "日本語"
-    private static let lineBox = NormalizedRect(x: 0.05, y: 0.2, width: 0.9, height: 0.6)
+    private static let lineBox = CGRect(x: 0.05, y: 0.2, width: 0.9, height: 0.6)
 
     private static func makeImage() -> UIImage {
         let size = CGSize(width: 400, height: 200)
@@ -45,7 +44,7 @@ struct TranscriptRereadTests {
 
     private static func cluster(source: TextClusterSource) -> TextCluster {
         TextCluster(
-            lines: [TextClusterLine(transcript: "別の文字", boundingBox: lineBox)],
+            lines: [TextLine(boundingBox: lineBox, text: "別の文字")],
             direction: .horizontal,
             source: source
         )

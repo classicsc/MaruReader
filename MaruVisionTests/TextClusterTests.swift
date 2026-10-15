@@ -15,15 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with MaruReader.  If not, see <http://www.gnu.org/licenses/>.
 
+import CoreGraphics
 @testable import MaruVision
 import Testing
-import Vision
 
 struct TextClusterTests {
     @Test func transcript_horizontalDirection_joinsLinesWithNewline() {
         let lines = [
-            TextClusterLine(transcript: "line one", boundingBox: NormalizedRect(x: 0.1, y: 0.6, width: 0.3, height: 0.2)),
-            TextClusterLine(transcript: "line two", boundingBox: NormalizedRect(x: 0.1, y: 0.3, width: 0.3, height: 0.2)),
+            TextLine(boundingBox: CGRect(x: 0.1, y: 0.6, width: 0.3, height: 0.2), text: "line one"),
+            TextLine(boundingBox: CGRect(x: 0.1, y: 0.3, width: 0.3, height: 0.2), text: "line two"),
         ]
         let cluster = TextCluster(lines: lines, direction: .horizontal)
 
@@ -33,8 +33,8 @@ struct TextClusterTests {
 
     @Test func transcript_verticalDirection_joinsLinesWithoutSeparator() {
         let lines = [
-            TextClusterLine(transcript: "しか", boundingBox: NormalizedRect(x: 0.7, y: 0.6, width: 0.1, height: 0.2)),
-            TextClusterLine(transcript: "し、", boundingBox: NormalizedRect(x: 0.7, y: 0.4, width: 0.1, height: 0.2)),
+            TextLine(boundingBox: CGRect(x: 0.7, y: 0.6, width: 0.1, height: 0.2), text: "しか"),
+            TextLine(boundingBox: CGRect(x: 0.7, y: 0.4, width: 0.1, height: 0.2), text: "し、"),
         ]
         let cluster = TextCluster(lines: lines, direction: .vertical)
 
@@ -43,8 +43,8 @@ struct TextClusterTests {
 
     @Test func boundingBox_isUnionOfAllLines() {
         let lines = [
-            TextClusterLine(transcript: "a", boundingBox: NormalizedRect(x: 0.1, y: 0.6, width: 0.2, height: 0.2)),
-            TextClusterLine(transcript: "b", boundingBox: NormalizedRect(x: 0.5, y: 0.1, width: 0.3, height: 0.3)),
+            TextLine(boundingBox: CGRect(x: 0.1, y: 0.6, width: 0.2, height: 0.2), text: "a"),
+            TextLine(boundingBox: CGRect(x: 0.5, y: 0.1, width: 0.3, height: 0.3), text: "b"),
         ]
         let cluster = TextCluster(lines: lines, direction: .horizontal)
 

@@ -17,7 +17,6 @@
 
 import CoreGraphics
 import Foundation
-import Vision
 
 // MARK: - Mokuro File Model
 
@@ -97,11 +96,11 @@ public enum MokuroClusterConverter {
             return nil
         }
 
-        let lines: [TextClusterLine] = zip(block.lines, block.linesCoords).compactMap { transcript, quad in
+        let lines: [TextLine] = zip(block.lines, block.linesCoords).compactMap { transcript, quad in
             guard let boundingBox = normalizedRect(forQuad: quad, imageSize: imageSize) else {
                 return nil
             }
-            return TextClusterLine(transcript: transcript, boundingBox: boundingBox)
+            return TextLine(boundingBox: boundingBox, text: transcript)
         }
 
         guard !lines.isEmpty else { return nil }
@@ -110,7 +109,7 @@ public enum MokuroClusterConverter {
         return TextCluster(lines: lines, direction: direction, source: .mokuro)
     }
 
-    /// Converts a pixel-space quad (upper-left origin) into a `NormalizedRect`
+    /// Converts a pixel-space quad (upper-left origin) into a normalized `CGRect`
     /// (Vision's lower-left-origin convention), using the tight bounding box
     /// of the quad's four points.
     ///
@@ -120,7 +119,7 @@ public enum MokuroClusterConverter {
     /// taps meant for its neighbour. The edges are clamped rather than the origin
     /// and extent separately, since the latter shifts the box instead of trimming
     /// it. A box entirely off the page clamps to zero area and is dropped.
-    private static func normalizedRect(forQuad quad: [[Double]], imageSize: CGSize) -> NormalizedRect? {
+    private static func normalizedRect(forQuad quad: [[Double]], imageSize: CGSize) -> CGRect? {
         let points = quad.compactMap { point -> CGPoint? in
             guard point.count >= 2 else { return nil }
             return CGPoint(x: point[0], y: point[1])
@@ -148,6 +147,6 @@ public enum MokuroClusterConverter {
 
         guard right > left, top > bottom else { return nil }
 
-        return NormalizedRect(x: left, y: bottom, width: right - left, height: top - bottom)
+        return CGRect(x: left, y: bottom, width: right - left, height: top - bottom)
     }
 }

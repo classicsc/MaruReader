@@ -55,6 +55,15 @@ public final class WebCosmeticFilterEngine: @unchecked Sendable {
         )
     }
 
+    func blocksNavigation(to url: URL, from sourceURL: URL, mainFrame: Bool, method: String) -> Bool {
+        engine.blocksNavigation(
+            url: url.absoluteString,
+            sourceUrl: sourceURL.absoluteString,
+            mainFrame: mainFrame,
+            method: method
+        )
+    }
+
     public func hiddenClassIDSelectors(
         classes: [String],
         ids: [String],

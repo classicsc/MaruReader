@@ -65,17 +65,17 @@ struct CropTextTests {
 
     @Test func joinsFragmentsTopDown() {
         let reads = [
-            CropRead(box: CGRect(x: 0.5, y: 0.2, width: 0.05, height: 0.15), text: "下"),
-            CropRead(box: CGRect(x: 0.5, y: 0.4, width: 0.05, height: 0.2), text: "上"),
+            TextLine(boundingBox: CGRect(x: 0.5, y: 0.2, width: 0.05, height: 0.15), text: "下"),
+            TextLine(boundingBox: CGRect(x: 0.5, y: 0.4, width: 0.05, height: 0.2), text: "上"),
         ]
         #expect(cropText(for: line, reads: reads, vertical: true) == "上下")
     }
 
     @Test func dropsNeighbourOutsideLineAndRuby() {
         let reads = [
-            CropRead(box: line, text: "本文"),
-            CropRead(box: CGRect(x: 0.56, y: 0.2, width: 0.02, height: 0.4), text: "隣"),
-            CropRead(box: CGRect(x: 0.53, y: 0.25, width: 0.02, height: 0.3), text: "ふり"),
+            TextLine(boundingBox: line, text: "本文"),
+            TextLine(boundingBox: CGRect(x: 0.56, y: 0.2, width: 0.02, height: 0.4), text: "隣"),
+            TextLine(boundingBox: CGRect(x: 0.53, y: 0.25, width: 0.02, height: 0.3), text: "ふり"),
         ]
         #expect(cropText(for: line, reads: reads, vertical: true) == "本文")
     }
@@ -83,10 +83,34 @@ struct CropTextTests {
     @Test func keepsPageTextWhenNothingOrStackedReads() {
         #expect(cropText(for: line, reads: [], vertical: true) == nil)
         let stacked = [
-            CropRead(box: CGRect(x: 0.5, y: 0.2, width: 0.025, height: 0.4), text: "a"),
-            CropRead(box: CGRect(x: 0.525, y: 0.2, width: 0.025, height: 0.4), text: "b"),
+            TextLine(boundingBox: CGRect(x: 0.5, y: 0.2, width: 0.025, height: 0.4), text: "a"),
+            TextLine(boundingBox: CGRect(x: 0.525, y: 0.2, width: 0.025, height: 0.4), text: "b"),
         ]
         #expect(cropText(for: line, reads: stacked, vertical: true) == nil)
+    }
+}
+
+struct SecondaryDetectionTests {
+    @Test func windowIsHalfPageCentredAndClamped() {
+        #expect(OCR.window(around: CGPoint(x: 0.5, y: 0.5)) == CGRect(x: 0.25, y: 0.25, width: 0.5, height: 0.5))
+        #expect(OCR.window(around: CGPoint(x: 0.05, y: 0.95)) == CGRect(x: 0, y: 0.5, width: 0.5, height: 0.5))
+        #expect(OCR.quarters.count == 4)
+        #expect(OCR.quarters.allSatisfy { CGRect(x: 0, y: 0, width: 1, height: 1).contains($0) })
+    }
+
+    @Test func rebaseMapsRegionBoxToPage() {
+        let region = CGRect(x: 0.5, y: 0, width: 0.5, height: 0.5)
+        #expect(rebase(CGRect(x: 0.2, y: 0.4, width: 0.2, height: 0.2), into: region) == CGRect(x: 0.6, y: 0.2, width: 0.1, height: 0.1))
+    }
+
+    @Test func plainLinesClusterIntoColumns() {
+        let clusters = TextClusterer().cluster([
+            TextLine(boundingBox: column(0.6, 0.1, 0.9), text: "あいうえおかきくけこ"),
+            TextLine(boundingBox: column(0.53, 0.1, 0.9), text: "さしすせそたちつてと"),
+            TextLine(boundingBox: column(0.1, 0.1, 0.9), text: "なにぬねのはひふへほ"),
+        ])
+        #expect(clusters.count == 2)
+        #expect(clusters.contains { $0.transcript == "あいうえおかきくけこさしすせそたちつてと" })
     }
 }
 

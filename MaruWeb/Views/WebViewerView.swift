@@ -34,6 +34,7 @@ public struct WebViewerView: View {
     @State private var isAddressFocused = false
     @State private var isTabSwitcherPresented = false
     @State private var toolbarTourManager = TourManager()
+    @State private var bottomBarHeight: CGFloat = 0
     @Namespace private var glassNamespace
 
     @Environment(\.scenePhase) private var scenePhase
@@ -60,7 +61,8 @@ public struct WebViewerView: View {
                     suggestionViewModel: suggestionViewModel,
                     onNavigateFromNewTabPage: navigateFromNewTabPage,
                     onNavigateFromAddressEditing: navigateFromAddressEditing,
-                    onSelectSuggestion: selectSuggestion
+                    onSelectSuggestion: selectSuggestion,
+                    bottomBarHeight: bottomBarHeight
                 )
                 .safeAreaBar(edge: .bottom) {
                     WebViewerBottomToolbarView(
@@ -83,6 +85,7 @@ public struct WebViewerView: View {
                         onNavigateToBookmark: navigateToBookmark,
                         onDismiss: dismissViewer
                     )
+                    .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bottomBarHeight = $0 }
                 }
             } else {
                 WebViewerSessionLoadingView()

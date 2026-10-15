@@ -28,6 +28,8 @@ public struct MangaReaderView: View {
     @State private var isShowingPageJumpDialog: Bool = false
     @State private var pageJumpInput: Int = 1
     @State private var tourManager = TourManager()
+    @AppStorage(MangaTapNavigationSettings.tapToTurnEnabledKey)
+    private var tapToTurnEnabled = MangaTapNavigationSettings.tapToTurnEnabledDefault
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.dictionaryFeatureAvailability) private var dictionaryAvailability
     @Environment(\.dismiss) private var dismiss
@@ -143,7 +145,7 @@ public struct MangaReaderView: View {
         .animation(.easeInOut, value: viewModel.overlayState.shouldShowToolbars)
         .tourOverlay(manager: tourManager)
         .onAppear {
-            if tourManager.startIfNeeded(MangaReaderTour.self) {
+            if tourManager.startIfNeeded(MangaReaderTour.self) || tourManager.startIfNeeded(MangaRetryDetectionTour.self) {
                 viewModel.overlayState = .showingToolbars
             }
         }
@@ -246,25 +248,50 @@ public struct MangaReaderView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        .padding(.top, 20)
     }
 
     // MARK: - Bottom Toolbar
 
     private var bottomToolbarOverlay: some View {
         HStack(spacing: 20) {
-            // Bounding box toggle
-            Button {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    viewModel.showBoundingBoxes.toggle()
+            #if DEBUG
+                // Bounding box toggle, a developer aid for inspecting detection.
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        viewModel.showBoundingBoxes.toggle()
+                    }
+                } label: {
+                    Label(boundingBoxButtonTitle, systemImage: boundingBoxButtonSystemImage)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
                 }
-            } label: {
-                Label(boundingBoxButtonTitle, systemImage: boundingBoxButtonSystemImage)
-                    .frame(width: 44, height: 44)
-                    .contentShape(.rect)
+                .labelStyle(.iconOnly)
+            #endif
+
+            // Retry detection. With tap-to-turn on, a tap on missed text turns
+            // the page instead of looking again, so this button looks again.
+            if tapToTurnEnabled {
+                Button {
+                    if viewModel.canUndoDetection {
+                        viewModel.undoDetection()
+                    } else {
+                        viewModel.retryDetection()
+                    }
+                } label: {
+                    if viewModel.isDetectingMoreText {
+                        ProgressView()
+                            .frame(width: 44, height: 44)
+                    } else {
+                        Label(retryDetectionButtonTitle, systemImage: viewModel.canUndoDetection ? "arrow.uturn.backward" : "arrow.trianglehead.2.clockwise")
+                            .frame(width: 44, height: 44)
+                            .contentShape(.rect)
+                    }
+                }
+                .labelStyle(.iconOnly)
+                .disabled(viewModel.isDetectingMoreText)
+                .accessibilityLabel(retryDetectionButtonTitle)
+                .tourAnchor(MangaReaderTourAnchor.retryDetection)
             }
-            .labelStyle(.iconOnly)
-            .tourAnchor(MangaReaderTourAnchor.textRegions)
 
             // Spread mode toggle (only in landscape + horizontal mode)
             if viewModel.isLandscape, viewModel.readingDirection != .vertical {
@@ -315,7 +342,6 @@ public struct MangaReaderView: View {
         .padding(.vertical, 12)
         .glassEffect(in: .capsule)
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.bottom, 20)
     }
 
     private var pageIndicator: some View {
@@ -393,15 +419,23 @@ public struct MangaReaderView: View {
         isPrimary ? interfaceForegroundColor : interfaceForegroundColor.opacity(0.6)
     }
 
-    private var boundingBoxButtonTitle: String {
-        viewModel.showBoundingBoxes
-            ? MangaLocalization.string("Hide text regions")
-            : MangaLocalization.string("Show text regions")
+    private var retryDetectionButtonTitle: String {
+        viewModel.canUndoDetection
+            ? MangaLocalization.string("Undo text detection retry")
+            : MangaLocalization.string("Retry text detection")
     }
 
-    private var boundingBoxButtonSystemImage: String {
-        viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder"
-    }
+    #if DEBUG
+        private var boundingBoxButtonTitle: String {
+            viewModel.showBoundingBoxes
+                ? MangaLocalization.string("Hide text regions")
+                : MangaLocalization.string("Show text regions")
+        }
+
+        private var boundingBoxButtonSystemImage: String {
+            viewModel.showBoundingBoxes ? "text.viewfinder" : "viewfinder"
+        }
+    #endif
 
     private var spreadModeButtonTitle: String {
         viewModel.forceSinglePage

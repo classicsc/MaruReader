@@ -24,6 +24,8 @@ import SwiftUI
 public final class TourManager {
     private static let tourKeyPrefix = "tour."
     private static let completedSuffix = ".completed"
+    private static let stepKeyPrefix = "tour.step."
+    private static let seenSuffix = ".seen"
 
     public private(set) var isActive: Bool = false
     public private(set) var currentStepIndex: Int = 0
@@ -39,22 +41,32 @@ public final class TourManager {
         return currentTourSteps[currentStepIndex]
     }
 
-    /// Starts a tour if it hasn't been completed yet.
+    /// Starts a tour if it hasn't been completed yet, with the steps the user
+    /// has not seen. A step added to a tour later, or shared with another
+    /// tour, shows once wherever it first appears.
     /// - Parameter tour: The tour definition to start.
-    /// - Returns: `true` if the tour was started, `false` if already completed.
+    /// - Returns: `true` if the tour was started, `false` if already completed
+    ///   or every step was seen.
     @discardableResult
     public func startIfNeeded(_ tour: (some TourDefinition).Type) -> Bool {
         guard !isCompleted(tour) else { return false }
-        start(tour)
+        let unseen = tour.steps.filter { !hasSeen($0) }
+        guard !unseen.isEmpty else { return false }
+        start(tour, steps: unseen)
         return true
     }
 
     /// Starts a tour regardless of completion state.
     public func start<T: TourDefinition>(_: T.Type) {
-        currentTourID = T.tourID
-        currentTourSteps = T.steps
+        start(T.self, steps: T.steps)
+    }
+
+    private func start(_ tour: (some TourDefinition).Type, steps: [TourStep]) {
+        currentTourID = tour.tourID
+        currentTourSteps = steps
         currentStepIndex = 0
         isActive = true
+        markCurrentStepSeen()
     }
 
     /// Advances to the next step, or completes the tour if on the last step.
@@ -63,9 +75,20 @@ public final class TourManager {
 
         if currentStepIndex < currentTourSteps.count - 1 {
             currentStepIndex += 1
+            markCurrentStepSeen()
         } else {
             complete()
         }
+    }
+
+    /// Whether the step has been shown, in any tour.
+    public func hasSeen(_ step: TourStep) -> Bool {
+        UserDefaults.standard.object(forKey: Self.seenKey(for: step.id)) != nil
+    }
+
+    private func markCurrentStepSeen() {
+        guard let step = currentStep else { return }
+        UserDefaults.standard.set(Date(), forKey: Self.seenKey(for: step.id))
     }
 
     /// Skips the current tour and marks it as completed.
@@ -105,5 +128,9 @@ public final class TourManager {
 
     private static func completionKey(for tourID: String) -> String {
         "\(tourKeyPrefix)\(tourID)\(completedSuffix)"
+    }
+
+    private static func seenKey(for stepID: String) -> String {
+        "\(stepKeyPrefix)\(stepID)\(seenSuffix)"
     }
 }

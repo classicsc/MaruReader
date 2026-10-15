@@ -27,21 +27,24 @@ struct WebViewerReadingModeControlsCluster: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            Button(action: onToggleBoundingBoxes) {
-                Image(systemName: showBoundingBoxes ? "text.viewfinder" : "viewfinder")
-                    .font(.system(size: iconSize, weight: .semibold))
-            }
-            .frame(width: frameSize, height: frameSize)
-            .contentShape(.rect)
-            .buttonStyle(.plain)
-            .accessibilityLabel(
-                showBoundingBoxes
-                    ? Text("Hide text regions")
-                    : Text("Show text regions")
-            )
+            #if DEBUG
+                // Bounding box toggle, a developer aid for inspecting detection.
+                Button(action: onToggleBoundingBoxes) {
+                    Image(systemName: showBoundingBoxes ? "text.viewfinder" : "viewfinder")
+                        .font(.system(size: iconSize, weight: .semibold))
+                }
+                .frame(width: frameSize, height: frameSize)
+                .contentShape(.rect)
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    showBoundingBoxes
+                        ? Text("Hide text regions")
+                        : Text("Show text regions")
+                )
 
-            Divider()
-                .frame(height: frameSize - 12)
+                Divider()
+                    .frame(height: frameSize - 12)
+            #endif
 
             Button(action: onDisableReadingMode) {
                 Image(systemName: "xmark")

@@ -27,6 +27,8 @@ struct WebViewerContentView: View {
     let onNavigateFromNewTabPage: (URL) -> Void
     let onNavigateFromAddressEditing: (URL) -> Void
     let onSelectSuggestion: (String) -> Void
+    /// Height of the bottom bar, which floats over the full-bleed web view.
+    let bottomBarHeight: CGFloat
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isLandscape = false
 
@@ -37,16 +39,14 @@ struct WebViewerContentView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            Color.clear
-                .frame(height: 1)
-
             ZStack {
                 let model = viewModel
                 HStack(spacing: 0) {
-                    WebBrowserView(page: page) { [weak model] oldOffset, newOffset in
+                    WebBrowserView(page: page, bottomBarHeight: bottomBarHeight) { [weak model] oldOffset, newOffset in
                         model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
                     .id(page.webView)
+                    .ignoresSafeArea(edges: .vertical)
                     if viewModel.transcriptPresented, usesTranscriptSidePanel,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
@@ -108,9 +108,6 @@ struct WebViewerContentView: View {
                     }
                 }
             }
-
-            Color.clear
-                .frame(height: 1)
         }
         .onChange(of: page.webView) { closeTranscript() }
         .onChange(of: page.url) { oldURL, newURL in
