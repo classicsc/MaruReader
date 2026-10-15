@@ -55,8 +55,9 @@ final class WebBrowserPage {
     private let delegateProxy = DelegateProxy()
     private var faviconFetchTask: Task<Void, Never>?
 
-    init(webView: WKWebView) {
+    init(webView: WKWebView, contentBlocker: WebContentBlockerProvider = .shared) {
         self.webView = webView
+        delegateProxy.contentBlocker = contentBlocker
         webView.navigationDelegate = delegateProxy
         webView.uiDelegate = delegateProxy
         delegateProxy.onDidStartNavigation = { [weak self] in
@@ -485,6 +486,14 @@ struct WebChromeInsetRange: Equatable {
 }
 
 extension WebBrowserPage {
+    /// Whether a `window.open`/`target=_blank` request deserves a tab. WebKit only asks for
+    /// user-gesture-initiated opens (`javaScriptCanOpenWindowsAutomatically` is off). Non-web
+    /// schemes would only ever produce an empty tab, since the page never gets a scriptable window.
+    /// Context-menu and browser chrome actions open tabs directly and bypass this policy.
+    nonisolated static func allowsNewTab(url: URL) -> Bool {
+        ["http", "https"].contains(url.scheme?.lowercased() ?? "")
+    }
+
     enum SchemeAction: Equatable {
         case allow
         case cancel
@@ -502,6 +511,21 @@ extension WebBrowserPage {
             return .openExternally
         }
         return .cancel
+    }
+}
+
+/// Firefox iOS's popup throttle: a click-hijack handler that spends one gesture on a burst of
+/// `window.open` calls gets at most `limit` tabs per `window` seconds.
+struct WebPopupThrottle {
+    var limit = 2
+    var window: TimeInterval = 2
+    private var recent: [Date] = []
+
+    mutating func allows(at now: Date = .now) -> Bool {
+        recent.removeAll { now.timeIntervalSince($0) >= window }
+        guard recent.count < limit else { return false }
+        recent.append(now)
+        return true
     }
 }
 
@@ -624,6 +648,8 @@ final class DictionaryLookupWebView: WKWebView {
 }
 
 private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate {
+    var contentBlocker: WebContentBlockerProvider = .shared
+    private var popupThrottle = WebPopupThrottle()
     var onOpenRequestInNewTab: (@MainActor (URLRequest) -> Void)?
     var onOpenLinkInCurrentTab: (@MainActor (URL) -> Void)?
     var onOpenLinkInNewTab: (@MainActor (URL) -> Void)?
@@ -638,6 +664,17 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         preferences: WKWebpagePreferences,
         decisionHandler: @escaping @MainActor (WKNavigationActionPolicy, WKWebpagePreferences) -> Void
     ) {
+        if let url = navigationAction.request.url,
+           contentBlocker.blocksNavigation(
+               to: url,
+               from: navigationAction.sourceFrame.request.url ?? webView.url,
+               mainFrame: navigationAction.targetFrame?.isMainFrame ?? true,
+               method: navigationAction.request.httpMethod ?? "GET"
+           )
+        {
+            decisionHandler(.cancel, preferences)
+            return
+        }
         guard navigationAction.targetFrame?.isMainFrame == true,
               let url = navigationAction.request.url
         else {
@@ -684,6 +721,16 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         windowFeatures _: WKWindowFeatures
     ) -> WKWebView? {
         guard navigationAction.targetFrame == nil else { return nil }
+        guard let url = navigationAction.request.url,
+              WebBrowserPage.allowsNewTab(url: url),
+              popupThrottle.allows(),
+              !contentBlocker.blocksNavigation(
+                  to: url,
+                  from: navigationAction.sourceFrame.request.url ?? webView.url,
+                  mainFrame: true,
+                  method: navigationAction.request.httpMethod ?? "GET"
+              )
+        else { return nil }
         if let onOpenRequestInNewTab {
             Task { @MainActor in
                 onOpenRequestInNewTab(navigationAction.request)

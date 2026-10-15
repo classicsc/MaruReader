@@ -41,6 +41,18 @@ public final class WebContentBlockerProvider {
     /// `true` once `start()` has run.
     public private(set) var isStarted = false
 
+    var isEnabled: Bool {
+        defaults.object(forKey: WebContentBlocker.isEnabledKey) as? Bool
+            ?? WebContentBlocker.isEnabledDefault
+    }
+
+    func blocksNavigation(to url: URL, from sourceURL: URL?, mainFrame: Bool, method: String) -> Bool {
+        guard isEnabled, Self.isWebURL(url), let sourceURL, Self.isWebURL(sourceURL) else { return false }
+        return installedCosmeticEngine?.blocksNavigation(
+            to: url, from: sourceURL, mainFrame: mainFrame, method: method
+        ) ?? false
+    }
+
     @ObservationIgnored private let storage: WebFilterListStorage
     @ObservationIgnored private let compiler: WebContentRuleListCompiler
     @ObservationIgnored private let defaults: UserDefaults

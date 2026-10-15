@@ -569,6 +569,11 @@ fileprivate struct FfiConverterString: FfiConverter {
 
 public protocol AdblockCosmeticFilterEngineProtocol: AnyObject, Sendable {
     
+    /**
+     * Navigation checks complement WebKit's content rules, before a tab is created.
+     */
+    func blocksNavigation(url: String, sourceUrl: String, mainFrame: Bool, method: String)  -> Bool
+
     func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String])  -> [String]
     
     func resourcesForUrl(url: String)  -> AdblockCosmeticResources
@@ -637,6 +642,22 @@ public convenience init(filterLists: [AdblockFilterListInput], resourcesJson: St
     
 
     
+    /**
+     * Navigation checks complement WebKit's content rules, before a tab is created.
+     */
+open func blocksNavigation(url: String, sourceUrl: String, mainFrame: Bool, method: String) -> Bool  {
+    return try!  FfiConverterBool.lift(try! rustCall() {
+        uniffiCallStatus in
+    uniffi_maru_adblock_ffi_fn_method_adblockcosmeticfilterengine_blocks_navigation(
+            self.uniffiCloneHandle(),
+        FfiConverterString.lower(url),
+        FfiConverterString.lower(sourceUrl),
+        FfiConverterBool.lower(mainFrame),
+        FfiConverterString.lower(method),uniffiCallStatus
+    )
+})
+}
+
 open func hiddenClassIdSelectors(classes: [String], ids: [String], exceptions: [String]) -> [String]  {
     return try!  FfiConverterSequenceString.lift(try! rustCall() {
         uniffiCallStatus in
@@ -1247,6 +1268,9 @@ private let initializationResult: InitializationResult = {
         return InitializationResult.contractVersionMismatch
     }
     if (uniffi_maru_adblock_ffi_checksum_func_convert_filter_lists_to_content_rule_list_json() != 20859) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_blocks_navigation() != 52720) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_maru_adblock_ffi_checksum_method_adblockcosmeticfilterengine_hidden_class_id_selectors() != 5564) {

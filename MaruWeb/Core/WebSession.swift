@@ -38,13 +38,16 @@ final class WebSession {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = dataStore
         configuration.allowsInlineMediaPlayback = true
+        // The iOS default, stated so it's not relied on silently: WebKit then drops window.open
+        // calls that lack a user gesture before they reach the UI delegate, like Firefox and Brave.
+        configuration.preferences.javaScriptCanOpenWindowsAutomatically = false
         configuration.userContentController.addUserScript(YouTubeTranscriptScript.inlinePlaybackScript)
         contentBlocker.install(into: configuration)
 
         let webView = DictionaryLookupWebView(frame: .zero, configuration: configuration)
         webView.isInspectable = true
         webView.allowsBackForwardNavigationGestures = true
-        let page = WebBrowserPage(webView: webView)
+        let page = WebBrowserPage(webView: webView, contentBlocker: contentBlocker)
         return WebSession(page: page, dataStore: dataStore)
     }
 }

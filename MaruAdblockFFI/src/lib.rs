@@ -118,6 +118,26 @@ pub struct AdblockCosmeticFilterEngine {
 
 #[uniffi::export]
 impl AdblockCosmeticFilterEngine {
+    /// Navigation checks complement WebKit's content rules, before a tab is created.
+    pub fn blocks_navigation(
+        &self,
+        url: String,
+        source_url: String,
+        main_frame: bool,
+        method: String,
+    ) -> bool {
+        let request_type = if main_frame {
+            "document"
+        } else {
+            "subdocument"
+        };
+        let Ok(request) = adblock::request::Request::new(&url, &source_url, request_type, &method)
+        else {
+            return false;
+        };
+        self.engine.check_network_request(&request).should_block()
+    }
+
     #[uniffi::constructor]
     pub fn new(
         filter_lists: Vec<AdblockFilterListInput>,
