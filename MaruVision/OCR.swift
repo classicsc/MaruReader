@@ -111,6 +111,15 @@ public actor OCR {
     private enum Input {
         case data(Data)
         case image(CGImage)
+
+        /// The pixels, when they match Vision's boxes: a decoded image whose
+        /// EXIF orientation is up. Nil for rotated data.
+        var uprightImage: CGImage? {
+            switch self {
+            case let .image(image): image
+            case let .data(data): UIImage(data: data).flatMap { $0.imageOrientation == .up ? $0.cgImage : nil }
+            }
+        }
     }
 
     private func perform(_ request: RecognizeTextRequest, on input: Input) async throws -> [RecognizedTextObservation] {
@@ -120,15 +129,30 @@ public actor OCR {
         }
     }
 
-    /// The default pass plus a pass with no minimum text height. The default
-    /// height (1/32 of the image) drops small balloons and breaks up
-    /// low-resolution columns; the second pass adds lines that overlap nothing
-    /// from the first.
+    /// A pass with no minimum text height, then the default pass (1/32 of the
+    /// image), keeping lines of the second that overlap nothing from the
+    /// first. The height-0 pass reads whole columns where the default breaks
+    /// up low-resolution ones, but takes furigana into the column's box and
+    /// text; so its lines locate the ruby, the ruby is erased from the page
+    /// beside them, and both passes run on the clean page. When nothing was
+    /// erased (or the pixels do not match the boxes, rotated by EXIF
+    /// orientation) the first pass stands and only the default pass runs.
     private func recognize(_ input: Input) async throws -> [TextLine] {
-        let first = try await perform(request, on: input).map(TextLine.init)
-        var second = request
-        second.minimumTextHeightFraction = 0
-        let extra = try await perform(second, on: input).map(TextLine.init)
+        var small = request
+        small.minimumTextHeightFraction = 0
+        let located = try await perform(small, on: input).map(TextLine.init)
+        var first = located, cleanInput = input
+        if let page = input.uprightImage {
+            let clean = RubyEraser.erase(page, lines: located.map { l in
+                let box = pixelRect(l.boundingBox, in: page)
+                return .init(box: box, vertical: box.height > box.width)
+            })
+            if clean !== page {
+                cleanInput = .image(clean)
+                first = try await perform(small, on: cleanInput).map(TextLine.init)
+            }
+        }
+        let extra = try await perform(request, on: cleanInput).map(TextLine.init)
         return first + extra.filter { o in !first.contains { overlaps($0.boundingBox, o.boundingBox) } }
     }
 
@@ -178,7 +202,7 @@ public actor OCR {
             let t = vertical ? box.width : box.height
             // Half a line of padding along the line, 15% across it.
             let (dx, dy) = vertical ? (t * 0.15, t * 0.5 * aspect) : (t * 0.5 / aspect, t * 0.15)
-            let reads = try await read(box.insetBy(dx: -dx, dy: -dy), thickness: t, vertical: vertical, page: page)
+            let reads = try await read(box.insetBy(dx: -dx, dy: -dy), line: box, thickness: t, vertical: vertical, page: page)
             if let text = cropText(for: box, reads: reads, vertical: vertical) {
                 lines[i].text = text
             }
@@ -186,15 +210,17 @@ public actor OCR {
         return TextCluster(lines: lines, direction: cluster.direction)
     }
 
-    /// Reads a page region (normalized, lower-left origin), scaled so lines
-    /// `thickness` (normalized) thick come out about 64 px thick. Boxes are
-    /// returned in page coordinates.
-    private func read(_ region: CGRect, thickness: CGFloat, vertical: Bool, page: CGImage) async throws -> [TextLine] {
+    /// Reads a page region (normalized, lower-left origin) around `line`,
+    /// with ruby beside the line erased, scaled so lines `thickness`
+    /// (normalized) thick come out about 64 px thick. Boxes are returned in
+    /// page coordinates.
+    private func read(_ region: CGRect, line: CGRect, thickness: CGFloat, vertical: Bool, page: CGImage) async throws -> [TextLine] {
         let w = CGFloat(page.width), h = CGFloat(page.height)
-        let norm = region.intersection(CGRect(x: 0, y: 0, width: 1, height: 1))
-        let px = CGRect(x: norm.minX * w, y: (1 - norm.maxY) * h, width: norm.width * w, height: norm.height * h)
+        let px = pixelRect(region.intersection(CGRect(x: 0, y: 0, width: 1, height: 1)), in: page)
             .integral.intersection(CGRect(x: 0, y: 0, width: w, height: h))
-        guard !px.isEmpty, let crop = page.cropping(to: px) else { return [] }
+        guard !px.isEmpty, var crop = page.cropping(to: px) else { return [] }
+        let local = pixelRect(line, in: page).offsetBy(dx: -px.minX, dy: -px.minY)
+        crop = RubyEraser.erase(crop, lines: [.init(box: local, vertical: vertical)])
         let scale = min(max(64 / (thickness * (vertical ? w : h)), 1), 8)
         var image = crop
         if scale > 1 {
@@ -207,6 +233,12 @@ public actor OCR {
             TextLine(boundingBox: rebase(r.boundingBox.cgRect, into: o), text: r.transcript)
         }
     }
+}
+
+/// Pixel rect (top-left origin) of a normalized box (lower-left origin) on `page`.
+func pixelRect(_ box: CGRect, in page: CGImage) -> CGRect {
+    let w = CGFloat(page.width), h = CGFloat(page.height)
+    return CGRect(x: box.minX * w, y: (1 - box.maxY) * h, width: box.width * w, height: box.height * h)
 }
 
 /// A box normalized to `region` (itself normalized to the page), in page coordinates.
