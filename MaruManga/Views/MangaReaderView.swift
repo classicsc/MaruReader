@@ -270,7 +270,7 @@ public struct MangaReaderView: View {
 
             // Retry detection. With tap-to-turn on, a tap on missed text turns
             // the page instead of looking again, so this button looks again.
-            if tapToTurnEnabled {
+            if tapToTurnEnabled, viewModel.canRetryDetection {
                 Button {
                     if viewModel.canUndoDetection {
                         viewModel.undoDetection()

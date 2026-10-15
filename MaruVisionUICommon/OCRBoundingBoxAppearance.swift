@@ -27,7 +27,8 @@ public struct OCRBoundingBoxAppearance {
     public static func make(
         direction: InferredTextDirection,
         isHighlighted: Bool,
-        differentiateWithoutColor: Bool
+        differentiateWithoutColor: Bool,
+        source: TextClusterSource = .vision
     ) -> OCRBoundingBoxAppearance {
         if isHighlighted {
             return OCRBoundingBoxAppearance(
@@ -38,8 +39,18 @@ public struct OCRBoundingBoxAppearance {
             )
         }
 
+        // Each source gets its own pair of direction colors, so a glance tells you
+        // both which OCR produced the boxes and which way the text runs. The
+        // mokuro pair is separated by roughly the same hue distance as the Vision
+        // pair (red/purple 83°, blue/green 76°) to keep the two readings equally
+        // easy to tell apart.
+        let isVertical = direction == .vertical
+        let strokeColor: Color = source == .mokuro
+            ? (isVertical ? .red : .purple)
+            : (isVertical ? .blue : .green)
+
         return OCRBoundingBoxAppearance(
-            strokeColor: direction == .vertical ? .blue : .green,
+            strokeColor: strokeColor,
             strokeOpacity: differentiateWithoutColor ? 1 : 0.8,
             fillColor: nil,
             strokeStyle: StrokeStyle(

@@ -19,6 +19,7 @@ internal import ReadiumZIPFoundation
 import CoreData
 import Foundation
 import MaruReaderCore
+import MaruVision
 import os
 import UIKit
 
@@ -127,24 +128,21 @@ public actor MangaImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let cleanupInfos: [(URL?, URL?)] = await context.perform {
+        let cleanupInfos: [ImportFiles] = await context.perform {
             let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
             request.predicate = NSPredicate(format: "importComplete == NO AND pendingDeletion == NO AND (importErrorMessage == nil OR importErrorMessage == '')")
             let archives = (try? context.fetch(request)) ?? []
             guard !archives.isEmpty else { return [] }
 
-            var infos: [(URL?, URL?)] = []
+            var infos: [ImportFiles] = []
             for manga in archives {
+                infos.append(Self.importFiles(for: manga))
                 manga.importErrorMessage = MangaLocalization.string("Import interrupted.")
                 manga.importFile = nil
-
-                let localPath = manga.localPath
-                let coverImage = manga.coverImage
                 manga.localFileName = nil
                 manga.coverFileName = nil
+                manga.mokuroFileName = nil
                 manga.importComplete = false
-
-                infos.append((localPath, coverImage))
             }
 
             try? context.save()
@@ -154,8 +152,8 @@ public actor MangaImportManager {
         guard !cleanupInfos.isEmpty else { return }
         logger.debug("Cleaning up \(cleanupInfos.count, privacy: .public) interrupted manga imports")
 
-        for (localPath, coverImage) in cleanupInfos {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
+        for files in cleanupInfos {
+            Self.cleanupMangaFiles(localPath: files.archive, coverImage: files.cover, mokuroFile: files.mokuro)
         }
     }
 
@@ -197,6 +195,139 @@ public actor MangaImportManager {
                     try? taskContext.save()
                 }
             }
+        }
+    }
+
+    /// Attaches a mokuro OCR data file to an already-imported manga.
+    /// Overwrites any previously attached mokuro file for this manga.
+    /// - Parameters:
+    ///   - url: The file URL of the `.mokuro` file to attach.
+    ///   - mangaID: The NSManagedObjectID of the MangaArchive to attach it to.
+    /// - Returns: Whether the attached file covers every page of the archive.
+    @discardableResult
+    public func attachMokuroFile(
+        from url: URL,
+        to mangaID: NSManagedObjectID
+    ) async throws -> MokuroAttachmentResult {
+        let didStartAccess = url.startAccessingSecurityScopedResource()
+        defer {
+            if didStartAccess {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch {
+            throw MangaImportError.fileAccessDenied
+        }
+
+        let volume = try decodeMokuroVolume(from: data)
+
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let (mangaUUID, mangaTotalPages, mangaTitle, localFileName):
+            (UUID, Int64, String?, String?) = try await context.perform {
+                guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive,
+                      let mangaUUID = manga.id
+                else {
+                    throw MangaImportError.databaseError
+                }
+                return (mangaUUID, manga.totalPages, manga.title, manga.localFileName)
+            }
+
+        let mangaDescription = mangaTitle ?? mangaUUID.uuidString
+
+        // First, validate based on number of pages
+        guard volume.pages.count == mangaTotalPages else {
+            logger.warning(
+                """
+                Rejected mokuro file: \(volume.pages.count, privacy: .public) pages vs \
+                \(mangaTotalPages, privacy: .public) in \(mangaDescription, privacy: .public)
+                """
+            )
+            throw MangaImportError.invalidMokuroFile
+        }
+
+        // Validate based on image paths
+        let archivePaths = try await archivePageEntryPaths(localFileName: localFileName)
+        let matchedPages = MokuroData(volume: volume).matchCount(archivePaths: archivePaths)
+
+        guard matchedPages > 0 else {
+            logger.warning(
+                "Rejected mokuro file: no page matches \(mangaDescription, privacy: .public)"
+            )
+            throw MangaImportError.invalidMokuroFile
+        }
+
+        if matchedPages < archivePaths.count {
+            logger.warning(
+                """
+                Attached mokuro file pairs \(matchedPages, privacy: .public) of \
+                \(archivePaths.count, privacy: .public) pages in \
+                \(mangaDescription, privacy: .public); the rest will use Vision OCR
+                """
+            )
+        }
+
+        let destinationFileName = try writeMokuroData(data, forMangaUUID: mangaUUID)
+        let destinationURL = try mangaDirectory().appendingPathComponent(destinationFileName)
+
+        do {
+            try await context.perform {
+                guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                    throw MangaImportError.databaseError
+                }
+                manga.mokuroFileName = destinationFileName
+                try context.save()
+            }
+        } catch {
+            // Avoid leaving an orphaned mokuro file with no corresponding
+            // mokuroFileName if the Core Data update fails.
+            try? FileManager.default.removeItem(at: destinationURL)
+            throw error
+        }
+
+        return matchedPages == archivePaths.count
+            ? .complete
+            : .partial(matchedPages: matchedPages, totalPages: archivePaths.count)
+    }
+
+    /// Removes an attached mokuro file from a manga, clearing the attribute
+    /// and deleting the copied file.
+    /// - Parameter mangaID: The NSManagedObjectID of the MangaArchive to remove it from.
+    public func removeMokuroFile(from mangaID: NSManagedObjectID) async {
+        let context = container.newBackgroundContext()
+        context.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
+        context.undoManager = nil
+        context.shouldDeleteInaccessibleFaults = true
+
+        let logger = self.logger
+        // Only delete the file once the attribute is actually cleared. Deleting on a
+        // failed save would leave mokuroFileName persisted with no file behind it:
+        // every later open would log a read failure and the UI would keep offering
+        // "Remove Mokuro File" for an attachment that no longer exists.
+        let fileToDelete: URL? = await context.perform {
+            guard let manga = try? context.existingObject(with: mangaID) as? MangaArchive else {
+                return nil
+            }
+            let fileURL = manga.mokuroFile
+            manga.mokuroFileName = nil
+            do {
+                try context.save()
+            } catch {
+                logger.error("Failed to clear mokuroFileName; leaving the file in place: \(error.localizedDescription)")
+                return nil
+            }
+            return fileURL
+        }
+
+        if let fileToDelete, FileManager.default.fileExists(atPath: fileToDelete.path) {
+            try? FileManager.default.removeItem(at: fileToDelete)
         }
     }
 
@@ -255,6 +386,12 @@ public actor MangaImportManager {
 
     private func runImport(for jobID: NSManagedObjectID) async {
         logger.debug("Starting manga import job \(jobID)")
+
+        // Tracked outside the `do` so a cancellation or failure between writing an
+        // embedded mokuro file and saving `mokuroFileName` can still delete it.
+        // The entity's `mokuroFile` is still nil at that point, so the cleanup
+        // handlers are given the URL directly.
+        var writtenMokuroFile: URL?
 
         do {
             // Get the import file URL
@@ -350,6 +487,21 @@ public actor MangaImportManager {
                 throw MangaImportError.coverExtractionFailed(underlyingError: error)
             }
 
+            // A `.mokuro` packaged inside the archive is attached automatically.
+            // Done after the archive copy and cover extraction so a failure here
+            // can never orphan those; a mokuro file the user did not explicitly
+            // pick is a bonus, so any problem with it is logged and skipped
+            // rather than failing the import.
+            let embeddedMokuroFileName = await embeddedMokuroFileName(
+                from: archive,
+                entries: entries,
+                mangaUUID: mangaUUID,
+                imagePaths: imageEntries.map(\.path)
+            )
+            if let embeddedMokuroFileName {
+                writtenMokuroFile = try? mangaDirectory().appendingPathComponent(embeddedMokuroFileName)
+            }
+
             let metadata = await extractedMetadata
             let authorValue = metadata.author.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -367,6 +519,7 @@ public actor MangaImportManager {
                 }
                 manga.localFileName = destinationFileName
                 manga.coverFileName = coverFileName
+                manga.mokuroFileName = embeddedMokuroFileName
                 manga.totalPages = Int64(totalPages)
                 manga.title = metadata.title
                 manga.author = authorValue.isEmpty ? nil : authorValue
@@ -382,63 +535,58 @@ public actor MangaImportManager {
             logger.debug("Manga import completed for \(jobID)")
 
         } catch is CancellationError {
-            await handleCancellation(for: jobID)
+            await handleCancellation(for: jobID, writtenMokuroFile: writtenMokuroFile)
         } catch {
-            await handleError(error, for: jobID)
+            await handleError(error, for: jobID, writtenMokuroFile: writtenMokuroFile)
         }
     }
 
-    private func handleCancellation(for jobID: NSManagedObjectID) async {
+    private func handleCancellation(for jobID: NSManagedObjectID, writtenMokuroFile: URL?) async {
         let cleanupContext = container.newBackgroundContext()
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
 
-        let cleanupInfo: (URL?, URL?)? = await cleanupContext.perform {
+        let files: ImportFiles? = await cleanupContext.perform {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
+            let files = Self.importFiles(for: manga)
             manga.importErrorMessage = MangaLocalization.string("Import cancelled.")
             manga.importFile = nil
-
-            let localPath = manga.localPath
-            let coverImage = manga.coverImage
             manga.localFileName = nil
             manga.coverFileName = nil
             manga.importComplete = false
             try? cleanupContext.save()
-            return (localPath, coverImage)
+            return files
         }
 
-        if let (localPath, coverImage) = cleanupInfo {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
-        }
+        // The mokuro file is removed even if the entity is gone.
+        Self.cleanupMangaFiles(localPath: files?.archive, coverImage: files?.cover, mokuroFile: files?.mokuro ?? writtenMokuroFile)
     }
 
-    private func handleError(_ error: Error, for jobID: NSManagedObjectID) async {
+    private func handleError(_ error: Error, for jobID: NSManagedObjectID, writtenMokuroFile: URL?) async {
         let cleanupContext = container.newBackgroundContext()
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
 
         let errorMessage = error.localizedDescription
 
-        let cleanupInfo: (URL?, URL?)? = await cleanupContext.perform {
+        let files: ImportFiles? = await cleanupContext.perform {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
+            let files = Self.importFiles(for: manga)
             manga.importErrorMessage = errorMessage
             manga.importFile = nil
-            let localPath = manga.localPath
-            let coverImage = manga.coverImage
             manga.localFileName = nil
             manga.coverFileName = nil
             manga.importComplete = false
             try? cleanupContext.save()
-            return (localPath, coverImage)
+            return files
         }
 
-        if let (localPath, coverImage) = cleanupInfo {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
-        }
+        // The mokuro file is removed even if the entity is gone.
+        Self.cleanupMangaFiles(localPath: files?.archive, coverImage: files?.cover, mokuroFile: files?.mokuro ?? writtenMokuroFile)
 
         logger.error("Manga import failed for \(jobID): \(errorMessage)")
     }
@@ -460,6 +608,144 @@ public actor MangaImportManager {
             .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
     }
 
+    private func sortedMokuroEntries(_ entries: [Entry]) -> [Entry] {
+        entries
+            .filter(isMokuroEntry)
+            .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
+    }
+
+    private func isMokuroEntry(_ entry: Entry) -> Bool {
+        entry.type == .file
+            && entry.uncompressedSize > 0
+            && (entry.path as NSString).pathExtension.lowercased() == "mokuro"
+            && !isAppleDoublePath(entry.path)
+    }
+
+    /// Extracts, validates and stores a `.mokuro` file packaged inside the archive,
+    /// returning the stored filename, or `nil` when the archive has none or the one
+    /// it has is unusable.
+    ///
+    /// Unlike `attachMokuroFile(from:to:)`, nothing here throws: the user asked for
+    /// a manga, not for this file, so an unusable embedded mokuro is logged and the
+    /// import proceeds with on-device OCR.
+    private func embeddedMokuroFileName(
+        from archive: Archive,
+        entries: [Entry],
+        mangaUUID: UUID,
+        imagePaths: [String]
+    ) async -> String? {
+        let candidates = sortedMokuroEntries(entries)
+        guard let entry = candidates.first else { return nil }
+
+        if candidates.count > 1 {
+            logger.debug(
+                """
+                Archive contains \(candidates.count, privacy: .public) .mokuro entries; \
+                attaching \(entry.path, privacy: .public)
+                """
+            )
+        }
+
+        do {
+            let data = try await extractEntryData(from: archive, entry: entry)
+            let volume = try decodeMokuroVolume(from: data)
+
+            // Same rules as attachMokuroFile(from:to:): a file covering a different
+            // number of pages, or naming none of them, belongs to another volume.
+            guard volume.pages.count == imagePaths.count else {
+                logger.warning(
+                    """
+                    Skipping embedded mokuro file \(entry.path, privacy: .public): \
+                    \(volume.pages.count, privacy: .public) pages vs \
+                    \(imagePaths.count, privacy: .public) in the archive
+                    """
+                )
+                return nil
+            }
+
+            let matchedPages = MokuroData(volume: volume).matchCount(archivePaths: imagePaths)
+            guard matchedPages > 0 else {
+                logger.warning(
+                    "Skipping embedded mokuro file \(entry.path, privacy: .public): no page matches the archive"
+                )
+                return nil
+            }
+
+            if matchedPages < imagePaths.count {
+                logger.warning(
+                    """
+                    Embedded mokuro file \(entry.path, privacy: .public) pairs \
+                    \(matchedPages, privacy: .public) of \(imagePaths.count, privacy: .public) \
+                    pages; the rest will use Vision OCR
+                    """
+                )
+            }
+
+            let fileName = try writeMokuroData(data, forMangaUUID: mangaUUID)
+            logger.debug("Attached embedded mokuro file \(entry.path, privacy: .public) during import")
+            return fileName
+        } catch {
+            logger.warning(
+                """
+                Embedded mokuro file \(entry.path, privacy: .public) could not be attached \
+                (\(error.localizedDescription, privacy: .public)); importing without it
+                """
+            )
+            return nil
+        }
+    }
+
+    /// The archive's page image entry paths, in reading order, for pairing against
+    /// a mokuro file's `img_path`.
+    private func archivePageEntryPaths(localFileName: String?) async throws -> [String] {
+        guard let localFileName else {
+            throw MangaImportError.missingFile
+        }
+
+        let archiveURL = try mangaDirectory().appendingPathComponent(localFileName)
+        guard FileManager.default.fileExists(atPath: archiveURL.path) else {
+            throw MangaImportError.missingFile
+        }
+
+        let archive: Archive
+        do {
+            archive = try await Archive(url: archiveURL, accessMode: .read)
+        } catch {
+            throw MangaImportError.invalidArchive
+        }
+
+        let entries = try await archive.entries()
+        return sortedImageEntries(entries).map(\.path)
+    }
+
+    /// Decodes mokuro JSON, rejecting anything that is not a volume with at least one page.
+    private func decodeMokuroVolume(from data: Data) throws -> MokuroVolume {
+        guard let volume = try? JSONDecoder().decode(MokuroVolume.self, from: data),
+              !volume.pages.isEmpty
+        else {
+            throw MangaImportError.invalidMokuroFile
+        }
+        return volume
+    }
+
+    /// Writes validated mokuro JSON to this manga's mokuro destination, replacing any
+    /// file already there, and returns the stored filename.
+    private func writeMokuroData(_ data: Data, forMangaUUID mangaUUID: UUID) throws -> String {
+        let mangaDir = try mangaDirectory()
+        let destinationFileName = "\(mangaUUID.uuidString).mokuro"
+        let destinationURL = mangaDir.appendingPathComponent(destinationFileName)
+
+        do {
+            if FileManager.default.fileExists(atPath: destinationURL.path) {
+                try FileManager.default.removeItem(at: destinationURL)
+            }
+            try data.write(to: destinationURL, options: .atomic)
+        } catch {
+            throw MangaImportError.mokuroFileCopyFailed(underlyingError: error)
+        }
+        return destinationFileName
+    }
+
     private func isImageEntry(_ entry: Entry) -> Bool {
         entry.type == .file
             && entry.uncompressedSize > 0
@@ -475,14 +761,20 @@ public actor MangaImportManager {
 
     private static let coverMaxPixelSize: CGFloat = 512
 
-    private func extractCover(from archive: Archive, entry: Entry, to coverURL: URL) async throws {
-        // Extract to a temp location first to avoid concurrency issues with streaming closure
+    /// Reads one archive entry into memory.
+    ///
+    /// Extracts to a temp location first to avoid concurrency issues with the
+    /// streaming closure.
+    private func extractEntryData(from archive: Archive, entry: Entry) async throws -> Data {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".tmp")
         defer { try? FileManager.default.removeItem(at: tempURL) }
 
         _ = try await archive.extract(entry, to: tempURL)
+        return try Data(contentsOf: tempURL)
+    }
 
-        let imageData = try Data(contentsOf: tempURL)
+    private func extractCover(from archive: Archive, entry: Entry, to coverURL: URL) async throws {
+        let imageData = try await extractEntryData(from: archive, entry: entry)
         guard let image = ImageDownsampler.downsample(
             data: imageData,
             maxPixelSize: Self.coverMaxPixelSize
@@ -550,17 +842,36 @@ public actor MangaImportManager {
 
             let localPath = manga.localPath
             let coverImage = manga.coverImage
+            let mokuroFile = manga.mokuroFile
 
             context.delete(manga)
             try context.save()
 
-            return (localPath, coverImage)
+            return (localPath, coverImage, mokuroFile)
         }
 
-        Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1)
+        Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1, mokuroFile: cleanupInfo.2)
     }
 
-    static func cleanupMangaFiles(localPath: URL?, coverImage: URL?) {
+    typealias ImportFiles = (archive: URL?, cover: URL?, mokuro: URL?)
+
+    /// The files an import writes for `manga`, whether or not their names are
+    /// stored yet. `runImport` writes them at these UUID-derived paths before the
+    /// finalize save records the names, so an interrupted, cancelled or failed
+    /// import's entity still has nil filenames while the files exist.
+    static func importFiles(for manga: MangaArchive) -> ImportFiles {
+        guard let uuid = manga.id?.uuidString else {
+            return (manga.localPath, manga.coverImage, manga.mokuroFile)
+        }
+        let ext = manga.importFile.map { $0.pathExtension.isEmpty ? "cbz" : $0.pathExtension } ?? "cbz"
+        return (
+            manga.localPath ?? MangaArchive.mangaDirectory()?.appendingPathComponent("\(uuid).\(ext)"),
+            manga.coverImage ?? MangaArchive.coversDirectory()?.appendingPathComponent("\(uuid).png"),
+            manga.mokuroFile ?? MangaArchive.mangaDirectory()?.appendingPathComponent("\(uuid).mokuro")
+        )
+    }
+
+    static func cleanupMangaFiles(localPath: URL?, coverImage: URL?, mokuroFile: URL? = nil) {
         let fileManager = FileManager.default
 
         if let localPath {
@@ -572,6 +883,12 @@ public actor MangaImportManager {
         if let coverImage {
             if fileManager.fileExists(atPath: coverImage.path) {
                 try? fileManager.removeItem(at: coverImage)
+            }
+        }
+
+        if let mokuroFile {
+            if fileManager.fileExists(atPath: mokuroFile.path) {
+                try? fileManager.removeItem(at: mokuroFile)
             }
         }
     }

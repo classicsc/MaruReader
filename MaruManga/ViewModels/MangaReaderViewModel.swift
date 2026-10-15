@@ -28,6 +28,8 @@ struct MangaRenderedPage {
     var textClusters: [TextCluster]
     /// The page-level clusters before the retry button's secondary detection replaced them.
     var originalTextClusters: [TextCluster]?
+    /// Whether `textClusters` came from the attached mokuro file rather than Vision.
+    var usesMokuro = false
 }
 
 private struct MangaPageRenderError: LocalizedError {
@@ -164,6 +166,7 @@ final class MangaReaderViewModel {
     private let persistenceController: MangaDataPersistenceController
     private let archiveReaderFactory: @Sendable (URL) async throws -> any MangaPageProviding
     private let ocr = OCR()
+    private var mokuroData: MokuroData?
 
     private var saveTask: Task<Void, Never>?
     private var renderedPageRefreshTask: Task<Void, Never>?
@@ -207,6 +210,11 @@ final class MangaReaderViewModel {
             pageProvider = reader
             pageCount = await reader.pageCount
             logger.info("Loaded archive with \(self.pageCount) pages")
+
+            if let mokuroURL = manga.mokuroFile {
+                let archivePaths = await reader.pagePaths
+                mokuroData = await loadMokuroData(from: mokuroURL, archivePaths: archivePaths)
+            }
 
             // Compute initial spread layout now that we know page count
             recomputeSpreadLayout()
@@ -263,7 +271,7 @@ final class MangaReaderViewModel {
                         textClusters: pageData.textClusters
                     )
                     self.pageLoadingStates[index] = .loaded
-                    self.startOCR(for: index, image: image)
+                    self.startOCR(for: index, image: image, imagePath: pageData.imagePath)
                 }
             } catch {
                 guard !Task.isCancelled else { return }
@@ -383,7 +391,7 @@ final class MangaReaderViewModel {
     /// as a miss does. Used when tap-to-turn is off; with it on, a miss turns
     /// the page and `retryDetection` runs the detection instead.
     func lookForText(at point: CGPoint, pageIndex: Int) {
-        guard secondaryDetectionTask == nil, let page = renderedPageCache[pageIndex] else {
+        guard secondaryDetectionTask == nil, let page = renderedPageCache[pageIndex], !page.usesMokuro else {
             toggleToolbars()
             return
         }
@@ -409,13 +417,19 @@ final class MangaReaderViewModel {
         secondaryDetectionTask = Task { [ocr] in
             defer { secondaryDetectionTask = nil }
             for index in visiblePageIndices {
-                guard let page = renderedPageCache[index], page.originalTextClusters == nil else { continue }
+                guard let page = renderedPageCache[index], !page.usesMokuro, page.originalTextClusters == nil else { continue }
                 let found = try? await ocr.secondaryDetection(in: page.image, around: nil, clusters: page.textClusters)
                 guard !Task.isCancelled, renderedPageCache[index] != nil else { return }
                 renderedPageCache[index]?.originalTextClusters = page.textClusters
                 renderedPageCache[index]?.textClusters = found ?? page.textClusters
             }
         }
+    }
+
+    /// Whether the retry button applies. Mokuro pages are left alone: secondary
+    /// detection would re-cluster their lines as Vision's and lose the source.
+    var canRetryDetection: Bool {
+        !visiblePageIndices.allSatisfy { renderedPageCache[$0]?.usesMokuro == true }
     }
 
     /// Whether a visible page shows the retry button's detections.
@@ -710,12 +724,25 @@ final class MangaReaderViewModel {
 
     /// Runs OCR on the downsampled display image and updates the rendered page
     /// with text clusters when complete. Does not block the display path.
-    private func startOCR(for index: Int, image: UIImage) {
+    private func startOCR(for index: Int, image: UIImage, imagePath: String?) {
         ocrTasks[index]?.cancel()
         guard let cgImage = image.cgImage else { return }
         let ocr = self.ocr
+        let mokuroData = self.mokuroData
 
         ocrTasks[index] = Task { [weak self] in
+            if let mokuroData,
+               let mokuroClusters = mokuroData.clusters(forPath: imagePath)
+            {
+                guard !Task.isCancelled, let self else { return }
+                if self.renderedPageCache[index] != nil {
+                    self.renderedPageCache[index]?.textClusters = mokuroClusters
+                    self.renderedPageCache[index]?.usesMokuro = true
+                }
+                self.ocrTasks.removeValue(forKey: index)
+                return
+            }
+
             do {
                 let clusters = try await ocr.performOCR(cgImage: cgImage)
                 guard !Task.isCancelled, let self else { return }
@@ -728,6 +755,67 @@ final class MangaReaderViewModel {
                 self?.logger.error("OCR failed for page \(index): \(error.localizedDescription)")
             }
             self?.ocrTasks.removeValue(forKey: index)
+        }
+    }
+
+    /// Outcome of a background mokuro file load, kept distinct so read failures
+    /// and decode failures can be logged with different messages.
+    private enum MokuroLoadOutcome: Sendable {
+        case success(MokuroData)
+        case readFailed(String)
+        case decodeFailed(String)
+    }
+
+    private func loadMokuroData(from url: URL, archivePaths: [String]) async -> MokuroData? {
+        let outcome = await Task.detached { () -> MokuroLoadOutcome in
+            let data: Data
+            do {
+                data = try Data(contentsOf: url)
+            } catch {
+                return .readFailed(error.localizedDescription)
+            }
+
+            do {
+                let volume = try JSONDecoder().decode(MokuroVolume.self, from: data)
+                return .success(MokuroData(volume: volume))
+            } catch {
+                return .decodeFailed(error.localizedDescription)
+            }
+        }.value
+
+        switch outcome {
+        case let .success(mokuroData):
+            logMokuroCoverage(mokuroData, archivePaths: archivePaths)
+            return mokuroData
+        case let .readFailed(description):
+            logger.error("Failed to read mokuro file at \(url.path): \(description)")
+            return nil
+        case let .decodeFailed(description):
+            logger.error("Failed to decode mokuro file at \(url.path): \(description)")
+            return nil
+        }
+    }
+
+    /// Reports how much of the archive the mokuro file covers. A file that pairs
+    /// with nothing otherwise fails silently, with every page falling back to Vision.
+    private func logMokuroCoverage(_ mokuroData: MokuroData, archivePaths: [String]) {
+        let matchCount = mokuroData.matchCount(archivePaths: archivePaths)
+        if matchCount == 0 {
+            logger.warning(
+                """
+                No mokuro page path matches this archive's \(archivePaths.count, privacy: .public) \
+                pages; every page will use Vision OCR. Generate the mokuro file from this \
+                archive so its img_path values match.
+                """
+            )
+        } else if matchCount < archivePaths.count {
+            logger.warning(
+                """
+                Mokuro pairs \(matchCount, privacy: .public) of \
+                \(archivePaths.count, privacy: .public) pages by path; \
+                the rest will use Vision OCR.
+                """
+            )
         }
     }
 }

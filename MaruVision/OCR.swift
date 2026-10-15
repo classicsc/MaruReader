@@ -97,10 +97,11 @@ public actor OCR {
     /// Vision requests per line, so this runs on demand for a tapped cluster
     /// rather than for every cluster on a page. Falls back to the page-level
     /// text when the image's pixels do not match its boxes (rotated by EXIF
-    /// orientation) or the re-read fails or is cancelled.
+    /// orientation) or the re-read fails or is cancelled. Clusters from other
+    /// sources (mokuro) keep their own text.
     public nonisolated func transcript(of cluster: TextCluster, in image: UIImage) -> Task<String, Never> {
         Task(priority: .userInitiated) {
-            guard image.imageOrientation == .up, let cgImage = image.cgImage,
+            guard cluster.source == .vision, image.imageOrientation == .up, let cgImage = image.cgImage,
                   let refined = try? await recropLines(cluster, page: cgImage) else { return cluster.transcript }
             return refined.transcript
         }
@@ -207,7 +208,7 @@ public actor OCR {
                 lines[i].text = text
             }
         }
-        return TextCluster(lines: lines, direction: cluster.direction)
+        return TextCluster(lines: lines, direction: cluster.direction, source: cluster.source)
     }
 
     /// Reads a page region (normalized, lower-left origin) around `line`,

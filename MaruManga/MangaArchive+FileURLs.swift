@@ -33,6 +33,13 @@ extension MangaArchive {
         return Self.coversDirectory()?.appendingPathComponent(fileName)
     }
 
+    /// Reconstructs the full URL for the attached mokuro OCR data file.
+    /// Returns nil if mokuroFileName is not set or if the directory cannot be resolved.
+    var mokuroFile: URL? {
+        guard let fileName = mokuroFileName else { return nil }
+        return Self.mangaDirectory()?.appendingPathComponent(fileName)
+    }
+
     /// Returns the Manga directory URL in the Documents directory.
     static func mangaDirectory() -> URL? {
         guard let documentsDir = try? FileManager.default.url(

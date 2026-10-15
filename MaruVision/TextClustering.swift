@@ -44,7 +44,7 @@ private extension CGFloat {
 /// Inferred text direction based on spatial analysis of the observation.
 /// Note: This is distinct from RecognizedTextObservation.Direction (iOS 26+)
 /// which we found unreliable for Japanese text.
-public enum InferredTextDirection: Sendable, CustomStringConvertible {
+public enum InferredTextDirection: Sendable, Equatable, CustomStringConvertible {
     /// Horizontal text, read left-to-right (or right-to-left for RTL languages)
     case horizontal
     /// Vertical text, read top-to-bottom, columns flow right-to-left (tategaki)
@@ -200,6 +200,15 @@ public struct ObservationFeatures: Sendable {
     }
 }
 
+// MARK: - Text Cluster Source
+
+/// Where a cluster's text came from, so the UI can distinguish on-device
+/// Vision OCR from externally-supplied mokuro data.
+public enum TextClusterSource: Sendable, Equatable {
+    case vision
+    case mokuro
+}
+
 // MARK: - Text Cluster
 
 /// A group of related text lines that should be treated as a unit.
@@ -211,6 +220,9 @@ public struct TextCluster: Identifiable, Sendable {
 
     /// The dominant text direction of this cluster
     public let direction: InferredTextDirection
+
+    /// Where this cluster's text came from
+    public let source: TextClusterSource
 
     /// Combined bounding box encompassing all lines (normalized coordinates)
     public let boundingBox: CGRect
@@ -224,9 +236,10 @@ public struct TextCluster: Identifiable, Sendable {
         lines.map(\.text).joined(separator: direction == .vertical ? "" : "\n")
     }
 
-    public init(lines: [TextLine], direction: InferredTextDirection) {
+    public init(lines: [TextLine], direction: InferredTextDirection, source: TextClusterSource = .vision) {
         self.lines = lines
         self.direction = direction
+        self.source = source
         boundingBox = lines.dropFirst().reduce(lines.first?.boundingBox ?? .zero) { $0.union($1.boundingBox) }
     }
 }

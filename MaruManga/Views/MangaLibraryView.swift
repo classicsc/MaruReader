@@ -97,6 +97,26 @@ enum MangaArchiveSortOption: String, CaseIterable, Identifiable {
     }
 }
 
+/// Which kind of file the library's file picker is currently choosing.
+///
+/// SwiftUI honors only one `.fileImporter` per view chain — a second one is
+/// silently ignored — so the archive-import and mokuro-attach flows share a
+/// single importer and select their behavior from this mode. Do not split
+/// this back into two `.fileImporter` modifiers.
+enum MangaFilePickerMode: Equatable {
+    case importArchive
+    case attachMokuro
+
+    var allowedContentTypes: [UTType] {
+        switch self {
+        case .importArchive:
+            [.zip, UTType(filenameExtension: "cbz")!]
+        case .attachMokuro:
+            [UTType(filenameExtension: "mokuro")!]
+        }
+    }
+}
+
 public struct MangaArchiveLibraryView: View {
     @Environment(\.managedObjectContext) private var viewContext
 
@@ -109,6 +129,10 @@ public struct MangaArchiveLibraryView: View {
     @State private var showingDeleteConfirmation = false
     @State private var metadataEditorBook: MangaArchive?
     @State private var selectedManga: MangaArchive?
+    @State private var mokuroAttachTarget: MangaArchive?
+    @State private var mokuroWarning: String?
+    @State private var showingMokuroWarning = false
+    @State private var filePickerMode: MangaFilePickerMode = .importArchive
 
     private var books: FetchRequest<MangaArchive>
 
@@ -145,7 +169,10 @@ public struct MangaArchiveLibraryView: View {
                     }
 
                     ToolbarItem(placement: .primaryAction) {
-                        Button(action: { showingFilePicker = true }) {
+                        Button(action: {
+                            filePickerMode = .importArchive
+                            showingFilePicker = true
+                        }) {
                             Label(MangaLocalization.string("Import"), systemImage: "plus")
                         }
                         .labelStyle(.iconOnly)
@@ -165,14 +192,19 @@ public struct MangaArchiveLibraryView: View {
                 }
                 .fileImporter(
                     isPresented: $showingFilePicker,
-                    allowedContentTypes: [.zip, UTType(filenameExtension: "cbz")!],
+                    allowedContentTypes: filePickerMode.allowedContentTypes,
                     allowsMultipleSelection: false
                 ) { result in
-                    handleFileImport(result: result)
+                    switch filePickerMode {
+                    case .importArchive:
+                        handleFileImport(result: result)
+                    case .attachMokuro:
+                        handleMokuroFileImport(result: result)
+                    }
                 }
                 .onChange(of: showingFilePicker) {
-                    // When the file picker appears, prewarm the metadata extractor
-                    if showingFilePicker {
+                    // When the archive picker appears, prewarm the metadata extractor
+                    if showingFilePicker, filePickerMode == .importArchive {
                         Task {
                             await MangaImportManager.shared.prewarmMetadataExtractor()
                         }
@@ -186,6 +218,16 @@ public struct MangaArchiveLibraryView: View {
                 } message: {
                     if let error = importError {
                         Text(error.localizedDescription)
+                    }
+                }
+                .alert(MangaLocalization.string("Partial Mokuro Match"), isPresented: $showingMokuroWarning) {
+                    Button(MangaLocalization.string("OK")) {
+                        mokuroWarning = nil
+                        showingMokuroWarning = false
+                    }
+                } message: {
+                    if let mokuroWarning {
+                        Text(mokuroWarning)
                     }
                 }
                 .sheet(item: $metadataEditorBook, onDismiss: { metadataEditorBook = nil }) { book in
@@ -243,6 +285,30 @@ public struct MangaArchiveLibraryView: View {
                                 metadataEditorBook = book
                             } label: {
                                 Label(MangaLocalization.string("Edit Metadata"), systemImage: "pencil")
+                            }
+
+                            if book.mokuroFileName != nil {
+                                Button {
+                                    mokuroAttachTarget = book
+                                    filePickerMode = .attachMokuro
+                                    showingFilePicker = true
+                                } label: {
+                                    Label(MangaLocalization.string("Replace Mokuro File"), systemImage: "text.badge.plus")
+                                }
+
+                                Button {
+                                    removeMokuroFile(book)
+                                } label: {
+                                    Label(MangaLocalization.string("Remove Mokuro File"), systemImage: "text.badge.minus")
+                                }
+                            } else {
+                                Button {
+                                    mokuroAttachTarget = book
+                                    filePickerMode = .attachMokuro
+                                    showingFilePicker = true
+                                } label: {
+                                    Label(MangaLocalization.string("Attach Mokuro File"), systemImage: "text.badge.plus")
+                                }
                             }
 
                             Button(role: .destructive) {
@@ -324,6 +390,44 @@ public struct MangaArchiveLibraryView: View {
 
     private func removeMangaArchive(_ book: MangaArchive) {
         deleteMangaArchive(book)
+    }
+
+    private func handleMokuroFileImport(result: Result<[URL], Error>) {
+        guard let book = mokuroAttachTarget else { return }
+        mokuroAttachTarget = nil
+
+        switch result {
+        case let .success(urls):
+            guard let url = urls.first else { return }
+
+            Task { @MainActor in
+                do {
+                    let result = try await MangaImportManager.shared.attachMokuroFile(
+                        from: url,
+                        to: book.objectID
+                    )
+                    if case let .partial(matchedPages, totalPages) = result {
+                        mokuroWarning = MangaLocalization.string(
+                            "This mokuro file covers \(matchedPages) of \(totalPages) pages. The rest will use on-device text recognition."
+                        )
+                        showingMokuroWarning = true
+                    }
+                } catch {
+                    importError = error
+                    showingError = true
+                }
+            }
+
+        case let .failure(error):
+            importError = error
+            showingError = true
+        }
+    }
+
+    private func removeMokuroFile(_ book: MangaArchive) {
+        Task {
+            await MangaImportManager.shared.removeMokuroFile(from: book.objectID)
+        }
     }
 }
 

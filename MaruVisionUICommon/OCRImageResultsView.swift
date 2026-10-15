@@ -238,7 +238,8 @@ public struct OCRImageResultsView: View {
                 let appearance = OCRBoundingBoxAppearance.make(
                     direction: cluster.direction,
                     isHighlighted: isHighlighted,
-                    differentiateWithoutColor: differentiateWithoutColor
+                    differentiateWithoutColor: differentiateWithoutColor,
+                    source: cluster.source
                 )
 
                 if let fillColor = appearance.fillColor {
