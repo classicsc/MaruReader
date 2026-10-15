@@ -23,11 +23,13 @@ import os
 /// Holds a parsed mokuro volume's pages so `MangaReaderViewModel` can look up
 /// pre-computed OCR clusters per page without re-parsing the mokuro file.
 ///
-/// Pages are paired with archive pages **by full archive entry path**, matching
-/// `img_path` exactly. This is the same rule `MangaImportManager` validates with
-/// before attaching a file, so a file that gets attached always pairs. Matching on
-/// the whole path, not the filename, keeps archives holding several volumes apart
-/// when their page filenames repeat (`Vol1/001.jpg`, `Vol2/001.jpg`).
+/// Pages are paired with archive pages **by archive entry path**: `img_path`
+/// must equal the entry path or be a trailing sub-path of it (`001.jpg` pairs
+/// with `Vol1/001.jpg`, since a mokuro run on the extracted archive omits its
+/// top-level folder). This is the same rule `MangaImportManager` validates with
+/// before attaching a file, so a file that gets attached always pairs. An exact
+/// match wins, which keeps archives holding several volumes apart when their
+/// page filenames repeat (`Vol1/001.jpg`, `Vol2/001.jpg`).
 ///
 /// Pairing by position was tried and removed: mokuro orders its `pages` array
 /// alphabetically by `img_path`, which is not necessarily the archive's reading
@@ -55,7 +57,18 @@ struct MokuroData: Sendable {
 
     /// How many of the given archive page entry paths this volume has a page for.
     func matchCount(archivePaths: [String]) -> Int {
-        archivePaths.count { pagesByPath[$0] != nil }
+        archivePaths.count { page(forArchivePath: $0) != nil }
+    }
+
+    /// The page whose `img_path` equals `path` or a trailing sub-path of it.
+    private func page(forArchivePath path: String) -> MokuroPage? {
+        if let page = pagesByPath[path] { return page }
+        var rest = Substring(path)
+        while let slash = rest.firstIndex(of: "/") {
+            rest = rest[rest.index(after: slash)...]
+            if let page = pagesByPath[String(rest)] { return page }
+        }
+        return nil
     }
 
     /// Returns mokuro-derived clusters for the archive page at the given entry
@@ -65,7 +78,7 @@ struct MokuroData: Sendable {
     /// A non-nil empty array means "this page paired and legitimately has no text"
     /// and must NOT be treated as a miss.
     func clusters(forPath path: String?) -> [TextCluster]? {
-        guard let path, let page = pagesByPath[path] else { return nil }
+        guard let path, let page = page(forArchivePath: path) else { return nil }
         return usableClusters(for: page)
     }
 

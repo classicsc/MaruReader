@@ -128,24 +128,21 @@ public actor MangaImportManager {
         context.undoManager = nil
         context.shouldDeleteInaccessibleFaults = true
 
-        let cleanupInfos: [(URL?, URL?)] = await context.perform {
+        let cleanupInfos: [ImportFiles] = await context.perform {
             let request: NSFetchRequest<MangaArchive> = MangaArchive.fetchRequest()
             request.predicate = NSPredicate(format: "importComplete == NO AND pendingDeletion == NO AND (importErrorMessage == nil OR importErrorMessage == '')")
             let archives = (try? context.fetch(request)) ?? []
             guard !archives.isEmpty else { return [] }
 
-            var infos: [(URL?, URL?)] = []
+            var infos: [ImportFiles] = []
             for manga in archives {
+                infos.append(Self.importFiles(for: manga))
                 manga.importErrorMessage = MangaLocalization.string("Import interrupted.")
                 manga.importFile = nil
-
-                let localPath = manga.localPath
-                let coverImage = manga.coverImage
                 manga.localFileName = nil
                 manga.coverFileName = nil
+                manga.mokuroFileName = nil
                 manga.importComplete = false
-
-                infos.append((localPath, coverImage))
             }
 
             try? context.save()
@@ -155,8 +152,8 @@ public actor MangaImportManager {
         guard !cleanupInfos.isEmpty else { return }
         logger.debug("Cleaning up \(cleanupInfos.count, privacy: .public) interrupted manga imports")
 
-        for (localPath, coverImage) in cleanupInfos {
-            Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage)
+        for files in cleanupInfos {
+            Self.cleanupMangaFiles(localPath: files.archive, coverImage: files.cover, mokuroFile: files.mokuro)
         }
     }
 
@@ -549,25 +546,22 @@ public actor MangaImportManager {
         cleanupContext.mergePolicy = NSMergePolicy(merge: .mergeByPropertyObjectTrumpMergePolicyType)
         cleanupContext.undoManager = nil
 
-        let cleanupInfo: (URL?, URL?)? = await cleanupContext.perform {
+        let files: ImportFiles? = await cleanupContext.perform {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
+            let files = Self.importFiles(for: manga)
             manga.importErrorMessage = MangaLocalization.string("Import cancelled.")
             manga.importFile = nil
-
-            let localPath = manga.localPath
-            let coverImage = manga.coverImage
             manga.localFileName = nil
             manga.coverFileName = nil
             manga.importComplete = false
             try? cleanupContext.save()
-            return (localPath, coverImage)
+            return files
         }
 
         // The mokuro file is removed even if the entity is gone.
-        let (localPath, coverImage) = cleanupInfo ?? (nil, nil)
-        Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage, mokuroFile: writtenMokuroFile)
+        Self.cleanupMangaFiles(localPath: files?.archive, coverImage: files?.cover, mokuroFile: files?.mokuro ?? writtenMokuroFile)
     }
 
     private func handleError(_ error: Error, for jobID: NSManagedObjectID, writtenMokuroFile: URL?) async {
@@ -577,24 +571,22 @@ public actor MangaImportManager {
 
         let errorMessage = error.localizedDescription
 
-        let cleanupInfo: (URL?, URL?)? = await cleanupContext.perform {
+        let files: ImportFiles? = await cleanupContext.perform {
             guard let manga = try? cleanupContext.existingObject(with: jobID) as? MangaArchive else {
                 return nil
             }
+            let files = Self.importFiles(for: manga)
             manga.importErrorMessage = errorMessage
             manga.importFile = nil
-            let localPath = manga.localPath
-            let coverImage = manga.coverImage
             manga.localFileName = nil
             manga.coverFileName = nil
             manga.importComplete = false
             try? cleanupContext.save()
-            return (localPath, coverImage)
+            return files
         }
 
         // The mokuro file is removed even if the entity is gone.
-        let (localPath, coverImage) = cleanupInfo ?? (nil, nil)
-        Self.cleanupMangaFiles(localPath: localPath, coverImage: coverImage, mokuroFile: writtenMokuroFile)
+        Self.cleanupMangaFiles(localPath: files?.archive, coverImage: files?.cover, mokuroFile: files?.mokuro ?? writtenMokuroFile)
 
         logger.error("Manga import failed for \(jobID): \(errorMessage)")
     }
@@ -859,6 +851,24 @@ public actor MangaImportManager {
         }
 
         Self.cleanupMangaFiles(localPath: cleanupInfo.0, coverImage: cleanupInfo.1, mokuroFile: cleanupInfo.2)
+    }
+
+    typealias ImportFiles = (archive: URL?, cover: URL?, mokuro: URL?)
+
+    /// The files an import writes for `manga`, whether or not their names are
+    /// stored yet. `runImport` writes them at these UUID-derived paths before the
+    /// finalize save records the names, so an interrupted, cancelled or failed
+    /// import's entity still has nil filenames while the files exist.
+    static func importFiles(for manga: MangaArchive) -> ImportFiles {
+        guard let uuid = manga.id?.uuidString else {
+            return (manga.localPath, manga.coverImage, manga.mokuroFile)
+        }
+        let ext = manga.importFile.map { $0.pathExtension.isEmpty ? "cbz" : $0.pathExtension } ?? "cbz"
+        return (
+            manga.localPath ?? MangaArchive.mangaDirectory()?.appendingPathComponent("\(uuid).\(ext)"),
+            manga.coverImage ?? MangaArchive.coversDirectory()?.appendingPathComponent("\(uuid).png"),
+            manga.mokuroFile ?? MangaArchive.mangaDirectory()?.appendingPathComponent("\(uuid).mokuro")
+        )
     }
 
     static func cleanupMangaFiles(localPath: URL?, coverImage: URL?, mokuroFile: URL? = nil) {

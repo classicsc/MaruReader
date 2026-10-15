@@ -108,13 +108,30 @@ struct MokuroDataTests {
         #expect(mokuroData.clusters(forPath: "Vol2/page-0.jpg")?.map(\.transcript) == ["二巻"])
     }
 
-    /// A filename alone no longer pairs with a nested `img_path`, or vice versa.
+    /// A nested `img_path` does not pair with a bare filename in the archive.
     @Test func filenameOnly_doesNotPairWithNestedPath() {
         let volume = makeVolume(names: ["contents/page-0.jpg"], transcripts: ["ゼロ"])
         let mokuroData = MokuroData(volume: volume)
 
         #expect(mokuroData.clusters(forPath: "page-0.jpg") == nil)
         #expect(mokuroData.matchCount(archivePaths: ["page-0.jpg"]) == 0)
+    }
+
+    /// A mokuro run on the extracted archive omits the archive's top-level folder
+    /// from `img_path`, so a trailing sub-path pairs. The sub-path must start at a
+    /// path separator; an exact match beats a sub-path match.
+    @Test func nestedArchivePath_pairsWithTrailingSubPath() {
+        let volume = makeVolume(
+            names: ["page-0.jpg", "Vol2/page-0.jpg"],
+            transcripts: ["ゼロ", "二巻"]
+        )
+        let mokuroData = MokuroData(volume: volume)
+
+        #expect(mokuroData.clusters(forPath: "Vol1/page-0.jpg")?.map(\.transcript) == ["ゼロ"])
+        #expect(mokuroData.clusters(forPath: "a/b/page-0.jpg")?.map(\.transcript) == ["ゼロ"])
+        #expect(mokuroData.clusters(forPath: "Vol2/page-0.jpg")?.map(\.transcript) == ["二巻"])
+        #expect(mokuroData.clusters(forPath: "Vol1/xpage-0.jpg") == nil)
+        #expect(mokuroData.matchCount(archivePaths: ["Vol1/page-0.jpg", "Vol1/xpage-0.jpg"]) == 1)
     }
 
     /// Positional pairing was removed: mokuro orders its pages alphabetically by
