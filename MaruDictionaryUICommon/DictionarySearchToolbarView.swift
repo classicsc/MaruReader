@@ -32,6 +32,7 @@ struct DictionarySearchToolbarView: View {
     let onCommitEdit: () -> Void
     let onCancelEdit: () -> Void
     let onCopyContext: () -> Void
+    let onTranslateContext: () -> Void
     let presentationTheme: DictionaryPresentationTheme?
 
     var body: some View {
@@ -69,6 +70,15 @@ struct DictionarySearchToolbarView: View {
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(.rect)
 
+				#if !targetEnvironment(macCatalyst)
+				if !ProcessInfo.processInfo.isiOSAppOnMac {
+					Button("Translate", systemImage: "translate", action: onTranslateContext)
+						.labelStyle(.iconOnly)
+						.frame(minWidth: 44, minHeight: 44)
+						.contentShape(.rect)
+				}
+				#endif
+				
                 if isEditingContext {
                     Button("Done", systemImage: "checkmark", action: onCommitEdit)
                         .labelStyle(.iconOnly)
