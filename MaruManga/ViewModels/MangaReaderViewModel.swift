@@ -28,6 +28,8 @@ struct MangaRenderedPage {
     var textClusters: [TextCluster]
     /// The page-level clusters before the retry button's secondary detection replaced them.
     var originalTextClusters: [TextCluster]?
+    /// Whether `textClusters` came from the attached mokuro file rather than Vision.
+    var usesMokuro = false
 }
 
 private struct MangaPageRenderError: LocalizedError {
@@ -389,7 +391,7 @@ final class MangaReaderViewModel {
     /// as a miss does. Used when tap-to-turn is off; with it on, a miss turns
     /// the page and `retryDetection` runs the detection instead.
     func lookForText(at point: CGPoint, pageIndex: Int) {
-        guard secondaryDetectionTask == nil, let page = renderedPageCache[pageIndex] else {
+        guard secondaryDetectionTask == nil, let page = renderedPageCache[pageIndex], !page.usesMokuro else {
             toggleToolbars()
             return
         }
@@ -415,13 +417,19 @@ final class MangaReaderViewModel {
         secondaryDetectionTask = Task { [ocr] in
             defer { secondaryDetectionTask = nil }
             for index in visiblePageIndices {
-                guard let page = renderedPageCache[index], page.originalTextClusters == nil else { continue }
+                guard let page = renderedPageCache[index], !page.usesMokuro, page.originalTextClusters == nil else { continue }
                 let found = try? await ocr.secondaryDetection(in: page.image, around: nil, clusters: page.textClusters)
                 guard !Task.isCancelled, renderedPageCache[index] != nil else { return }
                 renderedPageCache[index]?.originalTextClusters = page.textClusters
                 renderedPageCache[index]?.textClusters = found ?? page.textClusters
             }
         }
+    }
+
+    /// Whether the retry button applies. Mokuro pages are left alone: secondary
+    /// detection would re-cluster their lines as Vision's and lose the source.
+    var canRetryDetection: Bool {
+        !visiblePageIndices.allSatisfy { renderedPageCache[$0]?.usesMokuro == true }
     }
 
     /// Whether a visible page shows the retry button's detections.
@@ -729,6 +737,7 @@ final class MangaReaderViewModel {
                 guard !Task.isCancelled, let self else { return }
                 if self.renderedPageCache[index] != nil {
                     self.renderedPageCache[index]?.textClusters = mokuroClusters
+                    self.renderedPageCache[index]?.usesMokuro = true
                 }
                 self.ocrTasks.removeValue(forKey: index)
                 return

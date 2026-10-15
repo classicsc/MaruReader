@@ -7,23 +7,16 @@ a mokuro file, attaching it to a manga, and troubleshooting.
 ## Mokuro Usage
 
 After attaching a mokuro file (see below), open the manga and read normally. Tap
-text to look it up exactly as you would otherwise.
+text to look it up exactly as you would otherwise. Every page the file covers
+uses its text; a page it doesn't cover uses on-device recognition instead.
 
-The bounding box colors tell you which text recognition is active:
-
-| Box color  | Text recognition | Text direction      |
-| ---------- | ---------------- | ------------------- |
-| **Red**    | Mokuro           | Vertical (tategaki) |
-| **Purple** | Mokuro           | Horizontal          |
-| **Blue**   | On-device        | Vertical (tategaki) |
-| **Green**  | On-device        | Horizontal          |
-
-Warm colors mean mokuro, cool colors mean on-device recognition. Vertical text
-is also drawn with a dashed outline and horizontal with a solid one, so the
-direction is readable without relying on color.
-
-If you attached a mokuro file but still see blue and green boxes, the file isn't
-being matched to your pages. See [Troubleshooting](#troubleshooting).
+A file is only attached if it matches
+the manga, and the confirmation after attaching by hand says when it covers only
+some of the pages, so a file attached without that warning is used on every
+page. The library's long-press menu offers **Remove Mokuro File** whenever a
+file is attached, including one packaged inside the archive. On a page showing
+mokuro text, the retry text detection button is hidden, since there is nothing
+to retry.
 
 ## What is mokuro?
 
@@ -143,9 +136,10 @@ ______________________________________________________________________
 
 ## How pages are matched
 
-MaruReader pairs pages **by image filename**, and only by image filename. A
-mokuro page is used for the archive page whose image has the same name. Page
-order doesn't matter, so this works even when the two are ordered differently.
+MaruReader pairs pages **by image path**, and only by image path. A mokuro page
+is used for the archive page whose image has the same path, or whose path ends
+with it when the archive keeps its pages in a top-level folder. Page order
+doesn't matter, so this works even when the two are ordered differently.
 
 Pages that can't be paired fall back to on-device recognition individually, so a
 mokuro file covering only part of a volume still works for the pages it does
@@ -157,7 +151,7 @@ cover.
 > number of pages, but it isn't reliable — mokuro lists its pages in
 > alphabetical order, which often isn't the order they appear in your archive. A
 > single blank or bonus page sorting differently shifts everything after it, and
-> the result is confident, correctly-placed boxes containing the wrong text,
+> the result is confident, correctly-placed text that is simply wrong,
 > with nothing to signal the problem. Generating the mokuro file from the CBZ
 > makes the names line up and avoids the question entirely.
 
@@ -165,18 +159,25 @@ ______________________________________________________________________
 
 ## Troubleshooting
 
-### Attached a mokuro file, but the boxes are still blue and green (on-device)
+### "This mokuro file doesn't match the selected manga"
 
-The file isn't pairing with your pages. Almost always this means the mokuro file
-was generated from a differently-named set of images.
+The file was refused, so nothing changed. Either it couldn't be read as mokuro
+data, it has a different number of pages than the archive, or none of its page
+names pair with the archive's. The last is the usual cause and almost always
+means the mokuro file was generated from a differently-named set of images.
 
 - Re-run mokuro on the CBZ itself (see
   [Generating a mokuro file](#generating-a-mokuro-file))
 - Confirm you attached the file to the manga you're actually reading
 
-### Mokuro boxes appear, but the text belongs to a different page
+### "This mokuro file covers N of M pages"
 
-Pages are paired by filename, so this means two pages in your archive carry the
+The file was attached, but only the pages it names use its text; the rest use
+on-device recognition. Re-run mokuro on the CBZ itself so every page pairs.
+
+### The text belongs to a different page
+
+Pages are paired by path, so this means two pages in your archive carry the
 names mokuro recorded for *different* pages — usually a mokuro file built from a
 different edition or a re-ordered extraction of the same volume.
 
@@ -184,7 +185,7 @@ different edition or a re-ordered extraction of the same volume.
   reading
 - Or remove the mokuro file to go back to on-device recognition
 
-### Mokuro boxes appear, but the text is from a different volume
+### The text is from a different volume
 
 Mokuro page names are often generic (`001.jpg`, `002.jpg`), so a file from
 volume 3 can pair with volume 1 and show confident but entirely wrong text.
@@ -198,19 +199,12 @@ volume 3 can pair with volume 1 and show confident but entirely wrong text.
 - If it came from iCloud Drive, open it in the Files app once so it downloads
   locally first
 
-### "The selected file is not a valid mokuro file"
+### Tapping text on a page finds nothing
 
-The file couldn't be read as mokuro data.
-
-- Confirm it's a `.mokuro` file and not the `.html` file mokuro generates
-  alongside it
-- Re-run mokuro if the file may have been truncated during transfer
-
-### Some pages have no boxes at all
-
-Pages with no text produce no boxes, which is expected. If a page clearly has
-text and shows nothing, that page may be missing from the mokuro file — check
-that mokuro processed the whole volume without errors.
+A page mokuro recorded as having no text has nothing to tap, which is expected
+for blank pages. If a page clearly has text and nothing responds, that page may
+be missing from the mokuro file — check that mokuro processed the whole volume
+without errors.
 
 ### Mokuro's text is wrong
 

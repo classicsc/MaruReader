@@ -198,6 +198,19 @@ struct MangaReaderViewModelTests {
         let transcripts = clusters?.map(\.transcript) ?? []
 
         #expect(transcripts.contains("テスト"), "Expected mokuro-sourced text; a blank test image could never produce this via real Vision OCR")
+
+        // Secondary detection would re-cluster the mokuro lines as Vision's, so
+        // the retry button is hidden and a retry leaves the page alone.
+        await MainActor.run {
+            #expect(!viewModel.canRetryDetection)
+            viewModel.retryDetection()
+        }
+        while await MainActor.run(body: { viewModel.isDetectingMoreText }) {
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+        let page = await MainActor.run { viewModel.renderedPageCache[0] }
+        #expect(page?.originalTextClusters == nil)
+        #expect(page?.textClusters.map(\.transcript) == transcripts)
     }
 
     /// Equal page counts must NOT be taken as permission to pair by position.
