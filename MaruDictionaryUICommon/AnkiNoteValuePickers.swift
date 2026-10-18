@@ -118,7 +118,6 @@ struct AnkiGlossaryPickerView: View {
     @State private var dictionaryID: UUID?
     @State private var includeTitle: Bool
     @State private var plain: Bool
-    @State private var preview = ""
 
     init(model: AnkiNoteEditorModel, fieldName: String, valueID: UUID) {
         self.model = model
@@ -172,11 +171,8 @@ struct AnkiGlossaryPickerView: View {
             }
 
             Section("Preview") {
-                if preview.isEmpty {
-                    Text("Empty").foregroundStyle(.tertiary)
-                } else {
-                    Text(preview)
-                }
+                let resolved = model.value(valueID, in: fieldName)?.resolved ?? .empty
+                AnkiNotePreview(html: resolved.previewHTML, text: resolved.previewText)
             }
         }
         .ankiEditorSheetBackground()
@@ -184,7 +180,6 @@ struct AnkiGlossaryPickerView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: template) {
             await model.setTemplate(template, in: fieldName, value: valueID)
-            preview = model.value(valueID, in: fieldName)?.resolved.previewText ?? ""
         }
     }
 

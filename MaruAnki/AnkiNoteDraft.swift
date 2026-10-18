@@ -111,6 +111,21 @@ public struct AnkiNoteDraft: Sendable, Equatable {
     }
 }
 
+public extension TemplateResolvedValue {
+    /// The text as a provider sends it, with the media it references inlined. Empty for media-only values.
+    var previewHTML: String {
+        guard text?.isEmpty == false else { return "" }
+        return AnkiFieldValueFormatter.buildFieldValues(from: ["": [self]])[""] ?? ""
+    }
+}
+
+public extension AnkiNoteDraftField {
+    /// The field's text values as a provider sends them; see `TemplateResolvedValue.previewHTML`.
+    var previewHTML: String {
+        values.map(\.resolved.previewHTML).joined()
+    }
+}
+
 public extension TemplateValue {
     var isPitchAccent: Bool {
         switch self {

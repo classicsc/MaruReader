@@ -69,6 +69,18 @@ struct AnkiNoteDraftTests {
         #expect(draft.resolvedFields["Sentence"]?.map(\.text) == [nil, "<b>", nil])
     }
 
+    @Test func previewHTMLInlinesImagesAndLeavesOutMediaOnlyValues() throws {
+        let image = try #require(URL(string: "https://example.com/p.png"))
+        let glossary = TemplateResolvedValue(text: "<img src=\"p.png\"> gloss", mediaFiles: ["p.png": image])
+        let field = AnkiNoteDraftField(name: "Glossary", values: [
+            AnkiNoteDraftValue(template: .singleGlossary, resolved: glossary),
+            AnkiNoteDraftValue(template: .pronunciationAudio, resolved: .media(["audio": image])),
+        ])
+
+        #expect(field.previewHTML == "<img src=\"https://example.com/p.png\"> gloss")
+        #expect(TemplateResolvedValue.media(["audio": image]).previewHTML.isEmpty)
+    }
+
     @Test func clearingPitchAccentEmptiesOnlyPitchValues() async {
         var draft = await AnkiNoteDraft.resolve(fieldMap: fieldMap, resolver: StubResolver())
 

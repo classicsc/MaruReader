@@ -29,11 +29,7 @@ struct AnkiNoteFieldDetailView: View {
         List {
             if let field = model.field(fieldName) {
                 Section("Preview") {
-                    if field.previewText.isEmpty {
-                        Text("Empty").foregroundStyle(.tertiary)
-                    } else {
-                        Text(field.previewText)
-                    }
+                    AnkiNotePreview(html: field.previewHTML, text: field.previewText)
                 }
 
                 Section {

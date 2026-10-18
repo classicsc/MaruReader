@@ -124,7 +124,7 @@ struct AnkiEditorRouteView: View {
     }
 }
 
-/// Field name over its rendered preview; audio fields name the clip and can play it inline.
+/// Field name over a plain text summary; audio fields name the clip and can play it inline.
 @MainActor
 struct AnkiNoteFieldRow: View {
     let model: AnkiNoteEditorModel
