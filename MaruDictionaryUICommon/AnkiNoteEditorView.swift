@@ -34,6 +34,7 @@ enum AnkiEditorRoute: Hashable {
 struct AnkiNoteEditorView: View {
     let model: AnkiNoteEditorModel
     @Environment(\.dictionaryPresentationTheme) private var presentationTheme
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         List {
@@ -69,7 +70,13 @@ struct AnkiNoteEditorView: View {
                     ProgressView()
                 } else {
                     Button("Add") {
-                        Task { await model.submit() }
+                        // Pops itself: when this view is nested in another pushed destination,
+                        // its presentation binding going false no longer pops it.
+                        Task {
+                            if await model.submit() {
+                                dismiss()
+                            }
+                        }
                     }
                 }
             }
@@ -86,6 +93,7 @@ struct AnkiNoteEditorView: View {
         } message: {
             Text(model.errorMessage ?? "")
         }
+        .ankiEditorSheetBackground()
         .applyLocalColorScheme(presentationTheme?.preferredColorScheme)
         .onDisappear { model.audioPlayer.stop() }
         .accessibilityIdentifier("anki.noteEditor")
@@ -171,6 +179,14 @@ struct AudioPlayButton: View {
         }
         .buttonStyle(.borderless)
         .accessibilityLabel(player.playingURL == url ? Text("Stop") : Text("Play"))
+    }
+}
+
+extension View {
+    /// At a partial detent the sheet is glass, and a List inside it drops its background and tints
+    /// its rows to let the glass through. An opaque sheet keeps the grouped look at every detent.
+    func ankiEditorSheetBackground() -> some View {
+        presentationBackground(Color(.systemGroupedBackground))
     }
 }
 

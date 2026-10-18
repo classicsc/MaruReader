@@ -42,8 +42,12 @@ public struct DictionarySearchView: View {
         }
         .task {
             configureView()
+            // Pushed in the same transaction as this view, the editor loses its navigation title,
+            // so a pending editor is pushed only once this view is on the stack.
+            var transaction = Transaction()
+            transaction.disablesAnimations = true
+            withTransaction(transaction) { isShowingAnkiEditor = viewModel.ankiEditor != nil }
         }
-        .onAppear { isShowingAnkiEditor = viewModel.ankiEditor != nil }
         .onChange(of: viewModel.ankiEditor == nil) { _, isNil in isShowingAnkiEditor = !isNil }
         .onChange(of: isShowingAnkiEditor) { _, isShowing in
             if !isShowing {

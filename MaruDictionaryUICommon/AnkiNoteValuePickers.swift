@@ -81,6 +81,7 @@ struct AnkiAudioPickerView: View {
                 }
             }
         }
+        .ankiEditorSheetBackground()
         .navigationTitle(fieldName)
         .navigationBarTitleDisplayMode(.inline)
         .task { model.loadAudioSources() }
@@ -178,6 +179,7 @@ struct AnkiGlossaryPickerView: View {
                 }
             }
         }
+        .ankiEditorSheetBackground()
         .navigationTitle(fieldName)
         .navigationBarTitleDisplayMode(.inline)
         .task(id: template) {
@@ -252,6 +254,7 @@ struct AnkiPitchPickerView: View {
                 }
             }
         }
+        .ankiEditorSheetBackground()
         .navigationTitle(fieldName)
         .navigationBarTitleDisplayMode(.inline)
     }

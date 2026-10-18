@@ -55,6 +55,7 @@ struct AnkiNoteFieldDetailView: View {
                 }
             }
         }
+        .ankiEditorSheetBackground()
         .navigationTitle(fieldName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -174,6 +175,7 @@ struct AnkiValueTextEditorView: View {
                 }
             }
         }
+        .ankiEditorSheetBackground()
         .navigationTitle(value?.template.displayName(in: model.termGroup) ?? String(localized: "Custom HTML"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

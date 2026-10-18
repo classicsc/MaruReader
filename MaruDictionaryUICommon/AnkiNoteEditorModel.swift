@@ -133,17 +133,19 @@ final class AnkiNoteEditorModel {
         return audioSources.first { $0.url == url }
     }
 
-    func submit() async {
-        guard !isSubmitting else { return }
+    /// Returns true once the note was added or found to exist; the editor then closes itself.
+    func submit() async -> Bool {
+        guard !isSubmitting else { return false }
         isSubmitting = true
         audioPlayer.stop()
         let state = await submitDraft(draft)
         isSubmitting = false
         if state == "error" {
             errorMessage = String(localized: "The note could not be added. Check the Anki connection and try again.")
-        } else {
-            onFinished(state)
+            return false
         }
+        onFinished(state)
+        return true
     }
 }
 

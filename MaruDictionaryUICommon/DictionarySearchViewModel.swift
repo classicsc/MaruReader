@@ -212,12 +212,12 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         }
     }
 
-    /// Pushes the note editor for a term. The add button reflects the outcome once the editor closes.
+    /// Pushes the note editor for a term. The editor pops itself once the note is added, and the
+    /// add button then reflects the outcome.
     public func presentAnkiEditor(_ context: AnkiNoteEditorContext) {
         hidePopup()
         let termKey = context.termGroup.termKey
         ankiEditor = AnkiNoteEditorModel(context: context) { [weak self] state in
-            self?.ankiEditor = nil
             self?.applyAnkiButtonState(termKey: termKey, state: state)
         }
     }
