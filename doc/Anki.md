@@ -10,6 +10,16 @@ will change to a checkmark for words that were already added, but you can still
 use it to try adding again. Your duplicate detection settings determine whether
 this succeeds.
 
+Long-press the **+** button to choose between **Add now** and **Edit and add**.
+The editor shows every field of the note with the values your field mapping
+produced. Open a field to reorder or remove its values, add custom HTML, change
+the text, pick a different audio clip, glossary dictionary, or pitch accent
+dictionary, and restore the field to the mapped values at any time. Add the note
+from the editor when you are done, or go back to leave it unsent.
+
+The **Add Button** option in Anki settings chooses which of the two actions a
+plain tap performs; the long-press menu always offers the other one.
+
 ## What is Anki?
 
 [Anki](https://apps.ankiweb.net/) is a flashcard app that uses a spaced

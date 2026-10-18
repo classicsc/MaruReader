@@ -21,6 +21,12 @@ window.MaruReader.ankiDisplay = {
     stateCache: Object.create(null),
     pendingSelectionButton: null,
     pendingSelectionText: '',
+    /** What a short press does: 'add' submits directly, 'edit' opens the note editor. */
+    tapAction: 'add',
+    longPressDelay: 500,
+    longPressTimer: null,
+    longPressTriggered: false,
+    menuSelectionText: '',
 
     /**
      * Initialize Anki button functionality
@@ -44,31 +50,60 @@ window.MaruReader.ankiDisplay = {
         document.addEventListener('touchstart', captureSelection, true);
         document.addEventListener('mousedown', captureSelection, true);
 
-        document.addEventListener('click', function(event) {
+        // Long press reveals a menu with both actions, mirroring the audio sources long press.
+        var startPress = function(event) {
             var button = event.target.closest('.anki-button');
-            if (!button) return;
+            if (!button || !self.isButtonActionable(button)) return;
+            self.startLongPress(button);
+        };
+        var endPress = function() {
+            self.cancelLongPress();
+        };
+        document.addEventListener('touchstart', startPress, { passive: true, capture: true });
+        document.addEventListener('mousedown', startPress, true);
+        document.addEventListener('touchend', endPress, true);
+        document.addEventListener('touchcancel', endPress, true);
+        document.addEventListener('touchmove', endPress, true);
+        document.addEventListener('mouseup', endPress, true);
+        document.addEventListener('mouseleave', endPress, true);
+
+        document.addEventListener('contextmenu', function(event) {
+            if (event.target.closest('.anki-button')) {
+                event.preventDefault();
+            }
+        }, true);
+
+        document.addEventListener('click', function(event) {
+            var menuItem = event.target.closest('.anki-menu-item');
+            if (menuItem) {
+                event.preventDefault();
+                event.stopPropagation();
+                self.handleMenuItem(menuItem);
+                return;
+            }
+
+            var button = event.target.closest('.anki-button');
+            if (!button) {
+                self.hideMenus();
+                return;
+            }
 
             event.preventDefault();
             event.stopPropagation();
 
-            if (button.hasAttribute('hidden')) {
+            if (self.longPressTriggered) {
+                // The synthetic click that follows a long press is not a tap.
+                self.longPressTriggered = false;
                 return;
             }
 
-            // Get term data from data attributes
-            var termKey = button.getAttribute('data-term-key');
-            var expression = button.getAttribute('data-expression');
-            var reading = button.getAttribute('data-reading');
-            var currentState = button.getAttribute('data-state');
-
-            // Don't process if already loading or disabled
-            if (currentState === 'loading' || currentState === 'disabled') {
+            self.hideMenus();
+            if (!self.isButtonActionable(button)) {
                 return;
             }
 
-            var audioURL = self.getPrimaryAudioURL(button, termKey);
             var selectionText = self.consumeSelectionText(button);
-            self.addNote(termKey, expression, reading, audioURL, selectionText);
+            self.performAction(self.tapAction, button, selectionText);
         }, true);
 
         self.refresh();
@@ -79,6 +114,101 @@ window.MaruReader.ankiDisplay = {
             return document.body.dataset.ankiRequestId;
         }
         return '';
+    },
+
+    isButtonActionable: function(button) {
+        if (button.hasAttribute('hidden')) return false;
+        var state = button.getAttribute('data-state');
+        return state !== 'loading' && state !== 'disabled';
+    },
+
+    startLongPress: function(button) {
+        var self = this;
+        self.longPressTriggered = false;
+        self.cancelLongPress();
+        self.longPressTimer = setTimeout(function() {
+            self.longPressTimer = null;
+            self.longPressTriggered = true;
+            self.menuSelectionText = self.consumeSelectionText(button);
+            self.showMenu(button);
+        }, self.longPressDelay);
+    },
+
+    cancelLongPress: function() {
+        if (this.longPressTimer) {
+            clearTimeout(this.longPressTimer);
+            this.longPressTimer = null;
+        }
+    },
+
+    showMenu: function(button) {
+        var self = this;
+        var container = button.closest('.term-header-container, .popup-term-header-wrapper');
+        if (!container) return;
+
+        self.hideMenus();
+
+        var strings = window.MaruReader.localizedStrings || {};
+        var menu = document.createElement('div');
+        menu.className = 'anki-menu';
+        menu.setAttribute('role', 'menu');
+
+        [
+            { action: 'add', label: strings.ankiAddNow || 'Add now', icon: 'add' },
+            { action: 'edit', label: strings.ankiEditAndAdd || 'Edit and add', icon: 'edit' }
+        ].forEach(function(entry) {
+            var item = document.createElement('button');
+            item.type = 'button';
+            item.className = 'anki-menu-item';
+            item.setAttribute('role', 'menuitem');
+            item.setAttribute('data-action', entry.action);
+
+            var label = document.createElement('span');
+            label.className = 'anki-menu-label';
+            label.textContent = entry.label;
+            item.appendChild(label);
+
+            var icon = document.createElement('span');
+            icon.className = 'anki-menu-icon';
+            icon.setAttribute('aria-hidden', 'true');
+            icon.textContent = entry.icon;
+            item.appendChild(icon);
+
+            menu.appendChild(item);
+        });
+
+        menu.ankiButton = button;
+        container.appendChild(menu);
+    },
+
+    hideMenus: function() {
+        document.querySelectorAll('.anki-menu').forEach(function(menu) {
+            menu.remove();
+        });
+    },
+
+    handleMenuItem: function(menuItem) {
+        var menu = menuItem.closest('.anki-menu');
+        var button = menu ? menu.ankiButton : null;
+        var action = menuItem.getAttribute('data-action');
+        var selectionText = this.menuSelectionText;
+        this.menuSelectionText = '';
+        this.hideMenus();
+        if (!button || !this.isButtonActionable(button)) return;
+        this.performAction(action, button, selectionText);
+    },
+
+    performAction: function(action, button, selectionText) {
+        var termKey = button.getAttribute('data-term-key');
+        var expression = button.getAttribute('data-expression');
+        var reading = button.getAttribute('data-reading');
+        var audioURL = this.getPrimaryAudioURL(button, termKey);
+
+        if (action === 'edit') {
+            this.editNote(termKey, expression, reading, audioURL, selectionText);
+        } else {
+            this.addNote(termKey, expression, reading, audioURL, selectionText);
+        }
     },
 
     /**
@@ -111,6 +241,7 @@ window.MaruReader.ankiDisplay = {
                     return;
                 }
 
+                self.tapAction = data.tapAction === 'edit' ? 'edit' : 'add';
                 self.setButtonsHidden(false);
                 var states = data.states || {};
                 Object.keys(states).forEach(function(termKey) {
@@ -158,6 +289,17 @@ window.MaruReader.ankiDisplay = {
         });
     },
 
+    requestBody: function(termKey, expression, reading, audioURL, selectionText) {
+        return JSON.stringify({
+            requestId: this.requestId(),
+            termKey: termKey,
+            expression: expression,
+            reading: reading || '',
+            audioURL: audioURL || '',
+            selectionText: selectionText || ''
+        });
+    },
+
     addNote: function(termKey, expression, reading, audioURL, selectionText) {
         var self = this;
 
@@ -166,14 +308,7 @@ window.MaruReader.ankiDisplay = {
         fetch('marureader-anki://add', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                requestId: self.requestId(),
-                termKey: termKey,
-                expression: expression,
-                reading: reading || '',
-                audioURL: audioURL || '',
-                selectionText: selectionText || ''
-            })
+            body: self.requestBody(termKey, expression, reading, audioURL, selectionText)
         })
             .then(function(response) {
                 if (!response.ok) {
@@ -183,13 +318,53 @@ window.MaruReader.ankiDisplay = {
             })
             .then(function(data) {
                 var state = data && data.state ? data.state : 'error';
-                self.stateCache[termKey] = state;
-                self.setButtonState(termKey, state);
+                self.applyExternalState(termKey, state);
             })
             .catch(function() {
-                self.stateCache[termKey] = 'error';
-                self.setButtonState(termKey, 'error');
+                self.applyExternalState(termKey, 'error');
             });
+    },
+
+    /**
+     * Ask the app to open the note editor. The button goes back to its previous state once the
+     * editor is open; the app reports the final state when the note is added.
+     */
+    editNote: function(termKey, expression, reading, audioURL, selectionText) {
+        var self = this;
+        var previousState = self.stateCache[termKey] || 'ready';
+
+        self.setButtonState(termKey, 'loading');
+
+        fetch('marureader-anki://edit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: self.requestBody(termKey, expression, reading, audioURL, selectionText)
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('Anki edit request failed');
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                var state = data && data.state ? data.state : 'error';
+                if (state === 'error') {
+                    self.applyExternalState(termKey, 'error');
+                } else {
+                    self.setButtonState(termKey, previousState);
+                }
+            })
+            .catch(function() {
+                self.applyExternalState(termKey, 'error');
+            });
+    },
+
+    /**
+     * Apply a state decided outside this page, such as the result of the note editor.
+     */
+    applyExternalState: function(termKey, state) {
+        this.stateCache[termKey] = state;
+        this.setButtonState(termKey, state);
     },
 
     getPrimaryAudioURL: function(button, termKey) {

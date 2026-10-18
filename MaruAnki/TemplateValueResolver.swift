@@ -18,7 +18,7 @@
 import Foundation
 
 /// The result of resolving a template value.
-public struct TemplateResolvedValue: Sendable {
+public struct TemplateResolvedValue: Sendable, Equatable {
     /// Text content of the resolved value, or nil if not available.
     public let text: String?
 

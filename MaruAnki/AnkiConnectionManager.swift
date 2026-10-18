@@ -76,22 +76,28 @@ public actor AnkiConnectionManager {
     /// - Returns: The result containing Anki note ID and configuration used.
     @discardableResult
     public func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult {
+        let draft = try await makeNoteDraft(resolver: resolver)
+        return try await addNote(fields: draft.resolvedFields)
+    }
+
+    /// Resolves the configured field map into an editable draft.
+    public func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft {
+        guard isReady, let fieldMap else {
+            throw AnkiConnectionManagerError.notReady
+        }
+        return await AnkiNoteDraft.resolve(fieldMap: fieldMap, resolver: resolver)
+    }
+
+    /// Add a note from already resolved field values, such as an edited draft.
+    @discardableResult
+    public func addNote(fields: [String: [TemplateResolvedValue]]) async throws -> NoteCreationResult {
         guard isReady,
               let provider,
               let duplicateOptions,
-              let fieldMap,
               let deckName,
               let modelName
         else {
             throw AnkiConnectionManagerError.notReady
-        }
-
-        var fields: [String: [TemplateResolvedValue]] = [:]
-        for (fieldName, templateValues) in fieldMap.map {
-            for templateValue in templateValues {
-                let resolvedValue = await resolver.resolve(templateValue)
-                fields[fieldName, default: []].append(resolvedValue)
-            }
         }
 
         let resolvedFields = AnkiFieldValueFormatter.buildFieldValues(from: fields)

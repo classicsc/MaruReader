@@ -35,6 +35,38 @@
         }
       }
     },
+    "dictionary.anki.addNow" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add now"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今すぐ追加"
+          }
+        }
+      }
+    },
+    "dictionary.anki.editAndAdd" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit and add"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編集して追加"
+          }
+        }
+      }
+    },
     "dictionary.audio.play" : {
       "localizations" : {
         "en" : {

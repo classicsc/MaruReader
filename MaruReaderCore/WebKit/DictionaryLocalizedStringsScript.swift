@@ -34,6 +34,8 @@ public func makeDictionaryLocalizedStringsScript() -> WKUserScript {
         "showFewerPitchResults": FrameworkLocalization.string("dictionary.pitchResults.showFewer"),
         "playAudio": FrameworkLocalization.string("dictionary.audio.play"),
         "addToAnki": FrameworkLocalization.string("dictionary.anki.add"),
+        "ankiAddNow": FrameworkLocalization.string("dictionary.anki.addNow"),
+        "ankiEditAndAdd": FrameworkLocalization.string("dictionary.anki.editAndAdd"),
         "pitchLabel": FrameworkLocalization.string("dictionary.pitch.label"),
     ]
     // swiftlint:disable:next force_try

@@ -157,6 +157,29 @@ public struct AudioURLSchemeHandler: URLSchemeHandler, Sendable {
         ]
     }
 
+    /// The audio clips available for a term, in source priority order.
+    public func lookupSources(term: String, reading: String?, language: String = "ja") async throws -> [AudioLookupSource] {
+        let lookupService = await lookupServiceHolder.service()
+        try await lookupService.ensureLoaded()
+
+        let request = AudioLookupRequest(
+            term: term,
+            reading: reading,
+            downstepPosition: nil,
+            language: language
+        )
+
+        let result = await lookupService.lookupAudio(for: request)
+        return result.sources.map { source in
+            AudioLookupSource(
+                url: source.url.absoluteString,
+                providerName: source.providerName,
+                itemName: source.sourceName == source.providerName ? nil : source.sourceName,
+                pitch: source.pitchNumber
+            )
+        }
+    }
+
     private func handleLookupRequest(_ url: URL) async throws -> [URLSchemeTaskResult] {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return Self.createBadRequestResponse(message: "Invalid lookup URL")
@@ -172,27 +195,8 @@ public struct AudioURLSchemeHandler: URLSchemeHandler, Sendable {
         let reading = readingValue?.isEmpty == true ? nil : readingValue
         let languageValue = queryItems.first(where: { $0.name == "language" })?.value
         let language = languageValue?.isEmpty == false ? languageValue! : "ja"
-        let lookupService = await lookupServiceHolder.service()
 
-        try await lookupService.ensureLoaded()
-
-        let request = AudioLookupRequest(
-            term: term,
-            reading: reading,
-            downstepPosition: nil,
-            language: language
-        )
-
-        let result = await lookupService.lookupAudio(for: request)
-        let sources = result.sources.map { source in
-            AudioLookupSource(
-                url: source.url.absoluteString,
-                providerName: source.providerName,
-                itemName: source.sourceName == source.providerName ? nil : source.sourceName,
-                pitch: source.pitchNumber
-            )
-        }
-
+        let sources = try await lookupSources(term: term, reading: reading, language: language)
         let responseBody = AudioLookupResponse(sources: sources)
         let data = try JSONEncoder().encode(responseBody)
 
@@ -320,11 +324,12 @@ private struct AudioLookupResponse: Encodable {
     let sources: [AudioLookupSource]
 }
 
-private struct AudioLookupSource: Encodable {
-    let url: String
-    let providerName: String
-    let itemName: String?
-    let pitch: String?
+/// One playable clip as served to the dictionary page and to the Anki note editor.
+public struct AudioLookupSource: Encodable, Hashable, Sendable {
+    public let url: String
+    public let providerName: String
+    public let itemName: String?
+    public let pitch: String?
 }
 
 enum AudioURLError: Error {

@@ -24,6 +24,7 @@ public struct DictionarySearchView: View {
     @Environment(\.openURL) private var openURL
     @Environment(\.dictionaryPresentationTheme) private var presentationTheme
     @State private var presentationState = DictionarySearchPresentationState()
+    @State private var isShowingAnkiEditor = false
 
     public init() {}
 
@@ -34,8 +35,20 @@ public struct DictionarySearchView: View {
             openURL: openURL,
             presentationTheme: presentationTheme
         )
+        .navigationDestination(isPresented: $isShowingAnkiEditor) {
+            if let ankiEditor = viewModel.ankiEditor {
+                AnkiNoteEditorView(model: ankiEditor)
+            }
+        }
         .task {
             configureView()
+        }
+        .onAppear { isShowingAnkiEditor = viewModel.ankiEditor != nil }
+        .onChange(of: viewModel.ankiEditor == nil) { _, isNil in isShowingAnkiEditor = !isNil }
+        .onChange(of: isShowingAnkiEditor) { _, isShowing in
+            if !isShowing {
+                viewModel.ankiEditor = nil
+            }
         }
         .onChange(of: presentationTheme?.dictionaryWebTheme, updateDictionaryWebTheme)
         .onChange(of: viewModel.currentRequest?.id, clearEditingWhenRequestIsRemoved)

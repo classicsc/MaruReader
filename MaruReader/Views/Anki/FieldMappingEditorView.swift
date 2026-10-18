@@ -329,30 +329,10 @@ struct FieldMappingEditorView: View {
     }
 
     private func displayNameForValue(_ value: TemplateValue) -> String {
-        if let glossary = value.dictionaryGlossaryOptions {
-            if let dictionary = availableTermDictionaries.first(where: { $0.id == glossary.dictionaryID }) {
-                return AppLocalization.glossaryDictionary(dictionary.title, includeTitle: glossary.includeTitle, plain: glossary.plain)
-            }
-            return value.displayName
-        }
-
-        switch value {
-        case let .singleFrequencyDictionary(dictionaryID):
-            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return AppLocalization.frequencyDictionary(dictionary.title)
-            }
-        case let .frequencyRankSortField(dictionaryID):
-            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return AppLocalization.frequencyRankDictionary(dictionary.title)
-            }
-        case let .frequencyOccurrenceSortField(dictionaryID):
-            if let dictionary = availableFrequencyDictionaries.first(where: { $0.id == dictionaryID }) {
-                return AppLocalization.frequencyOccurrenceDictionary(dictionary.title)
-            }
-        default:
-            break
-        }
-        return value.displayName
+        guard let dictionaryID = value.dictionaryID else { return value.displayName }
+        let dictionaries = value.dictionaryGlossaryOptions != nil ? availableTermDictionaries : availableFrequencyDictionaries
+        guard let dictionary = dictionaries.first(where: { $0.id == dictionaryID }) else { return value.displayName }
+        return value.displayName(dictionaryTitle: dictionary.title)
     }
 
     @ViewBuilder
@@ -496,83 +476,6 @@ enum TemplateValueCategory: CaseIterable {
             [.frequencyList, .singleFrequency, .frequencyRankHarmonicMeanSortField, .frequencyOccurrenceHarmonicMeanSortField]
         case .pitch:
             [.pitchAccentList, .singlePitchAccent, .pitchAccentDisambiguation, .pitchAccentCategories, .pronunciationAudio]
-        }
-    }
-}
-
-extension TemplateValue {
-    static func singleDictionaryGlossary(dictionaryID: UUID, includeTitle: Bool, plain: Bool) -> TemplateValue {
-        switch (includeTitle, plain) {
-        case (true, false): .singleDictionaryGlossary(dictionaryID: dictionaryID)
-        case (false, false): .singleDictionaryGlossaryNoDictionary(dictionaryID: dictionaryID)
-        case (true, true): .singleDictionaryGlossaryPlain(dictionaryID: dictionaryID)
-        case (false, true): .singleDictionaryGlossaryPlainNoDictionary(dictionaryID: dictionaryID)
-        }
-    }
-
-    var dictionaryGlossaryOptions: (dictionaryID: UUID, includeTitle: Bool, plain: Bool)? {
-        switch self {
-        case let .singleDictionaryGlossary(id): (id, true, false)
-        case let .singleDictionaryGlossaryNoDictionary(id): (id, false, false)
-        case let .singleDictionaryGlossaryPlain(id): (id, true, true)
-        case let .singleDictionaryGlossaryPlainNoDictionary(id): (id, false, true)
-        default: nil
-        }
-    }
-
-    var displayName: String {
-        switch self {
-        case let .singleDictionaryGlossary(dictionaryID):
-            let shortID = String(dictionaryID.uuidString.prefix(8))
-            return AppLocalization.glossaryIdentifier(shortID)
-        case let .singleDictionaryGlossaryNoDictionary(dictionaryID):
-            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", includeTitle: false)
-        case let .singleDictionaryGlossaryPlain(dictionaryID):
-            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", plain: true)
-        case let .singleDictionaryGlossaryPlainNoDictionary(dictionaryID):
-            return AppLocalization.glossaryDictionary("\(dictionaryID.uuidString.prefix(8))…", includeTitle: false, plain: true)
-        case .singleGlossary: return String(localized: "Single Glossary (First Dictionary)")
-        case .singleGlossaryPlain: return String(localized: "Single Glossary (First Dictionary, Plain)")
-        case .singleGlossaryPlainNoDictionary: return String(localized: "Single Glossary (First Dictionary, Plain, No Title)")
-        case .multiDictionaryGlossary: return String(localized: "Multi-Dictionary Glossary")
-        case .multiDictionaryGlossaryNoDictionary: return String(localized: "Multi-Dictionary Glossary (No Titles)")
-        case .multiDictionaryGlossaryPlain: return String(localized: "Multi-Dictionary Glossary (Plain)")
-        case .multiDictionaryGlossaryPlainNoDictionary: return String(localized: "Multi-Dictionary Glossary (Plain, No Titles)")
-        case .pronunciationAudio: return String(localized: "Pronunciation Audio")
-        case .expression: return String(localized: "Expression")
-        case let .customHTMLValue(value):
-            let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
-            return AppLocalization.htmlPreview(truncated)
-        case .furigana: return String(localized: "Furigana")
-        case .glossaryNoDictionary: return String(localized: "Single Glossary (First Dictionary, No Title)")
-        case .reading: return String(localized: "Reading")
-        case .selectionText: return String(localized: "Selection Text")
-        case .sentence: return String(localized: "Sentence")
-        case .clozePrefix: return String(localized: "Cloze Prefix")
-        case .clozeBody: return String(localized: "Cloze Body")
-        case .clozeSuffix: return String(localized: "Cloze Suffix")
-        case .clozeFuriganaPrefix: return String(localized: "Cloze Furigana Prefix")
-        case .clozeFuriganaBody: return String(localized: "Cloze Furigana Body")
-        case .clozeFuriganaSuffix: return String(localized: "Cloze Furigana Suffix")
-        case .tags: return String(localized: "Tags")
-        case .contextImage: return String(localized: "Context Image")
-        case .contextInfo: return String(localized: "Context Info")
-        case .singlePitchAccent: return String(localized: "Single Pitch Accent")
-        case .singlePitchAccentDictionary: return String(localized: "Pitch Accent (Dictionary)")
-        case .pitchAccentList: return String(localized: "Pitch Accent List")
-        case .pitchAccentDisambiguation: return String(localized: "Pitch Disambiguation")
-        case .pitchAccentCategories: return String(localized: "Pitch Accent Categories")
-        case .conjugation: return String(localized: "Conjugation")
-        case .frequencyList: return String(localized: "Frequency List")
-        case .singleFrequency: return String(localized: "Single Frequency")
-        case .singleFrequencyDictionary: return String(localized: "Frequency (Dictionary)")
-        case .frequencyRankSortField: return String(localized: "Frequency Sort (Rank)")
-        case .frequencyOccurrenceSortField: return String(localized: "Frequency Sort (Occurrence)")
-        case .frequencyRankHarmonicMeanSortField: return String(localized: "Frequency Sort (Rank HM)")
-        case .frequencyOccurrenceHarmonicMeanSortField: return String(localized: "Frequency Sort (Occ HM)")
-        case .partOfSpeech: return String(localized: "Part of Speech")
-        case .sentenceFurigana: return String(localized: "Sentence (Furigana)")
-        @unknown default: return String(localized: "Unknown")
         }
     }
 }

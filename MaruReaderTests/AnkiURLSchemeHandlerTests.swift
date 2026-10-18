@@ -152,6 +152,92 @@ struct AnkiURLSchemeHandlerTests {
 
         #expect(decoded.state == "error")
     }
+
+    @Test func stateReportsConfiguredTapAction() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let handler = AnkiURLSchemeHandler(noteService: MockAnkiNoteService(existingTermKeys: []), managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+
+        let previous = AnkiAddButtonPreferences.tapAction
+        defer { AnkiAddButtonPreferences.tapAction = previous }
+        AnkiAddButtonPreferences.tapAction = .openEditor
+
+        let request = makeStateRequest(requestId: response.requestID.uuidString, terms: [
+            AnkiStateRequestTerm(termKey: "neko|ねこ", expression: "neko", reading: "ねこ"),
+        ])
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiStateResponse.self, from: data)
+
+        #expect(decoded.tapAction == "edit")
+    }
+
+    @Test func editRequestHandsDraftToHostAndSubmitsEditedFields() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let noteService = MockAnkiNoteService(existingTermKeys: [])
+        let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+        let recorder = EditRequestRecorder()
+        await handler.setEditHandler { context in
+            Task { await recorder.record(context) }
+        }
+
+        let request = makeAddRequest(
+            requestId: response.requestID.uuidString,
+            termKey: "neko|ねこ",
+            expression: "neko",
+            reading: "ねこ",
+            audioURL: "",
+            selectionText: "selected",
+            endpoint: "edit"
+        )
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+        #expect(decoded.state == "ready")
+
+        var contexts = await recorder.contexts
+        for _ in 0 ..< 50 where contexts.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+            contexts = await recorder.contexts
+        }
+        let context = try #require(contexts.first)
+        #expect(context.termGroup.termKey == "neko|ねこ")
+        #expect(context.draft.fields.map(\.name) == ["Back", "Front"])
+        #expect(context.draft.field(named: "Back")?.values.first?.resolved.text == "selected")
+        let recordedBeforeSubmit = await noteService.recordedNotes
+        #expect(recordedBeforeSubmit.isEmpty)
+
+        var draft = context.draft
+        try draft.update(field: "Front", value: #require(draft.field(named: "Front")?.values[0].id)) { $0.resolved = .text("edited") }
+        let state = await context.submit(draft)
+
+        #expect(state == "success")
+        let submitted = await manager.submittedFields
+        #expect(submitted?["Front"]?.first?.text == "edited")
+        let recorded = await noteService.recordedNotes
+        #expect(recorded.count == 1)
+    }
+
+    @Test func editRequestReturnsErrorWithoutHost() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let handler = AnkiURLSchemeHandler(noteService: MockAnkiNoteService(existingTermKeys: []), managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+
+        let request = makeAddRequest(
+            requestId: response.requestID.uuidString,
+            termKey: "neko|ねこ",
+            expression: "neko",
+            reading: "ねこ",
+            audioURL: "",
+            endpoint: "edit"
+        )
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+
+        #expect(decoded.state == "error")
+    }
 }
 
 private struct AnkiStateRequestTerm: Encodable {
@@ -168,6 +254,7 @@ private struct AnkiStateRequest: Encodable {
 private struct AnkiStateResponse: Decodable {
     let enabled: Bool
     let states: [String: String]
+    let tapAction: String?
 }
 
 private struct AnkiAddRequest: Encodable {
@@ -208,6 +295,7 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
     private let profile: String?
     private let addResult: Result<NoteCreationResult, Error>
     private(set) var resolvedSelectionText: String?
+    private(set) var submittedFields: [String: [TemplateResolvedValue]]?
 
     init(isReady: Bool, profileName: String?, addResult: Result<NoteCreationResult, Error>) {
         ready = isReady
@@ -231,6 +319,16 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
         case let .failure(error):
             throw error
         }
+    }
+
+    func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft {
+        guard ready else { throw AnkiConnectionManagerError.notReady }
+        return await AnkiNoteDraft.resolve(fieldMap: AnkiFieldMap(map: ["Front": [.expression], "Back": [.selectionText]]), resolver: resolver)
+    }
+
+    func addNote(fields: [String: [TemplateResolvedValue]]) async throws -> NoteCreationResult {
+        submittedFields = fields
+        return try addResult.get()
     }
 }
 
@@ -348,7 +446,8 @@ private func makeAddRequest(
     expression: String,
     reading: String,
     audioURL: String,
-    selectionText: String? = nil
+    selectionText: String? = nil,
+    endpoint: String = "add"
 ) -> URLRequest {
     let body = AnkiAddRequest(
         requestId: requestId,
@@ -359,10 +458,19 @@ private func makeAddRequest(
         selectionText: selectionText
     )
     let data = try? JSONEncoder().encode(body)
-    var request = URLRequest(url: URL(string: "marureader-anki://add")!)
+    var request = URLRequest(url: URL(string: "marureader-anki://\(endpoint)")!)
     request.httpMethod = "POST"
     request.httpBody = data
     return request
+}
+
+/// Collects the editor context the handler hands out for an edit request.
+private actor EditRequestRecorder {
+    private(set) var contexts: [AnkiNoteEditorContext] = []
+
+    func record(_ context: AnkiNoteEditorContext) {
+        contexts.append(context)
+    }
 }
 
 private func collectResponseBody(from handler: AnkiURLSchemeHandler, request: URLRequest) async throws -> Data {

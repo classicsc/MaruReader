@@ -253,6 +253,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    position: relative;
 }
 
 .popup-term-header-wrapper .popup-term-header {

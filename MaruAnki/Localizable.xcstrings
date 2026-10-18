@@ -1,7 +1,486 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-
+    "Cloze Body" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋め本文"
+          }
+        }
+      }
+    },
+    "Cloze Furigana Body" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋めふりがな本文"
+          }
+        }
+      }
+    },
+    "Cloze Furigana Prefix" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋めふりがな接頭辞"
+          }
+        }
+      }
+    },
+    "Cloze Furigana Suffix" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋めふりがな接尾辞"
+          }
+        }
+      }
+    },
+    "Cloze Prefix" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋め接頭辞"
+          }
+        }
+      }
+    },
+    "Cloze Suffix" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穴埋め接尾辞"
+          }
+        }
+      }
+    },
+    "Conjugation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活用"
+          }
+        }
+      }
+    },
+    "Context Image" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキスト画像"
+          }
+        }
+      }
+    },
+    "Context Info" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コンテキスト情報"
+          }
+        }
+      }
+    },
+    "Expression" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表現"
+          }
+        }
+      }
+    },
+    "Freq Sort (Occ): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (出現回数): %@"
+          }
+        }
+      }
+    },
+    "Freq Sort (Rank): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (順位): %@"
+          }
+        }
+      }
+    },
+    "Frequency (Dictionary)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度 (辞書)"
+          }
+        }
+      }
+    },
+    "Frequency List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度リスト"
+          }
+        }
+      }
+    },
+    "Frequency Sort (Occ HM)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (出現回数 HM)"
+          }
+        }
+      }
+    },
+    "Frequency Sort (Occurrence)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (出現回数)"
+          }
+        }
+      }
+    },
+    "Frequency Sort (Rank HM)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (順位 HM)"
+          }
+        }
+      }
+    },
+    "Frequency Sort (Rank)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度ソート (順位)"
+          }
+        }
+      }
+    },
+    "Frequency: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "頻度: %@"
+          }
+        }
+      }
+    },
+    "Furigana" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ふりがな"
+          }
+        }
+      }
+    },
+    "Glossary (%@…)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用語集 (%@…)"
+          }
+        }
+      }
+    },
+    "Glossary (No Title): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用語集 (辞書名なし): %@"
+          }
+        }
+      }
+    },
+    "Glossary (Plain, No Title): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用語集 (書式なし、辞書名なし): %@"
+          }
+        }
+      }
+    },
+    "Glossary (Plain): %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用語集 (書式なし): %@"
+          }
+        }
+      }
+    },
+    "Glossary: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "用語集: %@"
+          }
+        }
+      }
+    },
+    "HTML: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTML: %@"
+          }
+        }
+      }
+    },
+    "Multi-Dictionary Glossary" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数辞書用語集"
+          }
+        }
+      }
+    },
+    "Multi-Dictionary Glossary (No Titles)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数辞書用語集 (辞書名なし)"
+          }
+        }
+      }
+    },
+    "Multi-Dictionary Glossary (Plain, No Titles)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数辞書用語集 (書式なし、辞書名なし)"
+          }
+        }
+      }
+    },
+    "Multi-Dictionary Glossary (Plain)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "複数辞書用語集 (書式なし)"
+          }
+        }
+      }
+    },
+    "Part of Speech" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "品詞"
+          }
+        }
+      }
+    },
+    "Pitch Accent (Dictionary)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッチアクセント (辞書)"
+          }
+        }
+      }
+    },
+    "Pitch Accent Categories" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッチアクセントの分類"
+          }
+        }
+      }
+    },
+    "Pitch Accent List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッチアクセント一覧"
+          }
+        }
+      }
+    },
+    "Pitch Accent: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッチアクセント: %@"
+          }
+        }
+      }
+    },
+    "Pitch Disambiguation" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ピッチアクセントの曖昧性解消"
+          }
+        }
+      }
+    },
+    "Pronunciation Audio" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "発音音声"
+          }
+        }
+      }
+    },
+    "Reading" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "読み"
+          }
+        }
+      }
+    },
+    "Selection Text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選択テキスト"
+          }
+        }
+      }
+    },
+    "Sentence" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文"
+          }
+        }
+      }
+    },
+    "Sentence (Furigana)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文 (ふりがな)"
+          }
+        }
+      }
+    },
+    "Single Frequency" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一頻度"
+          }
+        }
+      }
+    },
+    "Single Glossary (First Dictionary, No Title)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一用語集 (最初の辞書、辞書名なし)"
+          }
+        }
+      }
+    },
+    "Single Glossary (First Dictionary, Plain, No Title)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一用語集 (最初の辞書、書式なし、辞書名なし)"
+          }
+        }
+      }
+    },
+    "Single Glossary (First Dictionary, Plain)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一用語集 (最初の辞書、書式なし)"
+          }
+        }
+      }
+    },
+    "Single Glossary (First Dictionary)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一用語集 (最初の辞書)"
+          }
+        }
+      }
+    },
+    "Single Pitch Accent" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単一ピッチアクセント"
+          }
+        }
+      }
+    },
+    "Tags" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグ"
+          }
+        }
+      }
+    }
   },
   "version" : "1.1"
 }

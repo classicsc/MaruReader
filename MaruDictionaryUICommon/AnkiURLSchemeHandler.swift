@@ -25,9 +25,21 @@ protocol AnkiConnectionManaging: Sendable {
     var isReady: Bool { get async }
     var profileName: String? { get async }
     func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult
+    func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft
+    func addNote(fields: [String: [TemplateResolvedValue]]) async throws -> NoteCreationResult
 }
 
 extension AnkiConnectionManager: AnkiConnectionManaging {}
+
+/// Everything the note editor needs for one term: the resolved draft, the term it came from,
+/// a resolver for alternate values, and the way to submit the finished note.
+public struct AnkiNoteEditorContext: Sendable {
+    public let termGroup: GroupedSearchResults
+    public let resolver: any TemplateValueResolver
+    public let draft: AnkiNoteDraft
+    /// Adds the note and returns the add button state: "success", "exists" or "error".
+    let submit: @Sendable (AnkiNoteDraft) async -> String
+}
 
 protocol AnkiNoteServicing: Sendable {
     func getExistingNoteTermKeys(
@@ -71,6 +83,7 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
     private var managerTask: Task<any AnkiConnectionManaging, Never>?
     private var currentProvider: (any TextLookupSnapshotProviding)?
     private var currentRequestID: String?
+    private var editHandler: (@Sendable (AnkiNoteEditorContext) -> Void)?
 
     public init() {
         noteService = AnkiNoteService()
@@ -93,6 +106,11 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
 
     public func setSession(_ session: TextLookupSession?) async {
         await setLookupProvider(session)
+    }
+
+    /// Receives "edit and add" requests from the page so the host can present the note editor.
+    public func setEditHandler(_ handler: @escaping @Sendable (AnkiNoteEditorContext) -> Void) {
+        editHandler = handler
     }
 
     public nonisolated func reply(for request: URLRequest) -> some AsyncSequence<URLSchemeTaskResult, any Error> {
@@ -133,6 +151,8 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
             return try await handleStateRequest(request)
         case "add":
             return try await handleAddRequest(request)
+        case "edit":
+            return try await handleEditRequest(request)
         default:
             Self.logger.error("Unknown marureader-anki endpoint: \(host)")
             return Self.createNotFoundResponse()
@@ -172,34 +192,73 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
             states[term.termKey] = state
         }
 
-        return try Self.createJSONResponse(AnkiStateResponse(enabled: true, states: states))
+        let tapAction = AnkiAddButtonPreferences.tapAction == .openEditor ? "edit" : "add"
+        return try Self.createJSONResponse(AnkiStateResponse(enabled: true, states: states, tapAction: tapAction))
     }
 
     private func handleAddRequest(_ request: URLRequest) async throws -> [URLSchemeTaskResult] {
-        guard request.httpMethod?.uppercased() == "POST" else {
-            return Self.createBadRequestResponse(message: "Expected POST")
+        guard let decoded = try decodeAddRequest(request) else {
+            return Self.createBadRequestResponse(message: "Expected POST with body")
         }
 
-        guard let data = requestBodyData(from: request) else {
-            return Self.createBadRequestResponse(message: "Missing body")
-        }
-
-        let decoded = try JSONDecoder().decode(AnkiAddRequest.self, from: data)
-
-        guard requestMatchesCurrent(decoded.requestId) else {
-            return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
-        }
-
-        guard let provider = currentProvider,
-              let termGroup = try? await provider.termGroup(for: decoded.termKey),
-              let response = try? await provider.snapshot()
-        else {
+        guard let lookup = await lookupContext(for: decoded) else {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }
 
         let manager = await connectionManager()
         guard await manager.isReady else {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
+        }
+
+        let state = await addNote(expression: decoded.expression, reading: decoded.reading) {
+            try await manager.addNote(resolver: lookup.resolver)
+        }
+        return try Self.createJSONResponse(AnkiAddResponse(state: state))
+    }
+
+    /// Resolves the note into a draft and hands it to the host, which presents the editor.
+    private func handleEditRequest(_ request: URLRequest) async throws -> [URLSchemeTaskResult] {
+        guard let decoded = try decodeAddRequest(request) else {
+            return Self.createBadRequestResponse(message: "Expected POST with body")
+        }
+
+        guard let editHandler, let lookup = await lookupContext(for: decoded) else {
+            return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
+        }
+
+        let manager = await connectionManager()
+        guard await manager.isReady, let draft = try? await manager.makeNoteDraft(resolver: lookup.resolver) else {
+            return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
+        }
+
+        let expression = decoded.expression
+        let reading = decoded.reading
+        let context = AnkiNoteEditorContext(termGroup: lookup.termGroup, resolver: lookup.resolver, draft: draft) { draft in
+            await self.addNote(expression: expression, reading: reading) {
+                try await manager.addNote(fields: draft.resolvedFields)
+            }
+        }
+        editHandler(context)
+        return try Self.createJSONResponse(AnkiAddResponse(state: "ready"))
+    }
+
+    private func decodeAddRequest(_ request: URLRequest) throws -> AnkiAddRequest? {
+        guard request.httpMethod?.uppercased() == "POST", let data = requestBodyData(from: request) else {
+            return nil
+        }
+        return try JSONDecoder().decode(AnkiAddRequest.self, from: data)
+    }
+
+    /// The term group and a resolver for the request, or nil when the request is stale or the term is unknown.
+    private func lookupContext(
+        for decoded: AnkiAddRequest
+    ) async -> (termGroup: GroupedSearchResults, resolver: TextLookupResponseTemplateResolver)? {
+        guard requestMatchesCurrent(decoded.requestId),
+              let provider = currentProvider,
+              let termGroup = try? await provider.termGroup(for: decoded.termKey),
+              let response = try? await provider.snapshot()
+        else {
+            return nil
         }
 
         let audioURL = decoded.audioURL.flatMap { $0.isEmpty ? nil : URL(string: $0) }
@@ -210,12 +269,20 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
             primaryAudioURL: audioURL,
             selectionText: selectionText
         )
+        return (termGroup, resolver)
+    }
 
+    /// Runs an add, records the note locally, and maps the outcome to a button state.
+    private func addNote(
+        expression: String,
+        reading: String?,
+        _ perform: @Sendable () async throws -> NoteCreationResult
+    ) async -> String {
         do {
-            let result = try await manager.addNote(resolver: resolver)
-            let reading = decoded.reading?.isEmpty == true ? nil : decoded.reading
+            let result = try await perform()
+            let reading = reading?.isEmpty == true ? nil : reading
             _ = try await noteService.recordNote(
-                expression: decoded.expression,
+                expression: expression,
                 reading: reading,
                 profileName: result.profileName,
                 deckName: result.deckName,
@@ -225,11 +292,11 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
                 ankiID: result.ankiNoteID,
                 pendingSync: result.pendingSync
             )
-            return try Self.createJSONResponse(AnkiAddResponse(state: "success"))
+            return "success"
         } catch AnkiConnectionManagerError.duplicateNote {
-            return try Self.createJSONResponse(AnkiAddResponse(state: "exists"))
+            return "exists"
         } catch {
-            return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
+            return "error"
         }
     }
 
@@ -342,6 +409,7 @@ private struct AnkiStateTerm: Decodable {
 private struct AnkiStateResponse: Encodable {
     let enabled: Bool
     let states: [String: String]
+    var tapAction = "add"
 }
 
 private struct AnkiAddRequest: Decodable {

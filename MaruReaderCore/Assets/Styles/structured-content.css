@@ -1511,6 +1511,9 @@ body:not([data-links-active="true"]) .gloss-link {
     font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
     -webkit-font-smoothing: antialiased;
     box-shadow: var(--glass-shadow);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .anki-button[hidden] {
@@ -1557,6 +1560,52 @@ body:not([data-links-active="true"]) .gloss-link {
     background: rgba(244, 67, 54, 0.15);
 }
 
+/* Anki long-press menu, laid out like the audio sources area */
+.anki-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 4px;
+    min-width: 160px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    background: var(--glass-bg-light);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border-radius: 10px;
+    box-shadow: var(--glass-shadow);
+    z-index: 100;
+}
+
+.anki-menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-color);
+    font: inherit;
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.anki-menu-item:active {
+    background: var(--glass-bg-light-active);
+}
+
+.anki-menu-icon {
+    font-family: 'Material Symbols Outlined';
+    font-size: 18px;
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    color: var(--text-color-light1);
+}
+
 /* Dark mode glass adjustments */
 @media (prefers-color-scheme: dark) {
     .audio-button,
@@ -1588,9 +1637,14 @@ body:not([data-links-active="true"]) .gloss-link {
         background: rgba(244, 67, 54, 0.2);
     }
 
-    .audio-sources-area {
+    .audio-sources-area,
+    .anki-menu {
         background: var(--glass-bg-dark);
         box-shadow: var(--glass-shadow-dark);
+    }
+
+    .anki-menu-item:active {
+        background: var(--glass-bg-dark-active);
     }
 }
 

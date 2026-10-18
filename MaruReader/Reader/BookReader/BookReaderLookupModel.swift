@@ -78,6 +78,22 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         self.searchServiceFactory = searchServiceFactory
         super.init()
         initializePopupPage()
+        Task { [ankiSchemeHandler] in
+            await ankiSchemeHandler.setEditHandler { [weak self] context in
+                guard let self else { return }
+                Task { @MainActor in self.openAnkiEditor(context) }
+            }
+        }
+    }
+
+    /// "Edit and add" from the popup: open the dictionary sheet on the same lookup with the editor on top.
+    private func openAnkiEditor(_ context: AnkiNoteEditorContext) {
+        guard let currentPopupSession else {
+            logger.warning("No current popup session available, cannot open the Anki editor")
+            return
+        }
+        searchInDictionarySheet(session: currentPopupSession)
+        dictionarySheetPresentation?.viewModel.presentAnkiEditor(context)
     }
 
     private func searchService() -> DictionarySearchService {
