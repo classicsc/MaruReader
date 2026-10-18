@@ -202,7 +202,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     }
 
     private func configureAnkiEditHandlers() {
-        Task { [ankiSchemeHandler, popupAnkiSchemeHandler] in
+        Task { [weak self, ankiSchemeHandler, popupAnkiSchemeHandler] in
             for handler in [ankiSchemeHandler, popupAnkiSchemeHandler] {
                 await handler.setEditHandler { [weak self] context in
                     guard let self else { return }

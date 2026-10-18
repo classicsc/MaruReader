@@ -28,6 +28,8 @@ import SwiftUI
 final class AnkiNoteEditorModel {
     private(set) var draft: AnkiNoteDraft
     let termGroup: GroupedSearchResults
+    /// Anki would reject the note as a duplicate; submitting adds it anyway.
+    let isDuplicate: Bool
     private(set) var isSubmitting = false
     var errorMessage: String?
     private(set) var audioSources: [AudioLookupSource] = []
@@ -44,6 +46,7 @@ final class AnkiNoteEditorModel {
     init(context: AnkiNoteEditorContext, onFinished: @escaping @MainActor (String) -> Void) {
         draft = context.draft
         termGroup = context.termGroup
+        isDuplicate = context.isDuplicate
         resolver = context.resolver
         submitDraft = context.submit
         self.onFinished = onFinished

@@ -24,9 +24,9 @@ import WebKit
 protocol AnkiConnectionManaging: Sendable {
     var isReady: Bool { get async }
     var profileName: String? { get async }
-    func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult
     func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft
-    func addNote(fields: [String: [TemplateResolvedValue]]) async throws -> NoteCreationResult
+    func isDuplicate(expression: String, reading: String?, fields: [String: [TemplateResolvedValue]]) async -> Bool
+    func addNote(fields: [String: [TemplateResolvedValue]], allowDuplicate: Bool) async throws -> NoteCreationResult
 }
 
 extension AnkiConnectionManager: AnkiConnectionManaging {}
@@ -37,6 +37,8 @@ public struct AnkiNoteEditorContext: Sendable {
     public let termGroup: GroupedSearchResults
     public let resolver: any TemplateValueResolver
     public let draft: AnkiNoteDraft
+    /// The configured duplicate scope would reject this note; submitting adds it as a duplicate.
+    public let isDuplicate: Bool
     /// Adds the note and returns the add button state: "success", "exists" or "error".
     let submit: @Sendable (AnkiNoteDraft) async -> String
 }
@@ -206,12 +208,19 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
         }
 
         let manager = await connectionManager()
-        guard await manager.isReady else {
+        guard await manager.isReady, let draft = try? await manager.makeNoteDraft(resolver: lookup.resolver) else {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }
 
+        // Anki would reject a known duplicate outright. Let the user decide in the editor instead,
+        // where the add becomes an explicit "Add Duplicate".
+        if let editHandler, await manager.isDuplicate(expression: decoded.expression, reading: decoded.reading, fields: draft.resolvedFields) {
+            editHandler(editorContext(for: decoded, lookup: lookup, draft: draft, manager: manager, isDuplicate: true))
+            return try Self.createJSONResponse(AnkiAddResponse(state: "exists"))
+        }
+
         let state = await addNote(expression: decoded.expression, reading: decoded.reading) {
-            try await manager.addNote(resolver: lookup.resolver)
+            try await manager.addNote(fields: draft.resolvedFields, allowDuplicate: false)
         }
         return try Self.createJSONResponse(AnkiAddResponse(state: state))
     }
@@ -231,15 +240,25 @@ public final actor AnkiURLSchemeHandler: URLSchemeHandler {
             return try Self.createJSONResponse(AnkiAddResponse(state: "error"))
         }
 
+        let isDuplicate = await manager.isDuplicate(expression: decoded.expression, reading: decoded.reading, fields: draft.resolvedFields)
+        editHandler(editorContext(for: decoded, lookup: lookup, draft: draft, manager: manager, isDuplicate: isDuplicate))
+        return try Self.createJSONResponse(AnkiAddResponse(state: "ready"))
+    }
+
+    private func editorContext(
+        for decoded: AnkiAddRequest,
+        lookup: (termGroup: GroupedSearchResults, resolver: TextLookupResponseTemplateResolver),
+        draft: AnkiNoteDraft,
+        manager: any AnkiConnectionManaging,
+        isDuplicate: Bool
+    ) -> AnkiNoteEditorContext {
         let expression = decoded.expression
         let reading = decoded.reading
-        let context = AnkiNoteEditorContext(termGroup: lookup.termGroup, resolver: lookup.resolver, draft: draft) { draft in
+        return AnkiNoteEditorContext(termGroup: lookup.termGroup, resolver: lookup.resolver, draft: draft, isDuplicate: isDuplicate) { draft in
             await self.addNote(expression: expression, reading: reading) {
-                try await manager.addNote(fields: draft.resolvedFields)
+                try await manager.addNote(fields: draft.resolvedFields, allowDuplicate: isDuplicate)
             }
         }
-        editHandler(context)
-        return try Self.createJSONResponse(AnkiAddResponse(state: "ready"))
     }
 
     private func decodeAddRequest(_ request: URLRequest) throws -> AnkiAddRequest? {

@@ -46,6 +46,10 @@ struct AnkiNoteEditorView: View {
                         AnkiNoteFieldRow(model: model, field: field)
                     }
                 }
+            } footer: {
+                if model.isDuplicate {
+                    Text("Anki already has a note for this term. Adding it again creates a duplicate.")
+                }
             }
 
             if !model.automaticFields.isEmpty {
@@ -69,7 +73,7 @@ struct AnkiNoteEditorView: View {
                 if model.isSubmitting {
                     ProgressView()
                 } else {
-                    Button("Add") {
+                    Button(model.isDuplicate ? "Add Duplicate" : "Add") {
                         // Pops itself: when this view is nested in another pushed destination,
                         // its presentation binding going false no longer pops it.
                         Task {

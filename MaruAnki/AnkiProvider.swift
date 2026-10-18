@@ -38,9 +38,25 @@ protocol AnkiProvider: Sendable {
                  deckName: String,
                  modelName: String,
                  duplicateOptions: DuplicateDetectionOptions) async throws -> AddNoteResult
+    /// Whether Anki would reject the note as a duplicate under `duplicateOptions`.
+    /// Providers that cannot ask Anki return false; the caller then relies on its local records.
+    func isDuplicate(fields: [String: [TemplateResolvedValue]],
+                     deckName: String,
+                     modelName: String,
+                     duplicateOptions: DuplicateDetectionOptions) async -> Bool
     func getAnkiProfiles() async -> AnkiProfileListingResponse
     func getAnkiDecks(forProfile profileName: String) async -> AnkiDeckListingResponse
     func getAnkiModels(forProfile profileName: String) async -> AnkiModelListingResponse
+}
+
+extension AnkiProvider {
+    func isDuplicate(fields _: [String: [TemplateResolvedValue]],
+                     deckName _: String,
+                     modelName _: String,
+                     duplicateOptions _: DuplicateDetectionOptions) async -> Bool
+    {
+        false
+    }
 }
 
 public struct DuplicateDetectionOptions: Sendable, Codable {

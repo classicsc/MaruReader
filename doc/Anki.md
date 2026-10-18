@@ -6,9 +6,11 @@ you encounter while reading. This guide covers setup and configuration.
 ## Anki Usage
 
 After Anki setup (see below), tap the **+** button in any lookup. The button
-will change to a checkmark for words that were already added, but you can still
-use it to try adding again. Your duplicate detection settings determine whether
-this succeeds.
+will change to a checkmark for words that were already added. When your
+duplicate detection settings would reject the note, tapping the button opens the
+editor instead of failing, and its **Add** button becomes **Add Duplicate** so
+you can add the note anyway. MaruReader knows a note is a duplicate from the
+notes it added itself, and Anki-Connect is also asked before the editor opens.
 
 Long-press the **+** button to choose between **Add now** and **Edit and add**.
 The editor shows every field of the note with the values your field mapping
@@ -165,7 +167,8 @@ ______________________________________________________________________
 ## Duplicate Detection
 
 Duplicate detection prevents creating multiple notes for words you've already
-added.
+added. A note that would be rejected opens in the editor, where **Add Duplicate**
+adds it regardless of these settings.
 
 ### AnkiMobile Options
 

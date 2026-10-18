@@ -182,32 +182,7 @@ struct AnkiConnectProvider: AnkiProvider {
             "tags": ["marureader"] as [String],
         ]
 
-        // Configure duplicate handling
-        switch duplicateOptions.scope {
-        case .none:
-            noteParams["options"] = [
-                "allowDuplicate": true,
-            ]
-        case .deck:
-            let duplicateScopeOptions: [String: Any] = [
-                "deckName": duplicateOptions.deckName ?? deckName,
-                "checkChildren": duplicateOptions.includeChildDecks,
-                "checkAllModels": duplicateOptions.checkAllModels,
-            ]
-            noteParams["options"] = [
-                "allowDuplicate": false,
-                "duplicateScope": "deck",
-                "duplicateScopeOptions": duplicateScopeOptions,
-            ]
-        case .collection:
-            noteParams["options"] = [
-                "allowDuplicate": false,
-                "duplicateScope": "collection",
-                "duplicateScopeOptions": [
-                    "checkAllModels": duplicateOptions.checkAllModels,
-                ],
-            ]
-        }
+        noteParams["options"] = Self.noteOptions(for: duplicateOptions, targetDeck: deckName)
 
         // Add media items grouped by type
         let pictures = mediaItems.filter { $0.type == .image }
@@ -239,6 +214,57 @@ struct AnkiConnectProvider: AnkiProvider {
         }
 
         return AddNoteResult(ankiNoteID: response.result ?? nil, pendingSync: false)
+    }
+
+    /// Asks Anki-Connect whether `addNote` would fail as a duplicate, without creating anything.
+    /// Any other outcome (empty field, old Anki-Connect without the action, connection error) is
+    /// left for the real add to report.
+    func isDuplicate(
+        fields: [String: [TemplateResolvedValue]],
+        deckName: String,
+        modelName: String,
+        duplicateOptions: DuplicateDetectionOptions
+    ) async -> Bool {
+        guard duplicateOptions.scope != .none else { return false }
+        let note: [String: Any] = [
+            "deckName": deckName,
+            "modelName": modelName,
+            "fields": fields.mapValues { $0.compactMap(\.text).joined() },
+            "options": Self.noteOptions(for: duplicateOptions, targetDeck: deckName),
+        ]
+        let request = AnkiConnectRequest(action: "canAddNotesWithErrorDetail", params: ["notes": [note]])
+        guard let response: AnkiConnectResponse<[CanAddNoteResult]> = try? await send(request) else {
+            return false
+        }
+        return response.result?.first?.error?.lowercased().contains("duplicate") == true
+    }
+
+    /// The `options` of an `addNote` request for the configured duplicate handling.
+    private static func noteOptions(for duplicateOptions: DuplicateDetectionOptions, targetDeck: String) -> [String: Any] {
+        switch duplicateOptions.scope {
+        case .none:
+            [
+                "allowDuplicate": true,
+            ]
+        case .deck:
+            [
+                "allowDuplicate": false,
+                "duplicateScope": "deck",
+                "duplicateScopeOptions": [
+                    "deckName": duplicateOptions.deckName ?? targetDeck,
+                    "checkChildren": duplicateOptions.includeChildDecks,
+                    "checkAllModels": duplicateOptions.checkAllModels,
+                ] as [String: Any],
+            ]
+        case .collection:
+            [
+                "allowDuplicate": false,
+                "duplicateScope": "collection",
+                "duplicateScopeOptions": [
+                    "checkAllModels": duplicateOptions.checkAllModels,
+                ],
+            ]
+        }
     }
 
     func getAnkiProfiles() async -> AnkiProfileListingResponse {
@@ -457,6 +483,11 @@ private struct AnkiConnectRequest {
 
 private struct AnkiConnectResponse<T: Decodable>: Decodable {
     let result: T?
+    let error: String?
+}
+
+private struct CanAddNoteResult: Decodable {
+    let canAdd: Bool
     let error: String?
 }
 

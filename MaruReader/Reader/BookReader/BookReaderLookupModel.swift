@@ -78,7 +78,7 @@ final class BookReaderLookupModel: NSObject, WKScriptMessageHandler {
         self.searchServiceFactory = searchServiceFactory
         super.init()
         initializePopupPage()
-        Task { [ankiSchemeHandler] in
+        Task { [weak self, ankiSchemeHandler] in
             await ankiSchemeHandler.setEditHandler { [weak self] context in
                 guard let self else { return }
                 Task { @MainActor in self.openAnkiEditor(context) }

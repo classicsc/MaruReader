@@ -51,12 +51,32 @@
         }
       }
     },
+    "Add Duplicate" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複して追加"
+          }
+        }
+      }
+    },
     "All dictionaries" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "すべての辞書"
+          }
+        }
+      }
+    },
+    "Anki already has a note for this term. Adding it again creates a duplicate." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "この語のノートはすでにAnkiにあります。もう一度追加すると重複ノートが作成されます。"
           }
         }
       }
