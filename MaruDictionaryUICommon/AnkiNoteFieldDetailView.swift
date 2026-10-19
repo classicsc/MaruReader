@@ -42,12 +42,12 @@ struct AnkiNoteFieldDetailView: View {
                     NavigationLink {
                         AnkiValueTextEditorView(model: model, fieldName: fieldName, valueID: nil)
                     } label: {
-                        Label("Add Custom HTML", systemImage: "plus.circle")
+                        Label("Add Text", systemImage: "plus.circle")
                     }
                 } header: {
                     Text("Values")
                 } footer: {
-                    Text("Tap a value to change it. Swipe left to remove it, or use Edit to reorder.")
+                    Text("Tap a value to change it. Swipe left to remove it, or use Edit to reorder. Added text can include HTML tags for formatting.")
                 }
             }
         }
@@ -101,7 +101,7 @@ struct AnkiNoteValueRow: View {
         value.template.editorKind == .html
     }
 
-    /// Custom HTML is shown verbatim; stripping its markup would leave nothing to see.
+    /// Added text is shown verbatim; stripping its markup would leave nothing to see.
     private var preview: String {
         isHTML ? value.resolved.text ?? "" : value.resolved.previewText
     }
@@ -112,7 +112,7 @@ struct AnkiNoteValueRow: View {
                 .foregroundStyle(isReadOnly ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
                 .frame(width: 20)
             VStack(alignment: .leading, spacing: 1) {
-                Text(isHTML ? String(localized: "Custom HTML") : value.template.displayName(in: termGroup))
+                Text(isHTML ? String(localized: "Text") : value.template.displayName(in: termGroup))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let audioSource {
@@ -129,7 +129,7 @@ struct AnkiNoteValueRow: View {
     }
 }
 
-/// Edits the text of one value, or adds a custom HTML value when `valueID` is nil.
+/// Edits the text of one value, or adds a text value when `valueID` is nil.
 @MainActor
 struct AnkiValueTextEditorView: View {
     let model: AnkiNoteEditorModel
@@ -168,11 +168,13 @@ struct AnkiValueTextEditorView: View {
             } footer: {
                 if value?.template == .reading {
                     Text("Changing the reading clears pitch accent values in this note.")
+                } else if isHTML {
+                    Text("HTML tags can be used for formatting.")
                 }
             }
         }
         .ankiEditorSheetBackground()
-        .navigationTitle(value?.template.displayName(in: model.termGroup) ?? String(localized: "Custom HTML"))
+        .navigationTitle(value?.template.displayName(in: model.termGroup) ?? String(localized: "Text"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {

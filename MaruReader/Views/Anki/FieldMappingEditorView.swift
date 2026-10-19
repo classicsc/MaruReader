@@ -139,8 +139,8 @@ struct FieldMappingEditorView: View {
                 Text(error.localizedDescription)
             }
         }
-        .alert("Custom HTML", isPresented: $showCustomHTMLInput) {
-            TextField("HTML content", text: $customHTMLText)
+        .alert("Text", isPresented: $showCustomHTMLInput) {
+            TextField("Text or HTML", text: $customHTMLText)
             Button("Cancel", role: .cancel) {
                 customHTMLText = ""
                 customHTMLTargetIndex = nil
@@ -153,7 +153,7 @@ struct FieldMappingEditorView: View {
                 customHTMLTargetIndex = nil
             }
         } message: {
-            Text("Enter the HTML content to insert into this field.")
+            Text("Enter text to insert into this field. HTML tags can be used for formatting.")
         }
         .sheet(item: $dictionaryPickerContext) { context in
             DictionaryPickerSheet(
@@ -384,7 +384,7 @@ struct FieldMappingEditorView: View {
 
         Divider()
 
-        Button("Custom HTML...") {
+        Button("Text...") {
             customHTMLTargetIndex = index
             showCustomHTMLInput = true
         }

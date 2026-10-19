@@ -127,7 +127,7 @@ public extension TemplateValue {
         case .expression: return AnkiLocalization.string("Expression")
         case let .customHTMLValue(value):
             let truncated = value.count > 20 ? String(value.prefix(20)) + "..." : value
-            return AnkiLocalization.string("HTML: \(truncated)")
+            return AnkiLocalization.string("Text: \(truncated)")
         case .furigana: return AnkiLocalization.string("Furigana")
         case .glossaryNoDictionary: return AnkiLocalization.string("Single Glossary (First Dictionary, No Title)")
         case .reading: return AnkiLocalization.string("Reading")

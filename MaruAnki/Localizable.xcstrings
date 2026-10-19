@@ -251,16 +251,6 @@
         }
       }
     },
-    "HTML: %@" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "HTML: %@"
-          }
-        }
-      }
-    },
     "Multi-Dictionary Glossary" : {
       "localizations" : {
         "ja" : {
@@ -477,6 +467,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "タグ"
+          }
+        }
+      }
+    },
+    "Text: %@" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト: %@"
           }
         }
       }

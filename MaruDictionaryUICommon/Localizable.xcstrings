@@ -41,22 +41,22 @@
         }
       }
     },
-    "Add Custom HTML" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カスタムHTMLを追加"
-          }
-        }
-      }
-    },
     "Add Duplicate" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "重複して追加"
+          }
+        }
+      }
+    },
+    "Add Text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキストを追加"
           }
         }
       }
@@ -175,16 +175,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ノートを追加できませんでした"
-          }
-        }
-      }
-    },
-    "Custom HTML" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カスタムHTML"
           }
         }
       }
@@ -343,6 +333,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ふりがな"
+          }
+        }
+      }
+    },
+    "HTML tags can be used for formatting." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "書式設定にはHTMLタグを使用できます。"
           }
         }
       }
@@ -575,12 +575,22 @@
         }
       }
     },
-    "Tap a value to change it. Swipe left to remove it, or use Edit to reorder." : {
+    "Tap a value to change it. Swipe left to remove it, or use Edit to reorder. Added text can include HTML tags for formatting." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "値をタップして変更します。左にスワイプで削除、並べ替えは「編集」から行います。"
+            "value" : "値をタップして変更します。左にスワイプで削除、並べ替えは「編集」から行います。追加したテキストには書式設定用のHTMLタグを含められます。"
+          }
+        }
+      }
+    },
+    "Text" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト"
           }
         }
       }

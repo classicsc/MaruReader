@@ -22,7 +22,7 @@ import SwiftUI
 /// Screens pushed from a field's value list. The editor is reached through a bool-presented
 /// destination, so pushes stay view-based: a value push would reset that presentation.
 enum AnkiEditorRoute: Hashable {
-    /// A nil value adds a new custom HTML value to the field.
+    /// A nil value adds a new text value to the field.
     case text(field: String, value: UUID?)
     case audio(field: String, value: UUID)
     case glossary(field: String, value: UUID)

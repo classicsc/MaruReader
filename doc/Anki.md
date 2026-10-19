@@ -14,8 +14,9 @@ notes it added itself, and Anki-Connect is also asked before the editor opens.
 
 Long-press the **+** button to choose between **Add now** and **Edit and add**.
 The editor shows every field of the note with the values your field mapping
-produced. Open a field to reorder or remove its values, add custom HTML, change
-the text, pick a different audio clip, glossary dictionary, or pitch accent
+produced. Open a field to reorder or remove its values, add text (HTML tags
+can be used for formatting), change the text, pick a different audio clip,
+glossary dictionary, or pitch accent
 dictionary, and restore the field to the mapped values at any time. Add the note
 from the editor when you are done, or go back to leave it unsent.
 
@@ -262,10 +263,9 @@ lookup and context.
 | **Document Title**                    | Title of the book/manga you're reading                                         |
 | **Document URL**                      | URL for web content                                                            |
 
-> **Tip:** Combine cloze values with custom HTML to style the target word in a
-> sentence:\
-> `Cloze Prefix` + `Custom HTML: <b>` + `Cloze Body` + `Custom HTML: </b>` +
-> `Cloze Suffix`
+> **Tip:** Combine cloze values with text values holding HTML tags to style the
+> target word in a sentence:\
+> `Cloze Prefix` + `Text: <b>` + `Cloze Body` + `Text: </b>` + `Cloze Suffix`
 
 ### Images
 
@@ -307,9 +307,10 @@ lookup and context.
 > The worst that can happen from getting this wrong is getting new cards in a
 > different order, so if it seems confusing I wouldn't worry about it.
 
-### Custom HTML
+### Text
 
-You can insert arbitrary HTML between other values. Useful for:
+You can insert arbitrary text between other values. HTML tags can be used for
+formatting. Useful for:
 
 - Adding `<br>` line breaks
 - Wrapping text in `<b>`, `<i>`, or `<span>` tags
