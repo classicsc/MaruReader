@@ -1228,6 +1228,11 @@
           "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustix-1-1-4-apache-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
           "title" : "Apache License 2.0"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-rustix-1-1-4-apache-2-0-2.txt",
+          "referenceURL" : "https:\/\/github.com\/bytecodealliance\/rustix",
+          "title" : "Apache License 2.0"
         }
       ],
       "name" : "rustix",
@@ -1338,13 +1343,12 @@
       "version" : "1.0.149"
     },
     {
-      "attribution" : "Erick Tryzelaar <erick.tryzelaar@gmail.com>, David Tolnay <dtolnay@gmail.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/serde-rs\/json",
-      "id" : "rust-serde-json-1-0-151",
+      "id" : "rust-serde-json-1-0-154",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-json-1-0-151-apache-2-0-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-serde-json-1-0-154-apache-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/serde-rs\/json",
           "title" : "Apache License 2.0"
         }
@@ -1352,7 +1356,7 @@
       "name" : "serde_json",
       "notes" : "Generated from MaruAdblockFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/serde-rs\/json",
-      "version" : "1.0.151"
+      "version" : "1.0.154"
     },
     {
       "category" : "rustCrate",
@@ -1562,10 +1566,10 @@
       "attribution" : "David Tolnay <dtolnay@gmail.com>",
       "category" : "rustCrate",
       "homepageURL" : "https:\/\/github.com\/dtolnay\/thiserror",
-      "id" : "rust-thiserror-2-0-20",
+      "id" : "rust-thiserror-2-0-21",
       "licenses" : [
         {
-          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-thiserror-2-0-20-apache-2-0-1.txt",
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-thiserror-2-0-21-apache-2-0-1.txt",
           "referenceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
           "title" : "Apache License 2.0"
         }
@@ -1573,7 +1577,7 @@
       "name" : "thiserror",
       "notes" : "Generated from MaruAdblockFFI\/Cargo.lock and MaruSudachiFFI\/Cargo.lock using cargo-about.",
       "sourceURL" : "https:\/\/github.com\/dtolnay\/thiserror",
-      "version" : "2.0.20"
+      "version" : "2.0.21"
     },
     {
       "attribution" : "The ICU4X Project Developers",
@@ -1715,6 +1719,11 @@
       "licenses" : [
         {
           "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tracing-core-0-1-36-mit-1.txt",
+          "referenceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
+          "title" : "MIT License"
+        },
+        {
+          "path" : "About\/ThirdPartyLicenses\/Documents\/rust\/rust-tracing-core-0-1-36-mit-2.txt",
           "referenceURL" : "https:\/\/github.com\/tokio-rs\/tracing",
           "title" : "MIT License"
         }
@@ -2168,9 +2177,9 @@
         }
       ],
       "name" : "swift-async-algorithms",
-      "revision" : "3da39bbc4e687d4192af7c9cf4eab805745a0b9c",
+      "revision" : "13713a4ffdee8abd929f92568ee9462a46ae26e0",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-async-algorithms.git",
-      "version" : "1.1.5"
+      "version" : "1.1.7"
     },
     {
       "category" : "spm",
@@ -2184,9 +2193,9 @@
         }
       ],
       "name" : "swift-collections",
-      "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
+      "revision" : "3b69cedbaa49957e97c092ae400bb57602ef941f",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
-      "version" : "1.6.0"
+      "version" : "1.7.2"
     },
     {
       "category" : "spm",
@@ -2216,9 +2225,9 @@
         }
       ],
       "name" : "SwiftSoup",
-      "revision" : "18b80329749eca5ea29fc50211dca5c7eff5bfec",
+      "revision" : "9598b4f4e5a0a18f8d96e664f209e9022cddd30a",
       "sourceURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
-      "version" : "2.13.9"
+      "version" : "2.14.1"
     },
     {
       "category" : "spm",
@@ -2268,6 +2277,6 @@
       "version" : "3.0.1"
     }
   ],
-  "generatedAt" : "2026-09-12T14:11:14.557Z",
+  "generatedAt" : "2026-10-19T02:20:37.551Z",
   "schemaVersion" : 1
 }
