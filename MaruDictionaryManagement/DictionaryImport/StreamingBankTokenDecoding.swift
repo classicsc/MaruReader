@@ -247,11 +247,7 @@ private enum StreamingJSONValue {
 
 private extension JsonKey? {
     func requirePropertyName() throws -> String {
-        guard let self else {
-            throw DictionaryImportError.invalidData
-        }
-
-        guard case let .name(name) = self else {
+        guard let self, case let .name(name) = self else {
             throw DictionaryImportError.invalidData
         }
 
@@ -463,11 +459,7 @@ private extension KanjiFrequency {
             return .string(string)
         }
 
-        guard let object = value.objectValue else {
-            throw DictionaryImportError.invalidData
-        }
-
-        guard let numericValue = object["value"]?.doubleValue else {
+        guard let object = value.objectValue, let numericValue = object["value"]?.doubleValue else {
             throw DictionaryImportError.invalidData
         }
 
@@ -491,11 +483,7 @@ private extension FrequencyData {
             return FrequencyData(value: Double(string) ?? 0.0, displayValue: string)
         }
 
-        guard let object = value.objectValue else {
-            throw DictionaryImportError.invalidData
-        }
-
-        guard let numericValue = object["value"]?.doubleValue else {
+        guard let object = value.objectValue, let numericValue = object["value"]?.doubleValue else {
             throw DictionaryImportError.invalidData
         }
 

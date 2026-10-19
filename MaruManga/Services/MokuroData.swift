@@ -62,11 +62,15 @@ struct MokuroData: Sendable {
 
     /// The page whose `img_path` equals `path` or a trailing sub-path of it.
     private func page(forArchivePath path: String) -> MokuroPage? {
-        if let page = pagesByPath[path] { return page }
+        if let page = pagesByPath[path] {
+            return page
+        }
         var rest = Substring(path)
         while let slash = rest.firstIndex(of: "/") {
             rest = rest[rest.index(after: slash)...]
-            if let page = pagesByPath[String(rest)] { return page }
+            if let page = pagesByPath[String(rest)] {
+                return page
+            }
         }
         return nil
     }

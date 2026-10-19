@@ -208,8 +208,7 @@ public final class DictionaryPersistenceController: Sendable {
     /// The completion marker is written only after all copy work succeeds.
     /// - Parameter baseDirectory: The app group container URL to seed into.
     public static func seedBundledDatabaseIfNeeded(to baseDirectory: URL?) async {
-        guard let baseDirectory else { return }
-        guard isBundledDatabaseSeedingNeeded(at: baseDirectory)
+        guard let baseDirectory, isBundledDatabaseSeedingNeeded(at: baseDirectory)
             || isBundledTokenizerSeedingNeeded(at: baseDirectory)
         else {
             return
@@ -453,9 +452,10 @@ public final class DictionaryPersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
+    @MainActor
     public extension DictionaryPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: DictionaryPersistenceController = .init(
+        static let preview: DictionaryPersistenceController = .init(
             container: CoreDataTestFactory.makePersistentContainer(
                 name: "MaruDictionary",
                 bundle: Bundle(for: DictionaryPersistenceController.self),

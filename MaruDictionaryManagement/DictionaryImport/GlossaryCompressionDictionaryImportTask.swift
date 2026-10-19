@@ -53,11 +53,7 @@ struct GlossaryCompressionDictionaryImportTask {
     }
 
     func start() async throws -> GlossaryCompressionCodecVersion {
-        guard glossaryCompressionVersion == .zstdRuntimeV1 else {
-            return glossaryCompressionVersion
-        }
-
-        guard !bankPaths.termBanks.isEmpty else {
+        guard glossaryCompressionVersion == .zstdRuntimeV1, !bankPaths.termBanks.isEmpty else {
             return glossaryCompressionVersion
         }
 

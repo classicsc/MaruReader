@@ -309,8 +309,7 @@ final class ReaderPreferences {
             } catch {
                 return
             }
-            guard let self else { return }
-            guard self.context.hasChanges else { return }
+            guard let self, self.context.hasChanges else { return }
             do {
                 try context.save()
             } catch {

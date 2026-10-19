@@ -93,10 +93,7 @@ struct MaruReaderApp: App {
     }
 
     private var shouldShowContentView: Bool {
-        guard startupPreparationCoordinator.errorMessage == nil else {
-            return false
-        }
-        guard startupPreparationCoordinator.isContentAvailable else {
+        guard startupPreparationCoordinator.errorMessage == nil, startupPreparationCoordinator.isContentAvailable else {
             return false
         }
         if startupPreparationCoordinator.requiresWelcomeScreen {

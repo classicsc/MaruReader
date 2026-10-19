@@ -583,9 +583,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         """
 
         let result = try await page.callJavaScript(script)
-        guard let dictionary = result as? [String: Any] else { return nil }
-
-        guard let scrollX = doubleValue(dictionary["scrollX"]),
+        guard let dictionary = result as? [String: Any], let scrollX = doubleValue(dictionary["scrollX"]),
               let scrollY = doubleValue(dictionary["scrollY"]),
               let width = doubleValue(dictionary["width"]),
               let height = doubleValue(dictionary["height"])

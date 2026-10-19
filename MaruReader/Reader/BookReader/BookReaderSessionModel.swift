@@ -301,9 +301,7 @@ final class BookReaderSessionModel {
     }
 
     private var bookCoverURL: URL? {
-        guard let coverFileName = bookSnapshot.coverFileName else { return nil }
-
-        guard let appSupportDir = try? FileManager.default.url(
+        guard let coverFileName = bookSnapshot.coverFileName, let appSupportDir = try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,

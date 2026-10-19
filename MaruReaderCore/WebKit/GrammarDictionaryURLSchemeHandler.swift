@@ -101,11 +101,7 @@ public final actor GrammarDictionaryURLSchemeHandler: URLSchemeHandler {
         guard let installDirectory = GrammarDictionaryStorage.installedDirectoryURL(
             grammarDictionaryID: identifiers.dictionaryID,
             in: baseDirectory
-        ) else {
-            return Self.createNotFoundResponse()
-        }
-
-        guard let entry = try await fetchEntry(
+        ), let entry = try await fetchEntry(
             dictionaryID: identifiers.dictionaryID,
             entryID: identifiers.entryID
         ) else {
@@ -193,11 +189,7 @@ public final actor GrammarDictionaryURLSchemeHandler: URLSchemeHandler {
                 entryID
             )
 
-            guard let entry = try context.fetch(request).first else {
-                return nil
-            }
-
-            guard let title = entry.title, let path = entry.path else {
+            guard let entry = try context.fetch(request).first, let title = entry.title, let path = entry.path else {
                 return nil
             }
 

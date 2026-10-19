@@ -128,9 +128,10 @@ public final class MangaDataPersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
+    @MainActor
     extension MangaDataPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: MangaDataPersistenceController = .init(
+        static let preview: MangaDataPersistenceController = .init(
             container: CoreDataTestFactory.makePersistentContainer(
                 name: "MaruMangaData",
                 bundle: Bundle(for: MangaDataPersistenceController.self),

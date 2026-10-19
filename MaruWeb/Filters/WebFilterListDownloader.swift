@@ -84,8 +84,7 @@ public actor WebFilterListDownloader {
         var iterator = entries.makeIterator()
         await withTaskGroup(of: (UUID, WebFilterListRefreshOutcome).self) { group in
             for _ in 0 ..< min(maxConcurrentRefreshes, entries.count) {
-                guard !Task.isCancelled else { break }
-                guard let entry = iterator.next() else { break }
+                guard !Task.isCancelled, let entry = iterator.next() else { break }
                 group.addTask { [self] in
                     await (entry.id, refresh(entry: entry, force: force))
                 }

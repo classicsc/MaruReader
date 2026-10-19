@@ -95,8 +95,7 @@ struct AnkiMobileSetupView: View {
             }
         }
         .onOpenURL { url in
-            guard isAwaitingInfoForAdding else { return }
-            guard let expectedReturnURL, url == expectedReturnURL else { return }
+            guard isAwaitingInfoForAdding, let expectedReturnURL, url == expectedReturnURL else { return }
             handleInfoForAddingReturn()
         }
     }

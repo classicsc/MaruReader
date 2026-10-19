@@ -151,11 +151,7 @@ enum AnkiFieldValueFormatter {
     }
 
     private static func dataURL(for fileURL: URL) -> String? {
-        guard let mimeType = mediaMimeType(for: fileURL) else {
-            return nil
-        }
-
-        guard let data = try? Data(contentsOf: fileURL) else {
+        guard let mimeType = mediaMimeType(for: fileURL), let data = try? Data(contentsOf: fileURL) else {
             return nil
         }
 

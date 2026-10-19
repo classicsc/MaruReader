@@ -125,11 +125,7 @@ public enum AnkiStyleProvider {
             .appendingPathComponent(dictionaryUUID.uuidString, isDirectory: true)
             .appendingPathComponent("styles.css", isDirectory: false)
 
-        guard (try? stylesheetURL.checkResourceIsReachable()) == true else {
-            return nil
-        }
-
-        guard let data = try? Data(contentsOf: stylesheetURL) else {
+        guard (try? stylesheetURL.checkResourceIsReachable()) == true, let data = try? Data(contentsOf: stylesheetURL) else {
             return nil
         }
 

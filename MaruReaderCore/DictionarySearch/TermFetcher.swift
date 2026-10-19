@@ -82,11 +82,7 @@ enum TermFetcher {
             }
 
             for candidate in matchingCandidates {
-                guard let dictMetadata = dictionaryMetadata[dictionaryID] else {
-                    continue
-                }
-
-                guard let validatedPaths = Self.validateDeconjugationPaths(
+                guard let dictMetadata = dictionaryMetadata[dictionaryID], let validatedPaths = Self.validateDeconjugationPaths(
                     candidate: candidate,
                     entryRulesRaw: entry.rules,
                     logger: logger,

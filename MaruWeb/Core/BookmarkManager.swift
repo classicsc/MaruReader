@@ -118,11 +118,9 @@ actor WebBookmarkManager {
             var needsSave = false
             bookmark.lastVisitedAt = Date()
             needsSave = true
-            if let title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                if bookmark.title != title {
-                    bookmark.title = title
-                    needsSave = true
-                }
+            if let title, !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, bookmark.title != title {
+                bookmark.title = title
+                needsSave = true
             }
             if let favicon, bookmark.favicon != favicon {
                 bookmark.favicon = favicon

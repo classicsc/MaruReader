@@ -874,22 +874,16 @@ public actor MangaImportManager {
     static func cleanupMangaFiles(localPath: URL?, coverImage: URL?, mokuroFile: URL? = nil) {
         let fileManager = FileManager.default
 
-        if let localPath {
-            if fileManager.fileExists(atPath: localPath.path) {
-                try? fileManager.removeItem(at: localPath)
-            }
+        if let localPath, fileManager.fileExists(atPath: localPath.path) {
+            try? fileManager.removeItem(at: localPath)
         }
 
-        if let coverImage {
-            if fileManager.fileExists(atPath: coverImage.path) {
-                try? fileManager.removeItem(at: coverImage)
-            }
+        if let coverImage, fileManager.fileExists(atPath: coverImage.path) {
+            try? fileManager.removeItem(at: coverImage)
         }
 
-        if let mokuroFile {
-            if fileManager.fileExists(atPath: mokuroFile.path) {
-                try? fileManager.removeItem(at: mokuroFile)
-            }
+        if let mokuroFile, fileManager.fileExists(atPath: mokuroFile.path) {
+            try? fileManager.removeItem(at: mokuroFile)
         }
     }
 }

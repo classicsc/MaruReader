@@ -48,10 +48,7 @@ struct MediaCopyProcessingTask {
 
         // Get job information from Core Data
         let dictionaryID: UUID = try await context.perform {
-            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
-                throw DictionaryImportError.databaseError
-            }
-            guard let dictionaryID = dictionary.id else {
+            guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary, let dictionaryID = dictionary.id else {
                 throw DictionaryImportError.databaseError
             }
 

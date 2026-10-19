@@ -53,8 +53,7 @@ public enum SearchEngine: Codable, Equatable, Sendable {
     }
 
     func suggestionsURL(for query: String) -> URL? {
-        guard let template = suggestionsTemplate else { return nil }
-        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+        guard let template = suggestionsTemplate, let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
             return nil
         }
         let urlString = template.replacingOccurrences(of: "%s", with: encoded)

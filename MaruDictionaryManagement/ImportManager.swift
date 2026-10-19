@@ -2299,8 +2299,7 @@ public actor ImportManager {
             guard let dictionary = try? context.existingObject(with: jobID) as? Dictionary else {
                 throw DictionaryImportError.databaseError
             }
-            guard let dictionaryID = dictionary.id else { return false }
-            guard let baseDir else { return false }
+            guard let dictionaryID = dictionary.id, let baseDir else { return false }
             let mediaDir = baseDir.appendingPathComponent("Media").appendingPathComponent(dictionaryID.uuidString)
             return FileManager.default.fileExists(atPath: mediaDir.path)
         }

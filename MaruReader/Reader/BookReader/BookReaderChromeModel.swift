@@ -65,8 +65,7 @@ final class BookReaderChromeModel {
     }
 
     func progressDisplayText(for locator: Locator?) -> String? {
-        guard let locator else { return nil }
-        guard let displayMode = resolvedProgressDisplayMode(for: locator) else { return nil }
+        guard let locator, let displayMode = resolvedProgressDisplayMode(for: locator) else { return nil }
 
         switch displayMode {
         case .book:

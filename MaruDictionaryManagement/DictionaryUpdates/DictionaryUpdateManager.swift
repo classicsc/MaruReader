@@ -196,10 +196,7 @@ public actor DictionaryUpdateManager {
         context.shouldDeleteInaccessibleFaults = true
 
         let taskID = try await context.perform {
-            guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary else {
-                throw DictionaryImportError.importNotFound
-            }
-            guard dictionary.isComplete, dictionary.updateReady else {
+            guard let dictionary = try? context.existingObject(with: dictionaryID) as? Dictionary, dictionary.isComplete, dictionary.updateReady else {
                 throw DictionaryImportError.importNotFound
             }
             guard let dictionaryUUID = dictionary.id else {
@@ -260,10 +257,7 @@ public actor DictionaryUpdateManager {
         context.shouldDeleteInaccessibleFaults = true
 
         let taskID = try await context.perform {
-            guard let tokenizerDictionary = try? context.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary else {
-                throw TokenizerDictionaryImportError.importNotFound
-            }
-            guard tokenizerDictionary.isComplete, tokenizerDictionary.updateReady, tokenizerDictionary.isCurrent else {
+            guard let tokenizerDictionary = try? context.existingObject(with: tokenizerDictionaryID) as? TokenizerDictionary, tokenizerDictionary.isComplete, tokenizerDictionary.updateReady, tokenizerDictionary.isCurrent else {
                 throw TokenizerDictionaryImportError.importNotFound
             }
             guard let tokenizerUUID = tokenizerDictionary.id else {

@@ -319,9 +319,7 @@ struct BookGridItem: View {
     let onRemove: () -> Void
 
     private var coverImage: UIImage? {
-        guard let coverFileName = book.coverFileName else { return nil }
-
-        guard let appSupportDir = try? FileManager.default.url(
+        guard let coverFileName = book.coverFileName, let appSupportDir = try? FileManager.default.url(
             for: .applicationSupportDirectory,
             in: .userDomainMask,
             appropriateFor: nil,

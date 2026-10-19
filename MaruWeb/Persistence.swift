@@ -139,9 +139,10 @@ final class WebDataPersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
+    @MainActor
     extension WebDataPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: WebDataPersistenceController = .init(
+        static let preview: WebDataPersistenceController = .init(
             container: CoreDataTestFactory.makePersistentContainer(
                 name: "MaruWebData",
                 bundle: Bundle(for: WebDataPersistenceController.self),

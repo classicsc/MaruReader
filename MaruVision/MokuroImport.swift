@@ -126,10 +126,7 @@ public enum MokuroClusterConverter {
         }
         guard !points.isEmpty,
               let minX = points.map(\.x).min(), let maxX = points.map(\.x).max(),
-              let minY = points.map(\.y).min(), let maxY = points.map(\.y).max()
-        else { return nil }
-
-        guard imageSize.width > 0, imageSize.height > 0 else { return nil }
+              let minY = points.map(\.y).min(), let maxY = points.map(\.y).max(), imageSize.width > 0, imageSize.height > 0 else { return nil }
 
         let pixelRect = CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
         guard pixelRect.width > 0, pixelRect.height > 0 else { return nil }

@@ -342,11 +342,7 @@ struct AnkiConnectProvider: AnkiProvider {
             // The result is [AnkiConnectResponse<[String]>]
             let multiResponse: AnkiConnectResponse<[AnkiConnectResponse<[String]>]> = try await send(multiRequest)
 
-            guard let fieldResponses = multiResponse.result else {
-                throw AnkiConnectError.invalidResponse
-            }
-
-            guard fieldResponses.count == sortedModels.count else {
+            guard let fieldResponses = multiResponse.result, fieldResponses.count == sortedModels.count else {
                 throw AnkiConnectError.invalidResponse
             }
 

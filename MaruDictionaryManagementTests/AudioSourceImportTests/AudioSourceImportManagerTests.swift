@@ -508,11 +508,7 @@ struct AudioSourceImportManagerTests {
         let fileManager = FileManager.default
         guard let appGroupDir = fileManager.containerURL(
             forSecurityApplicationGroupIdentifier: DictionaryPersistenceController.appGroupIdentifier
-        ) else {
-            return
-        }
-
-        guard let sourceID = source?.id else {
+        ), let sourceID = source?.id else {
             return
         }
 

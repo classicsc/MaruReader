@@ -258,8 +258,7 @@ final class WebViewerViewModel {
     }
 
     func switchToTab(id: UUID) {
-        guard tabs.contains(where: { $0.id == id }) else { return }
-        guard selectedTabID != id else { return }
+        guard tabs.contains(where: { $0.id == id }), selectedTabID != id else { return }
         selectedTabID = id
         readingModeEnabled = false
         showBoundingBoxes = false
@@ -406,9 +405,7 @@ final class WebViewerViewModel {
 
     /// Captures a viewport snapshot and runs OCR, caching the results for subsequent taps.
     func captureAndRunOCR(viewSize: CGSize) async {
-        guard !ocrViewModel.isProcessing else { return }
-        guard viewSize.width > 0, viewSize.height > 0 else { return }
-        guard let page else { return }
+        guard !ocrViewModel.isProcessing, viewSize.width > 0, viewSize.height > 0, let page else { return }
 
         do {
             let imageData = try await captureViewportSnapshot(page: page, viewportSize: viewSize)
@@ -424,9 +421,7 @@ final class WebViewerViewModel {
     /// If no cached results exist, captures and runs OCR first.
     /// Returns the matched cluster wrapped in a lookup selection, or nil.
     func lookupCluster(at location: CGPoint, in viewSize: CGSize) async -> WebLookupSelection? {
-        guard !ocrViewModel.isProcessing else { return nil }
-        guard viewSize.width > 0, viewSize.height > 0 else { return nil }
-        guard page != nil else { return nil }
+        guard !ocrViewModel.isProcessing, viewSize.width > 0, viewSize.height > 0, page != nil else { return nil }
 
         // If no cached results, capture and run OCR first
         if ocrViewModel.clusters.isEmpty {
@@ -610,8 +605,7 @@ final class WebViewerViewModel {
     }
 
     nonisolated static func viewportInfo(from result: Any?) -> ViewportInfo? {
-        guard let dictionary = result as? [String: Any] else { return nil }
-        guard let scrollX = doubleValue(dictionary["scrollX"]),
+        guard let dictionary = result as? [String: Any], let scrollX = doubleValue(dictionary["scrollX"]),
               let scrollY = doubleValue(dictionary["scrollY"]),
               let width = doubleValue(dictionary["width"]),
               let height = doubleValue(dictionary["height"])

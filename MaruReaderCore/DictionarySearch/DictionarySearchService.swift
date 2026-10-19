@@ -264,8 +264,7 @@ public struct DictionarySearchService: Sendable {
     }
 
     private static func extractQueryInfo(from request: TextLookupRequest) -> (text: String, startIndex: String.Index)? {
-        guard request.offset >= 0 else { return nil }
-        guard request.offset <= request.context.count else { return nil }
+        guard request.offset >= 0, request.offset <= request.context.count else { return nil }
 
         var startIndex = request.context.index(request.context.startIndex, offsetBy: request.offset)
         let endIndex = request.context.index(

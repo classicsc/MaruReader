@@ -120,15 +120,7 @@ actor MangaFilenameMetadataExtractor {
         let fallbackTitle = fallback.title
         let promptInput = normalizedPromptInput(for: filename)
 
-        guard !fallbackTitle.isEmpty, !promptInput.isEmpty else {
-            return fallback
-        }
-
-        guard !Task.isCancelled else {
-            return fallback
-        }
-
-        guard isModelAvailable else {
+        guard !fallbackTitle.isEmpty, !promptInput.isEmpty, !Task.isCancelled, isModelAvailable else {
             return fallback
         }
 

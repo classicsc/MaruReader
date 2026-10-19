@@ -227,8 +227,7 @@ final class MangaReaderViewModel {
 
     /// Loads a specific page's data
     func loadPage(at index: Int) async {
-        guard pageProvider != nil else { return }
-        guard index >= 0, index < pageCount else { return }
+        guard pageProvider != nil, index >= 0, index < pageCount else { return }
 
         if renderedPageCache[index] != nil {
             pageLoadingStates[index] = .loaded

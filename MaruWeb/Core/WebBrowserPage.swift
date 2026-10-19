@@ -221,8 +221,7 @@ final class WebBrowserPage {
         faviconFetchTask = Task { [weak self] in
             guard let self else { return }
             let data = await self.resolveFaviconData(for: currentURL)
-            guard !Task.isCancelled else { return }
-            guard self.url == currentURL else { return }
+            guard !Task.isCancelled, self.url == currentURL else { return }
             self.faviconData = data
         }
     }
@@ -274,10 +273,7 @@ final class WebBrowserPage {
         for entry in linkEntries {
             guard let href = entry["href"] as? String else { continue }
             let rel = (entry["rel"] as? String ?? "").lowercased()
-            guard rel.contains("icon") else { continue }
-
-            guard let resolvedURL = URL(string: href, relativeTo: baseURL)?.absoluteURL else { continue }
-            guard let scheme = resolvedURL.scheme?.lowercased(),
+            guard rel.contains("icon"), let resolvedURL = URL(string: href, relativeTo: baseURL)?.absoluteURL, let scheme = resolvedURL.scheme?.lowercased(),
                   scheme == "http" || scheme == "https"
             else {
                 continue
@@ -342,8 +338,7 @@ final class WebBrowserPage {
     ) async -> Data? {
         for url in candidateURLs {
             guard !Task.isCancelled else { return nil }
-            guard let data = try? await fetchFaviconData(from: url, maxDownloadBytes: maxDownloadBytes) else { continue }
-            guard let normalized = normalizeFavicon(data, targetSize: targetSize) else { continue }
+            guard let data = try? await fetchFaviconData(from: url, maxDownloadBytes: maxDownloadBytes), let normalized = normalizeFavicon(data, targetSize: targetSize) else { continue }
             return normalized
         }
         return nil
@@ -720,8 +715,7 @@ private final class DelegateProxy: NSObject, WKNavigationDelegate, WKUIDelegate 
         for navigationAction: WKNavigationAction,
         windowFeatures _: WKWindowFeatures
     ) -> WKWebView? {
-        guard navigationAction.targetFrame == nil else { return nil }
-        guard let url = navigationAction.request.url,
+        guard navigationAction.targetFrame == nil, let url = navigationAction.request.url,
               WebBrowserPage.allowsNewTab(url: url),
               popupThrottle.allows(),
               !contentBlocker.blocksNavigation(

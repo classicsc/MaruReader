@@ -485,12 +485,12 @@ public struct TextClusterer: Sendable {
                     if configuration.verboseLogging {
                         logger.debug("EDGE: \(features[i].debugID) <-> \(features[j].debugID)")
                     }
-                } else if configuration.verboseLogging {
-                    // Only log rejections between spatially close observations to reduce noise
-                    if areSpatiallyClose(features[i], features[j]) {
-                        logger.debug("NO EDGE: \(features[i].debugID) <-> \(features[j].debugID): \(result.reason?.description ?? "unknown")")
-                        logDetailedComparison(last: features[i], candidate: features[j])
-                    }
+                } else if configuration.verboseLogging,
+                          // Only log rejections between spatially close observations to reduce noise
+                          areSpatiallyClose(features[i], features[j])
+                {
+                    logger.debug("NO EDGE: \(features[i].debugID) <-> \(features[j].debugID): \(result.reason?.description ?? "unknown")")
+                    logDetailedComparison(last: features[i], candidate: features[j])
                 }
             }
         }

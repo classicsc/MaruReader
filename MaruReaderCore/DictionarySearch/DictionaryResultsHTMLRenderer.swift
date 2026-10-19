@@ -195,8 +195,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
         var scopedStyles: [String] = []
 
         for dictionary in dictionaries {
-            guard seen.insert(dictionary.id).inserted else { continue }
-            guard let stylesheet = stylesheetProvider(dictionary.id) else { continue }
+            guard seen.insert(dictionary.id).inserted, let stylesheet = stylesheetProvider(dictionary.id) else { continue }
 
             // Sanitize to prevent script injection (GHSA-g3p8-q34q-x686)
             let sanitizedStylesheet = CSSSanitizer.sanitize(stylesheet)
@@ -227,11 +226,7 @@ public struct DictionaryResultsHTMLRenderer: Sendable {
             .appendingPathComponent(dictionaryID.uuidString, isDirectory: true)
             .appendingPathComponent("styles.css", isDirectory: false)
 
-        guard (try? stylesheetURL.checkResourceIsReachable()) == true else {
-            return nil
-        }
-
-        guard let data = try? Data(contentsOf: stylesheetURL) else {
+        guard (try? stylesheetURL.checkResourceIsReachable()) == true, let data = try? Data(contentsOf: stylesheetURL) else {
             return nil
         }
 

@@ -128,10 +128,11 @@ public final class AnkiPersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
+    @MainActor
     public extension AnkiPersistenceController {
         /// SQLite-backed controller for SwiftUI previews because composite attributes
         /// are not supported by Core Data's atomic/in-memory stores.
-        @MainActor static let preview: AnkiPersistenceController = .init(
+        static let preview: AnkiPersistenceController = .init(
             container: CoreDataTestFactory.makePersistentContainer(
                 name: "MaruAnki",
                 bundle: Bundle(for: AnkiPersistenceController.self),

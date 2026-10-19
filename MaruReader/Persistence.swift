@@ -130,9 +130,10 @@ final class BookDataPersistenceController: Sendable {
 // MARK: - Preview Support
 
 #if DEBUG
+    @MainActor
     extension BookDataPersistenceController {
         /// In-memory controller for SwiftUI previews
-        @MainActor static let preview: BookDataPersistenceController = .init(
+        static let preview: BookDataPersistenceController = .init(
             container: CoreDataTestFactory.makePersistentContainer(
                 name: "MaruBookData",
                 bundle: Bundle(for: BookDataPersistenceController.self),
