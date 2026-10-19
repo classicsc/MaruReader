@@ -75,7 +75,7 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         controller.addUserScript(makeDictionaryLocalizedStringsScript())
         configuration.userContentController = controller
         popupPage = WebPage(configuration: configuration)
-        Task { [ankiSchemeHandler] in
+        Task { [weak self, ankiSchemeHandler] in
             await ankiSchemeHandler.setEditHandler { [weak self] context in
                 guard let self else { return }
                 Task { @MainActor in self.openAnkiEditor(context) }
