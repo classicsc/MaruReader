@@ -33,11 +33,8 @@ struct MaruReaderApp: App {
 
     init() {
         if Self.isScreenshotMode {
+            // TourManager.startIfNeeded also refuses to start any tour in screenshot mode.
             TourManager.resetAllTours()
-            // Pre-mark all tours as completed so they don't appear.
-            for tourID in ["bookReader", "mangaReader", "webViewerToolbar"] {
-                UserDefaults.standard.set(Date(), forKey: "tour.\(tourID).completed")
-            }
         }
 
         _startupPreparationCoordinator = State(initialValue: StartupPreparationCoordinator())

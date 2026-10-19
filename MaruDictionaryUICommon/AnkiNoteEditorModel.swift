@@ -144,7 +144,7 @@ final class AnkiNoteEditorModel {
         let state = await submitDraft(draft)
         isSubmitting = false
         if state == "error" {
-            errorMessage = String(localized: "The note could not be added. Check the Anki connection and try again.")
+            errorMessage = String(localized: "The note could not be added. Check the Anki connection and try again.", bundle: .dictionaryUICommon)
             return false
         }
         onFinished(state)
@@ -261,7 +261,7 @@ extension TemplateResolvedValue {
         let isAudio = media.pathExtension.isEmpty
             ? mediaFiles.keys.first?.hasPrefix("audio") == true
             : ["mp3", "m4a", "aac", "wav", "ogg", "opus", "flac", "caf"].contains(media.pathExtension.lowercased())
-        return isAudio ? String(localized: "Audio clip") : String(localized: "Image")
+        return isAudio ? String(localized: "Audio clip", bundle: .dictionaryUICommon) : String(localized: "Image", bundle: .dictionaryUICommon)
     }
 }
 

@@ -34,15 +34,15 @@ struct DictionarySearchResultsView: View {
                 )
             case let .noResults(query):
                 ContentUnavailableView(
-                    "No Results",
+                    String(localized: "No Results", bundle: .dictionaryUICommon),
                     systemImage: "magnifyingglass",
-                    description: Text("No results found for \"\(query)\"")
+                    description: Text(String(localized: "No results found for \"\(query)\"", bundle: .dictionaryUICommon))
                 )
             case .startPage:
                 ContentUnavailableView(
-                    "Start a Search",
+                    String(localized: "Start a Search", bundle: .dictionaryUICommon),
                     systemImage: "book",
-                    description: Text("Enter text to search the dictionary.")
+                    description: Text(String(localized: "Enter text to search the dictionary.", bundle: .dictionaryUICommon))
                 )
             case let .error(error):
                 ContentUnavailableView(

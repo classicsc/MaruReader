@@ -860,7 +860,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "検索元に応じて、Context Image テンプレート値に使用する画像を選択します。"
+            "value" : "検索元に応じて、文脈画像テンプレート値に使用する画像を選択します。"
           }
         }
       }
@@ -1084,7 +1084,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Context Image"
+            "value" : "文脈画像"
           }
         }
       }
@@ -1096,7 +1096,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Context Image 設定"
+            "value" : "文脈画像の設定"
           }
         }
       }

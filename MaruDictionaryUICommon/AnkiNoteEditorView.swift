@@ -48,12 +48,12 @@ struct AnkiNoteEditorView: View {
                 }
             } footer: {
                 if model.isDuplicate {
-                    Text("Anki already has a note for this term. Adding it again creates a duplicate.")
+                    Text(String(localized: "Anki already has a note for this term. Adding it again creates a duplicate.", bundle: .dictionaryUICommon))
                 }
             }
 
             if !model.automaticFields.isEmpty {
-                Section("Filled automatically") {
+                Section(String(localized: "Filled automatically", bundle: .dictionaryUICommon)) {
                     ForEach(model.automaticFields) { field in
                         NavigationLink {
                             AnkiNoteFieldDetailView(model: model, fieldName: field.name)
@@ -65,7 +65,7 @@ struct AnkiNoteEditorView: View {
                 }
             }
         }
-        .navigationTitle("Edit Note")
+        .navigationTitle(String(localized: "Edit Note", bundle: .dictionaryUICommon))
         .navigationSubtitle(model.termGroup.displayTerm)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -73,7 +73,7 @@ struct AnkiNoteEditorView: View {
                 if model.isSubmitting {
                     ProgressView()
                 } else {
-                    Button(model.isDuplicate ? "Add Duplicate" : "Add") {
+                    Button(model.isDuplicate ? String(localized: "Add Duplicate", bundle: .dictionaryUICommon) : String(localized: "Add")) {
                         // Pops itself: when this view is nested in another pushed destination,
                         // its presentation binding going false no longer pops it.
                         Task {
@@ -85,7 +85,7 @@ struct AnkiNoteEditorView: View {
                 }
             }
         }
-        .alert("Couldn't Add Note", isPresented: Binding(
+        .alert(String(localized: "Couldn't Add Note", bundle: .dictionaryUICommon), isPresented: Binding(
             get: { model.errorMessage != nil },
             set: {
                 if !$0 {
@@ -148,7 +148,7 @@ struct AnkiNoteFieldRow: View {
                 if let audioValue, let source = model.audioSource(for: audioValue) {
                     Label(source.displayName, systemImage: "speaker.wave.2")
                 } else if field.previewText.isEmpty {
-                    Text("Empty")
+                    Text(String(localized: "Empty", bundle: .dictionaryUICommon))
                         .foregroundStyle(.tertiary)
                 } else {
                     Text(field.previewText)
@@ -182,7 +182,7 @@ struct AudioPlayButton: View {
                 .font(.title2)
         }
         .buttonStyle(.borderless)
-        .accessibilityLabel(player.playingURL == url ? Text("Stop") : Text("Play"))
+        .accessibilityLabel(player.playingURL == url ? Text(String(localized: "Stop", bundle: .dictionaryUICommon)) : Text(String(localized: "Play", bundle: .dictionaryUICommon)))
     }
 }
 

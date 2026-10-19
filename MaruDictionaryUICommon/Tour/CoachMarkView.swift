@@ -41,14 +41,14 @@ struct CoachMarkView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack {
-                Text("\(stepNumber) of \(totalSteps)")
+                Text(String(localized: "\(stepNumber) of \(totalSteps)", bundle: .dictionaryUICommon))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
 
                 Spacer()
 
                 if !isLastStep {
-                    Button("Skip") {
+                    Button(String(localized: "Skip", bundle: .dictionaryUICommon)) {
                         onSkip()
                     }
                     .font(.subheadline)

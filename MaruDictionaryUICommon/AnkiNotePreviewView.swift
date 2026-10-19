@@ -29,7 +29,7 @@ struct AnkiNotePreview: View {
         if !html.isEmpty {
             AnkiHTMLPreview(html: html)
         } else if text.isEmpty {
-            Text("Empty").foregroundStyle(.tertiary)
+            Text(String(localized: "Empty", bundle: .dictionaryUICommon)).foregroundStyle(.tertiary)
         } else {
             Text(text)
         }

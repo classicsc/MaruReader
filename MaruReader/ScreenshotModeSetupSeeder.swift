@@ -48,6 +48,10 @@ actor ScreenshotModeSetupSeeder {
         self.dictionaryPersistence = dictionaryPersistence
     }
 
+    private static let screenshotFieldNames: Set<String> = [
+        "Expression", "ExpressionReading", "Sentence", "MainDefinition", "Picture",
+    ]
+
     func seedAnkiLapisConfiguration() async throws {
         let dictionaryID = try await firstAvailableDictionaryID()
         let profileID = try await saveConfiguredLapisProfile(dictionaryID: dictionaryID)
@@ -85,9 +89,13 @@ actor ScreenshotModeSetupSeeder {
             cardType: .vocabularyCard
         )
 
-        let fieldMap = template.buildFieldMap(
+        // A short field list keeps the note editor readable in App Store captures.
+        let fullFieldMap = template.buildFieldMap(
             mainDefinitionDictionaryID: dictionaryID,
             cardType: .vocabularyCard
+        )
+        let fieldMap = AnkiFieldMap(
+            map: fullFieldMap.map.filter { Self.screenshotFieldNames.contains($0.key) }
         )
 
         return try await SystemProfileManager.saveConfiguredProfile(

@@ -153,7 +153,7 @@ struct ContextDisplayView: View {
             HStack {
                 Spacer()
                 Button(action: { onCommitEdit?() }) {
-                    Text("Done Editing")
+                    Text(String(localized: "Done Editing", bundle: .dictionaryUICommon))
                         .font(.subheadline.weight(.medium))
                 }
                 .buttonStyle(.borderedProminent)
@@ -264,7 +264,7 @@ struct ContextDisplayView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(accessibilityLabel(for: character))
-        .accessibilityHint("Start dictionary lookup from this character")
+        .accessibilityHint(String(localized: "Start dictionary lookup from this character", bundle: .dictionaryUICommon))
     }
 
     private func contentWidth(for containerWidth: CGFloat) -> CGFloat {

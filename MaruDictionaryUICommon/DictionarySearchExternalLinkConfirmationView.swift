@@ -25,11 +25,11 @@ struct DictionarySearchExternalLinkConfirmationView: View {
 
     var body: some View {
         VStack(alignment: .center, spacing: 12) {
-            Text("Open \(url?.host ?? url?.absoluteString ?? "link") in browser?")
+            Text(String(localized: "Open \(url?.host ?? url?.absoluteString ?? "link") in browser?", bundle: .dictionaryUICommon))
                 .font(.subheadline)
                 .foregroundStyle(themedSecondaryColor)
 
-            Button("Open", action: onOpen)
+            Button(String(localized: "Open", bundle: .dictionaryUICommon), action: onOpen)
         }
         .padding()
         .foregroundStyle(themedForegroundColor)

@@ -12,7 +12,7 @@ SCREENSHOT_EXPORT_STEMS=(
   "01-BookDictionary"
   "02-MangaDictionary"
   "04-WebDictionary"
-  "05-AnkiSettings"
+  "05-AnkiNoteEditor"
   "06-DictionarySettings"
 )
 
@@ -21,6 +21,7 @@ SCREENSHOT_EXPORT_STEMS=(
 # or from `xcrun simctl list devicetypes`.
 simulators=(
   "iPhone 17 Pro Max"
+  "iPhone Duo"
   "iPad Air 11-inch (M3)"
 )
 
@@ -38,72 +39,41 @@ require_command() {
   fi
 }
 
-require_screenshot_stem() {
-  local filename="$1"
-  local stem
-
-  stem="$(
-    printf '%s\n' "$filename" \
-      | sed -nE 's/.* - [0-9]+-([0-9]{2}-[A-Za-z0-9-]+)_0_.*/\1/p'
-  )"
-
-  if [[ -n "$stem" ]]; then
-    printf '%s\n' "$stem"
-    return 0
-  fi
-
-  echo "Unable to determine screenshot stem from: $filename" >&2
-  exit 1
-}
-
-normalize_locale_dir() {
-  local locale_dir="$1"
-
-  if [[ "$locale_dir" =~ ^([a-z]{2})\ \(([A-Z]{2})\)$ ]]; then
-    printf '%s-%s\n' "${BASH_REMATCH[1]}" "${BASH_REMATCH[2]}"
-    return 0
-  fi
-
-  echo "Unsupported locale directory from xcparse output: $locale_dir" >&2
-  exit 1
-}
-
+# Copies the screenshot attachments in an xcresult bundle to <output>/<locale>/<stem>.png.
+# Test plan configurations map to locales through the plan's language and region options.
 normalize_exported_screenshots() {
-  local extracted_dir="$1"
+  local result_bundle_path="$1"
   local output_dir="$2"
-  local locale_output_dir
-  local locale_dir
-  local normalized_locale
-  local screenshot_file
-  local screenshot_stem
-  local expected_stem
-  local expected_path
+  local extracted_dir="$3"
 
-  while IFS= read -r screenshot_file; do
-    locale_dir="$(basename "$(dirname "$screenshot_file")")"
-    normalized_locale="$(normalize_locale_dir "$locale_dir")"
-    locale_output_dir="$output_dir/$normalized_locale"
-    mkdir -p "$locale_output_dir"
+  xcrun xcresulttool export attachments --path "$result_bundle_path" --output-path "$extracted_dir" >/dev/null
 
-    screenshot_stem="$(require_screenshot_stem "$(basename "$screenshot_file")")"
-    cp "$screenshot_file" "$locale_output_dir/$screenshot_stem.png"
-  done < <(find "$extracted_dir" -type f -name '*.png' | sort)
+  python3 -I - "$ROOT_DIR/$TEST_PLAN_NAME.xctestplan" "$extracted_dir" "$output_dir" "${SCREENSHOT_EXPORT_STEMS[@]}" <<'PY'
+import json, pathlib, re, shutil, sys
 
-  for normalized_locale in "en-US" "ja-JP"; do
-    locale_output_dir="$output_dir/$normalized_locale"
-    if [[ ! -d "$locale_output_dir" ]]; then
-      echo "Expected locale output was not created: $locale_output_dir" >&2
-      exit 1
-    fi
+plan_path, extracted, output, *stems = sys.argv[1:]
+plan = json.load(open(plan_path))
+locales = {}
+for configuration in plan["configurations"]:
+    options = configuration.get("options", {})
+    locales[configuration["name"]] = f"{options['language']}-{options['region']}"
 
-    for expected_stem in "${SCREENSHOT_EXPORT_STEMS[@]}"; do
-      expected_path="$locale_output_dir/$expected_stem.png"
-      if [[ ! -f "$expected_path" ]]; then
-        echo "Missing normalized screenshot export: $expected_path" >&2
-        exit 1
-      fi
-    done
-  done
+exported = {}
+for test in json.load(open(pathlib.Path(extracted) / "manifest.json")):
+    for attachment in test.get("attachments", []):
+        match = re.search(r"-(\d{2}-[A-Za-z0-9-]+)_0_", attachment.get("suggestedHumanReadableName", ""))
+        if not match or not attachment["exportedFileName"].endswith(".png"):
+            continue
+        locale = locales[attachment["configurationName"]]
+        destination = pathlib.Path(output) / locale / f"{match.group(1)}.png"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(pathlib.Path(extracted) / attachment["exportedFileName"], destination)
+        exported[(locale, match.group(1))] = destination
+
+missing = [f"{locale}/{stem}.png" for locale in locales.values() for stem in stems if (locale, stem) not in exported]
+if missing:
+    sys.exit("Missing normalized screenshot exports: " + ", ".join(missing))
+PY
 }
 
 slugify() {
@@ -112,13 +82,26 @@ slugify() {
     | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//'
 }
 
+# The newest available iOS runtime that supports the device type; a beta runtime
+# may support only new devices such as iPhone Duo.
 resolve_ios_runtime() {
+  local device_type="$1"
   local runtime
 
-  runtime="$(xcrun simctl list runtimes available iOS | awk -F ' - ' '/^iOS / { runtime = $NF } END { print runtime }')"
+  runtime="$(
+    xcrun simctl list runtimes available iOS -j \
+      | python3 -I -c '
+import json, sys
+device_type = sys.argv[1]
+runtimes = [r for r in json.load(sys.stdin)["runtimes"] if r.get("platform") == "iOS" and r.get("isAvailable")]
+runtimes.sort(key=lambda r: [int(part) for part in r["version"].split(".")])
+supported = [r for r in runtimes if any(d["name"] == device_type for d in r.get("supportedDeviceTypes", []))]
+print(supported[-1]["identifier"] if supported else "")
+' "$device_type"
+  )"
 
   if [[ -z "$runtime" ]]; then
-    echo "No available iOS simulator runtime found." >&2
+    echo "No available iOS simulator runtime supports: $device_type" >&2
     exit 1
   fi
 
@@ -139,7 +122,7 @@ created_simulators=()
 cleanup() {
   local simulator_udid
 
-  for simulator_udid in "${created_simulators[@]}"; do
+  for simulator_udid in ${created_simulators[@]+"${created_simulators[@]}"}; do
     xcrun simctl shutdown "$simulator_udid" >/dev/null 2>&1 || true
     xcrun simctl delete "$simulator_udid" >/dev/null 2>&1 || true
   done
@@ -149,16 +132,15 @@ trap cleanup EXIT
 
 require_command xcodebuild
 require_command xcbeautify
-require_command xcparse
 require_command xcrun
-
-runtime_id="$(resolve_ios_runtime)"
+require_command python3
 
 rm -rf "$SCREENSHOT_ROOT"
 mkdir -p "$RESULTS_DIR" "$DERIVED_DATA_PATH"
 
 for simulator in "${simulators[@]}"; do
   assert_device_type_exists "$simulator"
+  runtime_id="$(resolve_ios_runtime "$simulator")"
 
   simulator_slug="$(slugify "$simulator")"
   simulator_name="MaruReader Screenshots - ${simulator} - $$"
@@ -203,8 +185,7 @@ for simulator in "${simulators[@]}"; do
       -testPlan "$TEST_PLAN_NAME" \
       test
 
-    xcparse screenshots --language --region --test-plan-config "$result_bundle_path" "$extracted_dir"
-    normalize_exported_screenshots "$extracted_dir" "$output_dir"
+    normalize_exported_screenshots "$result_bundle_path" "$output_dir" "$extracted_dir"
     rm -rf "$extracted_dir"
     xcrun simctl shutdown "$simulator_udid" >/dev/null 2>&1 || true
   done

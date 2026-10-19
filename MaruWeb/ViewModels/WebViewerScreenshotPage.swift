@@ -23,20 +23,20 @@ enum WebViewerScreenshotPage {
     <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>お花見日和 | 春の街歩きガイド</title>
+    <title>雪山だより | 冬のスキー場ガイド</title>
     <style>
     :root {
         color-scheme: light only;
-        --page-background: #f6f1e8;
-        --surface: rgba(255, 252, 247, 0.96);
-        --surface-strong: #fffdfa;
-        --border: rgba(97, 74, 57, 0.16);
-        --text-primary: #1f1b18;
-        --text-secondary: #5f534a;
-        --accent: #a94d4d;
-        --accent-soft: rgba(169, 77, 77, 0.12);
-        --accent-warm: #d9825b;
-        --shadow: 0 20px 48px rgba(65, 43, 24, 0.08);
+        --page-background: #eef3f8;
+        --surface: rgba(250, 252, 255, 0.96);
+        --surface-strong: #fbfdff;
+        --border: rgba(52, 76, 102, 0.16);
+        --text-primary: #17202a;
+        --text-secondary: #4e5b69;
+        --accent: #2f5f8f;
+        --accent-soft: rgba(47, 95, 143, 0.12);
+        --accent-warm: #6fa3c9;
+        --shadow: 0 20px 48px rgba(24, 43, 65, 0.08);
     }
 
     * { box-sizing: border-box; }
@@ -52,9 +52,9 @@ enum WebViewerScreenshotPage {
         line-height: 1.75;
         color: var(--text-primary);
         background:
-            radial-gradient(circle at top right, rgba(217, 130, 91, 0.18), transparent 28%),
-            radial-gradient(circle at left 18%, rgba(169, 77, 77, 0.12), transparent 30%),
-            linear-gradient(180deg, #fbf7f1 0%, var(--page-background) 100%);
+            radial-gradient(circle at top right, rgba(111, 163, 201, 0.22), transparent 28%),
+            radial-gradient(circle at left 18%, rgba(47, 95, 143, 0.10), transparent 30%),
+            linear-gradient(180deg, #f7fafd 0%, var(--page-background) 100%);
         -webkit-text-size-adjust: 100%;
     }
 
@@ -71,7 +71,7 @@ enum WebViewerScreenshotPage {
         border: 1px solid var(--border);
         border-radius: 28px;
         background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 248, 242, 0.96)),
+            linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(242, 247, 252, 0.96)),
             var(--surface);
         box-shadow: var(--shadow);
     }
@@ -83,7 +83,7 @@ enum WebViewerScreenshotPage {
         width: 180px;
         height: 180px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(169, 77, 77, 0.16), rgba(169, 77, 77, 0));
+        background: radial-gradient(circle, rgba(47, 95, 143, 0.16), rgba(47, 95, 143, 0));
         pointer-events: none;
     }
 
@@ -95,7 +95,7 @@ enum WebViewerScreenshotPage {
         padding: 7px 12px;
         border-radius: 999px;
         background: var(--accent-soft);
-        color: #7b3131;
+        color: #244a70;
         font-size: 13px;
         font-weight: 700;
         letter-spacing: 0.04em;
@@ -145,8 +145,8 @@ enum WebViewerScreenshotPage {
     .highlight {
         padding: 0.08em 0.38em;
         border-radius: 0.45em;
-        background: rgba(244, 221, 197, 0.95);
-        color: #4a2f21;
+        background: rgba(205, 226, 243, 0.95);
+        color: #1d3a57;
         font-weight: 700;
     }
 
@@ -166,8 +166,8 @@ enum WebViewerScreenshotPage {
     .meta-list li {
         padding: 9px 12px;
         border-radius: 999px;
-        background: #f4ede3;
-        color: #584a40;
+        background: #e6eef6;
+        color: #3f4f5f;
         font-size: 14px;
         font-weight: 600;
     }
@@ -197,9 +197,9 @@ enum WebViewerScreenshotPage {
     .section-card {
         border: 1px solid var(--border);
         border-radius: 22px;
-        background: rgba(255, 253, 250, 0.88);
+        background: rgba(251, 253, 255, 0.88);
         padding: 20px;
-        box-shadow: 0 10px 30px rgba(70, 48, 27, 0.05);
+        box-shadow: 0 10px 30px rgba(27, 48, 70, 0.05);
     }
 
     .section-card p {
@@ -222,8 +222,8 @@ enum WebViewerScreenshotPage {
         padding: 16px 18px;
         border-left: 4px solid var(--accent-warm);
         border-radius: 18px;
-        background: rgba(255, 250, 244, 0.92);
-        color: #54463c;
+        background: rgba(244, 249, 253, 0.92);
+        color: #3c4854;
         font-size: 15px;
     }
 
@@ -247,27 +247,27 @@ enum WebViewerScreenshotPage {
     <body>
     <main class="page">
         <section class="hero">
-            <div class="eyebrow">春の街歩き</div>
-            <h1>お花見日和を楽しむための、やさしい一日ガイド</h1>
-            <p class="subtitle">見上げる桜も、足元に散る花びらも、落ち着いたペースで味わえるように。人の多い名所でも心地よく過ごせる工夫をまとめました。</p>
+            <div class="eyebrow">冬の雪山ガイド</div>
+            <h1>粉雪を追いかける、北国スキー旅のすすめ</h1>
+            <p class="subtitle">日本海側の山々には、世界中のスキーヤーが憧れる軽い雪が降り積もります。初めての雪山旅でも迷わないように、行き先の選び方と過ごし方をまとめました。</p>
 
             <div class="hero-grid">
                 <article class="panel">
                     <h2>今朝の読みもの</h2>
-                    <p class="lead">川沿いの遊歩道では、淡い花びらが風に揺れ、桜がいっせいに <span class="highlight">咲き誇り</span> ます。少し早めの時間に歩き始めると、やわらかな光と静かな空気に包まれた景色をゆっくり楽しめます。</p>
+                    <p class="lead">夜のうちに降り積もった <span class="highlight">粉雪</span> が、朝いちばんのゲレンデをふわりと覆います。リフトが動き出す前に山頂へ向かうと、誰の跡もない斜面を滑り降りる贅沢を味わえます。</p>
                     <ul class="meta-list">
-                        <li>午前の散策</li>
-                        <li>高コントラスト表示</li>
-                        <li>写真映えする構図</li>
+                        <li>ニセコ・白馬・蔵王</li>
+                        <li>1月〜2月がベストシーズン</li>
+                        <li>樹氷と温泉</li>
                     </ul>
                 </article>
 
                 <aside class="panel">
                     <h2>持ちものメモ</h2>
                     <ul class="checklist">
-                        <li><strong>敷物と温かい飲み物</strong><span>日陰のベンチでもゆったり休めます。</span></li>
-                        <li><strong>薄手の上着</strong><span>夕方の川風は想像より冷たく感じます。</span></li>
-                        <li><strong>小さなおやつ</strong><span>桜餅や団子があると休憩の時間が楽しくなります。</span></li>
+                        <li><strong>ゴーグルの替えレンズ</strong><span>吹雪と晴天では、見え方が大きく変わります。</span></li>
+                        <li><strong>貼るカイロ</strong><span>リフト待ちの指先と足先を守ります。</span></li>
+                        <li><strong>温泉セット</strong><span>滑り終わったあとの楽しみは、山麓の湯です。</span></li>
                     </ul>
                 </aside>
             </div>
@@ -275,25 +275,25 @@ enum WebViewerScreenshotPage {
 
         <section class="sections">
             <article class="section-card">
-                <div class="section-kicker">Walk</div>
-                <h2>歩きやすい名所を選ぶ</h2>
-                <p>川沿い、公園の外周、駅から近い並木道など、移動しやすい場所を選ぶと短い時間でも満足感があります。</p>
+                <div class="section-kicker">Powder</div>
+                <h2>行き先を雪質で選ぶ</h2>
+                <p>北海道のニセコは軽い雪、長野の白馬は標高差のあるロングコース、山形の蔵王は樹氷の間を抜ける独特の景色が魅力です。</p>
             </article>
 
             <article class="section-card">
-                <div class="section-kicker">Rest</div>
-                <h2>混雑の前に席を整える</h2>
-                <p>座る場所を先に決めてから食べものを広げると、視線も動線も落ち着いて、景色に集中しやすくなります。</p>
+                <div class="section-kicker">Ride</div>
+                <h2>朝いちばんのリフトを狙う</h2>
+                <p>圧雪されたコースと降ったままの新雪が混ざる午前中は、同じ斜面でも滑り心地が刻々と変わります。</p>
             </article>
 
             <article class="section-card">
-                <div class="section-kicker">Light</div>
-                <h2>夕暮れの色も楽しむ</h2>
-                <p>薄桃色の花が夕方には少し深く見えます。昼と夜のあいだの短い時間帯は、印象が大きく変わるおすすめの瞬間です。</p>
+                <div class="section-kicker">Warm</div>
+                <h2>滑ったあとの温泉と郷土料理</h2>
+                <p>冷えた体を温泉で温め、芋煮やジンギスカンなど土地の味を楽しむのも雪山旅の醍醐味です。</p>
             </article>
         </section>
 
-        <p class="footer-note">静かな景色を味わいたい日は、満開の翌日よりも少し手前がおすすめです。つぼみの残る枝と開いた花が混ざることで、風景に奥行きが生まれます。</p>
+        <p class="footer-note">天気予報で「山沿いは大雪」と出た翌朝が、粉雪に出会える絶好のタイミングです。無理のない行程で、冬の山をたっぷり味わってください。</p>
     </main>
     </body>
     </html>

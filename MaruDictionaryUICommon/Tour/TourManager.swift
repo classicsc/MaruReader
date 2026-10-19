@@ -35,6 +35,8 @@ public final class TourManager {
 
     public init() {}
 
+    private static let isScreenshotMode = ProcessInfo.processInfo.arguments.contains("--screenshotMode")
+
     /// The current step being displayed, if any.
     public var currentStep: TourStep? {
         guard isActive, currentStepIndex < currentTourSteps.count else { return nil }
@@ -49,7 +51,8 @@ public final class TourManager {
     ///   or every step was seen.
     @discardableResult
     public func startIfNeeded(_ tour: (some TourDefinition).Type) -> Bool {
-        guard !isCompleted(tour) else { return false }
+        // Screenshot captures must never show a tour, including ones added later.
+        guard !Self.isScreenshotMode, !isCompleted(tour) else { return false }
         let unseen = tour.steps.filter { !hasSeen($0) }
         guard !unseen.isEmpty else { return false }
         start(tour, steps: unseen)

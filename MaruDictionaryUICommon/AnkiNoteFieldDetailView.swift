@@ -28,7 +28,7 @@ struct AnkiNoteFieldDetailView: View {
     var body: some View {
         List {
             if let field = model.field(fieldName) {
-                Section("Preview") {
+                Section(String(localized: "Preview", bundle: .dictionaryUICommon)) {
                     AnkiNotePreview(html: field.previewHTML, text: field.previewText)
                 }
 
@@ -42,12 +42,12 @@ struct AnkiNoteFieldDetailView: View {
                     NavigationLink {
                         AnkiValueTextEditorView(model: model, fieldName: fieldName, valueID: nil)
                     } label: {
-                        Label("Add Text", systemImage: "plus.circle")
+                        Label(String(localized: "Add Text", bundle: .dictionaryUICommon), systemImage: "plus.circle")
                     }
                 } header: {
-                    Text("Values")
+                    Text(String(localized: "Values", bundle: .dictionaryUICommon))
                 } footer: {
-                    Text("Tap a value to change it. Swipe left to remove it, or use Edit to reorder. Added text can include HTML tags for formatting.")
+                    Text(String(localized: "Tap a value to change it. Swipe left to remove it, or use Edit to reorder. Added text can include HTML tags for formatting.", bundle: .dictionaryUICommon))
                 }
             }
         }
@@ -57,7 +57,7 @@ struct AnkiNoteFieldDetailView: View {
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 EditButton()
-                Button("Restore") { model.restore(field: fieldName) }
+                Button(String(localized: "Restore", bundle: .dictionaryUICommon)) { model.restore(field: fieldName) }
                     .disabled(model.field(fieldName)?.isEdited != true)
             }
         }
@@ -118,7 +118,7 @@ struct AnkiNoteValueRow: View {
                 if let audioSource {
                     Text(audioSource.displayName)
                 } else if preview.isEmpty {
-                    Text("Empty").foregroundStyle(.tertiary)
+                    Text(String(localized: "Empty", bundle: .dictionaryUICommon)).foregroundStyle(.tertiary)
                 } else {
                     Text(preview)
                         .font(isHTML ? .body.monospaced() : .body)
@@ -167,9 +167,9 @@ struct AnkiValueTextEditorView: View {
                     .autocorrectionDisabled(isHTML)
             } footer: {
                 if value?.template == .reading {
-                    Text("Changing the reading clears pitch accent values in this note.")
+                    Text(String(localized: "Changing the reading clears pitch accent values in this note.", bundle: .dictionaryUICommon))
                 } else if isHTML {
-                    Text("HTML tags can be used for formatting.")
+                    Text(String(localized: "HTML tags can be used for formatting.", bundle: .dictionaryUICommon))
                 }
             }
         }

@@ -26,6 +26,10 @@ final class ScreenshotTests: XCTestCase {
 
         app = XCUIApplication()
         app.launchArguments += ["--screenshotMode", "--disableWebFilterMaintenance"]
+        // A plain tap on the Anki button opens the note editor instead of adding the note.
+        app.launchArguments += ["-anki.addButton.tapAction", "openEditor"]
+        // iPhone Duo boots in landscape; every capture is portrait.
+        XCUIDevice.shared.orientation = .portrait
         app.launch()
 
         // Wait for startup to complete and main UI to appear.
@@ -91,7 +95,7 @@ final class ScreenshotTests: XCTestCase {
         navigateToWebViewer()
 
         // In screenshot mode, the web viewer auto-triggers a dictionary lookup
-        // for "咲き誇り" after a delay to demonstrate edit-menu dictionary integration.
+        // for "粉雪" after a delay to demonstrate edit-menu dictionary integration.
         let dictionarySheet = app.otherElements["web.editMenuDictionarySheet"].firstMatch
         if !dictionarySheet.waitForExistence(timeout: 15) {
             // Fallback: long-press on text and tap the Dictionary button in the edit menu.
@@ -113,22 +117,32 @@ final class ScreenshotTests: XCTestCase {
     // MARK: - Anki Screenshots
 
     @MainActor
-    func testScreenshot_AnkiSettings() {
-        openAnkiSettings()
+    func testScreenshot_AnkiNoteEditor() {
+        openManga()
+        sleep(3)
 
-        let editConfigurationButton = button(english: "Edit Configuration", japanese: "設定を編集")
-        let manageFieldMappingsButton = button(english: "Manage Field Mappings", japanese: "フィールドマッピングを管理")
+        let dictionarySheet = app.otherElements["mangaReader.dictionarySheet"].firstMatch
+        waitForDictionaryResultsToLoad(dictionarySheet, timeout: 30)
 
+        // The add button is hidden until the page has fetched the note state.
+        let addButton = dictionarySheet.webViews.buttons.matching(
+            NSPredicate(format: "label == %@ OR label == %@", "Add to Anki", "Ankiに追加")
+        ).firstMatch
         XCTAssertTrue(
-            editConfigurationButton.waitForExistence(timeout: 15),
-            "Configured Anki settings actions did not appear"
+            addButton.waitForExistence(timeout: 15),
+            "Anki add button did not appear in the dictionary results"
         )
-        XCTAssertTrue(
-            manageFieldMappingsButton.exists,
-            "Configured field mapping controls did not appear"
-        )
+        addButton.tap()
 
-        takeScreenshot(named: "05-AnkiSettings")
+        // The editor is a List, which XCUITest reports as a collection view.
+        let noteEditor = app.collectionViews["anki.noteEditor"].firstMatch
+        XCTAssertTrue(
+            noteEditor.waitForExistence(timeout: 15),
+            "Anki note editor did not appear"
+        )
+        sleep(2)
+
+        takeScreenshot(named: "05-AnkiNoteEditor")
     }
 
     // MARK: - Dictionary Screenshots
@@ -189,17 +203,6 @@ final class ScreenshotTests: XCTestCase {
 
         let webView = app.webViews.firstMatch
         _ = webView.waitForExistence(timeout: 10)
-    }
-
-    private func openAnkiSettings() {
-        navigateToTab(english: "Settings", japanese: "設定")
-
-        let ankiButton = button(english: "Anki", japanese: "Anki")
-        XCTAssertTrue(
-            ankiButton.waitForExistence(timeout: 10),
-            "Anki settings entry did not appear"
-        )
-        ankiButton.tap()
     }
 
     private func openDictionarySettings() {

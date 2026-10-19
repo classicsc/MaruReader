@@ -42,7 +42,7 @@ struct DictionarySearchToolbarView: View {
                 .contentShape(.rect)
                 .disabled(!canGoBack)
 
-            Button("Forward", systemImage: "chevron.forward", action: onForward)
+            Button(String(localized: "Forward", bundle: .dictionaryUICommon), systemImage: "chevron.forward", action: onForward)
                 .labelStyle(.iconOnly)
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(.rect)
@@ -61,7 +61,7 @@ struct DictionarySearchToolbarView: View {
 
             if showsContextActions {
                 Button(
-                    "Furigana",
+                    String(localized: "Furigana", bundle: .dictionaryUICommon),
                     systemImage: furiganaEnabled ? "textformat.characters.dottedunderline.ja" : "textformat.characters.ja",
                     action: onToggleFurigana
                 )
@@ -80,13 +80,13 @@ struct DictionarySearchToolbarView: View {
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(.rect)
                 } else {
-                    Button("Edit", systemImage: "pencil", action: onStartEditing)
+                    Button(String(localized: "Edit", bundle: .dictionaryUICommon), systemImage: "pencil", action: onStartEditing)
                         .labelStyle(.iconOnly)
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(.rect)
                 }
 
-                Button("Copy", systemImage: "doc.on.doc", action: onCopyContext)
+                Button(String(localized: "Copy", bundle: .dictionaryUICommon), systemImage: "doc.on.doc", action: onCopyContext)
                     .labelStyle(.iconOnly)
                     .frame(minWidth: 44, minHeight: 44)
                     .contentShape(.rect)

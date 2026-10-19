@@ -39,7 +39,7 @@ struct AnkiAudioPickerView: View {
                     ProgressView()
                         .frame(maxWidth: .infinity)
                 } else if model.audioSources.isEmpty {
-                    Text("No audio found for this term.")
+                    Text(String(localized: "No audio found for this term.", bundle: .dictionaryUICommon))
                         .foregroundStyle(.secondary)
                 }
                 ForEach(model.audioSources, id: \.self) { source in
@@ -67,16 +67,16 @@ struct AnkiAudioPickerView: View {
                     }
                 }
             } header: {
-                Text("Clips for \(model.termGroup.displayTerm)")
+                Text(String(localized: "Clips for \(model.termGroup.displayTerm)", bundle: .dictionaryUICommon))
             } footer: {
-                Text("Play to preview. Tap a row to use that clip in the note.")
+                Text(String(localized: "Play to preview. Tap a row to use that clip in the note.", bundle: .dictionaryUICommon))
             }
 
             Section {
                 Button {
                     select(nil)
                 } label: {
-                    Label("Leave the field empty", systemImage: "speaker.slash")
+                    Label(String(localized: "Leave the field empty", bundle: .dictionaryUICommon), systemImage: "speaker.slash")
                         .foregroundStyle(.primary)
                 }
             }
@@ -158,19 +158,19 @@ struct AnkiGlossaryPickerView: View {
                 ForEach(model.termGroup.dictionariesResults) { results in
                     dictionaryRow(title: results.dictionaryTitle, preview: results.combinedHTML, id: results.dictionaryUUID)
                 }
-                dictionaryRow(title: String(localized: "All dictionaries"), preview: nil, id: nil)
+                dictionaryRow(title: String(localized: "All dictionaries", bundle: .dictionaryUICommon), preview: nil, id: nil)
             }
 
             Section {
-                Toggle("Dictionary title", isOn: $includeTitle)
-                Toggle("Plain text", isOn: $plain)
+                Toggle(String(localized: "Dictionary title", bundle: .dictionaryUICommon), isOn: $includeTitle)
+                Toggle(String(localized: "Plain text", bundle: .dictionaryUICommon), isOn: $plain)
             } header: {
                 Text("Format")
             } footer: {
-                Text("Changes apply to this note only.")
+                Text(String(localized: "Changes apply to this note only.", bundle: .dictionaryUICommon))
             }
 
-            Section("Preview") {
+            Section(String(localized: "Preview", bundle: .dictionaryUICommon)) {
                 let resolved = model.value(valueID, in: fieldName)?.resolved ?? .empty
                 AnkiNotePreview(html: resolved.previewHTML, text: resolved.previewText)
             }
@@ -225,7 +225,7 @@ struct AnkiPitchPickerView: View {
         List {
             Section("Dictionary") {
                 if model.termGroup.pitchAccentResults.isEmpty {
-                    Text("No pitch accent found for this term.")
+                    Text(String(localized: "No pitch accent found for this term.", bundle: .dictionaryUICommon))
                         .foregroundStyle(.secondary)
                 }
                 ForEach(model.termGroup.pitchAccentResults) { results in

@@ -673,8 +673,8 @@ final class WebViewerViewModel {
     // MARK: - Screenshot Mode
 
     nonisolated static let isScreenshotMode = ProcessInfo.processInfo.arguments.contains("--screenshotMode")
-    static let screenshotLookupText = "咲き誇り"
-    private static let screenshotBaseURL = URL(string: "https://example.jp/hanami")
+    static let screenshotLookupText = "粉雪"
+    private static let screenshotBaseURL = URL(string: "https://example.jp/yukiyama")
 
     private func loadScreenshotContent() {
         guard let page else { return }
