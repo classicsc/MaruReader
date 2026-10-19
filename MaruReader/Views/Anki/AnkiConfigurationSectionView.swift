@@ -22,6 +22,7 @@ struct AnkiConfigurationSectionView: View {
     let snapshot: AnkiSettingsSnapshot
     @Binding var allowDuplicates: Bool
     let isSavingDuplicateOptions: Bool
+    @AppStorage(AnkiAddButtonPreferences.tapActionKey) private var tapAction: AnkiAddButtonTapAction = .addNote
 
     var body: some View {
         Section("Current Configuration") {
@@ -50,6 +51,19 @@ struct AnkiConfigurationSectionView: View {
             if let fieldMapping = snapshot.fieldMappingName {
                 LabeledContent("Field Mapping", value: fieldMapping)
             }
+        }
+
+        Section {
+            Picker("Tap", selection: $tapAction) {
+                Text("Adds note").tag(AnkiAddButtonTapAction.addNote)
+                Text("Opens editor").tag(AnkiAddButtonTapAction.openEditor)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+        } header: {
+            Text("Add Button")
+        } footer: {
+            Text("Long-press the + button in a lookup for the other action.")
         }
 
         Section("Duplicate Detection") {

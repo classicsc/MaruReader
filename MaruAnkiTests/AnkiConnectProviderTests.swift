@@ -506,6 +506,53 @@ struct AnkiConnectProviderTests {
         }
     }
 
+    // MARK: - isDuplicate Tests
+
+    @Test func isDuplicate_asksCanAddNotesWithConfiguredScope() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse([["canAdd": false, "error": "cannot create note because it is a duplicate"]])
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let duplicateOptions = DuplicateDetectionOptions(scope: .deck, deckName: nil, includeChildDecks: true, checkAllModels: false)
+
+        let isDuplicate = try await provider.isDuplicate(
+            fields: ["Front": [.text("日本語"), .media(["img": #require(URL(string: "https://example.com/a.png"))])]],
+            deckName: "Test Deck",
+            modelName: "Basic",
+            duplicateOptions: duplicateOptions
+        )
+
+        #expect(isDuplicate)
+        let body = try #require(try mock.lastRequestBodyAsJSON())
+        #expect(body["action"] as? String == "canAddNotesWithErrorDetail")
+        let params = try #require(body["params"] as? [String: Any])
+        let note = try #require((params["notes"] as? [[String: Any]])?.first)
+        #expect(note["deckName"] as? String == "Test Deck")
+        #expect(note["modelName"] as? String == "Basic")
+        #expect(note["fields"] as? [String: String] == ["Front": "日本語"])
+        let options = try #require(note["options"] as? [String: Any])
+        #expect(options["duplicateScope"] as? String == "deck")
+        let scopeOptions = try #require(options["duplicateScopeOptions"] as? [String: Any])
+        #expect(scopeOptions["deckName"] as? String == "Test Deck")
+        #expect(scopeOptions["checkChildren"] as? Bool == true)
+    }
+
+    @Test func isDuplicate_falseForOtherErrorsAndUnsupportedAction() async throws {
+        let mock = MockNetworkProvider()
+        mock.queuePermissionGrantedResponse()
+        mock.queueResultResponse([["canAdd": false, "error": "cannot create note because it is empty"]])
+        mock.queueErrorResponse("unsupported action")
+
+        let provider = try await AnkiConnectProvider(host: "localhost", port: 8765, network: mock)
+        let duplicateOptions = DuplicateDetectionOptions(scope: .collection, deckName: nil, includeChildDecks: false, checkAllModels: true)
+
+        let emptyNote = await provider.isDuplicate(fields: ["Front": [.text("")]], deckName: "Deck", modelName: "Basic", duplicateOptions: duplicateOptions)
+        #expect(!emptyNote)
+        let unsupported = await provider.isDuplicate(fields: ["Front": [.text("x")]], deckName: "Deck", modelName: "Basic", duplicateOptions: duplicateOptions)
+        #expect(!unsupported)
+    }
+
     @Test func addNote_genericError_throwsApiError() async throws {
         let mock = MockNetworkProvider()
         mock.queuePermissionGrantedResponse()

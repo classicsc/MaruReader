@@ -31,16 +31,33 @@ public actor AnkiNoteService {
 
     // MARK: - Note Existence Checking
 
-    /// Check if a note exists for the given expression, reading, and profile.
-    public func noteExists(expression: String, reading: String?, profileName: String) async -> Bool {
+    /// Whether a recorded note for the term falls inside the duplicate detection scope, the way
+    /// Anki would judge a note added to `deckName` with `modelName`.
+    public func noteExists(
+        expression: String,
+        reading: String?,
+        profileName: String,
+        deckName: String,
+        modelName: String,
+        options: DuplicateDetectionOptions
+    ) async -> Bool {
+        guard options.scope != .none else { return false }
         let context = persistence.newBackgroundContext()
         return await context.perform {
+            // Predicates are built here: NSPredicate is not Sendable, so it cannot cross into the closure.
+            var predicates = [Self.buildNotePredicate(expression: expression, reading: reading, profileName: profileName)]
+            if options.scope == .deck {
+                let scopeDeck = options.deckName ?? deckName
+                predicates.append(options.includeChildDecks
+                    ? NSPredicate(format: "deckName == %@ OR deckName BEGINSWITH %@", scopeDeck, scopeDeck + "::")
+                    : NSPredicate(format: "deckName == %@", scopeDeck))
+            }
+            if !options.checkAllModels {
+                predicates.append(NSPredicate(format: "modelName == %@", modelName))
+            }
+
             let request = NSFetchRequest<AnkiNote>(entityName: "AnkiNote")
-            request.predicate = Self.buildNotePredicate(
-                expression: expression,
-                reading: reading,
-                profileName: profileName
-            )
+            request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: predicates)
             request.fetchLimit = 1
 
             do {

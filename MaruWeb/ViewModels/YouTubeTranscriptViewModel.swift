@@ -75,6 +75,22 @@ final class YouTubeTranscriptViewModel: NSObject, WKScriptMessageHandler {
         controller.addUserScript(makeDictionaryLocalizedStringsScript())
         configuration.userContentController = controller
         popupPage = WebPage(configuration: configuration)
+        Task { [weak self, ankiSchemeHandler] in
+            await ankiSchemeHandler.setEditHandler { [weak self] context in
+                guard let self else { return }
+                Task { @MainActor in self.openAnkiEditor(context) }
+            }
+        }
+    }
+
+    /// "Edit and add" from the popup: push the dictionary view for the same lookup with the editor on top.
+    private func openAnkiEditor(_ context: AnkiNoteEditorContext) {
+        guard let popupSession else { return }
+        let viewModel = DictionarySearchViewModel(session: popupSession)
+        viewModel.presentAnkiEditor(context)
+        dictionaryViewModel = viewModel
+        showPopup = false
+        dictionaryPresented = true
     }
 
     var activeCueID: Int? {

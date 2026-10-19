@@ -18,8 +18,8 @@
 import Foundation
 import MaruReaderCore
 
-enum AnkiMediaURLResolver {
-    static func localFileURL(for url: URL) -> URL? {
+public enum AnkiMediaURLResolver {
+    public static func localFileURL(for url: URL) -> URL? {
         guard let scheme = url.scheme?.lowercased() else {
             return nil
         }

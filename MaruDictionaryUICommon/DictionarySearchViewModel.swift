@@ -61,6 +61,9 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     @ObservationIgnored
     private var pageNavigationTask: Task<Void, Never>?
 
+    /// The note being edited, pushed on the navigation stack while non-nil.
+    var ankiEditor: AnkiNoteEditorModel?
+
     // Store current lookup request and response for context display
     var currentRequest: TextLookupRequest?
     var currentResponse: TextLookupResponse?
@@ -145,6 +148,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         initializeWebPage()
         initializePopupPage()
         applyDictionaryWebTheme()
+        configureAnkiEditHandlers()
     }
 
     deinit {
@@ -164,6 +168,7 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
         initializeWebPage()
         initializePopupPage()
         applyDictionaryWebTheme()
+        configureAnkiEditHandlers()
 
         Task {
             do {
@@ -194,6 +199,38 @@ public final class DictionarySearchViewModel: NSObject, WKScriptMessageHandler {
     private enum ResultsPageMode: String {
         case results
         case popup
+    }
+
+    private func configureAnkiEditHandlers() {
+        Task { [weak self, ankiSchemeHandler, popupAnkiSchemeHandler] in
+            for handler in [ankiSchemeHandler, popupAnkiSchemeHandler] {
+                await handler.setEditHandler { [weak self] context in
+                    guard let self else { return }
+                    Task { @MainActor in self.presentAnkiEditor(context) }
+                }
+            }
+        }
+    }
+
+    /// Pushes the note editor for a term. The editor pops itself once the note is added, and the
+    /// add button then reflects the outcome.
+    public func presentAnkiEditor(_ context: AnkiNoteEditorContext) {
+        hidePopup()
+        let termKey = context.termGroup.termKey
+        ankiEditor = AnkiNoteEditorModel(context: context) { [weak self] state in
+            self?.applyAnkiButtonState(termKey: termKey, state: state)
+        }
+    }
+
+    private func applyAnkiButtonState(termKey: String, state: String) {
+        guard let arguments = try? JSONEncoder().encode([termKey, state]),
+              let argumentsJSON = String(data: arguments, encoding: .utf8)
+        else { return }
+        let script = "window.MaruReader.ankiDisplay?.applyExternalState(...\(argumentsJSON));"
+        Task {
+            _ = try? await evaluateResultsPageJavaScript(script)
+            _ = try? await popupPage.callJavaScript(script)
+        }
     }
 
     private enum ResultsPageError: Error {

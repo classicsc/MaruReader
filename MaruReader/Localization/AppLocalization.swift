@@ -166,51 +166,6 @@ enum AppLocalization {
         )
     }
 
-    static func glossaryDictionary(_ title: String, includeTitle: Bool = true, plain: Bool = false) -> String {
-        let format = switch (includeTitle, plain) {
-        case (true, false): String(localized: "Glossary: %@")
-        case (false, false): String(localized: "Glossary (No Title): %@")
-        case (true, true): String(localized: "Glossary (Plain): %@")
-        case (false, true): String(localized: "Glossary (Plain, No Title): %@")
-        }
-        return String.localizedStringWithFormat(format, title)
-    }
-
-    static func frequencyDictionary(_ title: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Frequency: %@"),
-            title
-        )
-    }
-
-    static func frequencyRankDictionary(_ title: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Freq Sort (Rank): %@"),
-            title
-        )
-    }
-
-    static func frequencyOccurrenceDictionary(_ title: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Freq Sort (Occ): %@"),
-            title
-        )
-    }
-
-    static func glossaryIdentifier(_ shortID: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "Glossary (%@…)"),
-            shortID
-        )
-    }
-
-    static func htmlPreview(_ preview: String) -> String {
-        String.localizedStringWithFormat(
-            String(localized: "HTML: %@"),
-            preview
-        )
-    }
-
     static func ocrFailed(_ errorDescription: String) -> String {
         String.localizedStringWithFormat(
             String(localized: "OCR failed: %@"),

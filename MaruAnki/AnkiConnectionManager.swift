@@ -76,22 +76,69 @@ public actor AnkiConnectionManager {
     /// - Returns: The result containing Anki note ID and configuration used.
     @discardableResult
     public func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult {
+        let draft = try await makeNoteDraft(resolver: resolver)
+        return try await addNote(fields: draft.resolvedFields)
+    }
+
+    /// Resolves the configured field map into an editable draft.
+    public func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft {
+        guard isReady, let fieldMap else {
+            throw AnkiConnectionManagerError.notReady
+        }
+        return await AnkiNoteDraft.resolve(fieldMap: fieldMap, resolver: resolver)
+    }
+
+    /// Whether adding the note would be rejected under the configured duplicate scope: either a
+    /// note for the term was recorded locally within that scope, or Anki itself says so when the
+    /// provider can ask (Anki-Connect). A note that is allowed through is never a duplicate.
+    public func isDuplicate(
+        expression: String,
+        reading: String?,
+        fields: [String: [TemplateResolvedValue]]
+    ) async -> Bool {
         guard isReady,
               let provider,
               let duplicateOptions,
-              let fieldMap,
+              duplicateOptions.scope != .none,
+              let deckName,
+              let modelName
+        else {
+            return false
+        }
+
+        let recorded = await AnkiNoteService(persistence: persistence).noteExists(
+            expression: expression,
+            reading: reading,
+            profileName: profileName ?? "",
+            deckName: deckName,
+            modelName: modelName,
+            options: duplicateOptions
+        )
+        if recorded {
+            return true
+        }
+        return await provider.isDuplicate(
+            fields: fields,
+            deckName: deckName,
+            modelName: modelName,
+            duplicateOptions: duplicateOptions
+        )
+    }
+
+    /// Add a note from already resolved field values, such as an edited draft.
+    /// - Parameter allowDuplicate: Adds the note even where the configured scope would reject it.
+    @discardableResult
+    public func addNote(
+        fields: [String: [TemplateResolvedValue]],
+        allowDuplicate: Bool = false
+    ) async throws -> NoteCreationResult {
+        guard isReady,
+              let provider,
+              let duplicateOptions,
               let deckName,
               let modelName
         else {
             throw AnkiConnectionManagerError.notReady
-        }
-
-        var fields: [String: [TemplateResolvedValue]] = [:]
-        for (fieldName, templateValues) in fieldMap.map {
-            for templateValue in templateValues {
-                let resolvedValue = await resolver.resolve(templateValue)
-                fields[fieldName, default: []].append(resolvedValue)
-            }
         }
 
         let resolvedFields = AnkiFieldValueFormatter.buildFieldValues(from: fields)
@@ -102,7 +149,9 @@ public actor AnkiConnectionManager {
                 profileName: profileName ?? "",
                 deckName: deckName,
                 modelName: modelName,
-                duplicateOptions: duplicateOptions
+                duplicateOptions: allowDuplicate
+                    ? DuplicateDetectionOptions(scope: .none, deckName: nil, includeChildDecks: false, checkAllModels: false)
+                    : duplicateOptions
             )
         } catch let error as AnkiConnectError where error == .duplicateNote {
             throw AnkiConnectionManagerError.duplicateNote

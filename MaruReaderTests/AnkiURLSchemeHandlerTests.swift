@@ -105,8 +105,51 @@ struct AnkiURLSchemeHandlerTests {
         let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
 
         #expect(decoded.state == "success")
-        let resolvedSelectionText = await manager.resolvedSelectionText
-        #expect(resolvedSelectionText == "selected plain text")
+        let submitted = await manager.submittedFields
+        #expect(submitted?["Back"]?.first?.text == "selected plain text")
+        #expect(await manager.submittedAllowDuplicate == false)
+    }
+
+    @Test func addNoteOpensEditorForKnownDuplicateAndSubmitsItAllowed() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()), isDuplicate: true)
+        let noteService = MockAnkiNoteService(existingTermKeys: [])
+        let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+        let recorder = EditRequestRecorder()
+        await handler.setEditHandler { context in
+            Task { await recorder.record(context) }
+        }
+
+        let request = makeAddRequest(requestId: response.requestID.uuidString, termKey: "neko|ねこ", expression: "neko", reading: "ねこ", audioURL: "")
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+
+        #expect(decoded.state == "exists")
+        #expect(await manager.submittedFields == nil)
+        #expect(await noteService.recordedNotes.isEmpty)
+
+        let context = try #require(await recorder.firstContext())
+        #expect(context.isDuplicate)
+
+        let state = await context.submit(context.draft)
+        #expect(state == "success")
+        #expect(await manager.submittedAllowDuplicate == true)
+        #expect(await noteService.recordedNotes.count == 1)
+    }
+
+    @Test func addNoteAddsDirectlyForKnownDuplicateWithoutEditorHost() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .failure(AnkiConnectionManagerError.duplicateNote), isDuplicate: true)
+        let handler = AnkiURLSchemeHandler(noteService: MockAnkiNoteService(existingTermKeys: []), managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+
+        let request = makeAddRequest(requestId: response.requestID.uuidString, termKey: "neko|ねこ", expression: "neko", reading: "ねこ", audioURL: "")
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+
+        #expect(decoded.state == "exists")
+        #expect(await manager.submittedAllowDuplicate == false)
     }
 
     @Test func addNoteReturnsExistsOnDuplicateError() async throws {
@@ -152,6 +195,89 @@ struct AnkiURLSchemeHandlerTests {
 
         #expect(decoded.state == "error")
     }
+
+    @Test func stateReportsConfiguredTapAction() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let handler = AnkiURLSchemeHandler(noteService: MockAnkiNoteService(existingTermKeys: []), managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+
+        let previous = AnkiAddButtonPreferences.tapAction
+        defer { AnkiAddButtonPreferences.tapAction = previous }
+        AnkiAddButtonPreferences.tapAction = .openEditor
+
+        let request = makeStateRequest(requestId: response.requestID.uuidString, terms: [
+            AnkiStateRequestTerm(termKey: "neko|ねこ", expression: "neko", reading: "ねこ"),
+        ])
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiStateResponse.self, from: data)
+
+        #expect(decoded.tapAction == "edit")
+    }
+
+    @Test func editRequestHandsDraftToHostAndSubmitsEditedFields() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let noteService = MockAnkiNoteService(existingTermKeys: [])
+        let handler = AnkiURLSchemeHandler(noteService: noteService, managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+        let recorder = EditRequestRecorder()
+        await handler.setEditHandler { context in
+            Task { await recorder.record(context) }
+        }
+
+        let request = makeAddRequest(
+            requestId: response.requestID.uuidString,
+            termKey: "neko|ねこ",
+            expression: "neko",
+            reading: "ねこ",
+            audioURL: "",
+            selectionText: "selected",
+            endpoint: "edit"
+        )
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+        #expect(decoded.state == "ready")
+
+        let context = try #require(await recorder.firstContext())
+        #expect(context.termGroup.termKey == "neko|ねこ")
+        #expect(!context.isDuplicate)
+        #expect(context.draft.fields.map(\.name) == ["Back", "Front"])
+        #expect(context.draft.field(named: "Back")?.values.first?.resolved.text == "selected")
+        let recordedBeforeSubmit = await noteService.recordedNotes
+        #expect(recordedBeforeSubmit.isEmpty)
+
+        var draft = context.draft
+        try draft.update(field: "Front", value: #require(draft.field(named: "Front")?.values[0].id)) { $0.resolved = .text("edited") }
+        let state = await context.submit(draft)
+
+        #expect(state == "success")
+        let submitted = await manager.submittedFields
+        #expect(submitted?["Front"]?.first?.text == "edited")
+        #expect(await manager.submittedAllowDuplicate == false)
+        let recorded = await noteService.recordedNotes
+        #expect(recorded.count == 1)
+    }
+
+    @Test func editRequestReturnsErrorWithoutHost() async throws {
+        let response = makeResponse(termKey: "neko|ねこ")
+        let manager = MockAnkiConnectionManager(isReady: true, profileName: "Default", addResult: .success(makeNoteResult()))
+        let handler = AnkiURLSchemeHandler(noteService: MockAnkiNoteService(existingTermKeys: []), managerFactory: { manager })
+        await handler.setLookupProvider(MockLookupProvider(response: response))
+
+        let request = makeAddRequest(
+            requestId: response.requestID.uuidString,
+            termKey: "neko|ねこ",
+            expression: "neko",
+            reading: "ねこ",
+            audioURL: "",
+            endpoint: "edit"
+        )
+        let data = try await collectResponseBody(from: handler, request: request)
+        let decoded = try JSONDecoder().decode(AnkiAddResponse.self, from: data)
+
+        #expect(decoded.state == "error")
+    }
 }
 
 private struct AnkiStateRequestTerm: Encodable {
@@ -168,6 +294,7 @@ private struct AnkiStateRequest: Encodable {
 private struct AnkiStateResponse: Decodable {
     let enabled: Bool
     let states: [String: String]
+    let tapAction: String?
 }
 
 private struct AnkiAddRequest: Encodable {
@@ -207,12 +334,15 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
     private let ready: Bool
     private let profile: String?
     private let addResult: Result<NoteCreationResult, Error>
-    private(set) var resolvedSelectionText: String?
+    private let duplicate: Bool
+    private(set) var submittedFields: [String: [TemplateResolvedValue]]?
+    private(set) var submittedAllowDuplicate: Bool?
 
-    init(isReady: Bool, profileName: String?, addResult: Result<NoteCreationResult, Error>) {
+    init(isReady: Bool, profileName: String?, addResult: Result<NoteCreationResult, Error>, isDuplicate: Bool = false) {
         ready = isReady
         profile = profileName
         self.addResult = addResult
+        duplicate = isDuplicate
     }
 
     var isReady: Bool {
@@ -223,14 +353,19 @@ private actor MockAnkiConnectionManager: AnkiConnectionManaging {
         profile
     }
 
-    func addNote(resolver: any TemplateValueResolver) async throws -> NoteCreationResult {
-        switch addResult {
-        case let .success(result):
-            resolvedSelectionText = await resolver.resolve(.selectionText).text
-            return result
-        case let .failure(error):
-            throw error
-        }
+    func makeNoteDraft(resolver: any TemplateValueResolver) async throws -> AnkiNoteDraft {
+        guard ready else { throw AnkiConnectionManagerError.notReady }
+        return await AnkiNoteDraft.resolve(fieldMap: AnkiFieldMap(map: ["Front": [.expression], "Back": [.selectionText]]), resolver: resolver)
+    }
+
+    func isDuplicate(expression _: String, reading _: String?, fields _: [String: [TemplateResolvedValue]]) async -> Bool {
+        duplicate
+    }
+
+    func addNote(fields: [String: [TemplateResolvedValue]], allowDuplicate: Bool) async throws -> NoteCreationResult {
+        submittedFields = fields
+        submittedAllowDuplicate = allowDuplicate
+        return try addResult.get()
     }
 }
 
@@ -348,7 +483,8 @@ private func makeAddRequest(
     expression: String,
     reading: String,
     audioURL: String,
-    selectionText: String? = nil
+    selectionText: String? = nil,
+    endpoint: String = "add"
 ) -> URLRequest {
     let body = AnkiAddRequest(
         requestId: requestId,
@@ -359,10 +495,27 @@ private func makeAddRequest(
         selectionText: selectionText
     )
     let data = try? JSONEncoder().encode(body)
-    var request = URLRequest(url: URL(string: "marureader-anki://add")!)
+    var request = URLRequest(url: URL(string: "marureader-anki://\(endpoint)")!)
     request.httpMethod = "POST"
     request.httpBody = data
     return request
+}
+
+/// Collects the editor context the handler hands out for an edit request.
+private actor EditRequestRecorder {
+    private(set) var contexts: [AnkiNoteEditorContext] = []
+
+    func record(_ context: AnkiNoteEditorContext) {
+        contexts.append(context)
+    }
+
+    /// The edit handler records on a detached task, so give it a moment to arrive.
+    func firstContext() async throws -> AnkiNoteEditorContext? {
+        for _ in 0 ..< 50 where contexts.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        return contexts.first
+    }
 }
 
 private func collectResponseBody(from handler: AnkiURLSchemeHandler, request: URLRequest) async throws -> Data {
