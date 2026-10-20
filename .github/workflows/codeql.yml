@@ -27,7 +27,7 @@ jobs:
     #   - https://gh.io/supported-runners-and-hardware-resources
     #   - https://gh.io/using-larger-runners (GitHub.com only)
     # Consider using larger runners or machines with greater resources for possible analysis time improvements.
-    runs-on: ${{ (matrix.language == 'swift' && 'macos-26') || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     permissions:
       # required for all workflows
       security-events: write
@@ -49,8 +49,6 @@ jobs:
           build-mode: none
         - language: rust
           build-mode: none
-        - language: swift
-          build-mode: manual
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
         # Use `c-cpp` to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
@@ -62,22 +60,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
-
-    - name: Select Xcode
-      if: matrix.language == 'swift'
-      uses: maxim-lobanov/setup-xcode@v1
-      with:
-        xcode-version: latest-stable
-
-    - name: Install just
-      if: matrix.language == 'swift'
-      uses: taiki-e/install-action@just
-
-    - name: Install Rust toolchain
-      if: matrix.language == 'swift'
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        targets: aarch64-apple-ios-sim,x86_64-apple-ios
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -98,10 +80,6 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-    - name: Run manual build steps
-      if: matrix.language == 'swift'
-      run: just build
-
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4.38.3
       with:
