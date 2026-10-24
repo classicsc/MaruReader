@@ -18,7 +18,8 @@ LOG_DIR = ROOT_DIR / "build" / "logs"
 PROJECT_PATH = ROOT_DIR / "MaruReader.xcodeproj"
 PROJECT_FILE = PROJECT_PATH / "project.pbxproj"
 SCHEME = "MaruReader"
-DEFAULT_DESTINATION = "platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5"
+# iOS 27.0: GitHub's xcode-27 image only has iPhone Duo on iOS 27.1 (actions/runner-images#15000).
+DEFAULT_DESTINATION = "platform=iOS Simulator,name=iPhone 18 Pro,OS=27.0"
 RELEASE_TARGETS = ["MaruReader", "MaruShareExtension", "MaruAssetDownloader"]
 TEST_PLANS = [
     "MaruReaderTests",
