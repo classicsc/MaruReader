@@ -50,13 +50,13 @@ mdformat .
 
 Run a specific test plan with `just test-plan MaruReaderCoreTests`, or
 `just test` to run all tests. Specify a simulator target like
-`just test-plan MaruReaderCoreTests 'iPhone 17 Pro'` (default) or
+`just test-plan MaruReaderCoreTests 'iPhone 18 Pro'` (default) or
 `just test 'platform=iOS Simulator,id=<SIMULATOR_UDID>'`. Or a single test with
 `just test-one 'MaruReaderCoreTests/SomeSuite/testExample()' MaruReaderCoreTests`.
 
 Accepted device specifier formats:
 
-- Simulator name: `'iPhone 17 Pro'`
+- Simulator name: `'iPhone 18 Pro'`
 - Simulator UDID: `76252478-5498-412D-9417-76009568896C`
 - Raw xcodebuild destination:
   `'platform=iOS Simulator,id=76252478-5498-412D-9417-76009568896C'`
