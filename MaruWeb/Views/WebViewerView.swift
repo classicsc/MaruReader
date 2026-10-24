@@ -35,9 +35,13 @@ public struct WebViewerView: View {
     @State private var isTabSwitcherPresented = false
     @State private var toolbarTourManager = TourManager()
     @State private var bottomBarHeight: CGFloat = 0
+    @State private var statusStrip: WebStatusStrip?
+    @State private var stripOccludesBottom = false
+    @State private var isLandscape = false
     @Namespace private var glassNamespace
 
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage(YouTubeTranscriptSettings.autoOpenEnabledKey)
     private var transcriptAutoOpenEnabled = YouTubeTranscriptSettings.autoOpenEnabledDefault
 
@@ -62,7 +66,8 @@ public struct WebViewerView: View {
                     onNavigateFromNewTabPage: navigateFromNewTabPage,
                     onNavigateFromAddressEditing: navigateFromAddressEditing,
                     onSelectSuggestion: selectSuggestion,
-                    bottomBarHeight: bottomBarHeight
+                    bottomBarHeight: bottomBarHeight,
+                    filledStatusStrip: fillsStatusStrip ? statusStrip : nil
                 )
                 .safeAreaBar(edge: .bottom) {
                     WebViewerBottomToolbarView(
@@ -70,6 +75,7 @@ public struct WebViewerView: View {
                         addressSelection: $addressSelection,
                         isAddressFocused: $isAddressFocused,
                         isEditingAddress: isEditingAddress,
+                        showsBottomRow: !usesSideToolbar,
                         addressDisplayText: addressDisplayText,
                         floatingButtonIconSize: floatingButtonIconSize,
                         floatingButtonFrameSize: floatingButtonFrameSize,
@@ -87,10 +93,31 @@ public struct WebViewerView: View {
                     )
                     .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { bottomBarHeight = $0 }
                 }
+                .overlay(alignment: statusStrip?.alignment(occludesBottom: stripOccludesBottom) ?? .bottomTrailing) {
+                    if let statusStrip, usesSideToolbar, showsFullControls {
+                        sideToolbar(width: statusStrip.width)
+                    }
+                }
+                // The strip's status block sits at the top, so the bar spans the full width like
+                // the web content and stays put when the status bar hides. The bar is hosted in
+                // its own container, which only hit-tests its laid-out width, so the ignore has
+                // to happen out here rather than inside the bar.
+                .ignoresSafeArea(edges: fillsStatusStrip ? .horizontal : [])
             } else {
                 WebViewerSessionLoadingView()
             }
         }
+        .onGeometryChange(for: WebStatusStrip?.self) { WebStatusStrip(safeAreaInsets: $0.safeAreaInsets) } action: { strip in
+            // Hiding the status bar on the inner display also drops its inset, so a nil reading
+            // while hidden would unhide it again. Nothing else turns a Duo into another device.
+            if let strip {
+                statusStrip = strip
+            }
+        }
+        .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { isLandscape = $0 }
+        // Only while the status bar is in the strip: in portrait it is at the top and feeds
+        // WebKit's top inset, so hiding it there would reflow the page.
+        .statusBarHidden(fillsStatusStrip && isLandscape && !viewModel.overlayState.shouldShowToolbars)
         .overlay(alignment: .top) {
             if let page {
                 WebViewerLoadingProgressView(page: page)
@@ -153,6 +180,53 @@ public struct WebViewerView: View {
         }
         .onAppear(perform: handleAppear)
         .onDisappear(perform: viewModel.tearDown)
+    }
+
+    /// Outer display: the strip is fully reserved and the system tab bar lives there, so the
+    /// secondary toolbar row does too, like Safari.
+    private var usesSideToolbar: Bool {
+        statusStrip != nil && horizontalSizeClass == .compact
+    }
+
+    /// Inner display: only the status block at the top of the strip is occluded, so web content
+    /// gets the full width and the status bar hides with the toolbars, like Safari.
+    private var fillsStatusStrip: Bool {
+        statusStrip != nil && horizontalSizeClass == .regular
+    }
+
+    private var showsFullControls: Bool {
+        viewModel.overlayState.shouldShowToolbars && !viewModel.readingModeEnabled && !isEditingAddress
+    }
+
+    /// The bottom row stacked in the strip, sharing the bottom bar's baseline unless the camera
+    /// and status block are down there, in which case it hangs from the top instead.
+    private func sideToolbar(width: CGFloat) -> some View {
+        let alignment = statusStrip?.alignment(occludesBottom: stripOccludesBottom) ?? .bottomTrailing
+        return GlassEffectContainer(spacing: 10) {
+            WebViewerBottomRowView(
+                axis: .vertical,
+                canGoBack: viewModel.page?.canGoBack == true,
+                canGoForward: viewModel.page?.canGoForward == true,
+                isBookmarked: viewModel.isBookmarked,
+                bookmarks: viewModel.bookmarks,
+                tabCount: viewModel.tabs.count,
+                floatingButtonIconSize: floatingButtonIconSize,
+                floatingButtonFrameSize: floatingButtonFrameSize,
+                glassNamespace: glassNamespace,
+                onGoBack: viewModel.goBack,
+                onGoForward: viewModel.goForward,
+                onToggleBookmark: toggleBookmark,
+                onNavigateToBookmark: navigateToBookmark,
+                onShowTabSwitcher: showTabSwitcher,
+                onCollapseToolbar: collapseToolbar,
+                onDismiss: dismissViewer
+            )
+        }
+        .frame(width: width)
+        .frame(maxHeight: .infinity, alignment: alignment)
+        .background { WebStripOcclusionProbe { stripOccludesBottom = $0 } }
+        .frame(maxWidth: .infinity, alignment: alignment)
+        .ignoresSafeArea(edges: .horizontal)
     }
 
     private var editMenuSelectionBinding: Binding<WebTextSelection?> {

@@ -29,6 +29,11 @@ struct WebViewerContentView: View {
     let onSelectSuggestion: (String) -> Void
     /// Height of the bottom bar, which floats over the full-bleed web view.
     let bottomBarHeight: CGFloat
+    /// Set when the parent has given up the horizontal safe area to this strip (iPhone Duo's inner
+    /// display, where only the status block at the top of the strip is occluded). Web content runs
+    /// under it, the OCR overlay follows so its boxes keep lining up with the snapshot, and the
+    /// strip is re-added as safe-area padding so everything else stays clear of the status block.
+    let filledStatusStrip: WebStatusStrip?
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var isLandscape = false
 
@@ -46,7 +51,7 @@ struct WebViewerContentView: View {
                         model?.handleScrollOffsetChange(from: oldOffset, to: newOffset)
                     }
                     .id(page.webView)
-                    .ignoresSafeArea(edges: .vertical)
+                    .ignoresSafeArea(edges: filledStatusStrip == nil ? .vertical : .all)
                     if viewModel.transcriptPresented, usesTranscriptSidePanel,
                        let videoID = YouTubeVideo.id(from: page.url)
                     {
@@ -106,9 +111,11 @@ struct WebViewerContentView: View {
                             await viewModel.captureAndRunOCR(viewSize: geometry.size)
                         }
                     }
+                    .ignoresSafeArea(edges: filledStatusStrip == nil ? [] : .horizontal)
                 }
             }
         }
+        .safeAreaPadding(filledStatusStrip?.edgeSet ?? [], filledStatusStrip?.width ?? 0)
         .onChange(of: page.webView) { closeTranscript() }
         .onChange(of: page.url) { oldURL, newURL in
             if YouTubeVideo.id(from: oldURL) != YouTubeVideo.id(from: newURL) {

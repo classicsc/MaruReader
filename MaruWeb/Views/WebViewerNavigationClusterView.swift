@@ -18,6 +18,7 @@
 import SwiftUI
 
 struct WebViewerNavigationClusterView: View {
+    var axis: Axis = .horizontal
     let canGoBack: Bool
     let canGoForward: Bool
     let iconSize: CGFloat
@@ -27,7 +28,8 @@ struct WebViewerNavigationClusterView: View {
     let onGoForward: () -> Void
 
     var body: some View {
-        HStack(spacing: 0) {
+        let layout = axis == .vertical ? AnyLayout(VStackLayout(spacing: 0)) : AnyLayout(HStackLayout(spacing: 0))
+        layout {
             Button(action: onGoBack) {
                 Image(systemName: "chevron.backward")
                     .font(.system(size: iconSize, weight: .semibold))
@@ -40,7 +42,10 @@ struct WebViewerNavigationClusterView: View {
             .accessibilityLabel("Back")
 
             Divider()
-                .frame(height: frameSize - 12)
+                .frame(
+                    width: axis == .vertical ? frameSize - 12 : nil,
+                    height: axis == .horizontal ? frameSize - 12 : nil
+                )
 
             Button(action: onGoForward) {
                 Image(systemName: "chevron.forward")
@@ -53,7 +58,7 @@ struct WebViewerNavigationClusterView: View {
             .opacity(canGoForward ? 1.0 : 0.38)
             .accessibilityLabel("Forward")
         }
-        .padding(.horizontal, 2)
+        .padding(axis == .vertical ? .vertical : .horizontal, 2)
         .glassEffect(in: Capsule())
         .glassEffectID("navCluster", in: namespace)
         .glassEffectTransition(.matchedGeometry)

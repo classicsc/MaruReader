@@ -19,6 +19,7 @@ import MaruDictionaryUICommon
 import SwiftUI
 
 struct WebViewerBottomRowView: View {
+    var axis: Axis = .horizontal
     let canGoBack: Bool
     let canGoForward: Bool
     let isBookmarked: Bool
@@ -36,8 +37,10 @@ struct WebViewerBottomRowView: View {
     let onDismiss: () -> Void
 
     var body: some View {
-        HStack(alignment: .center, spacing: 12) {
+        let layout = axis == .vertical ? AnyLayout(VStackLayout(spacing: 8)) : AnyLayout(HStackLayout(spacing: 12))
+        layout {
             WebViewerNavigationClusterView(
+                axis: axis,
                 canGoBack: canGoBack,
                 canGoForward: canGoForward,
                 iconSize: floatingButtonIconSize,
@@ -47,7 +50,9 @@ struct WebViewerBottomRowView: View {
                 onGoForward: onGoForward
             )
 
-            Spacer()
+            if axis == .horizontal {
+                Spacer()
+            }
 
             WebViewerBookmarkButton(
                 isBookmarked: isBookmarked,

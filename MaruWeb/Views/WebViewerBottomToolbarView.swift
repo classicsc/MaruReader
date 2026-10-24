@@ -24,6 +24,8 @@ struct WebViewerBottomToolbarView: View {
     @Binding var addressSelection: TextSelection?
     @Binding var isAddressFocused: Bool
     let isEditingAddress: Bool
+    /// Off when the bottom row lives in a side toolbar instead (iPhone Duo's outer display).
+    let showsBottomRow: Bool
     let addressDisplayText: String
     let floatingButtonIconSize: CGFloat
     let floatingButtonFrameSize: CGFloat
@@ -80,7 +82,7 @@ struct WebViewerBottomToolbarView: View {
                             onReload: viewModel.reload
                         )
 
-                        if !isEditingAddress {
+                        if showsBottomRow, !isEditingAddress {
                             WebViewerBottomRowView(
                                 canGoBack: canGoBack,
                                 canGoForward: canGoForward,
@@ -105,7 +107,7 @@ struct WebViewerBottomToolbarView: View {
                 // Maintain toolbar height when reading mode hides the regular controls.
                 if viewModel.readingModeEnabled, viewModel.overlayState.shouldShowToolbars {
                     Color.clear
-                        .frame(height: floatingButtonFrameSize * 2 + 8)
+                        .frame(height: showsBottomRow ? floatingButtonFrameSize * 2 + 8 : floatingButtonFrameSize)
                         .accessibilityHidden(true)
                 }
 
