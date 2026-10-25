@@ -2193,9 +2193,9 @@
         }
       ],
       "name" : "swift-collections",
-      "revision" : "3b69cedbaa49957e97c092ae400bb57602ef941f",
+      "revision" : "35a1edcb8ebd2bfe251d587f0b69e62af28f508c",
       "sourceURL" : "https:\/\/github.com\/apple\/swift-collections.git",
-      "version" : "1.7.2"
+      "version" : "1.7.3"
     },
     {
       "category" : "spm",
@@ -2209,9 +2209,9 @@
         }
       ],
       "name" : "swift-toolkit",
-      "revision" : "d82f44f4f05d87add9e22a8b75abbd61dce745dd",
+      "revision" : "9a8c094b72245fd27043c9d298005e5c78b32a01",
       "sourceURL" : "https:\/\/github.com\/readium\/swift-toolkit.git",
-      "version" : "3.11.0"
+      "version" : "3.11.1"
     },
     {
       "category" : "spm",
@@ -2225,9 +2225,9 @@
         }
       ],
       "name" : "SwiftSoup",
-      "revision" : "9598b4f4e5a0a18f8d96e664f209e9022cddd30a",
+      "revision" : "e7f85f4d3dd91ca9a1e94d3328aa1ed5120a8c0f",
       "sourceURL" : "https:\/\/github.com\/scinfu\/SwiftSoup.git",
-      "version" : "2.14.1"
+      "version" : "2.14.3"
     },
     {
       "category" : "spm",
@@ -2277,6 +2277,6 @@
       "version" : "3.0.1"
     }
   ],
-  "generatedAt" : "2026-10-19T02:20:37.551Z",
+  "generatedAt" : "2026-10-25T04:10:47.442Z",
   "schemaVersion" : 1
 }

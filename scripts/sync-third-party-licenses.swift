@@ -340,7 +340,7 @@ private func decode<T: Decodable>(_: T.Type, from url: URL) throws -> T {
     return try JSONDecoder().decode(T.self, from: data)
 }
 
-private func resolveCheckoutsRoot(rootURL _: URL) throws -> URL {
+private func resolveCheckoutsRoot(rootURL: URL) throws -> URL {
     let fileManager = FileManager.default
 
     if let sourcePackagesDir = ProcessInfo.processInfo.environment["SOURCE_PACKAGES_DIR_PATH"], !sourcePackagesDir.isEmpty {
@@ -361,8 +361,15 @@ private func resolveCheckoutsRoot(rootURL _: URL) throws -> URL {
         throw ScriptError.noCheckoutsFound
     }
 
+    // Other checkouts (e.g. git worktrees) get their own DerivedData folder with possibly different pins,
+    // so only consider folders whose workspace is this checkout's project.
+    let projectPath = rootURL.appendingPathComponent("MaruReader.xcodeproj").standardizedFileURL.path
     let candidateCheckouts: [URL] = entries
         .filter { $0.lastPathComponent.hasPrefix("MaruReader-") }
+        .filter { entry in
+            let info = NSDictionary(contentsOf: entry.appendingPathComponent("info.plist"))
+            return (info?["WorkspacePath"] as? String).map { URL(fileURLWithPath: $0).standardizedFileURL.path } == projectPath
+        }
         .map { $0.appendingPathComponent("SourcePackages/checkouts") }
         .filter { fileManager.fileExists(atPath: $0.path) }
 
