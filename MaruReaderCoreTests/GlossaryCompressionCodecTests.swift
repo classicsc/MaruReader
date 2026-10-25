@@ -387,17 +387,17 @@ struct GlossaryCompressionCodecTests {
                     )
 
                     guard let decodedJSON = GlossaryCompressionCodec.decodeGlossaryJSON(
-                        encoded,
-                        dictionaryID: dictionaryID,
-                        searchBaseDirectory: baseDirectory
-                    ),
-                        decodedJSON == jsonData,
-                        let decodedDefinitions = GlossaryCompressionCodec.decodeDefinitions(
-                            from: encoded,
-                            dictionaryID: dictionaryID,
-                            searchBaseDirectory: baseDirectory
-                        ),
-                        let reencodedDefinitions = try? JSONEncoder().encode(decodedDefinitions)
+                              encoded,
+                              dictionaryID: dictionaryID,
+                              searchBaseDirectory: baseDirectory
+                          ),
+                          decodedJSON == jsonData,
+                          let decodedDefinitions = GlossaryCompressionCodec.decodeDefinitions(
+                              from: encoded,
+                              dictionaryID: dictionaryID,
+                              searchBaseDirectory: baseDirectory
+                          ),
+                          let reencodedDefinitions = try? JSONEncoder().encode(decodedDefinitions)
                     else {
                         return false
                     }
