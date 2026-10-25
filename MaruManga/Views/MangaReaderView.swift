@@ -47,13 +47,6 @@ public struct MangaReaderView: View {
                 Color(.systemBackground)
                     .ignoresSafeArea()
                 pageContainer
-                    // Keep pages inside the horizontal safe area with plain padding and give the
-                    // paged TabView no safe area of its own. Left with one, it extends its scroll
-                    // view into it and compensates with a content inset, which on iPhone Duo's
-                    // outer display (an 84 pt strip on one side only) leaves each page offset
-                    // from the viewport, showing the neighboring page's edge.
-                    .padding(.leading, geometry.safeAreaInsets.leading)
-                    .padding(.trailing, geometry.safeAreaInsets.trailing)
                     .ignoresSafeArea()
                     .safeAreaInset(edge: .top) {
                         floatingBackButton
@@ -194,6 +187,7 @@ public struct MangaReaderView: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .background(MangaPagingInsetAdjustmentDisabler())
         .environment(\.layoutDirection, viewModel.readingDirection == .rightToLeft ? .rightToLeft : .leftToRight)
     }
 
@@ -206,6 +200,7 @@ public struct MangaReaderView: View {
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
+        .background(MangaPagingInsetAdjustmentDisabler())
         .environment(\.layoutDirection, viewModel.readingDirection == .rightToLeft ? .rightToLeft : .leftToRight)
     }
 
