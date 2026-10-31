@@ -57,17 +57,17 @@ public struct ContextImageConfiguration: Sendable, Codable, Equatable {
     public func preferredImage(for sourceType: ContextSourceType) -> ContextImagePreference? {
         switch sourceType {
         case .book:
-            return bookPreference
+            bookPreference
         case .manga:
-            return mangaPreference
+            mangaPreference
         case .web:
             // Web lookups only have screenshots available
-            return .screenshot
+            .screenshot
         case .dictionary:
             // Dictionary lookups only have screenshots available
-            return .screenshot
+            .screenshot
         @unknown default:
-            return nil
+            nil
         }
     }
 }

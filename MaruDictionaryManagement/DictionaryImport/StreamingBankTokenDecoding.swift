@@ -178,17 +178,17 @@ private enum StreamingJSONValue {
     static func read(from stream: JsonInputStream, firstToken: JsonToken) throws -> StreamingJSONValue {
         switch firstToken {
         case .startObject:
-            return try .object(readObject(from: stream))
+            try .object(readObject(from: stream))
         case .startArray:
-            return try .array(readArray(from: stream))
+            try .array(readArray(from: stream))
         case let .string(_, value):
-            return .string(value)
+            .string(value)
         case let .number(_, value):
-            return .number(value)
+            .number(value)
         case let .bool(_, value):
-            return .bool(value)
+            .bool(value)
         case .null:
-            return .null
+            .null
         case .endArray, .endObject:
             throw DictionaryImportError.invalidData
         }

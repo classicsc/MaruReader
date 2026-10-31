@@ -87,7 +87,7 @@ public struct AnkiConnectProbe: Sendable {
     private func profiles(from response: AnkiProfileListingResponse) throws -> [AnkiProfileMeta] {
         switch response {
         case let .success(profiles):
-            return profiles
+            profiles
         case let .failure(error):
             throw error
         case .apiCapabilityMissing:
@@ -98,7 +98,7 @@ public struct AnkiConnectProbe: Sendable {
     private func decks(from response: AnkiDeckListingResponse) throws -> [AnkiDeckMeta] {
         switch response {
         case let .success(decks):
-            return decks
+            decks
         case let .failure(error):
             throw error
         case .apiCapabilityMissing:
@@ -109,7 +109,7 @@ public struct AnkiConnectProbe: Sendable {
     private func models(from response: AnkiModelListingResponse) throws -> [AnkiModelMeta] {
         switch response {
         case let .success(models):
-            return models
+            models
         case let .failure(error):
             throw error
         case .apiCapabilityMissing:

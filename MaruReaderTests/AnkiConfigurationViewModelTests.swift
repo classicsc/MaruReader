@@ -249,7 +249,7 @@ private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
     func fetchDecks(connection _: AnkiConnectConnectionInfo, profileName _: String) async throws -> [AnkiDeckMeta] {
         switch decksResult {
         case let .success(decks):
-            return decks
+            decks
         case let .failure(error):
             throw error
         }
@@ -258,7 +258,7 @@ private actor MockAnkiConnectionProbe: AnkiConnectionProbing {
     func fetchModels(connection _: AnkiConnectConnectionInfo, profileName _: String) async throws -> [AnkiModelMeta] {
         switch modelsResult {
         case let .success(models):
-            return models
+            models
         case let .failure(error):
             throw error
         }

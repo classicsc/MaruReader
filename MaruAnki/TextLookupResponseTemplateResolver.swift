@@ -57,156 +57,156 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
         // MARK: - Simple values from search results
 
         case .expression:
-            return .text(selectedGroup.expression)
+            .text(selectedGroup.expression)
 
         case .reading:
-            return .text(selectedGroup.reading)
+            .text(selectedGroup.reading)
 
         case .selectionText:
-            return .text(selectionText)
+            .text(selectionText)
 
         // MARK: - Context values from request
 
         case .sentence:
-            return .text(response.effectiveContext)
+            .text(response.effectiveContext)
 
         case .contextInfo:
-            return resolveContextInfo()
+            resolveContextInfo()
 
         case .contextImage:
-            return resolveContextImage()
+            resolveContextImage()
 
         // MARK: - Cloze deletion values
 
         case .clozePrefix:
-            return resolveClozePrefix()
+            resolveClozePrefix()
 
         case .clozeBody:
-            return .text(response.primaryResult)
+            .text(response.primaryResult)
 
         case .clozeSuffix:
-            return resolveClozeSuffix()
+            resolveClozeSuffix()
 
         case .clozeFuriganaPrefix:
-            return resolveClozeFuriganaPrefix()
+            resolveClozeFuriganaPrefix()
 
         case .clozeFuriganaBody:
-            return resolveClozeFuriganaBody()
+            resolveClozeFuriganaBody()
 
         case .clozeFuriganaSuffix:
-            return resolveClozeFuriganaSuffix()
+            resolveClozeFuriganaSuffix()
 
         // MARK: - Conjugation/deinflection
 
         case .conjugation:
-            return .text(nil)
+            .text(nil)
 
         // MARK: - Furigana
 
         case .furigana:
-            return resolveFurigana()
+            resolveFurigana()
 
         case .sentenceFurigana:
-            return .text(generateSentenceFurigana(response.effectiveContext))
+            .text(generateSentenceFurigana(response.effectiveContext))
 
         // MARK: - Tags and part of speech
 
         case .partOfSpeech:
-            return resolvePartOfSpeech()
+            resolvePartOfSpeech()
 
         case .tags:
-            return resolveTags()
+            resolveTags()
 
         // MARK: - Dictionary glossary values
 
         case let .singleDictionaryGlossary(dictionaryID):
-            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: false)
+            resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: false)
 
         case let .singleDictionaryGlossaryNoDictionary(dictionaryID):
-            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: false)
+            resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: false)
 
         case let .singleDictionaryGlossaryPlain(dictionaryID):
-            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: true)
+            resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: true, plain: true)
 
         case let .singleDictionaryGlossaryPlainNoDictionary(dictionaryID):
-            return resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: true)
+            resolveGlossary(dictionaryResults(for: dictionaryID), includeTitle: false, plain: true)
 
         case .singleGlossary:
-            return resolveGlossary(firstDictionaryResults, includeTitle: true, plain: false)
+            resolveGlossary(firstDictionaryResults, includeTitle: true, plain: false)
 
         case .glossaryNoDictionary:
-            return resolveGlossary(firstDictionaryResults, includeTitle: false, plain: false)
+            resolveGlossary(firstDictionaryResults, includeTitle: false, plain: false)
 
         case .singleGlossaryPlain:
-            return resolveGlossary(firstDictionaryResults, includeTitle: true, plain: true)
+            resolveGlossary(firstDictionaryResults, includeTitle: true, plain: true)
 
         case .singleGlossaryPlainNoDictionary:
-            return resolveGlossary(firstDictionaryResults, includeTitle: false, plain: true)
+            resolveGlossary(firstDictionaryResults, includeTitle: false, plain: true)
 
         case .multiDictionaryGlossary:
-            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: false)
+            resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: false)
 
         case .multiDictionaryGlossaryNoDictionary:
-            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: false)
+            resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: false)
 
         case .multiDictionaryGlossaryPlain:
-            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: true)
+            resolveGlossary(selectedGroup.dictionariesResults, includeTitle: true, plain: true)
 
         case .multiDictionaryGlossaryPlainNoDictionary:
-            return resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: true)
+            resolveGlossary(selectedGroup.dictionariesResults, includeTitle: false, plain: true)
 
         // MARK: - Audio
 
         case .pronunciationAudio:
-            return resolvePronunciationAudio()
+            resolvePronunciationAudio()
 
         // MARK: - Pitch accent
 
         case .singlePitchAccent:
-            return resolveSinglePitchAccent()
+            resolveSinglePitchAccent()
 
         case let .singlePitchAccentDictionary(dictionaryID):
-            return resolvePitchAccent(forDictionary: dictionaryID)
+            resolvePitchAccent(forDictionary: dictionaryID)
 
         case .pitchAccentList:
-            return resolvePitchAccentList()
+            resolvePitchAccentList()
 
         case .pitchAccentDisambiguation:
-            return resolvePitchAccentDisambiguation()
+            resolvePitchAccentDisambiguation()
 
         case .pitchAccentCategories:
-            return resolvePitchAccentCategories()
+            resolvePitchAccentCategories()
 
         // MARK: - Frequency
 
         case .frequencyList:
-            return resolveFrequencyList()
+            resolveFrequencyList()
 
         case .singleFrequency:
-            return resolveSingleFrequency()
+            resolveSingleFrequency()
 
         case let .singleFrequencyDictionary(dictionaryID):
-            return resolveFrequency(forDictionary: dictionaryID)
+            resolveFrequency(forDictionary: dictionaryID)
 
         case let .frequencyRankSortField(dictionaryID):
-            return resolveFrequencyRankSortField(forDictionary: dictionaryID)
+            resolveFrequencyRankSortField(forDictionary: dictionaryID)
 
         case let .frequencyOccurrenceSortField(dictionaryID):
-            return resolveFrequencyOccurrenceSortField(forDictionary: dictionaryID)
+            resolveFrequencyOccurrenceSortField(forDictionary: dictionaryID)
 
         case .frequencyRankHarmonicMeanSortField:
-            return resolveFrequencyRankHarmonicMeanSortField()
+            resolveFrequencyRankHarmonicMeanSortField()
 
         case .frequencyOccurrenceHarmonicMeanSortField:
-            return resolveFrequencyOccurrenceHarmonicMeanSortField()
+            resolveFrequencyOccurrenceHarmonicMeanSortField()
 
         // MARK: - Custom value passthrough
 
         case let .customHTMLValue(value):
-            return .text(value)
+            .text(value)
 
         @unknown default:
-            return .empty
+            .empty
         }
     }
 
@@ -483,11 +483,11 @@ public struct TextLookupResponseTemplateResolver: TemplateValueResolver {
     private func formatPitchAccent(_ pitch: PitchAccent) -> String {
         switch pitch.position {
         case let .mora(position):
-            return String(position)
+            String(position)
         case let .pattern(pattern):
-            return pattern
+            pattern
         @unknown default:
-            return ""
+            ""
         }
     }
 
