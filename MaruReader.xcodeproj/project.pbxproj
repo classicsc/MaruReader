@@ -4885,7 +4885,7 @@
 			repositoryURL = "https://github.com/readium/ZIPFoundation";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 3.0.1;
+				minimumVersion = 3.0.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

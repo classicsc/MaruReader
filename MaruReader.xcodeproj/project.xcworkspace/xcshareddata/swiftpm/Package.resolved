@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/readium/ZIPFoundation.git",
       "state" : {
-        "revision" : "adb49c8bfe060cc187370b12fa081012a6440b86",
-        "version" : "3.0.1"
+        "revision" : "4f8ac5b26ed781ce48deff08bd47222f3e220d06",
+        "version" : "3.0.2"
       }
     }
   ],
